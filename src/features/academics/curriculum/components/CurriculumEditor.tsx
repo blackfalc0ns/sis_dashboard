@@ -17,6 +17,10 @@ import {
   updateLesson,
   deleteLesson,
 } from "@/features/academics/curriculum/services/curriculumService";
+import {
+  curriculumFormErrors,
+  curriculumUiError,
+} from "@/features/academics/curriculum/services/curriculumErrors";
 import LearningContentPanel from "./LearningContentPanel";
 
 interface CurriculumEditorProps {
@@ -48,6 +52,14 @@ const emptyForm: CurriculumEditorForm = {
   estimatedMinutes: "",
 };
 
+const curriculumEditorFields = [
+  "title",
+  "description",
+  "objectives",
+  "estimatedLessons",
+  "estimatedMinutes",
+] as const satisfies readonly (keyof CurriculumEditorForm)[];
+
 export default function CurriculumEditor({
   curriculum,
   units,
@@ -66,12 +78,17 @@ export default function CurriculumEditor({
 
   const [formData, setFormData] = useState<CurriculumEditorForm>(emptyForm);
   const [originalData, setOriginalData] = useState<CurriculumEditorForm>(emptyForm);
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<keyof CurriculumEditorForm, string>>
+  >({});
+  const [formMessages, setFormMessages] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [learningContentOpen, setLearningContentOpen] = useState(false);
 
   useEffect(() => {
+    setFieldErrors({});
+    setFormMessages([]);
     if (!selectedNode) {
       setFormData(emptyForm);
       setOriginalData(emptyForm);
@@ -124,16 +141,25 @@ export default function CurriculumEditor({
     onDirtyChange(dirty);
   }, [formData, originalData, onDirtyChange]);
 
+  const updateFormField = <Field extends keyof CurriculumEditorForm>(
+    field: Field,
+    value: CurriculumEditorForm[Field],
+  ) => {
+    setFormData((current) => ({ ...current, [field]: value }));
+    setFieldErrors((current) => ({ ...current, [field]: undefined }));
+  };
+
   const handleSave = async () => {
     if (isReadOnly || !selectedNode) return;
 
     const title = formData.title.trim();
     if (!title) {
-      setValidationError(tValidation("required"));
+      setFieldErrors({ title: tValidation("required") });
       return;
     }
 
-    setValidationError(null);
+    setFieldErrors({});
+    setFormMessages([]);
     setIsSaving(true);
     try {
       if (selectedNode.type === "unit") {
@@ -186,7 +212,10 @@ export default function CurriculumEditor({
       await onRefresh();
       onDirtyChange(false);
     } catch (error) {
-      console.error("Failed to save:", error);
+      const mapped = curriculumUiError(error, tValidation("invalid"));
+      const projected = curriculumFormErrors(mapped, curriculumEditorFields);
+      setFieldErrors(projected.fieldErrors);
+      setFormMessages([...new Set([mapped.message, ...projected.formMessages])]);
     } finally {
       setIsSaving(false);
     }
@@ -208,7 +237,8 @@ export default function CurriculumEditor({
         onSelectNode(null);
       }
     } catch (error) {
-      console.error("Failed to delete:", error);
+      const mapped = curriculumUiError(error, tValidation("invalid"));
+      setFormMessages([...new Set([mapped.message, ...mapped.details])]);
     }
   };
 
@@ -261,22 +291,32 @@ export default function CurriculumEditor({
             </div>
           </div>
 
+          {formMessages.length > 0 && (
+            <div
+              role="alert"
+              aria-live="polite"
+              className="rounded-lg bg-red-50 p-3 text-sm text-red-700"
+            >
+              {formMessages.map((message) => (
+                <p key={message}>{message}</p>
+              ))}
+            </div>
+          )}
+
           <Input
             label={t("title")}
             value={formData.title}
-            onChange={(e) => {
-              setFormData({ ...formData, title: e.target.value });
-              setValidationError(null);
-            }}
+            onChange={(e) => updateFormField("title", e.target.value)}
             required
-            error={validationError || undefined}
+            error={fieldErrors.title}
             disabled={isReadOnly}
           />
 
           <TextArea
             label={t("description")}
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            onChange={(e) => updateFormField("description", e.target.value)}
+            error={fieldErrors.description}
             disabled={isReadOnly}
             rows={3}
           />
@@ -286,7 +326,8 @@ export default function CurriculumEditor({
               label={t("estimated_lessons")}
               type="number"
               value={formData.estimatedLessons}
-              onChange={(e) => setFormData({ ...formData, estimatedLessons: e.target.value })}
+              onChange={(e) => updateFormField("estimatedLessons", e.target.value)}
+              error={fieldErrors.estimatedLessons}
               disabled={isReadOnly}
             />
           )}
@@ -296,7 +337,8 @@ export default function CurriculumEditor({
               <TextArea
                 label={t("objectives")}
                 value={formData.objectives}
-                onChange={(e) => setFormData({ ...formData, objectives: e.target.value })}
+                onChange={(e) => updateFormField("objectives", e.target.value)}
+                error={fieldErrors.objectives}
                 disabled={isReadOnly}
                 rows={4}
               />
@@ -304,7 +346,8 @@ export default function CurriculumEditor({
                 label={t("duration_minutes")}
                 type="number"
                 value={formData.estimatedMinutes}
-                onChange={(e) => setFormData({ ...formData, estimatedMinutes: e.target.value })}
+                onChange={(e) => updateFormField("estimatedMinutes", e.target.value)}
+                error={fieldErrors.estimatedMinutes}
                 disabled={isReadOnly}
               />
             </>

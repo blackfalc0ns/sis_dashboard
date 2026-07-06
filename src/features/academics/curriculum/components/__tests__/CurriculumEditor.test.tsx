@@ -1,0 +1,106 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import { ApiError } from "@/lib/api-error";
+import type { Curriculum, Unit } from "../../services/curriculumService";
+import {
+  createLesson,
+  createUnit,
+} from "../../services/curriculumService";
+import CurriculumEditor from "../CurriculumEditor";
+
+vi.mock("next-intl", () => ({
+  useLocale: () => "en",
+  useTranslations: () => (key: string) => key,
+}));
+
+vi.mock("../../services/curriculumService", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../services/curriculumService")>();
+  return {
+    ...actual,
+    createLesson: vi.fn(),
+    createUnit: vi.fn(),
+    deleteLesson: vi.fn(),
+    deleteUnit: vi.fn(),
+    updateLesson: vi.fn(),
+    updateUnit: vi.fn(),
+  };
+});
+
+vi.mock("../LearningContentPanel", () => ({ default: () => null }));
+
+const curriculum = { id: "curriculum-1" } as Curriculum;
+const unit = { id: "unit-1", curriculumId: curriculum.id } as Unit;
+
+const baseProps = {
+  curriculum,
+  lessons: [],
+  termWeeks: 12,
+  onRefresh: vi.fn(async () => undefined),
+  onDirtyChange: vi.fn(),
+  isReadOnly: false,
+};
+
+describe("CurriculumEditor", () => {
+  it("maps unit validation errors and clears the edited field error", async () => {
+    const user = userEvent.setup();
+    vi.mocked(createUnit).mockRejectedValueOnce(
+      new ApiError("Validation failed", 422, "validation.failed", {
+        title: ["Unit title already exists"],
+        estimatedLessons: ["Estimated lessons must be positive"],
+        sortOrder: ["Unit order is invalid"],
+      }),
+    );
+
+    render(
+      <CurriculumEditor
+        {...baseProps}
+        units={[]}
+        selectedNode={{ type: "unit", id: "new" }}
+      />,
+    );
+
+    await user.type(screen.getByLabelText(/title/), "Unit one");
+    await user.type(screen.getByLabelText(/estimated_lessons/), "0");
+    await user.click(screen.getByRole("button", { name: "save" }));
+
+    expect(await screen.findByText("Unit title already exists")).toBeInTheDocument();
+    expect(screen.getByText("Estimated lessons must be positive")).toBeInTheDocument();
+    expect(screen.getByText("Unit order is invalid")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Unit one")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/title/), " revised");
+    expect(screen.queryByText("Unit title already exists")).not.toBeInTheDocument();
+    expect(screen.getByText("Estimated lessons must be positive")).toBeInTheDocument();
+  });
+
+  it("maps indexed lesson objective validation to the objectives field", async () => {
+    const user = userEvent.setup();
+    vi.mocked(createLesson).mockRejectedValueOnce(
+      new ApiError("Validation failed", 422, "validation.failed", {
+        "objectives.0": ["Objective is invalid"],
+        estimatedMinutes: ["Duration must be positive"],
+      }),
+    );
+
+    render(
+      <CurriculumEditor
+        {...baseProps}
+        units={[unit]}
+        selectedNode={{ type: "lesson", id: "new-unit-1" }}
+      />,
+    );
+
+    await user.type(screen.getByLabelText(/title/), "Lesson one");
+    await user.type(screen.getByLabelText(/objectives/), "Objective");
+    await user.type(screen.getByLabelText(/duration_minutes/), "0");
+    await user.click(screen.getByRole("button", { name: "save" }));
+
+    expect(await screen.findByText("Objective is invalid")).toBeInTheDocument();
+    expect(screen.getByText("Duration must be positive")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/objectives/), " revised");
+    expect(screen.queryByText("Objective is invalid")).not.toBeInTheDocument();
+    expect(screen.getByText("Duration must be positive")).toBeInTheDocument();
+  });
+});
