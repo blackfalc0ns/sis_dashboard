@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import { YearDialog, TermDialog } from "@/features/academics/components/dialogs/YearTermDialogs";
 import type {
@@ -44,8 +44,11 @@ export function AcademicContextSetupStep({
   const targetTerms: Term[] = targetYear ? data.termsByYear[targetYear.id] ?? [] : [];
   const termCount = countTerms(data);
   const hasMinimumData = data.years.length > 0 && termCount > 0;
-  const [isManuallyEditing, setIsManuallyEditing] = useState(false);
-  const isEditing = !hasMinimumData || isManuallyEditing;
+  const [isEditing, setIsEditing] = useState(!hasMinimumData);
+
+  useEffect(() => {
+    setIsEditing(!hasMinimumData);
+  }, [hasMinimumData]);
 
   const handleSuccess = () => {
     void refreshStep("academicContext");
@@ -76,7 +79,7 @@ export function AcademicContextSetupStep({
               </p>
             </div>
           </div>
-          <Button onClick={() => setIsManuallyEditing(true)} type="button" variant="secondary">
+          <Button onClick={() => setIsEditing(true)} type="button" variant="secondary">
             {copy.edit}
           </Button>
         </section>
@@ -98,7 +101,7 @@ export function AcademicContextSetupStep({
           <div className="flex flex-wrap gap-2">
             {hasMinimumData ? (
               <Button
-                onClick={() => setIsManuallyEditing(false)}
+                onClick={() => setIsEditing(false)}
                 type="button"
                 variant="secondary"
               >

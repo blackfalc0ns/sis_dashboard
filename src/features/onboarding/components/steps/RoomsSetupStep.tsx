@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import RoomDialog from "@/features/academics/rooms/components/RoomDialog";
 import { createRoom } from "@/features/academics/rooms/services/roomsService";
@@ -29,8 +29,11 @@ export function RoomsSetupStep({ copy, rooms, schoolId, refreshStep }: RoomsSetu
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const hasMinimumData = rooms.length > 0;
-  const [isManuallyEditing, setIsManuallyEditing] = useState(false);
-  const isEditing = !hasMinimumData || isManuallyEditing;
+  const [isEditing, setIsEditing] = useState(!hasMinimumData);
+
+  useEffect(() => {
+    setIsEditing(!hasMinimumData);
+  }, [hasMinimumData]);
 
   const handleSave = async (
     payload: Omit<Room, "id" | "schoolId" | "createdAt" | "updatedAt">,
@@ -69,7 +72,7 @@ export function RoomsSetupStep({ copy, rooms, schoolId, refreshStep }: RoomsSetu
               {copy.roomsCount(rooms.length)}
             </p>
           </div>
-          <Button onClick={() => setIsManuallyEditing(true)} type="button" variant="secondary">
+          <Button onClick={() => setIsEditing(true)} type="button" variant="secondary">
             {copy.edit}
           </Button>
         </section>
@@ -77,7 +80,7 @@ export function RoomsSetupStep({ copy, rooms, schoolId, refreshStep }: RoomsSetu
       {isEditing ? (
         <div className="flex flex-wrap gap-2">
           {hasMinimumData ? (
-            <Button onClick={() => setIsManuallyEditing(false)} type="button" variant="secondary">
+            <Button onClick={() => setIsEditing(false)} type="button" variant="secondary">
               {copy.cancel}
             </Button>
           ) : null}
