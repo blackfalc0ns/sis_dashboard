@@ -7,13 +7,19 @@ import { Save, RotateCcw } from "lucide-react";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
-import AllocationMatrixTable, { MatrixColumn, MatrixRow } from "../../components/shared/AllocationMatrixTable";
+import AllocationMatrixTable, {
+  MatrixColumn,
+  MatrixRow,
+} from "../../components/shared/AllocationMatrixTable";
 import {
   Subject,
   SubjectAllocation,
   bulkUpsertSubjectAllocations,
 } from "@/features/academics/subjects/services/subjectsService";
-import { Grade } from "@/features/academics/academic-structure-tree/services/structureService";
+import {
+  Grade,
+  Stage,
+} from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   type AcademicsExportFormat,
   exportAcademicsData,
@@ -24,6 +30,7 @@ import {
 } from "@/features/academics/utils/exportAdapter";
 
 interface AllocationMatrixProps {
+  stages: Stage[];
   grades: Grade[];
   subjects: Subject[];
   allocations: SubjectAllocation[];
@@ -38,6 +45,7 @@ interface AllocationMatrixProps {
 }
 
 export default function AllocationMatrix({
+  stages,
   grades,
   subjects,
   allocations,
@@ -58,12 +66,16 @@ export default function AllocationMatrix({
       stageFilter: searchParams.get("stage") || "",
       showOnlyMissing: searchParams.get("missing") === "1",
     }),
-    [searchParams]
+    [searchParams],
   );
   const { stageFilter, showOnlyMissing } = queryState;
 
-  const [localAllocations, setLocalAllocations] = useState<SubjectAllocation[]>([]);
-  const [originalAllocations, setOriginalAllocations] = useState<SubjectAllocation[]>([]);
+  const [localAllocations, setLocalAllocations] = useState<SubjectAllocation[]>(
+    [],
+  );
+  const [originalAllocations, setOriginalAllocations] = useState<
+    SubjectAllocation[]
+  >([]);
   const [isSaving, setIsSaving] = useState(false);
   const [focusedCell, setFocusedCell] = useState<string | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -76,7 +88,7 @@ export default function AllocationMatrix({
 
   const getAllocation = (gradeId: string, subjectId: string): number => {
     const allocation = localAllocations.find(
-      (a) => a.gradeId === gradeId && a.subjectId === subjectId
+      (a) => a.gradeId === gradeId && a.subjectId === subjectId,
     );
     return allocation?.weeklyHours || 0;
   };
@@ -84,10 +96,10 @@ export default function AllocationMatrix({
   // Track dirty state
   const isDirty = useMemo(() => {
     if (localAllocations.length !== originalAllocations.length) return true;
-    
+
     return localAllocations.some((local) => {
       const original = originalAllocations.find(
-        (o) => o.gradeId === local.gradeId && o.subjectId === local.subjectId
+        (o) => o.gradeId === local.gradeId && o.subjectId === local.subjectId,
       );
       return !original || original.weeklyHours !== local.weeklyHours;
     });
@@ -102,13 +114,12 @@ export default function AllocationMatrix({
       stageFilter: string;
       showOnlyMissing: boolean;
     }>,
-    historyMode: "push" | "replace" = "push"
+    historyMode: "push" | "replace" = "push",
   ) => {
     const params = new URLSearchParams(searchParams.toString());
     const mergedState = {
       stageFilter: nextState.stageFilter ?? queryState.stageFilter,
-      showOnlyMissing:
-        nextState.showOnlyMissing ?? queryState.showOnlyMissing,
+      showOnlyMissing: nextState.showOnlyMissing ?? queryState.showOnlyMissing,
     };
 
     if (mergedState.stageFilter) {
@@ -143,27 +154,19 @@ export default function AllocationMatrix({
     return grades.filter((g) => g.stageId === stageFilter);
   }, [grades, stageFilter]);
 
-  // Get unique stages with their data
   const stagesData = useMemo(() => {
-    const stageMap = new Map<string, { id: string; name: string; nameAr: string; nameEn: string }>();
-    grades.forEach((grade) => {
-      if (!stageMap.has(grade.stageId)) {
-        stageMap.set(grade.stageId, {
-          id: grade.stageId,
-          name: grade.stageId,
-          nameAr: grade.stageId,
-          nameEn: grade.stageId,
-        });
-      }
-    });
-    return Array.from(stageMap.values());
-  }, [grades]);
+    const stageIds = new Set(grades.map((grade) => grade.stageId));
+    return stages.filter((stage) => stageIds.has(stage.id));
+  }, [grades, stages]);
 
   const stageOptions = [
     { value: "", label: t("filters.all_stages") },
     ...stagesData.map((stage) => ({
       value: stage.id,
-      label: locale === "ar" ? (stage.nameAr || stage.nameEn || stage.name) : (stage.nameEn || stage.nameAr || stage.name),
+      label:
+        locale === "ar"
+          ? stage.nameAr || stage.nameEn || stage.name
+          : stage.nameEn || stage.nameAr || stage.name,
     })),
   ];
 
@@ -189,26 +192,30 @@ export default function AllocationMatrix({
     return stageFilteredGrades.filter((grade) =>
       subjects.some((subject) => {
         const allocation = localAllocations.find(
-          (item) => item.gradeId === grade.id && item.subjectId === subject.id
+          (item) => item.gradeId === grade.id && item.subjectId === subject.id,
         );
         return (allocation?.weeklyHours || 0) <= 0;
-      })
+      }),
     );
   }, [showOnlyMissing, stageFilteredGrades, subjects, localAllocations]);
 
-  const setAllocation = (gradeId: string, subjectId: string, weeklyHours: number) => {
+  const setAllocation = (
+    gradeId: string,
+    subjectId: string,
+    weeklyHours: number,
+  ) => {
     const value = Math.max(0, Math.min(80, weeklyHours));
-    
+
     setLocalAllocations((prev) => {
       const existing = prev.find(
-        (a) => a.gradeId === gradeId && a.subjectId === subjectId
+        (a) => a.gradeId === gradeId && a.subjectId === subjectId,
       );
 
       if (existing) {
         return prev.map((a) =>
           a.gradeId === gradeId && a.subjectId === subjectId
             ? { ...a, weeklyHours: value }
-            : a
+            : a,
         );
       } else {
         return [...prev, { gradeId, subjectId, weeklyHours: value }];
@@ -289,54 +296,77 @@ export default function AllocationMatrix({
     const filename = generateExportFilename(
       "subjects-allocation",
       termId,
-      stageFilter || undefined
+      stageFilter || undefined,
     );
 
     // Export with title and metadata
-    exportAcademicsData({ title, metadata, filename, format, columns, rows, locale });
+    exportAcademicsData({
+      title,
+      metadata,
+      filename,
+      format,
+      columns,
+      rows,
+      locale,
+    });
   };
 
   const completionPercentage = useMemo(() => {
     const totalCells = filteredGrades.length * subjects.length;
     if (totalCells === 0) return 0;
-    
+
     const filledCells = filteredGrades.reduce((count, grade) => {
-      return count + subjects.filter((subject) => {
-        const allocation = localAllocations.find(
-          (a) => a.gradeId === grade.id && a.subjectId === subject.id
-        );
-        return (allocation?.weeklyHours || 0) > 0;
-      }).length;
+      return (
+        count +
+        subjects.filter((subject) => {
+          const allocation = localAllocations.find(
+            (a) => a.gradeId === grade.id && a.subjectId === subject.id,
+          );
+          return (allocation?.weeklyHours || 0) > 0;
+        }).length
+      );
     }, 0);
-    
+
     return Math.round((filledCells / totalCells) * 100);
   }, [filteredGrades, subjects, localAllocations]);
 
-  const getCellId = (gradeId: string, subjectId: string) => `${gradeId}-${subjectId}`;
+  const getCellId = (gradeId: string, subjectId: string) =>
+    `${gradeId}-${subjectId}`;
 
   // Prepare matrix data
   const matrixRows: (MatrixRow & { gradeId: string })[] = useMemo(() => {
     return filteredGrades.map((grade) => ({
       id: grade.id,
       gradeId: grade.id,
-      label: locale === "ar" ? (grade.nameAr || grade.nameEn || grade.name) : (grade.nameEn || grade.nameAr || grade.name),
+      label:
+        locale === "ar"
+          ? grade.nameAr || grade.nameEn || grade.name
+          : grade.nameEn || grade.nameAr || grade.name,
     }));
   }, [filteredGrades, locale]);
 
-  const matrixColumns: (MatrixColumn & { subjectId: string })[] = useMemo(() => {
-    return subjects.map((subject) => ({
-      id: subject.id,
-      subjectId: subject.id,
-      label: locale === "ar" ? (subject.nameAr || subject.nameEn || subject.name) : (subject.nameEn || subject.nameAr || subject.name),
-      code: subject.code,
-    }));
-  }, [subjects, locale]);
+  const matrixColumns: (MatrixColumn & { subjectId: string })[] =
+    useMemo(() => {
+      return subjects.map((subject) => ({
+        id: subject.id,
+        subjectId: subject.id,
+        label:
+          locale === "ar"
+            ? subject.nameAr || subject.nameEn || subject.name
+            : subject.nameEn || subject.nameAr || subject.name,
+        code: subject.code,
+      }));
+    }, [subjects, locale]);
 
-  const renderCell = (row: MatrixRow & { gradeId: string }, column: MatrixColumn & { subjectId: string }) => {
+  const renderCell = (
+    row: MatrixRow & { gradeId: string },
+    column: MatrixColumn & { subjectId: string },
+  ) => {
     const value = getAllocation(row.gradeId, column.subjectId);
-    const originalValue = originalAllocations.find(
-      (a) => a.gradeId === row.gradeId && a.subjectId === column.subjectId
-    )?.weeklyHours || 0;
+    const originalValue =
+      originalAllocations.find(
+        (a) => a.gradeId === row.gradeId && a.subjectId === column.subjectId,
+      )?.weeklyHours || 0;
     const isChanged = originalValue !== value;
     const cellId = getCellId(row.gradeId, column.subjectId);
     const isFocused = focusedCell === cellId;
@@ -350,7 +380,8 @@ export default function AllocationMatrix({
           step="1"
           value={value || ""}
           onChange={(e) => {
-            const val = e.target.value === "" ? 0 : parseInt(e.target.value, 10);
+            const val =
+              e.target.value === "" ? 0 : parseInt(e.target.value, 10);
             if (!isNaN(val)) {
               setAllocation(row.gradeId, column.subjectId, val);
             }
@@ -361,44 +392,47 @@ export default function AllocationMatrix({
           placeholder="—"
           className="w-full h-full px-3 py-3 text-sm text-center border-0 focus:outline-none transition-all"
           style={{
-            appearance: 'textfield',
-            MozAppearance: 'textfield',
-            WebkitAppearance: 'none',
-            fontFamily: 'inherit',
-                       backgroundColor: isChanged 
-              ? 'var(--color-hover-50)' 
-              : isFocused 
-                ? 'var(--color-primary-200)' 
-                : isReadOnly 
-                  ? 'var(--color-primary-100)' 
-                  : 'transparent',
-            color: isChanged 
-              ? 'var(--color-accent-900)' 
-              : value === 0 
-                ? 'var(--color-gray-400)' 
-                : isReadOnly 
-                  ? 'var(--color-gray-500)' 
-                  : 'var(--foreground)',
-            fontWeight: isChanged ? '600' : 'normal',
-            cursor: isReadOnly ? 'not-allowed' : 'text',
-            boxShadow: isFocused ? 'inset 0 0 0 2px var(--color-primary-500)' : 'none'
+            appearance: "textfield",
+            MozAppearance: "textfield",
+            WebkitAppearance: "none",
+            fontFamily: "inherit",
+            backgroundColor: isChanged
+              ? "var(--color-hover-50)"
+              : isFocused
+                ? "var(--color-primary-200)"
+                : isReadOnly
+                  ? "var(--color-primary-100)"
+                  : "transparent",
+            color: isChanged
+              ? "var(--color-accent-900)"
+              : value === 0
+                ? "var(--color-gray-400)"
+                : isReadOnly
+                  ? "var(--color-gray-500)"
+                  : "var(--foreground)",
+            fontWeight: isChanged ? "600" : "normal",
+            cursor: isReadOnly ? "not-allowed" : "text",
+            boxShadow: isFocused
+              ? "inset 0 0 0 2px var(--color-primary-500)"
+              : "none",
           }}
           onMouseEnter={(e) => {
             if (!isReadOnly && !isFocused && !isChanged) {
-              e.currentTarget.style.backgroundColor = 'var(--color-primary-200)';
+              e.currentTarget.style.backgroundColor =
+                "var(--color-primary-200)";
             }
           }}
           onMouseLeave={(e) => {
             if (!isReadOnly && !isFocused && !isChanged) {
-              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.backgroundColor = "transparent";
             }
           }}
         />
         {isChanged && !isFocused && (
-          <div 
-            className="absolute top-1 right-1 w-2 h-2 rounded-full" 
-            style={{ backgroundColor: 'var(--color-accent-500)' }}
-            title="Modified" 
+          <div
+            className="absolute top-1 right-1 w-2 h-2 rounded-full"
+            style={{ backgroundColor: "var(--color-accent-500)" }}
+            title="Modified"
           />
         )}
       </div>
@@ -414,7 +448,12 @@ export default function AllocationMatrix({
       <div className="flex items-center justify-center h-full">
         <div className="text-center max-w-md px-6">
           <div className="text-gray-400 mb-4">
-            <svg className="w-24 h-24 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg
+              className="w-24 h-24 mx-auto"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -423,23 +462,38 @@ export default function AllocationMatrix({
               />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t("empty_state.no_subjects.title")}</h3>
-          <p className="text-gray-600">{t("empty_state.no_subjects.message")}</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            {t("empty_state.no_subjects.title")}
+          </h3>
+          <p className="text-gray-600">
+            {t("empty_state.no_subjects.message")}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--color-gray-50)' }}>
+    <div
+      className="flex flex-col h-full"
+      style={{ backgroundColor: "var(--color-gray-50)" }}
+    >
       {/* Toolbar */}
-      <div className="p-4 border-b shadow-sm space-y-4" style={{ 
-        backgroundColor: 'var(--background)',
-        borderColor: 'var(--color-neutral-200)'
-      }}>
+      <div
+        className="p-4 border-b shadow-sm space-y-4"
+        style={{
+          backgroundColor: "var(--background)",
+          borderColor: "var(--color-neutral-200)",
+        }}
+      >
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--color-primary-900)' }}>{t("title")}</h2>
-          
+          <h2
+            className="text-lg font-semibold"
+            style={{ color: "var(--color-primary-900)" }}
+          >
+            {t("title")}
+          </h2>
+
           <div className="flex items-center gap-2">
             <Button
               onClick={() => setShowExportModal(true)}
@@ -473,7 +527,9 @@ export default function AllocationMatrix({
             <Select
               label={t("filters.stage")}
               value={stageFilter}
-              onChange={(value) => syncQueryParams({ stageFilter: value }, "push")}
+              onChange={(value) =>
+                syncQueryParams({ stageFilter: value }, "push")
+              }
               options={stageOptions}
               selectSize="sm"
             />
@@ -487,25 +543,48 @@ export default function AllocationMatrix({
                 syncQueryParams({ showOnlyMissing: e.target.checked }, "push")
               }
               className="rounded"
-              style={{ borderColor: 'var(--color-border)' }}
+              style={{ borderColor: "var(--color-border)" }}
             />
-            <span style={{ color: 'var(--color-gray-700)' }}>{t("filters.show_missing")}</span>
+            <span style={{ color: "var(--color-gray-700)" }}>
+              {t("filters.show_missing")}
+            </span>
           </label>
         </div>
 
         {/* Summary */}
         <div className="flex items-center gap-6 text-sm">
           <div>
-            <span style={{ color: 'var(--color-gray-600)' }}>{t("summary.subjects")}: </span>
-            <span className="font-medium" style={{ color: 'var(--color-primary-900)' }}>{subjects.length}</span>
+            <span style={{ color: "var(--color-gray-600)" }}>
+              {t("summary.subjects")}:{" "}
+            </span>
+            <span
+              className="font-medium"
+              style={{ color: "var(--color-primary-900)" }}
+            >
+              {subjects.length}
+            </span>
           </div>
           <div>
-            <span style={{ color: 'var(--color-gray-600)' }}>{t("summary.grades")}: </span>
-            <span className="font-medium" style={{ color: 'var(--color-primary-900)' }}>{filteredGrades.length}</span>
+            <span style={{ color: "var(--color-gray-600)" }}>
+              {t("summary.grades")}:{" "}
+            </span>
+            <span
+              className="font-medium"
+              style={{ color: "var(--color-primary-900)" }}
+            >
+              {filteredGrades.length}
+            </span>
           </div>
           <div>
-            <span style={{ color: 'var(--color-gray-600)' }}>{t("summary.completion")}: </span>
-            <span className="font-medium" style={{ color: 'var(--color-primary-900)' }}>{completionPercentage}%</span>
+            <span style={{ color: "var(--color-gray-600)" }}>
+              {t("summary.completion")}:{" "}
+            </span>
+            <span
+              className="font-medium"
+              style={{ color: "var(--color-primary-900)" }}
+            >
+              {completionPercentage}%
+            </span>
           </div>
         </div>
       </div>

@@ -2,7 +2,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AllocationMatrix from "@/features/academics/subjects/components/AllocationMatrix";
 import { bulkUpsertSubjectAllocations } from "@/features/academics/subjects/services/subjectsService";
-import type { Grade } from "@/features/academics/academic-structure-tree/services/structureService";
+import type {
+  Grade,
+  Stage,
+} from "@/features/academics/academic-structure-tree/services/structureService";
 import type {
   Subject,
   SubjectAllocation,
@@ -44,6 +47,14 @@ const grade: Grade = {
   order: 1,
 };
 
+const stage: Stage = {
+  id: "stage-1",
+  name: "Primary Stage",
+  nameAr: "المرحلة الابتدائية",
+  nameEn: "Primary Stage",
+  order: 1,
+};
+
 const subject: Subject = {
   id: "subject-1",
   termId: "term-1",
@@ -80,6 +91,7 @@ function renderAllocationMatrix(options?: {
 
   render(
     <AllocationMatrix
+      stages={[stage]}
       grades={[grade]}
       subjects={[subject]}
       allocations={options?.allocations ?? [subjectAllocation]}
@@ -107,6 +119,19 @@ describe("AllocationMatrix", () => {
     fireEvent.change(weeklyHoursInput, { target: { value: "99" } });
 
     expect(weeklyHoursInput).toHaveValue(80);
+  });
+
+  it("shows localized stage names instead of stage IDs in the filter", () => {
+    renderAllocationMatrix();
+
+    fireEvent.click(screen.getByRole("button", { name: "filters.stage" }));
+
+    expect(
+      screen.getByRole("button", { name: "Primary Stage" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "stage-1" }),
+    ).not.toBeInTheDocument();
   });
 
   it("saves edited allocations through the API service", async () => {

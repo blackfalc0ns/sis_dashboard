@@ -208,6 +208,7 @@ export default function SubjectsAllocationView({
             {/* Right Panel: Matrix */}
             <div className="flex-1 bg-gray-50 overflow-hidden">
               <AllocationMatrix
+                stages={stages}
                 grades={grades}
                 subjects={subjects}
                 allocations={allocations}
@@ -237,6 +238,7 @@ export default function SubjectsAllocationView({
               />
             ) : (
               <AllocationMatrix
+                stages={stages}
                 grades={grades}
                 subjects={subjects}
                 allocations={allocations}

@@ -14,6 +14,7 @@ import {
   Mail,
   Star,
   Lock,
+  Edit,
 } from "lucide-react";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import type { StudentGuardian } from "@/features/students-guardians/students/types";
@@ -21,6 +22,8 @@ import OverviewTab from "@/features/students-guardians/guardians/components/tabs
 import StudentsTab from "@/features/students-guardians/guardians/components/tabs/StudentsTab";
 import Button from "@/components/ui/button/Button";
 import EmptyState from "@/components/ui/empty-state/EmptyState";
+import Input from "@/components/ui/input/Input";
+import Modal from "@/components/ui/modal/Modal";
 import GuardianAccountLinkModal from "@/features/students-guardians/guardians/components/GuardianAccountLinkModal";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -31,6 +34,20 @@ interface GuardianProfilePageProps {
 }
 
 type TabKey = "overview" | "students" | "documents" | "notes" | "timeline";
+
+type GuardianEditForm = {
+  full_name: string;
+  relation: string;
+  phone_primary: string;
+  phone_secondary: string;
+  email: string;
+  national_id: string;
+  job_title: string;
+  workplace: string;
+  is_primary: boolean;
+  can_pickup: boolean;
+  can_receive_notifications: boolean;
+};
 
 const tabs = [
   { key: "overview" as TabKey, labelKey: "tabs.overview", icon: User },
@@ -47,6 +64,20 @@ const getRelationColor = (relation: string) => {
   return colors[relation.toLowerCase()] || colors.other;
 };
 
+const buildGuardianEditForm = (guardian: StudentGuardian): GuardianEditForm => ({
+  full_name: guardian.full_name || "",
+  relation: guardian.relation || "",
+  phone_primary: guardian.phone_primary || "",
+  phone_secondary: guardian.phone_secondary || "",
+  email: guardian.email || "",
+  national_id: guardian.national_id || "",
+  job_title: guardian.job_title || "",
+  workplace: guardian.workplace || "",
+  is_primary: Boolean(guardian.is_primary),
+  can_pickup: Boolean(guardian.can_pickup),
+  can_receive_notifications: Boolean(guardian.can_receive_notifications),
+});
+
 export default function GuardianProfilePage({
   guardianId,
 }: GuardianProfilePageProps) {
@@ -61,6 +92,10 @@ export default function GuardianProfilePage({
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [guardian, setGuardian] = useState<StudentGuardian | null>(null);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState<GuardianEditForm | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -108,6 +143,61 @@ export default function GuardianProfilePage({
       </div>
     );
   }
+
+  const openEditModal = () => {
+    setEditForm(buildGuardianEditForm(guardian));
+    setEditError(null);
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    if (isSavingEdit) {
+      return;
+    }
+    setIsEditModalOpen(false);
+    setEditForm(null);
+    setEditError(null);
+  };
+
+  const updateEditForm = <Key extends keyof GuardianEditForm>(
+    key: Key,
+    value: GuardianEditForm[Key],
+  ) => {
+    setEditForm((current) =>
+      current
+        ? {
+            ...current,
+            [key]: value,
+          }
+        : current,
+    );
+  };
+
+  const saveGuardianEdit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editForm) {
+      return;
+    }
+
+    setIsSavingEdit(true);
+    setEditError(null);
+
+    try {
+      const updatedGuardian = await studentsService.updateGuardian(
+        guardian.guardianId,
+        editForm,
+      );
+      setGuardian((current) =>
+        current ? { ...current, ...updatedGuardian } : updatedGuardian,
+      );
+      setIsEditModalOpen(false);
+      setEditForm(null);
+    } catch (error) {
+      setEditError(error instanceof Error ? error.message : t("loading_error"));
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -174,20 +264,30 @@ export default function GuardianProfilePage({
                 </span>
               </div>
             </div>
-            <Button
-              type="button"
-              variant="secondary"
-              leftIcon={<Lock className="h-4 w-4" />}
-              disabled={!canLinkGuardianAccount}
-              title={
-                canLinkGuardianAccount
-                  ? t("account_linking.action")
-                  : t("account_linking.manage_required")
-              }
-              onClick={() => setIsAccountModalOpen(true)}
-            >
-              {t("account_linking.action")}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                leftIcon={<Edit className="h-4 w-4" />}
+                onClick={openEditModal}
+              >
+                {t("actions.edit")}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                leftIcon={<Lock className="h-4 w-4" />}
+                disabled={!canLinkGuardianAccount}
+                title={
+                  canLinkGuardianAccount
+                    ? t("account_linking.action")
+                    : t("account_linking.manage_required")
+                }
+                onClick={() => setIsAccountModalOpen(true)}
+              >
+                {t("account_linking.action")}
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -225,6 +325,143 @@ export default function GuardianProfilePage({
         guardian={guardian}
         onClose={() => setIsAccountModalOpen(false)}
       />
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={closeEditModal}
+        title={t("actions.edit")}
+        size="lg"
+        closeOnEscape={!isSavingEdit}
+        closeOnOverlayClick={!isSavingEdit}
+        showCloseButton={!isSavingEdit}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={closeEditModal}
+              disabled={isSavingEdit}
+            >
+              {t("actions.cancel")}
+            </Button>
+            <Button
+              type="submit"
+              form="guardian-profile-edit-form"
+              loading={isSavingEdit}
+            >
+              {t("actions.save")}
+            </Button>
+          </>
+        }
+      >
+        {editForm && (
+          <form
+            id="guardian-profile-edit-form"
+            onSubmit={saveGuardianEdit}
+            className="space-y-4 pb-4"
+          >
+            {editError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {editError}
+              </div>
+            )}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input
+                label={t("fields.full_name")}
+                value={editForm.full_name}
+                onChange={(event) =>
+                  updateEditForm("full_name", event.target.value)
+                }
+                required
+              />
+              <Input
+                label={t("fields.relation")}
+                value={editForm.relation}
+                onChange={(event) =>
+                  updateEditForm("relation", event.target.value)
+                }
+                required
+              />
+              <Input
+                label={t("fields.primary_phone")}
+                value={editForm.phone_primary}
+                onChange={(event) =>
+                  updateEditForm("phone_primary", event.target.value)
+                }
+                required
+              />
+              <Input
+                label={t("fields.secondary_phone")}
+                value={editForm.phone_secondary}
+                onChange={(event) =>
+                  updateEditForm("phone_secondary", event.target.value)
+                }
+              />
+              <Input
+                label={t("fields.email")}
+                type="email"
+                value={editForm.email}
+                onChange={(event) => updateEditForm("email", event.target.value)}
+              />
+              <Input
+                label={t("fields.national_id")}
+                value={editForm.national_id}
+                onChange={(event) =>
+                  updateEditForm("national_id", event.target.value)
+                }
+              />
+              <Input
+                label={t("fields.job_title")}
+                value={editForm.job_title}
+                onChange={(event) =>
+                  updateEditForm("job_title", event.target.value)
+                }
+              />
+              <Input
+                label={t("fields.workplace")}
+                value={editForm.workplace}
+                onChange={(event) =>
+                  updateEditForm("workplace", event.target.value)
+                }
+              />
+            </div>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={editForm.is_primary}
+                  onChange={(event) =>
+                    updateEditForm("is_primary", event.target.checked)
+                  }
+                />
+                {t("fields.primary_guardian")}
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={editForm.can_pickup}
+                  onChange={(event) =>
+                    updateEditForm("can_pickup", event.target.checked)
+                  }
+                />
+                {t("fields.can_pickup")}
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={editForm.can_receive_notifications}
+                  onChange={(event) =>
+                    updateEditForm(
+                      "can_receive_notifications",
+                      event.target.checked,
+                    )
+                  }
+                />
+                {t("fields.can_receive_notifications")}
+              </label>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }

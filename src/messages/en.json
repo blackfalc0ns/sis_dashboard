@@ -2332,6 +2332,7 @@
         "relation": "Relation",
         "phone": "Phone",
         "email": "Email",
+        "primary": "Primary",
         "can_pickup": "Can Pickup",
         "notifications": "Notifications",
         "actions": "Actions"
@@ -2347,9 +2348,12 @@
         "saving": "Saving..."
       },
       "fields": {
+        "phone_secondary": "Secondary phone",
+        "national_id": "National ID",
         "job_title": "Job title",
         "workplace": "Workplace"
       },
+      "linking_partial_failure": "Guardian was created, but linking failed for: {students}",
       "account_linking": {
         "manage_required": "Linking accounts requires settings.users.manage."
       },
@@ -2365,6 +2369,12 @@
       "yes": "Yes",
       "no": "No",
       "not_provided": "Not provided",
+      "loading_error": "Unable to update guardian.",
+      "actions": {
+        "edit": "Edit",
+        "cancel": "Cancel",
+        "save": "Save"
+      },
       "account_linking": {
         "action": "Link account",
         "manage_required": "Linking accounts requires settings.users.manage."
@@ -2947,6 +2957,7 @@
         "total_guardians": "Total Guardians",
         "get_notifications": "Get Notifications",
         "primary": "Primary",
+        "linking_partial_failure": "Guardian was created, but linking failed for: {students}",
         "add_guardian_modal": {
           "title": "Add Guardian",
           "personal_information": "Personal Information",
@@ -2978,6 +2989,12 @@
           "allow_pickup": "Allow this guardian to pickup the student",
           "receive_notifications": "Receive Notifications",
           "send_notifications": "Send school notifications to this guardian",
+          "linked_students": "Linked Students",
+          "student_search_placeholder": "Search students to link",
+          "searching_students": "Searching students...",
+          "no_students_found": "No students found.",
+          "start_student_search": "Start typing to search students.",
+          "primary_for_student": "Primary for student",
           "cancel": "Cancel",
           "add": "Add Guardian",
           "required": "*"

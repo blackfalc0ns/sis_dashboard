@@ -92,7 +92,8 @@ export default function Select({
     if (!trigger) return;
 
     const rect = trigger.getBoundingClientRect();
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const viewportHeight =
+      window.innerHeight || document.documentElement.clientHeight;
     const spaceBelow = viewportHeight - rect.bottom - MENU_GAP;
     const spaceAbove = rect.top - MENU_GAP;
     const shouldOpenAbove =
@@ -103,7 +104,10 @@ export default function Select({
     );
     setMenuPosition({
       top: shouldOpenAbove
-        ? Math.max(MENU_GAP, rect.top - Math.min(MENU_MAX_HEIGHT, availableHeight) - MENU_GAP)
+        ? Math.max(
+            MENU_GAP,
+            rect.top - Math.min(MENU_MAX_HEIGHT, availableHeight) - MENU_GAP,
+          )
         : rect.bottom + MENU_GAP,
       left: rect.left,
       width: rect.width,
@@ -171,7 +175,8 @@ export default function Select({
     }
 
     return options.filter((option) => {
-      const haystack = `${option.label} ${option.searchText || ""}`.toLowerCase();
+      const haystack =
+        `${option.label} ${option.searchText || ""}`.toLowerCase();
       return haystack.includes(normalizedSearchQuery);
     });
   }, [normalizedSearchQuery, options, searchable]);
@@ -183,7 +188,7 @@ export default function Select({
     <div
       id={menuId}
       ref={menuRef}
-      className={`fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200`}
+      className={`fixed z-9999 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200`}
       dir={isRTL ? "rtl" : "ltr"}
       style={{
         top: menuPosition.top,

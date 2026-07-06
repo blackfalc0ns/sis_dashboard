@@ -62,7 +62,7 @@ export default function GuardiansList() {
   const [scopedGuardianIds, setScopedGuardianIds] = useState<Set<string>>(
     new Set(),
   );
-  const [isPageLoading, setIsPageLoading] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -133,9 +133,12 @@ export default function GuardiansList() {
     full_name: "",
     relation: "",
     phone_primary: "",
+    phone_secondary: "",
     email: "",
+    national_id: "",
     job_title: "",
     workplace: "",
+    is_primary: false,
     can_pickup: false,
     can_receive_notifications: false,
   });
@@ -283,21 +286,47 @@ export default function GuardiansList() {
   const handleCreateGuardian = async (guardianData: GuardianFormData) => {
     try {
       setPageError(null);
+      const {
+        selectedStudents,
+        ...guardianFields
+      } = guardianData;
       const payload = {
-        ...guardianData,
-        phone_primary: guardianData.phone_primary ?? undefined,
-        phone_secondary: guardianData.phone_secondary ?? undefined,
-        national_id: guardianData.national_id ?? undefined,
-        job_title: guardianData.job_title ?? undefined,
-        workplace: guardianData.workplace ?? undefined,
+        ...guardianFields,
+        phone_primary: guardianFields.phone_primary ?? undefined,
+        phone_secondary: guardianFields.phone_secondary ?? undefined,
+        national_id: guardianFields.national_id ?? undefined,
+        job_title: guardianFields.job_title ?? undefined,
+        workplace: guardianFields.workplace ?? undefined,
       };
       const createdGuardian = await studentsService.createGuardian(payload);
+      const failedLinks: string[] = [];
+
+      for (const student of selectedStudents) {
+        try {
+          await studentsService.linkGuardianToStudent(student.studentId, {
+            guardianId: createdGuardian.guardianId,
+            is_primary: student.is_primary,
+          });
+        } catch {
+          failedLinks.push(student.label);
+        }
+      }
+
       setGuardians((currentGuardians) => [createdGuardian, ...currentGuardians]);
       setScopedGuardianIds((currentIds) => {
         const nextIds = new Set(currentIds);
         nextIds.add(createdGuardian.guardianId);
         return nextIds;
       });
+
+      if (failedLinks.length > 0) {
+        throw new Error(
+          t("linking_partial_failure", {
+            students: failedLinks.join(", "),
+          }),
+        );
+      }
+
       setShowCreateGuardianModal(false);
     } catch (error) {
       throw error;
@@ -327,9 +356,12 @@ export default function GuardiansList() {
       full_name: guardian.full_name || "",
       relation: guardian.relation || "",
       phone_primary: guardian.phone_primary || "",
+      phone_secondary: guardian.phone_secondary || "",
       email: guardian.email || "",
+      national_id: guardian.national_id || "",
       job_title: guardian.job_title || "",
       workplace: guardian.workplace || "",
+      is_primary: Boolean(guardian.is_primary),
       can_pickup: Boolean(guardian.can_pickup),
       can_receive_notifications: Boolean(guardian.can_receive_notifications),
     });
@@ -707,6 +739,19 @@ export default function GuardiansList() {
                 />
               </label>
               <label className="text-sm font-medium text-gray-700">
+                {t("fields.phone_secondary")}
+                <Input
+                  value={editGuardianForm.phone_secondary}
+                  onChange={(event) =>
+                    setEditGuardianForm((current) => ({
+                      ...current,
+                      phone_secondary: event.target.value,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                />
+              </label>
+              <label className="text-sm font-medium text-gray-700">
                 {t("columns.email")}
                 <Input
                   type="email"
@@ -715,6 +760,19 @@ export default function GuardiansList() {
                     setEditGuardianForm((current) => ({
                       ...current,
                       email: event.target.value,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                />
+              </label>
+              <label className="text-sm font-medium text-gray-700">
+                {t("fields.national_id")}
+                <Input
+                  value={editGuardianForm.national_id}
+                  onChange={(event) =>
+                    setEditGuardianForm((current) => ({
+                      ...current,
+                      national_id: event.target.value,
                     }))
                   }
                   className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
@@ -749,6 +807,19 @@ export default function GuardiansList() {
             </div>
 
             <div className="mt-4 flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <Input
+                  type="checkbox"
+                  checked={editGuardianForm.is_primary}
+                  onChange={(event) =>
+                    setEditGuardianForm((current) => ({
+                      ...current,
+                      is_primary: event.target.checked,
+                    }))
+                  }
+                />
+                {t("columns.primary")}
+              </label>
               <label className="flex items-center gap-2 text-sm text-gray-700">
                 <Input
                   type="checkbox"

@@ -90,25 +90,53 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
   const handleAddGuardian = async (guardianData: GuardianFormData) => {
     setError(null);
     try {
+      const { selectedStudents, ...guardianFields } = guardianData;
       const payload = {
-        ...guardianData,
-        phone_primary: guardianData.phone_primary ?? undefined,
-        phone_secondary: guardianData.phone_secondary ?? undefined,
-        national_id: guardianData.national_id ?? undefined,
-        job_title: guardianData.job_title ?? undefined,
-        workplace: guardianData.workplace ?? undefined,
+        ...guardianFields,
+        phone_primary: guardianFields.phone_primary ?? undefined,
+        phone_secondary: guardianFields.phone_secondary ?? undefined,
+        national_id: guardianFields.national_id ?? undefined,
+        job_title: guardianFields.job_title ?? undefined,
+        workplace: guardianFields.workplace ?? undefined,
       };
       const guardian = await studentsService.createGuardian(payload);
       await studentsService.linkGuardianToStudent(student.id, {
         guardianId: guardian.guardianId,
         is_primary: guardianData.is_primary,
       });
+      const failedLinks: string[] = [];
+
+      for (const selectedStudent of selectedStudents) {
+        if (selectedStudent.studentId === student.id) {
+          continue;
+        }
+
+        try {
+          await studentsService.linkGuardianToStudent(
+            selectedStudent.studentId,
+            {
+              guardianId: guardian.guardianId,
+              is_primary: selectedStudent.is_primary,
+            },
+          );
+        } catch {
+          failedLinks.push(selectedStudent.label);
+        }
+      }
+
       const [guardiansData, primaryGuardianData] = await Promise.all([
         studentsService.fetchStudentGuardians(student.id),
         studentsService.fetchPrimaryGuardian(student.id),
       ]);
       setGuardians(guardiansData);
       setPrimaryGuardian(primaryGuardianData);
+      if (failedLinks.length > 0) {
+        throw new Error(
+          t("linking_partial_failure", {
+            students: failedLinks.join(", "),
+          }),
+        );
+      }
       setShowAddModal(false);
     } catch (submitError) {
       throw submitError;

@@ -2332,6 +2332,7 @@
         "relation": "صلة القرابة",
         "phone": "الهاتف",
         "email": "البريد الإلكتروني",
+        "primary": "رئيسي",
         "can_pickup": "يمكنه الاستلام",
         "notifications": "الإشعارات",
         "actions": "الإجراءات"
@@ -2347,9 +2348,12 @@
         "saving": "جاري الحفظ..."
       },
       "fields": {
+        "phone_secondary": "الهاتف الثانوي",
+        "national_id": "الرقم الوطني",
         "job_title": "المسمى الوظيفي",
         "workplace": "مكان العمل"
       },
+      "linking_partial_failure": "تم إنشاء ولي الأمر، لكن فشل ربطه بـ: {students}",
       "account_linking": {
         "manage_required": "ربط الحسابات يتطلب settings.users.manage."
       },
@@ -2365,6 +2369,12 @@
       "yes": "نعم",
       "no": "لا",
       "not_provided": "غير مقدم",
+      "loading_error": "تعذر تحديث بيانات ولي الأمر.",
+      "actions": {
+        "edit": "تعديل",
+        "cancel": "إلغاء",
+        "save": "حفظ"
+      },
       "account_linking": {
         "action": "ربط الحساب",
         "manage_required": "ربط الحسابات يتطلب settings.users.manage."
@@ -2948,6 +2958,7 @@
         "total_guardians": "إجمالي أولياء الأمور",
         "get_notifications": "يستلم الإشعارات",
         "primary": "رئيسي",
+        "linking_partial_failure": "تم إنشاء ولي الأمر، لكن فشل ربطه بـ: {students}",
         "add_guardian_modal": {
           "title": "إضافة ولي أمر",
           "personal_information": "المعلومات الشخصية",
@@ -2979,6 +2990,12 @@
           "allow_pickup": "السماح لولي الأمر هذا باستلام الطالب",
           "receive_notifications": "استقبال الإشعارات",
           "send_notifications": "إرسال إشعارات المدرسة لولي الأمر هذا",
+          "linked_students": "الطلاب المرتبطون",
+          "student_search_placeholder": "ابحث عن طلاب للربط",
+          "searching_students": "جاري البحث عن طلاب...",
+          "no_students_found": "لا يوجد طلاب.",
+          "start_student_search": "ابدأ الكتابة للبحث عن طلاب.",
+          "primary_for_student": "رئيسي للطالب",
           "cancel": "إلغاء",
           "add": "إضافة ولي أمر",
           "required": "*"
