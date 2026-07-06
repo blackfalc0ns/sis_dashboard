@@ -5,7 +5,7 @@ import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/Aca
 
 interface UseGuardedAcademicContextChangeParams {
   hasUnsavedChanges: boolean;
-  confirmDiscard: () => Promise<boolean>;
+  confirmDiscard: () => boolean | Promise<boolean>;
   onDiscard?: () => void;
 }
 
