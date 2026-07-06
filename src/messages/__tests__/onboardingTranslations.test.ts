@@ -39,6 +39,16 @@ describe("onboarding translations and navigation", () => {
     expect(ar.onboarding.steps.academicContext.yearsCount).toContain(
       "plural",
     );
+    expect(en.onboarding.steps.organization.editBranding).toBe(
+      "Edit branding",
+    );
+    expect(en.onboarding.steps.organization.completeness).toContain(
+      "{percent}",
+    );
+    expect(ar.onboarding.steps.organization.editBranding).toBe(
+      "تعديل الهوية",
+    );
+    expect(ar.onboarding.steps.organization.locationRequired).toBeTruthy();
   });
 
   it("adds school setup under settings after branding", () => {

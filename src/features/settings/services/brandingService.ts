@@ -126,20 +126,19 @@ export async function updateBrandingProfile(
 export function calculateBrandingProfileCompleteness(
   profile: SchoolProfileSettings,
 ) {
-  const requiredValues = [
-    profile.schoolName,
-    profile.shortName,
-    profile.timezone,
-    profile.addressLine,
-    profile.city,
-    profile.country,
-    profile.footerSignature,
-    profile.logoUrl,
+  const requirements = [
+    profile.schoolName.trim().length > 0,
+    profile.shortName.trim().length > 0,
+    profile.timezone.trim().length > 0,
+    profile.addressLine.trim().length > 0,
+    profile.city.trim().length > 0,
+    profile.country.trim().length > 0,
+    profile.footerSignature.trim().length > 0,
+    profile.logoUrl.trim().length > 0,
+    profile.latitude !== null && profile.longitude !== null,
   ];
 
-  const completedCount = requiredValues.filter(
-    (value) => value.trim().length > 0,
-  ).length;
-
-  return Math.round((completedCount / requiredValues.length) * 100);
+  return Math.round(
+    (requirements.filter(Boolean).length / requirements.length) * 100,
+  );
 }
