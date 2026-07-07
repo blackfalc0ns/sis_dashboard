@@ -1,17 +1,25 @@
 "use client";
 
-import { Download, Plus, Trash2 } from "lucide-react";
+import { Download, Inbox, Plus } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
+import EmptyState from "@/components/ui/empty-state/EmptyState";
+import { GoogleLocationPicker } from "@/components/ui/google-location-picker";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import NedaaGateFormModal from "@/features/nedaa/components/NedaaGateFormModal";
-import type { NedaaGate, NedaaSettings } from "@/features/nedaa/types/nedaa";
+import type {
+  CreateDismissalGatePayload,
+  NedaaGate,
+  NedaaSettings,
+  UpdateDismissalSettingsPayload,
+} from "@/features/nedaa/types/nedaa";
 import {
   getNedaaDefaultGateOptions,
   getNedaaOrderedGates,
 } from "@/features/nedaa/utils/nedaaPresentation";
+import { getNedaaLocationPickerLabels } from "@/features/nedaa/utils/nedaaLocationPicker";
 
 interface NedaaSettingsViewProps {
   settings: NedaaSettings;
@@ -23,24 +31,15 @@ interface NedaaSettingsViewProps {
   isGateModalOpen: boolean;
   gateModalMode: "create" | "edit";
   editingGate?: NedaaGate | null;
-  onChange: (updates: Partial<NedaaSettings>) => void;
+  onChange: (updates: UpdateDismissalSettingsPayload) => void;
   onReset: () => void;
   onSave: () => void;
   onOpenExport: () => void;
   onOpenCreateGate: () => void;
   onOpenEditGate: (gate: NedaaGate) => void;
   onCloseGateModal: () => void;
-  onSubmitGate: (payload: {
-    id: string;
-    nameAr: string;
-    nameEn: string;
-    locationHint?: string;
-    isActive: boolean;
-    supportsPickup: boolean;
-    isStaffOnly?: boolean;
-  }) => Promise<void> | void;
-  onToggleGateActive: (gateId: string) => void;
-  onDeleteGate: (gateId: string) => void;
+  onSubmitGate: (payload: CreateDismissalGatePayload) => Promise<void> | void;
+  onToggleGateActive: (gate: NedaaGate) => void;
 }
 
 function GateMetaBadge({
@@ -85,10 +84,10 @@ export default function NedaaSettingsView({
   onCloseGateModal,
   onSubmitGate,
   onToggleGateActive,
-  onDeleteGate,
 }: NedaaSettingsViewProps) {
   const t = useTranslations("nedaa");
-  const isDirty = JSON.stringify(settings) !== JSON.stringify(initialSettings);
+  const isDirty =
+    JSON.stringify(settings.settings) !== JSON.stringify(initialSettings.settings);
   const canEdit = canManage && !isReadOnly;
   const orderedGates = useMemo(
     () => getNedaaOrderedGates(settings.gates),
@@ -98,6 +97,7 @@ export default function NedaaSettingsView({
     () => getNedaaDefaultGateOptions(settings.gates),
     [settings.gates],
   );
+  const defaultGateId = settings.settings.defaultGate?.id || "";
 
   return (
     <div className="space-y-6">
@@ -107,10 +107,7 @@ export default function NedaaSettingsView({
           <p className="mt-1 text-sm text-gray-500">{t("settings.subtitle")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={onOpenExport}
-          >
+          <Button variant="outline" onClick={onOpenExport}>
             <Download className="h-4 w-4" />
             {t("export.button")}
           </Button>
@@ -153,10 +150,28 @@ export default function NedaaSettingsView({
           </p>
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <label className="flex items-start gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={settings.settings.enabled}
+              disabled={!canEdit}
+              onChange={(event) => onChange({ enabled: event.target.checked })}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <span className="font-medium text-gray-900">
+              {t("settings.enabled")}
+            </span>
+          </label>
+          <Input
+            label={t("settings.timezone")}
+            value={settings.settings.timezone}
+            disabled={!canEdit}
+            onChange={(event) => onChange({ timezone: event.target.value })}
+          />
           <Input
             type="number"
             label={t("settings.allowed_radius")}
-            value={String(settings.allowedRadiusMeters)}
+            value={String(settings.settings.allowedRadiusMeters)}
             disabled={!canEdit}
             onChange={(event) =>
               onChange({ allowedRadiusMeters: Number(event.target.value || 0) })
@@ -164,26 +179,29 @@ export default function NedaaSettingsView({
           />
           <Input
             type="number"
-            label={t("settings.duplicate_cooldown")}
-            value={String(settings.duplicateRequestCooldownMinutes)}
+            label={t("settings.delay_threshold")}
+            value={String(settings.settings.thresholds.delayMinutes)}
             disabled={!canEdit}
             onChange={(event) =>
-              onChange({
-                duplicateRequestCooldownMinutes: Number(
-                  event.target.value || 0,
-                ),
-              })
+              onChange({ delayThresholdMinutes: Number(event.target.value || 0) })
             }
           />
           <Input
             type="number"
-            label={t("settings.auto_cancel_timeout")}
-            value={String(settings.autoCancelTimeoutMinutes)}
+            label={t("settings.urgent_threshold")}
+            value={String(settings.settings.thresholds.urgentMinutes)}
             disabled={!canEdit}
             onChange={(event) =>
-              onChange({
-                autoCancelTimeoutMinutes: Number(event.target.value || 0),
-              })
+              onChange({ urgentThresholdMinutes: Number(event.target.value || 0) })
+            }
+          />
+          <Input
+            type="number"
+            label={t("settings.expiry_threshold")}
+            value={String(settings.settings.thresholds.expiryMinutes)}
+            disabled={!canEdit}
+            onChange={(event) =>
+              onChange({ expiryThresholdMinutes: Number(event.target.value || 0) })
             }
           />
         </div>
@@ -202,16 +220,44 @@ export default function NedaaSettingsView({
           <Input
             type="time"
             label={t("settings.pickup_start")}
-            value={settings.pickupStartTime}
+            value={settings.settings.requestWindow.startLocal || ""}
             disabled={!canEdit}
-            onChange={(event) => onChange({ pickupStartTime: event.target.value })}
+            onChange={(event) =>
+              onChange({ requestWindowStartLocal: event.target.value || null })
+            }
           />
           <Input
             type="time"
             label={t("settings.pickup_end")}
-            value={settings.pickupEndTime}
+            value={settings.settings.requestWindow.endLocal || ""}
             disabled={!canEdit}
-            onChange={(event) => onChange({ pickupEndTime: event.target.value })}
+            onChange={(event) =>
+              onChange({ requestWindowEndLocal: event.target.value || null })
+            }
+          />
+        </div>
+        <div className="mt-5">
+          <GoogleLocationPicker
+            value={
+              settings.settings.schoolZone.latitude !== null &&
+              settings.settings.schoolZone.longitude !== null
+                ? {
+                    latitude: settings.settings.schoolZone.latitude,
+                    longitude: settings.settings.schoolZone.longitude,
+                    label: settings.settings.schoolZone.label || "",
+                    formattedAddress: settings.settings.schoolZone.label || "",
+                  }
+                : null
+            }
+            radiusMeters={settings.settings.allowedRadiusMeters}
+            labels={getNedaaLocationPickerLabels(t)}
+            disabled={!canEdit}
+            onChange={(location) =>
+              onChange({
+                schoolLatitude: location?.latitude ?? null,
+                schoolLongitude: location?.longitude ?? null,
+              })
+            }
           />
         </div>
       </section>
@@ -229,11 +275,9 @@ export default function NedaaSettingsView({
           <div className="w-full max-w-sm">
             <Select
               label={t("settings.default_gate")}
-              value={settings.defaultGateId || ""}
+              value={defaultGateId}
               disabled={!canEdit}
-              onChange={(value) =>
-                onChange({ defaultGateId: value ? value : null })
-              }
+              onChange={(value) => onChange({ defaultGateId: value || null })}
               options={[
                 {
                   value: "",
@@ -241,7 +285,7 @@ export default function NedaaSettingsView({
                 },
                 ...defaultGateOptions.map((gate) => ({
                   value: gate.id,
-                  label: `${gate.nameEn} / ${gate.nameAr}`,
+                  label: `${gate.name} (${gate.code})`,
                 })),
               ]}
             />
@@ -259,128 +303,110 @@ export default function NedaaSettingsView({
           </Button>
         </div>
 
-        {orderedGates.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center">
-            <p className="text-sm font-medium text-gray-900">
-              {t("settings.gate_management_empty_title")}
-            </p>
-            <p className="mt-2 text-sm text-gray-500">
-              {t("settings.gate_management_empty_description")}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {orderedGates.map((gate) => (
-              <div
-                key={gate.id}
-                className="rounded-2xl border border-gray-200 px-4 py-4"
-              >
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-base font-semibold text-gray-900">
-                          {gate.nameEn}
-                        </h3>
-                        {settings.defaultGateId === gate.id ? (
-                          <GateMetaBadge
-                            label={t("settings.default_gate_badge")}
-                            tone="blue"
-                          />
-                        ) : null}
-                      </div>
-                      <p className="mt-1 text-sm text-gray-500">{gate.nameAr}</p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <GateMetaBadge
-                        label={
-                          gate.isActive
-                            ? t("settings.gate_status.active")
-                            : t("settings.gate_status.inactive")
-                        }
-                        tone={gate.isActive ? "emerald" : "slate"}
-                      />
-                      <GateMetaBadge
-                        label={
-                          gate.supportsPickup
-                            ? t("settings.gate_status.supports_pickup")
-                            : t("settings.gate_status.no_pickup")
-                        }
-                        tone={gate.supportsPickup ? "amber" : "slate"}
-                      />
-                      {gate.isStaffOnly ? (
+        <div className="space-y-3">
+          {orderedGates.map((gate) => (
+            <div key={gate.id} className="rounded-2xl border border-gray-200 px-4 py-4">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-semibold text-gray-900">
+                        {gate.name}
+                      </h3>
+                      {defaultGateId === gate.id ? (
                         <GateMetaBadge
-                          label={t("settings.gate_status.staff_only")}
+                          label={t("settings.default_gate_badge")}
                           tone="blue"
                         />
                       ) : null}
                     </div>
-
-                    <div className="space-y-1 text-sm text-gray-600">
-                      <p>
-                        <span className="font-medium text-gray-900">
-                          {t("settings.gate_form.generated_id")}:
-                        </span>{" "}
-                        <span className="font-mono text-xs uppercase tracking-wide text-gray-500">
-                          {gate.id}
-                        </span>
-                      </p>
-                      <p>
-                        <span className="font-medium text-gray-900">
-                          {t("settings.gate_form.location_hint")}:
-                        </span>{" "}
-                        {gate.locationHint || t("settings.no_location_hint")}
-                      </p>
-                    </div>
+                    <p className="mt-1 font-mono text-xs uppercase tracking-wide text-gray-500">
+                      {gate.code}
+                    </p>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 xl:justify-end">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => onOpenEditGate(gate)}
-                      disabled={!canEdit}
-                    >
-                      {t("settings.edit_gate")}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onToggleGateActive(gate.id)}
-                      disabled={!canEdit}
-                    >
-                      {gate.isActive
-                        ? t("settings.deactivate_gate")
-                        : t("settings.activate_gate")}
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      leftIcon={<Trash2 className="h-4 w-4" />}
-                      onClick={() => onDeleteGate(gate.id)}
-                      disabled={!canEdit}
-                    >
-                      {t("settings.delete_gate")}
-                    </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <GateMetaBadge
+                      label={
+                        gate.isActive
+                          ? t("settings.gate_status.active")
+                          : t("settings.gate_status.inactive")
+                      }
+                      tone={gate.isActive ? "emerald" : "slate"}
+                    />
+                    <GateMetaBadge
+                      label={t(`settings.status_options.${gate.status}`)}
+                      tone={gate.status === "open" ? "amber" : "slate"}
+                    />
+                  </div>
+
+                  <div className="space-y-1 text-sm text-gray-600">
+                    <p>
+                      <span className="font-medium text-gray-900">
+                        {t("settings.campus")}:
+                      </span>{" "}
+                      {gate.campus || t("settings.no_location_hint")}
+                    </p>
+                    <p>
+                      <span className="font-medium text-gray-900">
+                        {t("settings.notes")}:
+                      </span>{" "}
+                      {gate.notes || "-"}
+                    </p>
                   </div>
                 </div>
+
+                <div className="flex flex-wrap gap-2 xl:justify-end">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => onOpenEditGate(gate)}
+                    disabled={!canEdit}
+                  >
+                    {t("settings.edit_gate")}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onToggleGateActive(gate)}
+                    disabled={!canEdit}
+                  >
+                    {gate.isActive
+                      ? t("settings.deactivate_gate")
+                      : t("settings.activate_gate")}
+                  </Button>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+          {orderedGates.length === 0 ? (
+            <EmptyState
+              icon={<Inbox className="h-8 w-8" />}
+              title={t("settings.gate_management_empty_title")}
+              message={t("settings.gate_management_empty_description")}
+              action={
+                <Button
+                  variant="secondary"
+                  leftIcon={<Plus className="h-4 w-4" />}
+                  onClick={onOpenCreateGate}
+                  disabled={!canEdit}
+                >
+                  {t("settings.add_gate")}
+                </Button>
+              }
+            />
+          ) : null}
+        </div>
       </section>
 
       <NedaaGateFormModal
         isOpen={isGateModalOpen}
         mode={gateModalMode}
         initialGate={editingGate}
-        existingGateIds={orderedGates.map((gate) => gate.id)}
+        existingGateIds={orderedGates.map((gate) => gate.code)}
         onClose={onCloseGateModal}
         onSubmit={onSubmitGate}
       />
-
-
     </div>
   );
 }
