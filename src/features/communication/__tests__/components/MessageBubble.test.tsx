@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import React from "react";
 import { MessageBubble } from "@/features/communication/conversations_redesign/components/messages/MessageBubble";
 import { createMessage } from "../utils/test-data-generators";
@@ -31,6 +31,10 @@ describe("MessageBubble Delete Confirmation", () => {
     reactions: [],
     userDisplayNames: {},
   };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it("shows confirmation dialog when delete is triggered and calls onDeleteMessage when confirmed", async () => {
     const message = createMessage({
@@ -217,5 +221,89 @@ describe("MessageBubble Delete Confirmation", () => {
     fireEvent.doubleClick(bubbleContainer!);
 
     expect(onReplyMock).not.toHaveBeenCalled();
+  });
+
+  it("renders lightweight formatting and turns URLs into safe links", () => {
+    const message = createMessage({
+      id: "msg-formatted",
+      body: "Please check *bold* _italic_ ~done~ ```code``` https://example.com/path",
+      senderId: "user-1",
+      status: "sent",
+    });
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
+
+    render(<MessageBubble {...mockProps} message={message} />);
+
+    expect(screen.getByText("bold").tagName).toBe("STRONG");
+    expect(screen.getByText("italic").tagName).toBe("EM");
+    expect(screen.getByText("done").tagName).toBe("S");
+    expect(screen.getByText("code").tagName).toBe("CODE");
+
+    const link = screen.getByRole("link", {
+      name: "https://example.com/path",
+    });
+    expect(link).toHaveAttribute("href", "https://example.com/path");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("collapses very long redesigned messages and expands them inline", () => {
+    const longBody = `${"Long message content ".repeat(50)}Final sentence after expansion.`;
+    const message = createMessage({
+      id: "msg-long",
+      body: longBody,
+      senderId: "user-1",
+      status: "sent",
+    });
+
+    render(<MessageBubble {...mockProps} message={message} />);
+
+    expect(screen.queryByText(/Final sentence after expansion/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: labels.readMore }));
+
+    expect(screen.getByText(/Final sentence after expansion/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: labels.showLess }));
+
+    expect(screen.queryByText(/Final sentence after expansion/)).not.toBeInTheDocument();
+  });
+
+  it("shows a URL preview card while keeping the original URL in the message text", async () => {
+    const message = createMessage({
+      id: "msg-link-preview",
+      body: "Please read https://example.com/article",
+      senderId: "user-1",
+      status: "sent",
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        title: "Article title",
+        description: "Article description",
+        image: "https://example.com/card.png",
+        domain: "example.com",
+        url: "https://example.com/article",
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<MessageBubble {...mockProps} message={message} />);
+
+    expect(
+      screen.getByRole("link", { name: "https://example.com/article" }),
+    ).toBeInTheDocument();
+
+    expect(await screen.findByText("Article title")).toBeInTheDocument();
+    expect(screen.getByText("Article description")).toBeInTheDocument();
+    expect(screen.getByText("example.com")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Article title" })).toHaveAttribute(
+      "src",
+      "https://example.com/card.png",
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/link-preview?url=https%3A%2F%2Fexample.com%2Farticle",
+      { cache: "force-cache" },
+    );
   });
 });

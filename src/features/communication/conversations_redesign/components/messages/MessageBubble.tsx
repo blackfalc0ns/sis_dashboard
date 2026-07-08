@@ -31,7 +31,9 @@ import { REACTION_OPTIONS } from "./reactionOptions";
 import { BubbleContextMenu } from "./BubbleContextMenu";
 import { FloatingReactionBar } from "./FloatingReactionBar";
 import { AttachmentCard } from "./AttachmentCard";
+import { LinkPreviewCard } from "./LinkPreviewCard";
 import { MessageStatusIcon } from "./MessageStatusIcon";
+import { MessageText } from "./MessageText";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 
 const SWIPE_REPLY_THRESHOLD = 64;
@@ -424,13 +426,23 @@ export function MessageBubble({
             );
           })() : null}
 
-          <p dir="auto" className="overflow-hidden whitespace-pre-wrap break-all text-sm leading-6">
-            {normStatus === "deleted"
-              ? labels.errorMessageDeleted
-              : normStatus === "hidden"
-              ? labels.errorMessageHidden
-              : message.body}
-          </p>
+          {normStatus === "deleted" || normStatus === "hidden" ? (
+            <p dir="auto" className="whitespace-pre-wrap break-words text-sm leading-6 [overflow-wrap:anywhere]">
+              {normStatus === "deleted"
+                ? labels.errorMessageDeleted
+                : labels.errorMessageHidden}
+            </p>
+          ) : (
+            <>
+              <MessageText
+                isOwn={isOwn}
+                text={message.body ?? ""}
+                readMoreLabel={labels.readMore}
+                showLessLabel={labels.showLess}
+              />
+              <LinkPreviewCard isOwn={isOwn} text={message.body ?? ""} />
+            </>
+          )}
 
           {attachments.length > 0 ? (
             <div className="mt-3 space-y-2">

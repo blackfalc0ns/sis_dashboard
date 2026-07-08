@@ -162,7 +162,7 @@ export default function MessageBubble({
           </div>
         ) : (
           <p
-            className={`whitespace-pre-wrap text-sm leading-6 ${isDeleted ? "italic opacity-70" : ""}`}
+            className={`whitespace-pre-wrap break-words text-sm leading-6 [overflow-wrap:anywhere] ${isDeleted ? "italic opacity-70" : ""}`}
           >
             {isDeleted ? labels.deleted : message.body}
           </p>

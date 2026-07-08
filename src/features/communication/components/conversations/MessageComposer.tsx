@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Send } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import TextArea from "@/components/ui/input/TextArea";
@@ -27,6 +27,7 @@ export default function MessageComposer({
   sendLabel,
 }: MessageComposerProps) {
   const [body, setBody] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const trimmedLength = body.trim().length;
   const isTooLong = Boolean(maxLength && trimmedLength > maxLength);
   const validationMessage =
@@ -35,6 +36,14 @@ export default function MessageComposer({
           .replace("{count}", String(trimmedLength))
           .replace("{max}", String(maxLength))
       : null;
+
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 140)}px`;
+  }, [body]);
 
   const submit = async () => {
     const trimmed = body.trim();
@@ -47,10 +56,14 @@ export default function MessageComposer({
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
       <TextArea
+        ref={textareaRef}
         value={body}
         placeholder={placeholder}
         disabled={disabled}
-        rows={3}
+        rows={1}
+        resize="none"
+        className="max-h-[140px] overflow-y-auto"
+        style={{ maxHeight: "140px" }}
         onChange={(event) => {
           setBody(event.target.value);
           onTyping();
