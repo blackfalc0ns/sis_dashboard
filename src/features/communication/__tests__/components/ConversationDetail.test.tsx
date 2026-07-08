@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { createConversation, createParticipant } from "../utils/test-data-generators";
+import { createConversation, createMessage, createParticipant } from "../utils/test-data-generators";
 
 // ─── Hoisted Mocks ──────────────────────────────────────────────────────────
 
@@ -31,6 +31,7 @@ const archiveConversationMock = vi.hoisted(() => vi.fn());
 const closeConversationMock = vi.hoisted(() => vi.fn());
 const refreshReactionsMock = vi.hoisted(() => vi.fn());
 const refreshAttachmentsMock = vi.hoisted(() => vi.fn());
+const removeMessageAttachmentsMock = vi.hoisted(() => vi.fn());
 
 // ─── Module Mocks ───────────────────────────────────────────────────────────
 
@@ -168,7 +169,26 @@ vi.mock("@/features/communication/conversations_redesign/components/Conversation
 }));
 
 vi.mock("@/features/communication/conversations_redesign/components/MessagesPanel", () => ({
-  MessagesPanel: () => <div data-testid="messages-panel">MessagesPanel</div>,
+  MessagesPanel: ({
+    messages,
+    onDeleteMessage,
+  }: {
+    messages?: Array<{ id: string }>;
+    onDeleteMessage?: (messageId: string) => Promise<unknown>;
+  }) => (
+    <div data-testid="messages-panel">
+      MessagesPanel
+      {messages?.map((message) => (
+        <button
+          key={message.id}
+          data-testid={`delete-message-${message.id}`}
+          onClick={() => void onDeleteMessage?.(message.id)}
+        >
+          Delete message
+        </button>
+      ))}
+    </div>
+  ),
   MessageComposer: () => <div data-testid="message-composer">MessageComposer</div>,
   ReadOnlyComposer: ({ labels }: { labels: { readOnlyComposer: string } }) => (
     <div data-testid="read-only-composer">{labels.readOnlyComposer}</div>
@@ -373,6 +393,7 @@ function setupDefaultMocks() {
     attachmentsByMessageId: {},
     attachFile: vi.fn(),
     removeAttachment: vi.fn(),
+    removeMessageAttachments: removeMessageAttachmentsMock,
     refreshAll: refreshAttachmentsMock,
     uploadingMessageId: null,
   });
@@ -464,6 +485,47 @@ describe("ConversationDetail", () => {
 
       expect(refreshReactionsMock).toHaveBeenCalledTimes(1);
       expect(refreshAttachmentsMock).not.toHaveBeenCalled();
+    });
+
+    it("deletes stored attachments before deleting a message", async () => {
+      const removeMessageMock = vi.fn().mockResolvedValue(undefined);
+      removeMessageAttachmentsMock.mockResolvedValue(undefined);
+      useConversationMessagesMock.mockReturnValue({
+        messages: [
+          createMessage({
+            id: "message-1",
+            conversationId: TEST_CONVERSATION_ID,
+            senderId: TEST_USER_ID,
+            body: "Message with attachment",
+          }),
+        ],
+        isLoading: false,
+        isLoadingOlder: false,
+        isMutating: false,
+        hasOlderMessages: false,
+        error: null,
+        send: vi.fn(),
+        edit: vi.fn(),
+        remove: removeMessageMock,
+        loadOlderMessages: vi.fn(),
+        refresh: vi.fn(),
+        upsertFromRealtime: vi.fn(),
+        deleteFromRealtime: vi.fn(),
+        patchFromRealtime: vi.fn(),
+        patchReadFromRealtime: vi.fn(),
+      });
+
+      renderConversationDetail();
+
+      fireEvent.click(screen.getByTestId("delete-message-message-1"));
+
+      await waitFor(() => {
+        expect(removeMessageAttachmentsMock).toHaveBeenCalledWith("message-1");
+        expect(removeMessageMock).toHaveBeenCalledWith("message-1");
+      });
+      expect(
+        removeMessageAttachmentsMock.mock.invocationCallOrder[0],
+      ).toBeLessThan(removeMessageMock.mock.invocationCallOrder[0]);
     });
 
     it("renders full-component loading spinner and blocks rendering of other elements when conversation loading is true", () => {

@@ -626,7 +626,10 @@ export default function ConversationDetail({
             }
             onDeleteMessage={(messageId) =>
               runMutation(
-                () => messagesState.remove(messageId),
+                async () => {
+                  await attachmentsState.removeMessageAttachments(messageId);
+                  await messagesState.remove(messageId);
+                },
                 labels.messageDeleted,
                 labels.unableToDeleteMessage,
               )

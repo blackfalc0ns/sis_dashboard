@@ -135,16 +135,38 @@ export function useMessageAttachments(
     [messageInputs],
   );
   const messageIdsRef = useRef<Set<string>>(new Set(messageIds));
+  const fetchedIdsRef = useRef<Set<string>>(new Set());
   const [attachmentsByMessageId, setAttachmentsByMessageId] = useState<
     Record<string, MessageAttachment[]>
   >({});
+  const attachmentsByMessageIdRef = useRef<Record<string, MessageAttachment[]>>(
+    {},
+  );
   const [uploadingMessageId, setUploadingMessageId] = useState<string | null>(null);
 
   useEffect(() => {
-    messageIdsRef.current = new Set(messageIds);
-  }, [messageIds]);
+    attachmentsByMessageIdRef.current = attachmentsByMessageId;
+  }, [attachmentsByMessageId]);
 
-  const fetchedIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const nextMessageIds = new Set(messageIds);
+    messageIdsRef.current = nextMessageIds;
+    fetchedIdsRef.current.forEach((messageId) => {
+      if (!nextMessageIds.has(messageId)) {
+        fetchedIdsRef.current.delete(messageId);
+      }
+    });
+    setAttachmentsByMessageId((current) => {
+      const next = Object.fromEntries(
+        Object.entries(current).filter(([messageId]) =>
+          nextMessageIds.has(messageId),
+        ),
+      );
+      return Object.keys(next).length === Object.keys(current).length
+        ? current
+        : next;
+    });
+  }, [messageIds]);
 
   useEffect(() => {
     const inlineAttachmentsByMessageId: Record<string, MessageAttachment[]> = {};
@@ -265,6 +287,18 @@ export function useMessageAttachments(
     [],
   );
 
+  const removeMessageAttachments = useCallback(async (messageId: string) => {
+    const attachments = attachmentsByMessageIdRef.current[messageId] ?? [];
+    await Promise.all(
+      attachments.map((attachment) => deleteAttachment(messageId, attachment.id)),
+    );
+    setAttachmentsByMessageId((current) => {
+      if (!current[messageId]) return current;
+      const { [messageId]: _removed, ...next } = current;
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     if (!socket) return;
 
@@ -320,5 +354,6 @@ export function useMessageAttachments(
     refreshAll,
     attachFile,
     removeAttachment,
+    removeMessageAttachments,
   };
 }
