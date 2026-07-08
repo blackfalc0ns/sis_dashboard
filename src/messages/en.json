@@ -3008,6 +3008,14 @@
         "primary_guardian": "Primary Guardian",
         "edit_guardian": "Edit Guardian",
         "remove_guardian": "Remove Guardian",
+        "link_existing": "Link existing",
+        "link_existing_modal_title": "Link existing guardian",
+        "link_guardian": "Link guardian",
+        "search_guardians_label": "Search guardians",
+        "search_guardians_placeholder": "Search by name, phone, or email",
+        "searching": "Searching...",
+        "no_guardians_found": "No guardians found.",
+        "mark_as_primary": "Mark as primary guardian",
         "national_id": "National ID",
         "alt": "Alt",
         "permissions": "Permissions",
@@ -8151,6 +8159,7 @@
         "city_required": "City is required.",
         "country_required": "Country is required.",
         "footer_required": "Footer signature is required.",
+        "logo_required": "School logo is required.",
         "location_required": "Select the school location from the map to save the address."
       },
       "messages": {
@@ -11039,6 +11048,63 @@
       "denied_title": "You do not have access to this Nedaa area",
       "denied_description": "Ask a system administrator to update your Nedaa permissions if you need access.",
       "manage_notice": "You can view this Nedaa area, but your role cannot make changes here."
+    },
+    "export": {
+      "title": "Export Nedaa data",
+      "subtitle": "Download the current Nedaa view in your preferred format.",
+      "button": "Export",
+      "datasets": {
+        "label": "Choose dataset",
+        "summary": {
+          "label": "Summary",
+          "title": "Summary",
+          "description": "KPI snapshot from the overview"
+        },
+        "activity": {
+          "label": "Latest activity",
+          "description": "Visible activity from the current view"
+        },
+        "chart": {
+          "label": "Selected chart",
+          "description": "The chart currently selected in the controls"
+        },
+        "latest_requests": {
+          "title": "Latest requests",
+          "description": "Most recent pickup requests from the overview"
+        },
+        "gates": {
+          "title": "Gates",
+          "description": "Gate board metrics from the overview"
+        }
+      },
+      "format": {
+        "label": "Export format",
+        "csv": {
+          "title": "CSV",
+          "description": "Localized spreadsheet-friendly export"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "Structured English-oriented data"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "Excel-compatible CSV with UTF-8 support"
+        }
+      },
+      "selection": {
+        "title": "Current selection",
+        "visibleRows": "{count} visible records will be exported"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "exporting": "Exporting...",
+        "export": "Export"
+      },
+      "errors": {
+        "noData": "There is no Nedaa data in the current view to export.",
+        "exportFailedGeneric": "Export failed. Please try again."
+      }
     }
   },
   "teachers": {

@@ -84,8 +84,10 @@ export function getStudentDisplayId(student: Student): string {
 /**
  * Get display grade for a student (handles backward compatibility)
  */
-export function getStudentGrade(student: Student): string {
-  return student.grade ?? student.gradeRequested;
+export function getStudentGrade(
+  student: Student & { enrollment?: { grade?: string } },
+): string {
+  return student.enrollment?.grade ?? student.grade ?? student.gradeRequested;
 }
 
 /**

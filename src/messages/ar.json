@@ -2977,6 +2977,14 @@
         "primary_guardian": "ولي الأمر الرئيسي",
         "edit_guardian": "تعديل ولي الأمر",
         "remove_guardian": "إزالة ولي الأمر",
+        "link_existing": "ربط ولي أمر موجود",
+        "link_existing_modal_title": "ربط ولي أمر موجود",
+        "link_guardian": "ربط ولي الأمر",
+        "search_guardians_label": "البحث عن أولياء الأمور",
+        "search_guardians_placeholder": "ابحث بالاسم أو الهاتف أو البريد الإلكتروني",
+        "searching": "جاري البحث...",
+        "no_guardians_found": "لم يتم العثور على أولياء أمور.",
+        "mark_as_primary": "تعيين كولي أمر رئيسي",
         "national_id": "رقم الهوية الوطنية",
         "alt": "بديل",
         "permissions": "الصلاحيات",
@@ -8120,6 +8128,7 @@
         "location_required": "يرجى تحديد موقع المدرسة من الخريطة لحفظ العنوان.",
         "city_required": "المدينة مطلوبة.",
         "country_required": "الدولة مطلوبة.",
+        "logo_required": "شعار المدرسة مطلوب.",
         "footer_required": "التوقيع السفلي مطلوب."
       },
       "messages": {
@@ -8148,6 +8157,9 @@
         "selected_location": "الموقع المحدد",
         "empty_state": "ابحث عن مكان أو انقر على الخريطة لاختيار موقع المدرسة.",
         "resolving": "جاري جلب تفاصيل العنوان...",
+        "manual_coordinates": "إحداثيات يدوية",
+        "latitude": "خط العرض",
+        "longitude": "خط الطول",
         "confirm": "استخدام هذا الموقع",
         "iframe_title": "معاينة موقع المدرسة",
         "coordinates": "خط العرض {lat}، خط الطول {lng}",
@@ -8155,7 +8167,12 @@
           "search_failed": "فشل البحث عن المواقع.",
           "resolve_failed": "فشل تحديد تفاصيل الموقع المختار.",
           "api_key_missing": "مفتاح Google Maps API غير موجود. اضبط NEXT_PUBLIC_GOOGLE_MAPS_API_KEY لاستخدام محدد الخريطة.",
-          "maps_load_failed": "تعذر تحميل خرائط Google. تحقق من المفتاح والفوترة وتفعيل Maps JavaScript وPlaces APIs."
+          "maps_load_failed": "تعذر تحميل خرائط Google. تحقق من المفتاح والفوترة وتفعيل Maps JavaScript وPlaces APIs.",
+          "coordinate_pair_required": "يرجى إدخال كل من خط العرض وخط الطول، أو مسح كلا الحقلين.",
+          "latitude_invalid": "يجب أن يكون خط العرض رقماً صالحاً.",
+          "latitude_out_of_range": "يجب أن يكون خط العرض بين -90 و 90 درجة.",
+          "longitude_invalid": "يجب أن يكون خط الطول رقماً صالحاً.",
+          "longitude_out_of_range": "يجب أن يكون خط الطول بين -180 و 180 درجة."
         },
         "dropzone_title": "انقر في أي مكان داخل هذه المنطقة لوضع مؤشر المدرسة",
         "loading_maps": "جارٍ تحميل خرائط Google..."
@@ -10978,6 +10995,63 @@
       "denied_title": "ليس لديك الوصول إلى هذا الجزء من نداء",
       "denied_description": "اطلب من مسؤول النظام تحديث أذونات نداء الخاصة بك إذا كنت بحاجة إلى الوصول.",
       "manage_notice": "يمكنك عرض هذا الجزء من نداء، لكن دورك لا يمكنه إجراء تغييرات هنا."
+    },
+    "export": {
+      "title": "تصدير بيانات نداء",
+      "subtitle": "تحميل عرض نداء الحالي بالتنسيق المفضل لديك.",
+      "button": "تصدير",
+      "datasets": {
+        "label": "اختر مجموعة البيانات",
+        "summary": {
+          "label": "الملخص",
+          "title": "الملخص",
+          "description": "لقطة من المؤشرات الرئيسية في النظرة العامة"
+        },
+        "activity": {
+          "label": "أحدث الأنشطة",
+          "description": "الأنشطة المرئية من العرض الحالي"
+        },
+        "chart": {
+          "label": "المخطط المحدد",
+          "description": "المخطط المحدد حالياً في عناصر التحكم"
+        },
+        "latest_requests": {
+          "title": "أحدث الطلبات",
+          "description": "طلبات الاستلام الأكثر حداثة من النظرة العامة"
+        },
+        "gates": {
+          "title": "البوابات",
+          "description": "مقاييس لوحة البوابات من النظرة العامة"
+        }
+      },
+      "format": {
+        "label": "تنسيق التصدير",
+        "csv": {
+          "title": "CSV",
+          "description": "تصدير محلي مناسب للجداول"
+        },
+        "json": {
+          "title": "JSON",
+          "description": "بيانات منظمة بمفاتيح إنجليزية"
+        },
+        "excel": {
+          "title": "Excel",
+          "description": "ملف CSV متوافق مع Excel ويدعم UTF-8"
+        }
+      },
+      "selection": {
+        "title": "التحديد الحالي",
+        "visibleRows": "سيتم تصدير {count} سجل ظاهر"
+      },
+      "actions": {
+        "cancel": "إلغاء",
+        "exporting": "جارٍ التصدير...",
+        "export": "تصدير"
+      },
+      "errors": {
+        "noData": "لا توجد بيانات نداء في العرض الحالي للتصدير.",
+        "exportFailedGeneric": "فشل التصدير. يرجى المحاولة مرة أخرى."
+      }
     },
     "staff_assignments": {
       "title": "تكليفات موظفي الانصراف",

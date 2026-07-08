@@ -961,6 +961,29 @@ export async function fetchStudentsWithEnrollment(): Promise<
   );
 }
 
+export async function fetchStudentWithEnrollment(
+  studentId: string,
+  academicYearId?: string | null,
+): Promise<StudentWithEnrollmentContext> {
+  const student = await fetchStudentById(studentId);
+  if (!student) {
+    throw new Error("Student not found");
+  }
+
+  try {
+    const enrollment = await fetchCurrentEnrollment({
+      studentId,
+      ...(academicYearId ? { academicYearId } : {}),
+    });
+    return {
+      ...student,
+      ...(enrollment ? { enrollment } : {}),
+    } as StudentWithEnrollmentContext;
+  } catch {
+    return student as StudentWithEnrollmentContext;
+  }
+}
+
 export function getStudentsWithEnrollmentForContext(
   academicYearId?: string | null,
   termId?: string | null,

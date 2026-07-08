@@ -126,32 +126,17 @@ export default function StudentProfilePage({
       setLoadError(null);
 
       try {
-        const studentData = await studentsService.fetchStudentById(studentId);
+        const studentData = await studentsService.fetchStudentWithEnrollment(
+          studentId,
+          yearId,
+        );
 
         if (isCancelled) {
           return;
         }
 
         setStudent(studentData ?? null);
-
-        if (!studentData) {
-          setEnrichedStudent(null);
-          return;
-        }
-
-        try {
-          const enrichedStudents = await studentsService.fetchStudentsWithEnrollment();
-          if (isCancelled) {
-            return;
-          }
-          setEnrichedStudent(
-            enrichedStudents.find((item) => item.id === studentId) ?? null,
-          );
-        } catch {
-          if (!isCancelled) {
-            setEnrichedStudent(null);
-          }
-        }
+        setEnrichedStudent(studentData ?? null);
       } catch (error) {
         if (isCancelled) {
           return;
@@ -172,7 +157,7 @@ export default function StudentProfilePage({
     return () => {
       isCancelled = true;
     };
-  }, [studentId, studentRevision, t]);
+  }, [studentId, studentRevision, yearId, t]);
 
   if (isLoading) {
     return <MainLoader />;
@@ -315,22 +300,22 @@ export default function StudentProfilePage({
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                 <span className="flex items-center gap-1">
                   <span className="font-medium">{t("student_id")}:</span>{" "}
-                  {getStudentDisplayId(student)}
+                  {getStudentDisplayId(profileStudent)}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="font-medium">{t("grade")}:</span>{" "}
                   {locale === "ar" &&
-                  getStudentGrade(student).startsWith("Grade ")
-                    ? `الصف ${getStudentGrade(student).replace("Grade ", "")}`
-                    : getStudentGrade(student)}
+                  getStudentGrade(profileStudent).startsWith("Grade ")
+                    ? `الصف ${getStudentGrade(profileStudent).replace("Grade ", "")}`
+                    : getStudentGrade(profileStudent)}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="font-medium">{t("section")}:</span>{" "}
-                  {enrichedStudent?.enrollment?.section ?? student.section ?? t("na")}
+                  {profileStudent?.enrollment?.section ?? profileStudent.section ?? t("na")}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="font-medium">{t("classroom")}:</span>{" "}
-                  {getStudentClassroom(enrichedStudent ?? student)}
+                  {getStudentClassroom(profileStudent)}
                 </span>
               </div>
             </div>

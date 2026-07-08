@@ -85,7 +85,7 @@ export default function StudentProfileLayout({
       setStudentLoadError(null);
 
       try {
-        const fetchedStudent = await studentsService.fetchStudentById(studentId);
+        const fetchedStudent = await studentsService.fetchStudentWithEnrollment(studentId);
         if (!cancelled) {
           setStudent(fetchedStudent || null);
         }
@@ -172,7 +172,7 @@ export default function StudentProfileLayout({
                   {t("grade")}: {getStudentGrade(student) || t("na")}
                 </span>
                 <span>
-                  {t("section")}: {student.section || t("na")}
+                  {t("section")}: {(student as any).enrollment?.section || student.section || t("na")}
                 </span>
               </div>
             </div>

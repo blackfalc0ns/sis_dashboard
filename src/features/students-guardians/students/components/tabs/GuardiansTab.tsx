@@ -294,7 +294,7 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
             onClick={() => setShowLinkModal(true)}
             leftIcon={<Search className="w-4 h-4" />}
           >
-            Link existing
+            {t("link_existing")}
           </Button>
           <Button
             type="button"
@@ -539,7 +539,7 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
         <Modal
           isOpen={showLinkModal}
           onClose={() => setShowLinkModal(false)}
-          title="Link existing guardian"
+          title={t("link_existing_modal_title")}
           size="md"
           footer={
             <>
@@ -548,14 +548,14 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
                 variant="secondary"
                 onClick={() => setShowLinkModal(false)}
               >
-                Cancel
+                {t("add_guardian_modal.cancel")}
               </Button>
               <Button
                 type="submit"
                 form="link-existing-guardian-form"
                 disabled={!selectedGuardianId}
               >
-                Link guardian
+                {t("link_guardian")}
               </Button>
             </>
           }
@@ -566,17 +566,17 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
             className="space-y-4 pb-4"
           >
               <Input
-                label="Search guardians"
+                label={t("search_guardians_label")}
                 value={guardianSearch}
                 onChange={(event) => setGuardianSearch(event.target.value)}
-                placeholder="Search by name, phone, or email"
+                placeholder={t("search_guardians_placeholder")}
               />
 
             <div className="mt-4 max-h-64 space-y-2 overflow-y-auto">
               {isSearchingGuardians ? (
-                <p className="text-sm text-gray-500">Searching...</p>
+                <p className="text-sm text-gray-500">{t("searching")}</p>
               ) : guardianSearchResults.length === 0 ? (
-                <p className="text-sm text-gray-500">No guardians found.</p>
+                <p className="text-sm text-gray-500">{t("no_guardians_found")}</p>
               ) : (
                 guardianSearchResults.map((guardian) => (
                   <Button
@@ -613,7 +613,7 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
               }`}
               onClick={() => setLinkAsPrimary((current) => !current)}
             >
-              Mark as primary guardian
+              {t("mark_as_primary")}
             </Button>
           </form>
         </Modal>

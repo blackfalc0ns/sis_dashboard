@@ -48,6 +48,8 @@ function audioExtension(mimeType: string) {
 }
 
 export function MessageComposer({
+  allowAttachments = true,
+  allowVoice = true,
   disabled,
   editingMessage,
   labels,
@@ -62,6 +64,8 @@ export function MessageComposer({
   onTyping,
   replyTo,
 }: {
+  allowAttachments?: boolean;
+  allowVoice?: boolean;
   disabled: boolean;
   editingMessage: { id: string; body: string } | null;
   labels: ConversationRedesignLabels;
@@ -127,7 +131,7 @@ export function MessageComposer({
       return;
     }
 
-    if (pendingFiles.length > 0) {
+    if (allowAttachments && pendingFiles.length > 0) {
       const filesToSend = [...pendingFiles];
       const captionToSend = body.trim();
       setFileError(null);
@@ -159,7 +163,7 @@ export function MessageComposer({
   const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
     setFileError(null);
     const files = event.target.files;
-    if (!files || files.length === 0 || disabled) return;
+    if (!allowAttachments || !files || files.length === 0 || disabled) return;
 
     const maxAttachmentSizeMb = policy?.maxAttachmentSizeMb ?? 10;
     const allowedMimes = policy?.allowedAttachmentMimeTypes;
@@ -311,7 +315,11 @@ export function MessageComposer({
     (pendingFiles.length > 0 || Boolean(body.trim()) || Boolean(editingMessage)) &&
     body.length <= maxMessageLength;
   const showMicButton =
-    !body.trim() && pendingFiles.length === 0 && !isRecording && !editingMessage;
+    allowVoice &&
+    !body.trim() &&
+    pendingFiles.length === 0 &&
+    !isRecording &&
+    !editingMessage;
 
   // Recording UI
   if (isRecording) {
@@ -444,22 +452,26 @@ export function MessageComposer({
       ) : null}
 
       <div className="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent transition-all duration-200">
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          aria-label={labels.attachFile}
-          disabled={disabled || isSubmitting}
-        >
-          <Paperclip className="h-5 w-5" />
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={(event) => void handleFileSelect(event)}
-        />
+        {allowAttachments ? (
+          <>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label={labels.attachFile}
+              disabled={disabled || isSubmitting}
+            >
+              <Paperclip className="h-5 w-5" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(event) => void handleFileSelect(event)}
+            />
+          </>
+        ) : null}
         <div className="min-w-0 flex-1">
           <textarea
             value={body}

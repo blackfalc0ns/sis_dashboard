@@ -19,6 +19,7 @@ import type {
 import { MessageBubble } from "./MessageBubble";
 
 export function MessagesPanel({
+  allowActions = true,
   allowReactions,
   attachmentsByMessageId,
   currentUserId,
@@ -45,6 +46,7 @@ export function MessagesPanel({
   userDisplayNames,
   uploadingMessageId,
 }: {
+  allowActions?: boolean;
   allowReactions: boolean;
   attachmentsByMessageId: Record<string, MessageAttachment[]>;
   currentUserId?: string | null;
@@ -264,6 +266,7 @@ export function MessagesPanel({
                   </div>
                 ) : null}
                 <MessageBubble
+                  allowActions={allowActions}
                   allowReactions={allowReactions}
                   attachments={
                     attachmentsByMessageId[message.id] ??

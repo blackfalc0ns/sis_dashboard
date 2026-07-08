@@ -41,6 +41,7 @@ const SWIPE_REPLY_MAX_OFFSET = 88;
 const SWIPE_DIRECTION_LOCK_DISTANCE = 8;
 
 export function MessageBubble({
+  allowActions = true,
   allowReactions,
   attachments,
   currentUserId,
@@ -64,6 +65,7 @@ export function MessageBubble({
   reactions,
   userDisplayNames,
 }: {
+  allowActions?: boolean;
   allowReactions: boolean;
   attachments: MessageAttachment[];
   currentUserId?: string | null;
@@ -204,7 +206,8 @@ export function MessageBubble({
     }
   }, []);
 
-  const canSwipeReply = !deleted && message.deliveryStatus !== "pending";
+  const canSwipeReply =
+    allowActions && !deleted && message.deliveryStatus !== "pending";
 
   const handleTouchStart = useCallback((event: TouchEvent<HTMLElement>) => {
     clearLongPressTimer();
@@ -353,7 +356,7 @@ export function MessageBubble({
           }`}
         >
           {/* Chevron dropdown — appears on hover at top-end corner */}
-          {!deleted ? (
+          {allowActions && !deleted ? (
             <BubbleContextMenu
               allowReactions={allowReactions}
               canEdit={canMutateMessage}
@@ -526,7 +529,7 @@ export function MessageBubble({
     </article>
 
     {/* Mobile bottom sheet — shown on long press */}
-    {showMobileMenu ? (
+    {allowActions && showMobileMenu ? (
       <div
         className="fixed inset-0 z-50 flex flex-col justify-end md:hidden"
         onClick={() => setShowMobileMenu(false)}
