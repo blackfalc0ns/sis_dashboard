@@ -10968,8 +10968,8 @@
         "staff_only_toggle": "Staff-only gate",
         "staff_only_toggle_help": "Use this for internal or controlled-access gates that require additional operator awareness.",
         "validation": {
-          "name_ar_required": "Arabic gate name is required.",
-          "name_en_required": "English gate name is required.",
+          "name_ar_required": "gate name is required.",
+          "name_en_required": "gate name is required.",
           "invalid_id": "A valid gate ID could not be generated from the English name.",
           "duplicate_id": "Another gate already uses this generated ID. Adjust the English name and try again.",
           "duplicate_zone": "Zone already exists."
