@@ -39,6 +39,7 @@ interface NedaaSettingsViewProps {
   onOpenEditGate: (gate: NedaaGate) => void;
   onCloseGateModal: () => void;
   onSubmitGate: (payload: CreateDismissalGatePayload) => Promise<void> | void;
+  onGateUpdated?: (gate: NedaaGate) => void;
   onToggleGateActive: (gate: NedaaGate) => void;
 }
 
@@ -83,6 +84,7 @@ export default function NedaaSettingsView({
   onOpenEditGate,
   onCloseGateModal,
   onSubmitGate,
+  onGateUpdated,
   onToggleGateActive,
 }: NedaaSettingsViewProps) {
   const t = useTranslations("nedaa");
@@ -418,6 +420,7 @@ export default function NedaaSettingsView({
         existingGateIds={orderedGates.map((gate) => gate.code)}
         onClose={onCloseGateModal}
         onSubmit={onSubmitGate}
+        onGateUpdated={onGateUpdated}
       />
     </div>
   );

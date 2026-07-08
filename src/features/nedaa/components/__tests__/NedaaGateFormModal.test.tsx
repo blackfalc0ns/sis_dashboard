@@ -8,6 +8,17 @@ vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key,
 }));
 
+vi.mock("@/components/ui/toast/Toast", () => ({
+  useToast: () => ({
+    showSuccess: vi.fn(),
+    showError: vi.fn(),
+  }),
+}));
+
+vi.mock("@/features/nedaa/services/dismissalApiService", () => ({
+  updateDismissalGate: vi.fn(),
+}));
+
 vi.mock("@/components/ui/google-location-picker", () => ({
   GoogleLocationPicker: ({
     onChange,
@@ -94,4 +105,61 @@ describe("NedaaGateFormModal location", () => {
       }),
     ).toBeDisabled();
   });
+
+  it("allows adding and removing waiting zones locally in create mode", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(
+      <NedaaGateFormModal
+        isOpen
+        mode="create"
+        existingGateIds={[]}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    expect(
+      screen.getByText("settings.gate_form.no_waiting_zones"),
+    ).toBeInTheDocument();
+
+    const input = screen.getByPlaceholderText(
+      "settings.gate_form.waiting_zones_placeholder",
+    );
+    await user.type(input, "Zone A");
+    await user.click(screen.getByRole("button", { name: "add" }));
+
+    expect(
+      screen.queryByText("settings.gate_form.no_waiting_zones"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Zone A")).toBeInTheDocument();
+
+    // Add another one
+    await user.type(input, "Zone B");
+    await user.click(screen.getByRole("button", { name: "add" }));
+    expect(screen.getByText("Zone B")).toBeInTheDocument();
+
+    // Remove Zone A
+    await user.click(screen.getByRole("button", { name: "Remove Zone A" }));
+    expect(screen.queryByText("Zone A")).not.toBeInTheDocument();
+    expect(screen.getByText("Zone B")).toBeInTheDocument();
+
+    // Submit form
+    await user.type(
+      screen.getByLabelText("settings.gate_form.name_en"),
+      "North Gate",
+    );
+    await user.click(
+      screen.getByRole("button", {
+        name: "settings.gate_form.create_action",
+      }),
+    );
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        waitingZones: ["Zone B"],
+      }),
+    );
+  });
 });
+

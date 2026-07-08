@@ -18,6 +18,8 @@ import type {
 } from "@/features/nedaa/types/nedaa";
 import { createNedaaGateIdFromName } from "@/features/nedaa/utils/nedaaPresentation";
 import { getNedaaLocationPickerLabels } from "@/features/nedaa/utils/nedaaLocationPicker";
+import { updateDismissalGate } from "@/features/nedaa/services/dismissalApiService";
+import { useToast } from "@/components/ui/toast/Toast";
 
 interface NedaaGateFormModalProps {
   isOpen: boolean;
@@ -26,6 +28,7 @@ interface NedaaGateFormModalProps {
   existingGateIds: string[];
   onClose: () => void;
   onSubmit: (payload: CreateDismissalGatePayload) => Promise<void> | void;
+  onGateUpdated?: (gate: NedaaGate) => void;
 }
 
 const GATE_STATUSES: DismissalGateStatus[] = [
@@ -42,6 +45,7 @@ export default function NedaaGateFormModal({
   existingGateIds,
   onClose,
   onSubmit,
+  onGateUpdated,
 }: NedaaGateFormModalProps) {
   const t = useTranslations("nedaa");
   const tCommon = useTranslations("common");
@@ -53,10 +57,13 @@ export default function NedaaGateFormModal({
   const [sortOrder, setSortOrder] = useState("0");
   const [location, setLocation] = useState<GoogleLocationValue | null>(null);
   const [isLocationValid, setIsLocationValid] = useState(true);
-  const [waitingZones, setWaitingZones] = useState("");
+  const [waitingZones, setWaitingZones] = useState<string[]>([]);
+  const [newZone, setNewZone] = useState("");
+  const [isUpdatingZones, setIsUpdatingZones] = useState(false);
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     if (!isOpen) {
@@ -83,7 +90,7 @@ export default function NedaaGateFormModal({
         : null,
     );
     setIsLocationValid(true);
-    setWaitingZones(initialGate?.waitingZones.join(", ") || "");
+    setWaitingZones(initialGate?.waitingZones || []);
     setNotes(initialGate?.notes || "");
     setIsSubmitting(false);
     setSubmitError(null);
@@ -113,7 +120,58 @@ export default function NedaaGateFormModal({
       ? t("settings.gate_form.validation.duplicate_id")
       : undefined;
   const canSubmit =
-    !nameError && !gateCodeError && isLocationValid && !isSubmitting;
+    !nameError && !gateCodeError && isLocationValid && !isSubmitting && !isUpdatingZones;
+
+  const handleAddZone = async () => {
+    const trimmed = newZone.trim();
+    if (!trimmed) return;
+
+    if (waitingZones.includes(trimmed)) {
+      showError(t("settings.gate_form.validation.duplicate_zone") || "Zone already exists");
+      return;
+    }
+
+    const nextZones = [...waitingZones, trimmed];
+    setWaitingZones(nextZones);
+    setNewZone("");
+
+    if (mode === "edit" && initialGate?.id) {
+      setIsUpdatingZones(true);
+      try {
+        const savedGate = await updateDismissalGate(initialGate.id, {
+          waitingZones: nextZones,
+        });
+        onGateUpdated?.(savedGate);
+        showSuccess(t("messages.settings_saved") || "Settings saved successfully");
+      } catch {
+        showError(t("messages.settings_save_failed") || "Failed to save settings");
+        setWaitingZones(waitingZones);
+      } finally {
+        setIsUpdatingZones(false);
+      }
+    }
+  };
+
+  const handleRemoveZone = async (zoneToRemove: string) => {
+    const nextZones = waitingZones.filter((z) => z !== zoneToRemove);
+    setWaitingZones(nextZones);
+
+    if (mode === "edit" && initialGate?.id) {
+      setIsUpdatingZones(true);
+      try {
+        const savedGate = await updateDismissalGate(initialGate.id, {
+          waitingZones: nextZones,
+        });
+        onGateUpdated?.(savedGate);
+        showSuccess(t("messages.settings_saved") || "Settings saved successfully");
+      } catch {
+        showError(t("messages.settings_save_failed") || "Failed to save settings");
+        setWaitingZones(waitingZones);
+      } finally {
+        setIsUpdatingZones(false);
+      }
+    }
+  };
 
   const handleSubmit = async () => {
     if (!canSubmit) {
@@ -134,10 +192,7 @@ export default function NedaaGateFormModal({
         sortOrder: Number(sortOrder || 0),
         latitude: location?.latitude ?? null,
         longitude: location?.longitude ?? null,
-        waitingZones: waitingZones
-          .split(",")
-          .map((zone) => zone.trim())
-          .filter(Boolean),
+        waitingZones,
         notes: notes.trim() || null,
       });
     } finally {
@@ -221,12 +276,73 @@ export default function NedaaGateFormModal({
           onValidityChange={setIsLocationValid}
         />
 
-        <Input
-          label={t("settings.gate_form.waiting_zones")}
-          value={waitingZones}
-          onChange={(event) => setWaitingZones(event.target.value)}
-          helperText={t("settings.gate_form.waiting_zones_help")}
-        />
+        <div className="space-y-2">
+          <label className="text-sm font-semibold text-gray-700">
+            {t("settings.gate_form.waiting_zones")}
+          </label>
+          <div className="flex gap-2">
+            <div className="grow">
+              <Input
+                value={newZone}
+                onChange={(event) => setNewZone(event.target.value)}
+                placeholder={t("settings.gate_form.waiting_zones_placeholder") || "Type a zone name"}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    void handleAddZone();
+                  }
+                }}
+                disabled={isSubmitting || isUpdatingZones}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleAddZone}
+              disabled={!newZone.trim() || isSubmitting || isUpdatingZones}
+            >
+              {tCommon("add") || "Add"}
+            </Button>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 pt-1">
+            {waitingZones.map((zone) => (
+              <span
+                key={zone}
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary border border-primary/20"
+              >
+                {zone}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveZone(zone)}
+                  disabled={isSubmitting || isUpdatingZones}
+                  className="rounded-full hover:bg-primary/20 p-0.5"
+                  aria-label={`Remove ${zone}`}
+                >
+                  <svg
+                    className="h-3.5 w-3.5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </span>
+            ))}
+            {waitingZones.length === 0 ? (
+              <p className="text-xs text-gray-500 italic">
+                {t("settings.gate_form.no_waiting_zones") || "No waiting zones configured."}
+              </p>
+            ) : null}
+          </div>
+          <p className="text-xs text-gray-500">
+            {t("settings.gate_form.waiting_zones_help")}
+          </p>
+        </div>
         <TextArea
           label={t("settings.notes")}
           value={notes}

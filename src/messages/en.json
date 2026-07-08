@@ -10958,7 +10958,9 @@
         "latitude": "Latitude",
         "longitude": "Longitude",
         "waiting_zones": "Waiting zones",
-        "waiting_zones_help": "Comma-separated backend waiting zone labels.",
+        "waiting_zones_placeholder": "Type a zone name",
+        "no_waiting_zones": "No waiting zones configured.",
+        "waiting_zones_help": "Backend waiting zone labels.",
         "active_toggle": "Gate is active",
         "active_toggle_help": "Inactive gates stay configured but do not appear on the active Nedaa board.",
         "supports_pickup_toggle": "Supports pickup workflow",
@@ -10969,7 +10971,8 @@
           "name_ar_required": "Arabic gate name is required.",
           "name_en_required": "English gate name is required.",
           "invalid_id": "A valid gate ID could not be generated from the English name.",
-          "duplicate_id": "Another gate already uses this generated ID. Adjust the English name and try again."
+          "duplicate_id": "Another gate already uses this generated ID. Adjust the English name and try again.",
+          "duplicate_zone": "Zone already exists."
         }
       }
     },

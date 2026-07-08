@@ -276,6 +276,28 @@ export default function NedaaSettingsPage() {
     }
   };
 
+  const handleGateUpdated = (updatedGate: NedaaGate) => {
+    if (!settings) return;
+    const nextSettings = {
+      ...settings,
+      gates: settings.gates.map((gate) =>
+        gate.id === updatedGate.id ? updatedGate : gate,
+      ),
+    };
+    setSettings(cloneSettingsValue(nextSettings));
+    setInitialSettings((current) =>
+      current
+        ? cloneSettingsValue({
+            ...current,
+            gates: current.gates.map((gate) =>
+              gate.id === updatedGate.id ? updatedGate : gate,
+            ),
+          })
+        : current,
+    );
+  };
+
+
   const handleToggleGateActive = async (gate: NedaaGate) => {
     if (!settings || !canManageSettings || isReadOnly) {
       return;
@@ -456,6 +478,7 @@ export default function NedaaSettingsPage() {
           setGateModalMode("create");
         }}
         onSubmitGate={handleSubmitGate}
+        onGateUpdated={handleGateUpdated}
         onToggleGateActive={(gate) => {
           void handleToggleGateActive(gate);
         }}
