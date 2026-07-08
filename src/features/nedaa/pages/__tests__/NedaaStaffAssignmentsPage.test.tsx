@@ -5,6 +5,7 @@ import NedaaStaffAssignmentsPage from "../NedaaStaffAssignmentsPage";
 
 const serviceMocks = vi.hoisted(() => ({
   fetchSettingsUsers: vi.fn(),
+  fetchSettingsRoles: vi.fn(),
   listDismissalGates: vi.fn(),
 }));
 
@@ -23,6 +24,10 @@ vi.mock("@/components/ui/toast/Toast", () => ({
 
 vi.mock("@/features/settings/services/settingsUsersService", () => ({
   fetchSettingsUsers: serviceMocks.fetchSettingsUsers,
+}));
+
+vi.mock("@/features/settings/services/settingsRolesService", () => ({
+  fetchSettingsRoles: serviceMocks.fetchSettingsRoles,
 }));
 
 vi.mock("@/features/nedaa/services/dismissalApiService", () => ({
@@ -60,6 +65,19 @@ vi.mock("@/features/nedaa/hooks/useNedaaAcademicStructure", () => ({
 
 describe("NedaaStaffAssignmentsPage", () => {
   beforeEach(() => {
+    serviceMocks.fetchSettingsRoles.mockResolvedValue({
+      items: [
+        {
+          id: "role-dismissal-staff",
+          key: "dismissal_staff",
+          name: "Dismissal Staff",
+          description: null,
+          isSystem: true,
+          memberCount: 1,
+          permissions: [],
+        },
+      ],
+    });
     serviceMocks.fetchSettingsUsers.mockResolvedValue({
       items: [
         {
@@ -88,6 +106,19 @@ describe("NedaaStaffAssignmentsPage", () => {
         },
       ],
     });
+  });
+
+  it("loads staff dropdown users from the Dismissal Staff role only", async () => {
+    render(<NedaaStaffAssignmentsPage />);
+
+    await waitFor(() =>
+      expect(serviceMocks.fetchSettingsUsers).toHaveBeenCalledWith({
+        page: 1,
+        limit: 100,
+        roleId: "role-dismissal-staff",
+        status: "active",
+      }),
+    );
   });
 
   it("offers academics-tree stages when assignment results are empty", async () => {

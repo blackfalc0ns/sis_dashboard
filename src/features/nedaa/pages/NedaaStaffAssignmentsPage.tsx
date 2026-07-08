@@ -15,8 +15,12 @@ import Modal from "@/components/ui/modal/Modal";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePermissions } from "@/hooks/usePermissions";
+import { fetchSettingsRoles } from "@/features/settings/services/settingsRolesService";
 import { fetchSettingsUsers } from "@/features/settings/services/settingsUsersService";
-import type { SettingsUserRecord } from "@/features/settings/types";
+import type {
+  RoleDefinition,
+  SettingsUserRecord,
+} from "@/features/settings/types";
 import NedaaAccessNotice from "@/features/nedaa/components/NedaaAccessNotice";
 import { useNedaaAcademicStructure } from "@/features/nedaa/hooks/useNedaaAcademicStructure";
 import {
@@ -66,6 +70,8 @@ interface StaffAssignmentTableRow extends Record<string, unknown> {
 }
 
 const STAFF_ASSIGNMENTS_PAGE_SIZE = 10;
+const DISMISSAL_STAFF_ROLE_NAME = "Dismissal Staff";
+const DISMISSAL_STAFF_ROLE_KEY = "dismissal_staff";
 
 const emptyFormState: StaffAssignmentFormState = {
   staffUserId: "",
@@ -151,6 +157,14 @@ function formatStaffOptionLabel(staff: SettingsUserRecord): string {
   return username ? `${staff.fullName} (${username})` : staff.fullName;
 }
 
+function isDismissalStaffRole(role: RoleDefinition) {
+  return (
+    role.name.trim().toLowerCase() ===
+      DISMISSAL_STAFF_ROLE_NAME.toLowerCase() ||
+    role.key === DISMISSAL_STAFF_ROLE_KEY
+  );
+}
+
 export default function NedaaStaffAssignmentsPage() {
   const t = useTranslations("nedaa");
   const tCommon = useTranslations("common");
@@ -222,15 +236,41 @@ export default function NedaaStaffAssignmentsPage() {
 
     void Promise.allSettled([
       listDismissalGates({ page: 1, limit: 100 }),
-      fetchSettingsUsers({ page: 1, limit: 100, status: "active" }),
-    ]).then(([gatesResult, usersResult]) => {
+      fetchSettingsRoles({ page: 1, limit: 100 }),
+    ]).then(async ([gatesResult, rolesResult]) => {
       if (cancelled) return;
 
       if (gatesResult.status === "fulfilled") {
         setGateOptionsSource(gatesResult.value.data);
       }
-      if (usersResult.status === "fulfilled") {
-        setStaffOptionsSource(usersResult.value.items);
+
+      if (rolesResult.status !== "fulfilled") {
+        setStaffOptionsSource([]);
+        return;
+      }
+
+      const dismissalStaffRole = rolesResult.value.items.find(
+        isDismissalStaffRole,
+      );
+      if (!dismissalStaffRole) {
+        setStaffOptionsSource([]);
+        return;
+      }
+
+      try {
+        const usersResult = await fetchSettingsUsers({
+          page: 1,
+          limit: 100,
+          roleId: dismissalStaffRole.id,
+          status: "active",
+        });
+        if (!cancelled) {
+          setStaffOptionsSource(usersResult.items);
+        }
+      } catch {
+        if (!cancelled) {
+          setStaffOptionsSource([]);
+        }
       }
     });
 
