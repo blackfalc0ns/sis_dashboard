@@ -209,7 +209,7 @@ export function MessagesPanel({
         aria-live="polite"
         aria-relevant="additions"
         dir="ltr"
-        className="h-full overflow-y-auto px-4 py-8"
+        className="h-full overflow-y-auto px-1.5 py-8"
       >
         <div className="flex min-h-full flex-col gap-0.5">
           {/* Loading older messages indicator */}
