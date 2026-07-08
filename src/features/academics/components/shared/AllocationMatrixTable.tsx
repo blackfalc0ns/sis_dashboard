@@ -18,7 +18,10 @@ export interface MatrixRow {
   secondaryLabel?: string;
 }
 
-interface AllocationMatrixTableProps<TRow extends MatrixRow, TColumn extends MatrixColumn> {
+interface AllocationMatrixTableProps<
+  TRow extends MatrixRow,
+  TColumn extends MatrixColumn,
+> {
   rows: TRow[];
   columns: TColumn[];
   rowHeaderLabel: string;
@@ -36,7 +39,7 @@ interface AllocationMatrixTableProps<TRow extends MatrixRow, TColumn extends Mat
 
 export default function AllocationMatrixTable<
   TRow extends MatrixRow,
-  TColumn extends MatrixColumn
+  TColumn extends MatrixColumn,
 >({
   rows,
   columns,
@@ -86,7 +89,10 @@ export default function AllocationMatrixTable<
     : rows.length;
 
   return (
-    <div className={`overflow-x-auto ${className}`} style={{ fontFamily: "inherit" }}>
+    <div
+      className={`overflow-x-auto ${className}`}
+      style={{ fontFamily: "inherit" }}
+    >
       <table
         className="min-w-full border-collapse shadow-sm rounded-lg overflow-hidden"
         style={{ backgroundColor: "var(--background)", fontFamily: "inherit" }}
@@ -120,32 +126,17 @@ export default function AllocationMatrixTable<
                   borderBottom: "2px solid var(--color-primary-200)",
                   color: "var(--color-primary-900)",
                 }}
-                title={`${column.label}${column.code ? ` (${column.code})` : ""}`}
               >
                 {renderColumnHeader ? (
                   renderColumnHeader(column)
                 ) : (
                   <div className="flex flex-col gap-1">
                     <div
-                      className="font-bold truncate"
+                      className="font-bold truncate text-center"
                       style={{ color: "var(--color-primary-900)" }}
                     >
                       {column.label}
                     </div>
-                    {column.code && (
-                      <div className="inline-flex">
-                        <span
-                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-                          style={{
-                            backgroundColor: "var(--color-primary-50)",
-                            color: "var(--color-primary-700)",
-                            border: "1px solid var(--color-primary-200)",
-                          }}
-                        >
-                          {column.code}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 )}
               </th>
@@ -188,7 +179,9 @@ export default function AllocationMatrixTable<
                     "var(--color-primary-50)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = isEvenRow(visibleRowIndex)
+                  e.currentTarget.style.backgroundColor = isEvenRow(
+                    visibleRowIndex,
+                  )
                     ? "var(--background)"
                     : "var(--color-gray-50)";
                 }}
@@ -222,7 +215,9 @@ export default function AllocationMatrixTable<
                   <td
                     key={column.id}
                     className="p-0"
-                    style={{ borderBottom: "1px solid var(--color-primary-100)" }}
+                    style={{
+                      borderBottom: "1px solid var(--color-primary-100)",
+                    }}
                   >
                     {renderCell(row, column)}
                   </td>
@@ -240,7 +235,11 @@ export default function AllocationMatrixTable<
                       color: "var(--color-primary-900)",
                     }}
                   >
-                    {renderRowTotal ? renderRowTotal(row) : (getRowTotal ? getRowTotal(row) : null)}
+                    {renderRowTotal
+                      ? renderRowTotal(row)
+                      : getRowTotal
+                        ? getRowTotal(row)
+                        : null}
                   </td>
                 )}
               </tr>
@@ -271,8 +270,8 @@ export default function AllocationMatrixTable<
             </div>
 
             <div className="text-sm text-gray-600">
-              {t("showing")} {startRow} {t("to")} {endRow} {t("of")} {rows.length}{" "}
-              {t("entries")}
+              {t("showing")} {startRow} {t("to")} {endRow} {t("of")}{" "}
+              {rows.length} {t("entries")}
             </div>
           </div>
 

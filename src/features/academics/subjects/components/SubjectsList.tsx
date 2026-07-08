@@ -65,9 +65,12 @@ export default function SubjectsList({
     setSearchInputValue(searchQuery);
   }, [searchQuery]);
 
-  useEffect(() => () => {
-    syncSearchQueryParam.cancel();
-  }, [syncSearchQueryParam]);
+  useEffect(
+    () => () => {
+      syncSearchQueryParam.cancel();
+    },
+    [syncSearchQueryParam],
+  );
 
   const filteredSubjects = useMemo(() => {
     if (!searchInputValue.trim()) return subjects;
@@ -78,12 +81,16 @@ export default function SubjectsList({
         s.nameEn.toLowerCase().includes(query) ||
         s.name.toLowerCase().includes(query) ||
         s.code?.toLowerCase().includes(query) ||
-        s.stage?.toLowerCase().includes(query)
+        s.stage?.toLowerCase().includes(query),
     );
   }, [searchInputValue, subjects]);
 
-  const getSubjectAllocationStatus = (subjectId: string): "allocated" | "not_allocated" => {
-    return allocations.some((a) => a.subjectId === subjectId && a.weeklyHours > 0)
+  const getSubjectAllocationStatus = (
+    subjectId: string,
+  ): "allocated" | "not_allocated" => {
+    return allocations.some(
+      (a) => a.subjectId === subjectId && a.weeklyHours > 0,
+    )
       ? "allocated"
       : "not_allocated";
   };
@@ -106,7 +113,8 @@ export default function SubjectsList({
   const hasAllocations = deleteConfirm
     ? allocations.some(
         (allocation) =>
-          allocation.subjectId === deleteConfirm.id && allocation.weeklyHours > 0,
+          allocation.subjectId === deleteConfirm.id &&
+          allocation.weeklyHours > 0,
       )
     : false;
 
@@ -115,8 +123,10 @@ export default function SubjectsList({
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="p-4 border-b border-border">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">{t("subjects_list.title")}</h2>
-          
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            {t("subjects_list.title")}
+          </h2>
+
           {/* Search */}
           <Input
             value={searchInputValue}
@@ -148,7 +158,9 @@ export default function SubjectsList({
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {filteredSubjects.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              {searchInputValue ? t("subjects_list.no_results") : t("subjects_list.empty")}
+              {searchInputValue
+                ? t("subjects_list.no_results")
+                : t("subjects_list.empty")}
             </div>
           )}
 
@@ -162,24 +174,29 @@ export default function SubjectsList({
               >
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-medium text-gray-900 truncate">
-                        {locale === "ar" ? (subject.nameAr || subject.nameEn || subject.name) : (subject.nameEn || subject.nameAr || subject.name)}
-                      </h3>
+                    <div className="flex flex-col items-start gap-2 mb-1">
                       {subject.code && (
                         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                           {subject.code}
                         </span>
                       )}
+                      <h3 className="font-medium text-gray-900 truncate">
+                        {locale === "ar"
+                          ? subject.nameAr || subject.nameEn || subject.name
+                          : subject.nameEn || subject.nameAr || subject.name}
+                      </h3>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 flex-wrap">
                       {subject.stage && (
                         <span className="text-xs text-gray-600">
-                          {t(`subjects_list.stages.${subject.stage.toLowerCase()}`, { default: subject.stage })}
+                          {t(
+                            `subjects_list.stages.${subject.stage.toLowerCase()}`,
+                            { default: subject.stage },
+                          )}
                         </span>
                       )}
-                      
+
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full ${
                           status === "allocated"
@@ -237,21 +254,35 @@ export default function SubjectsList({
         size="sm"
         footer={
           <>
-            <Button onClick={() => setDeleteConfirm(null)} variant="secondary" disabled={isDeleting}>
+            <Button
+              onClick={() => setDeleteConfirm(null)}
+              variant="secondary"
+              disabled={isDeleting}
+            >
               {t("delete_dialog.cancel")}
             </Button>
-            <Button onClick={handleDelete} variant="danger" disabled={isDeleting}>
-              {isDeleting ? t("delete_dialog.deleting") : t("delete_dialog.delete")}
+            <Button
+              onClick={handleDelete}
+              variant="danger"
+              disabled={isDeleting}
+            >
+              {isDeleting
+                ? t("delete_dialog.deleting")
+                : t("delete_dialog.delete")}
             </Button>
           </>
         }
       >
         <div className="space-y-3">
-          <p className="text-gray-700">{t("delete_dialog.message", { name: deleteConfirm?.name || "" })}</p>
-          
+          <p className="text-gray-700">
+            {t("delete_dialog.message", { name: deleteConfirm?.name || "" })}
+          </p>
+
           {hasAllocations && (
             <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800">{t("delete_dialog.has_allocations")}</p>
+              <p className="text-sm text-yellow-800">
+                {t("delete_dialog.has_allocations")}
+              </p>
             </div>
           )}
         </div>
