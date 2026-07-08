@@ -88,4 +88,29 @@ describe("GoogleLocationPicker", () => {
     expect(onValidityChange).toHaveBeenLastCalledWith(false);
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  it("syncs the query input when the value prop changes", () => {
+    const { rerender } = render(
+      <GoogleLocationPicker value={null} labels={labels} onChange={vi.fn()} />,
+    );
+
+    const input = screen.getByLabelText(labels.searchLabel) as HTMLInputElement;
+    expect(input.value).toBe("");
+
+    rerender(
+      <GoogleLocationPicker
+        value={{
+          latitude: 24.7136,
+          longitude: 46.6753,
+          label: "School",
+          formattedAddress: "Riyadh, Saudi Arabia",
+        }}
+        labels={labels}
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(input.value).toBe("Riyadh, Saudi Arabia");
+  });
 });
+

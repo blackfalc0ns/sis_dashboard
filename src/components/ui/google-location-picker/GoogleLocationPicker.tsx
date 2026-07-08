@@ -126,6 +126,15 @@ export default function GoogleLocationPicker({
     });
   }, [controlledLatitude, controlledLongitude]);
 
+  useEffect(() => {
+    if (value) {
+      setQuery(value.formattedAddress || value.label || "");
+    } else {
+      setQuery("");
+    }
+  }, [value]);
+
+
   const updateMapPosition = useCallback((position: GoogleLatLngLiteral) => {
     markerRef.current?.setPosition(position);
     mapRef.current?.setCenter(position);
@@ -297,9 +306,6 @@ export default function GoogleLocationPicker({
     );
   }, 300);
 
-  useEffect(() => {
-    if (!disabled) search(query);
-  }, [disabled, query, search]);
 
   const selectPrediction = (prediction: GooglePlacePrediction) => {
     const places = placesRef.current;
@@ -355,7 +361,11 @@ export default function GoogleLocationPicker({
             label={labels.searchLabel}
             placeholder={labels.searchPlaceholder}
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              const nextVal = event.target.value;
+              setQuery(nextVal);
+              search(nextVal);
+            }}
             leftIcon={<Search className="h-4 w-4" />}
             disabled={disabled || !apiKey || isMapsLoading}
           />
