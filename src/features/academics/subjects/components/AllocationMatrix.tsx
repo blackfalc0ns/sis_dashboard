@@ -59,6 +59,7 @@ export default function AllocationMatrix({
 }: AllocationMatrixProps) {
   const t = useTranslations("academics.subjects.matrix");
   const locale = useLocale();
+  const periodLabel = locale === "ar" ? "حصص" : "Periods";
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryState = useMemo(
@@ -372,7 +373,31 @@ export default function AllocationMatrix({
     const isFocused = focusedCell === cellId;
 
     return (
-      <div className="relative">
+      <div
+        className="relative flex items-center justify-center gap-1.5 px-2 py-3 w-full h-full transition-all"
+        style={{
+          backgroundColor: isChanged
+            ? "var(--color-hover-50)"
+            : isFocused
+              ? "var(--color-primary-200)"
+              : isReadOnly
+                ? "var(--color-primary-100)"
+                : "transparent",
+          boxShadow: isFocused
+            ? "inset 0 0 0 2px var(--color-primary-500)"
+            : "none",
+        }}
+        onMouseEnter={(e) => {
+          if (!isReadOnly && !isFocused && !isChanged) {
+            e.currentTarget.style.backgroundColor = "var(--color-primary-200)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isReadOnly && !isFocused && !isChanged) {
+            e.currentTarget.style.backgroundColor = "transparent";
+          }
+        }}
+      >
         <input
           type="number"
           min="0"
@@ -390,19 +415,12 @@ export default function AllocationMatrix({
           onBlur={() => setFocusedCell(null)}
           disabled={isReadOnly}
           placeholder="—"
-          className="w-full h-full px-3 py-3 text-sm text-center border-0 focus:outline-none transition-all"
+          className="w-12 text-sm text-center border-0 focus:outline-none bg-transparent"
           style={{
             appearance: "textfield",
             MozAppearance: "textfield",
             WebkitAppearance: "none",
             fontFamily: "inherit",
-            backgroundColor: isChanged
-              ? "var(--color-hover-50)"
-              : isFocused
-                ? "var(--color-primary-200)"
-                : isReadOnly
-                  ? "var(--color-primary-100)"
-                  : "transparent",
             color: isChanged
               ? "var(--color-accent-900)"
               : value === 0
@@ -412,22 +430,23 @@ export default function AllocationMatrix({
                   : "var(--foreground)",
             fontWeight: isChanged ? "600" : "normal",
             cursor: isReadOnly ? "not-allowed" : "text",
-            boxShadow: isFocused
-              ? "inset 0 0 0 2px var(--color-primary-500)"
-              : "none",
-          }}
-          onMouseEnter={(e) => {
-            if (!isReadOnly && !isFocused && !isChanged) {
-              e.currentTarget.style.backgroundColor =
-                "var(--color-primary-200)";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isReadOnly && !isFocused && !isChanged) {
-              e.currentTarget.style.backgroundColor = "transparent";
-            }
           }}
         />
+        {value > 0 && (
+          <span
+            className="text-xs text-gray-500 select-none whitespace-nowrap"
+            style={{
+              color: isChanged
+                ? "var(--color-accent-700)"
+                : isReadOnly
+                  ? "var(--color-gray-400)"
+                  : "var(--color-gray-500)",
+              fontWeight: isChanged ? "600" : "normal",
+            }}
+          >
+            {periodLabel}
+          </span>
+        )}
         {isChanged && !isFocused && (
           <div
             className="absolute top-1 right-1 w-2 h-2 rounded-full"
@@ -441,6 +460,19 @@ export default function AllocationMatrix({
 
   const getRowTotal = (row: MatrixRow & { gradeId: string }) => {
     return getGradeTotal(row.gradeId);
+  };
+
+  const renderRowTotal = (row: MatrixRow & { gradeId: string }) => {
+    const total = getGradeTotal(row.gradeId);
+    if (!total) return "—";
+    return (
+      <span className="inline-flex items-center gap-1.5 justify-center">
+        <span>{total}</span>
+        <span className="text-xs font-normal text-gray-500 select-none">
+          {periodLabel}
+        </span>
+      </span>
+    );
   };
 
   if (subjects.length === 0) {
@@ -599,6 +631,7 @@ export default function AllocationMatrix({
             totalColumnLabel={t("table.total")}
             renderCell={renderCell}
             getRowTotal={getRowTotal}
+            renderRowTotal={renderRowTotal}
           />
         </div>
       </div>
