@@ -161,5 +161,42 @@ describe("NedaaGateFormModal location", () => {
       }),
     );
   });
+
+  it("generates the gate ID from an Arabic name successfully", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(
+      <NedaaGateFormModal
+        isOpen
+        mode="create"
+        existingGateIds={[]}
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText("settings.gate_form.name_en"),
+      "بوابة الشمال",
+    );
+
+    const idInput = screen.getByLabelText(
+      "settings.gate_form.generated_id",
+    ) as HTMLInputElement;
+    expect(idInput.value).toBe("بوابة-الشمال");
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "settings.gate_form.create_action",
+      }),
+    );
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: "بوابة-الشمال",
+        name: "بوابة الشمال",
+      }),
+    );
+  });
 });
 

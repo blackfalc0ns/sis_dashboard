@@ -19,11 +19,12 @@ export function getNedaaDefaultGateOptions(gates: NedaaGate[]): NedaaGate[] {
   );
 }
 
-export function createNedaaGateIdFromName(nameEn: string): string {
-  return nameEn
+export function createNedaaGateIdFromName(name: string): string {
+  return name
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/[^a-z0-9\u0600-\u06FF]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .replace(/_{2,}/g, "_");
 }
+
