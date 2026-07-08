@@ -156,6 +156,42 @@ describe("MessageBubble Delete Confirmation", () => {
     expect(onReplyMock).toHaveBeenCalledWith(message);
   });
 
+  it("calls onReply with the message when swiped right on touch", () => {
+    const message = createMessage({
+      id: "msg-swipe-reply",
+      body: "Swipe to reply",
+      senderId: "user-1",
+      status: "sent",
+    });
+
+    const onReplyMock = vi.fn();
+
+    render(
+      <MessageBubble
+        {...mockProps}
+        message={message}
+        onReply={onReplyMock}
+      />
+    );
+
+    const messageArticle = screen
+      .getByText("Swipe to reply")
+      .closest("article");
+    expect(messageArticle).toBeInTheDocument();
+
+    fireEvent.touchStart(messageArticle!, {
+      touches: [{ clientX: 10, clientY: 40 }],
+    });
+    fireEvent.touchMove(messageArticle!, {
+      touches: [{ clientX: 92, clientY: 44 }],
+    });
+    fireEvent.touchEnd(messageArticle!, {
+      changedTouches: [{ clientX: 92, clientY: 44 }],
+    });
+
+    expect(onReplyMock).toHaveBeenCalledWith(message);
+  });
+
   it("does not call onReply when the message bubble container is double-clicked and message is deleted", () => {
     const message = createMessage({
       id: "msg-reply-deleted",
@@ -183,4 +219,3 @@ describe("MessageBubble Delete Confirmation", () => {
     expect(onReplyMock).not.toHaveBeenCalled();
   });
 });
-

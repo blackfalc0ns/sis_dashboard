@@ -1,5 +1,12 @@
-import { type ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
-import { ThumbsUp } from "lucide-react";
+import {
+  type ChangeEvent,
+  type TouchEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { Reply } from "lucide-react";
 import Input from "@/components/ui/input/Input";
 import Avatar from "@/features/communication/conversations_redesign/components/Avatar";
 import {
@@ -26,6 +33,10 @@ import { FloatingReactionBar } from "./FloatingReactionBar";
 import { AttachmentCard } from "./AttachmentCard";
 import { MessageStatusIcon } from "./MessageStatusIcon";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
+
+const SWIPE_REPLY_THRESHOLD = 64;
+const SWIPE_REPLY_MAX_OFFSET = 88;
+const SWIPE_DIRECTION_LOCK_DISTANCE = 8;
 
 export function MessageBubble({
   allowReactions,
@@ -75,9 +86,7 @@ export function MessageBubble({
   userDisplayNames: UserDisplayNameMap;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [draftBody, setDraftBody] = useState(message.body ?? "");
   const [isActionPending, setIsActionPending] = useState(false);
   const senderName = isOwn
     ? currentUserName || labels.you
@@ -176,27 +185,105 @@ export function MessageBubble({
 
   // Long-press for mobile
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [swipeOffset, setSwipeOffset] = useState(0);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const swipeGestureRef = useRef<{
+    isSwiping: boolean;
+    startX: number;
+    startY: number;
+    lastX: number;
+    lastY: number;
+  } | null>(null);
 
-  const handleTouchStart = useCallback(() => {
+  const clearLongPressTimer = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const canSwipeReply = !deleted && message.deliveryStatus !== "pending";
+
+  const handleTouchStart = useCallback((event: TouchEvent<HTMLElement>) => {
+    clearLongPressTimer();
+    const touch = event.touches[0];
+    if (touch && canSwipeReply) {
+      swipeGestureRef.current = {
+        isSwiping: false,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        lastX: touch.clientX,
+        lastY: touch.clientY,
+      };
+    } else {
+      swipeGestureRef.current = null;
+    }
+
     longPressTimerRef.current = setTimeout(() => {
       setShowMobileMenu(true);
     }, 500);
+  }, [canSwipeReply, clearLongPressTimer]);
+
+  const resetSwipeGesture = useCallback(() => {
+    swipeGestureRef.current = null;
+    setSwipeOffset(0);
   }, []);
 
   const handleTouchEnd = useCallback(() => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  }, []);
+    clearLongPressTimer();
 
-  const handleTouchMove = useCallback(() => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
+    const gesture = swipeGestureRef.current;
+    if (
+      gesture?.isSwiping &&
+      gesture.lastX - gesture.startX >= SWIPE_REPLY_THRESHOLD &&
+      canSwipeReply
+    ) {
+      onReply(message);
     }
-  }, []);
+    resetSwipeGesture();
+  }, [canSwipeReply, clearLongPressTimer, message, onReply, resetSwipeGesture]);
+
+  const handleTouchMove = useCallback((event: TouchEvent<HTMLElement>) => {
+    const gesture = swipeGestureRef.current;
+    const touch = event.touches[0];
+    if (!gesture || !touch) {
+      clearLongPressTimer();
+      return;
+    }
+
+    const deltaX = touch.clientX - gesture.startX;
+    const deltaY = touch.clientY - gesture.startY;
+    const absDeltaX = Math.abs(deltaX);
+    const absDeltaY = Math.abs(deltaY);
+
+    gesture.lastX = touch.clientX;
+    gesture.lastY = touch.clientY;
+
+    if (!gesture.isSwiping) {
+      if (
+        absDeltaX < SWIPE_DIRECTION_LOCK_DISTANCE &&
+        absDeltaY < SWIPE_DIRECTION_LOCK_DISTANCE
+      ) {
+        return;
+      }
+
+      if (absDeltaY > absDeltaX || deltaX <= 0) {
+        clearLongPressTimer();
+        resetSwipeGesture();
+        return;
+      }
+
+      gesture.isSwiping = true;
+    }
+
+    if (gesture.isSwiping) {
+      clearLongPressTimer();
+      event.preventDefault();
+      setSwipeOffset(
+        Math.min(SWIPE_REPLY_MAX_OFFSET, Math.max(0, deltaX)),
+      );
+    }
+  }, [clearLongPressTimer, resetSwipeGesture]);
 
   useEffect(() => {
     return () => {
@@ -212,6 +299,10 @@ export function MessageBubble({
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchMove}
+      onTouchCancel={() => {
+        clearLongPressTimer();
+        resetSwipeGesture();
+      }}
       onContextMenu={(e) => { e.preventDefault(); setShowMobileMenu(true); }}
     >
       {!isOwn ? (
@@ -224,7 +315,22 @@ export function MessageBubble({
 
       <div
         className={`relative flex max-w-[78vw] flex-col md:max-w-[560px] ${isOwn ? "items-end" : "items-start"}`}
+        style={{
+          transform: swipeOffset ? `translateX(${swipeOffset}px)` : undefined,
+          transition: swipeOffset ? "none" : "transform 150ms ease-out",
+        }}
       >
+        {swipeOffset > 0 ? (
+          <div
+            className={`pointer-events-none absolute top-1/2 -translate-y-1/2 rounded-full bg-primary/10 p-2 text-primary opacity-90 ${
+              isOwn ? "-left-12" : "-left-10"
+            }`}
+            aria-hidden="true"
+          >
+            <Reply className="h-4 w-4" />
+          </div>
+        ) : null}
+
         {!isOwn && isFirstInGroup ? (
           <div className="mb-1 ms-1 text-xs font-medium text-slate-600">
             {senderName}
@@ -360,7 +466,6 @@ export function MessageBubble({
           <div className={`mt-1 flex flex-wrap items-center gap-0.5`}>
             {Object.entries(groupedReactions).map(([type, items]) => {
               const meta = REACTION_OPTIONS.find((r) => r.type === type);
-              const Icon = meta?.icon ?? ThumbsUp;
               const isOwnType = items.some(
                 (r) =>
                   r.userId === currentUserId ||
