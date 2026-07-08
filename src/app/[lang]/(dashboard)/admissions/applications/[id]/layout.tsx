@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ArrowRight,
   FileText,
+  ShieldCheck,
   ClipboardCheck,
   MessageSquare,
   FileCheck,
@@ -33,12 +34,18 @@ import { createPlacementTest } from "@/features/admissions/tests/services/testsA
 import { createInterview } from "@/features/admissions/interviews/services/interviewsApiService";
 import { useApplicationRelatedData } from "@/features/admissions/applications/hooks/useApplicationRelatedData";
 import {
+  getApplicationActionBlockers,
+  getDecisionActionState,
+  getRegistrationActionState,
+} from "@/features/admissions/applications/utils/applicationActionReadiness";
+import {
   createDecision,
   getDecisionFriendlyErrorMessage,
 } from "@/features/admissions/decisions/services/decisionsApiService";
 
 const tabs = [
   { key: "details", labelKey: "tabs.details", icon: FileText },
+  { key: "readiness", labelKey: "tabs.readiness", icon: ShieldCheck },
   { key: "documents", labelKey: "tabs.documents", icon: FileCheck },
   { key: "tests", labelKey: "tabs.tests", icon: ClipboardCheck },
   { key: "interviews", labelKey: "tabs.interviews", icon: MessageSquare },
@@ -163,15 +170,17 @@ export default function ApplicationProfileLayout({
     "under_review",
     "documents_pending",
   ];
-  const canMakeDecisionStatuses: ApplicationStatus[] = [
-    "submitted",
-    "under_review",
-  ];
   const isFinalDecisionStatus = finalDecisionStatuses.includes(application.status);
   const canScheduleAdmissionsStep = canScheduleAdmissionsSteps.includes(
     application.status,
   );
-  const canMakeDecision = canMakeDecisionStatuses.includes(application.status);
+  const { canMakeDecision } = getDecisionActionState(application);
+  const actionBlockers = getApplicationActionBlockers(application);
+  const registrationAction = getRegistrationActionState(application, {
+    canRegisterApplication,
+    isReadOnly,
+    permissionRequiredMessage: t("registration.permission_required"),
+  });
   const finalDecisionMessage =
     application.status === "waitlisted"
       ? t("actions.waitlisted_no_transition")
@@ -247,70 +256,80 @@ export default function ApplicationProfileLayout({
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3 flex-wrap">
-              {application.status === "documents_pending" && (
-                <button
-                  disabled={isReadOnly || !canManageApplications}
-                  onClick={async () => {
-                    try {
-                      await submitApplication(application.id);
-                      await refreshApplication();
-                    } catch (err) {
-                      console.error("Failed to submit application:", err);
-                      showToast("Failed to submit application.", "error");
-                    }
-                  }}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
-                >
-                  {t("actions.submit_application")}
-                </button>
+            <div className="space-y-4">
+              {actionBlockers.length > 0 && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                  <p className="font-medium">{t("actions.blocked_title")}</p>
+                  <ul className="mt-2 list-disc space-y-1 ps-5">
+                    {actionBlockers.map((blocker) => (
+                      <li key={`${blocker.code}-${blocker.message}`}>
+                        {blocker.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
-              {canManageApplications && canScheduleAdmissionsStep && (
-                <>
+              <div className="flex items-center gap-3 flex-wrap">
+                {application.status === "documents_pending" && (
+                  <button
+                    disabled={isReadOnly || !canManageApplications}
+                    onClick={async () => {
+                      try {
+                        await submitApplication(application.id);
+                        await refreshApplication();
+                      } catch (err) {
+                        console.error("Failed to submit application:", err);
+                        showToast("Failed to submit application.", "error");
+                      }
+                    }}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {t("actions.submit_application")}
+                  </button>
+                )}
+                {canManageApplications && canScheduleAdmissionsStep && (
+                  <>
+                    <button
+                      disabled={isReadOnly}
+                      onClick={() => setIsScheduleTestOpen(true)}
+                      className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {t("actions.schedule_test")}
+                    </button>
+                    <button
+                      disabled={isReadOnly}
+                      onClick={() => setIsScheduleInterviewOpen(true)}
+                      className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {t("actions.schedule_interview")}
+                    </button>
+                  </>
+                )}
+                {canManageDecisions && canMakeDecision && (
                   <button
                     disabled={isReadOnly}
-                    onClick={() => setIsScheduleTestOpen(true)}
-                    className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                    onClick={() => setIsDecisionOpen(true)}
+                    className="px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {t("actions.schedule_test")}
+                    {t("actions.make_decision")}
                   </button>
+                )}
+                {registrationAction.isVisible && (
                   <button
-                    disabled={isReadOnly}
-                    onClick={() => setIsScheduleInterviewOpen(true)}
-                    className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                    disabled={registrationAction.isDisabled}
+                    title={registrationAction.title}
+                    onClick={() => setIsEnrollmentOpen(true)}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {t("actions.schedule_interview")}
+                    {t("actions.enroll_student")}
                   </button>
-                </>
-              )}
-              {canManageDecisions && canMakeDecision && (
-                <button
-                  disabled={isReadOnly}
-                  onClick={() => setIsDecisionOpen(true)}
-                  className="px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors"
-                >
-                  {t("actions.make_decision")}
-                </button>
-              )}
-              {application.status === "accepted" && (
-                <button
-                  disabled={isReadOnly || !canRegisterApplication}
-                  title={
-                    canRegisterApplication
-                      ? undefined
-                      : t("registration.permission_required")
-                  }
-                  onClick={() => setIsEnrollmentOpen(true)}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
-                >
-                  {t("actions.enroll_student")}
-                </button>
-              )}
-              {isFinalDecisionStatus && finalDecisionMessage && (
-                <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700">
-                  {finalDecisionMessage}
-                </p>
-              )}
+                )}
+                {isFinalDecisionStatus && finalDecisionMessage && (
+                  <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700">
+                    {finalDecisionMessage}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>

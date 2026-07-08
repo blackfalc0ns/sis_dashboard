@@ -10,10 +10,12 @@ import GuardiansTab from "@/features/admissions/applications/components/tabs/Gua
 import DocumentsTab from "@/features/admissions/applications/components/tabs/DocumentsTab";
 import TestsTab from "@/features/admissions/applications/components/tabs/TestsTab";
 import InterviewsTab from "@/features/admissions/applications/components/tabs/InterviewsTab";
+import ApplicationReadinessPanel from "@/features/admissions/applications/components/tabs/ApplicationReadinessPanel";
 import { useApplicationRelatedData } from "@/features/admissions/applications/hooks/useApplicationRelatedData";
 
 type ApplicationTab =
   | "details"
+  | "readiness"
   | "guardians"
   | "documents"
   | "tests"
@@ -32,9 +34,11 @@ export default function ApplicationTabContent({
   const canViewApplications = hasPermission("admissions.applications.view");
   const [application, setApplication] = useState<Application | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const needsRegistrationHandoff = tab === "details" || tab === "guardians";
   const relatedData = useApplicationRelatedData(
     applicationId,
     application?.requestedGradeId,
+    needsRegistrationHandoff,
   );
 
   useEffect(() => {
@@ -79,6 +83,9 @@ export default function ApplicationTabContent({
         previousSchool={relatedData.previousSchool}
       />
     );
+  }
+  if (tab === "readiness") {
+    return <ApplicationReadinessPanel application={application} />;
   }
   if (tab === "guardians") {
     return (

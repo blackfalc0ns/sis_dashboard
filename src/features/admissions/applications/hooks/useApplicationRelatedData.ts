@@ -31,6 +31,7 @@ interface ApplicationRelatedData {
 export function useApplicationRelatedData(
   applicationId: string | null | undefined,
   requestedGradeId?: string | null,
+  enabled = true,
 ): ApplicationRelatedData {
   const locale = useLocale();
   const { yearId, termId } = useAdmissionsYearTermContext();
@@ -42,9 +43,10 @@ export function useApplicationRelatedData(
   const [grades, setGrades] = useState<Grade[]>([]);
 
   const reloadHandoff = useCallback(async () => {
-    if (!applicationId) {
+    if (!enabled || !applicationId) {
       setHandoff(null);
       setHandoffError(null);
+      setIsLoadingHandoff(false);
       return;
     }
 
@@ -59,14 +61,14 @@ export function useApplicationRelatedData(
     } finally {
       setIsLoadingHandoff(false);
     }
-  }, [applicationId]);
+  }, [applicationId, enabled]);
 
   useEffect(() => {
     void reloadHandoff();
   }, [reloadHandoff]);
 
   useEffect(() => {
-    if (!yearId || !termId) {
+    if (!enabled || !yearId || !termId) {
       setGrades([]);
       return;
     }
@@ -92,7 +94,7 @@ export function useApplicationRelatedData(
     return () => {
       isMounted = false;
     };
-  }, [termId, yearId]);
+  }, [enabled, termId, yearId]);
 
   const gradeLabel = useMemo(() => {
     const handoffGradeName =

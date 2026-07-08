@@ -809,17 +809,47 @@
     "workflowPolicy": {
       "title": "سياسة سير عمل القبول",
       "description": "تحكم في متطلبات المدرسة المستخدمة لتحديد جاهزية القرار والتسجيل.",
-      "summary": { "title": "السياسة الفعالة", "description": "تُطبق هذه القواعد على جميع طلبات القبول في هذه المدرسة.", "updatedAt": "آخر تحديث: {value}" },
-      "source": { "default": "السياسة الافتراضية", "school_override": "تخصيص المدرسة" },
-      "requiresPlacementTest": { "label": "اشتراط اختبار تحديد المستوى", "description": "يجب أن يحتوي الطلب على اختبار تحديد مستوى مكتمل واحد على الأقل قبل القرار." },
-      "requiresInterview": { "label": "اشتراط المقابلة", "description": "يجب أن يحتوي الطلب على مقابلة مكتملة واحدة على الأقل قبل القرار." },
-      "allowDirectAcceptance": { "label": "السماح بالقبول المباشر", "description": "السماح بالقبول دون اختبارات أو مقابلات عندما تكون الخطوتان اختياريتين." },
+      "summary": {
+        "title": "السياسة الفعالة",
+        "description": "تُطبق هذه القواعد على جميع طلبات القبول في هذه المدرسة.",
+        "updatedAt": "آخر تحديث: {value}"
+      },
+      "source": {
+        "default": "السياسة الافتراضية",
+        "school_override": "تخصيص المدرسة"
+      },
+      "requiresPlacementTest": {
+        "label": "اشتراط اختبار تحديد المستوى",
+        "description": "يجب أن يحتوي الطلب على اختبار تحديد مستوى مكتمل واحد على الأقل قبل القرار."
+      },
+      "requiresInterview": {
+        "label": "اشتراط المقابلة",
+        "description": "يجب أن يحتوي الطلب على مقابلة مكتملة واحدة على الأقل قبل القرار."
+      },
+      "allowDirectAcceptance": {
+        "label": "السماح بالقبول المباشر",
+        "description": "السماح بالقبول دون اختبارات أو مقابلات عندما تكون الخطوتان اختياريتين."
+      },
       "directAcceptanceWarning": "يظل القبول محظورًا عندما تكون الاختبارات والمقابلات اختيارية ما لم يتم تفعيل القبول المباشر. يظل الانتظار والرفض متاحين.",
       "readOnly": "يمكنك عرض هذه السياسة، لكن ليس لديك صلاحية تعديلها.",
-      "actions": { "save": "حفظ السياسة", "reset": "إعادة ضبط التغييرات", "retry": "إعادة المحاولة" },
-      "states": { "loading": "جارٍ تحميل سياسة سير العمل...", "loadFailed": "تعذر تحميل سياسة سير العمل", "loadFailedDescription": "تحقق من الاتصال ثم أعد المحاولة." },
-      "messages": { "saved": "تم حفظ سياسة سير العمل.", "saveFailed": "تعذر حفظ سياسة سير العمل. تم الاحتفاظ بتغييراتك." },
-      "accessDenied": { "title": "غير مصرح بعرض سياسة سير العمل", "description": "ليس لديك صلاحية عرض سياسة سير عمل القبول." }
+      "actions": {
+        "save": "حفظ السياسة",
+        "reset": "إعادة ضبط التغييرات",
+        "retry": "إعادة المحاولة"
+      },
+      "states": {
+        "loading": "جارٍ تحميل سياسة سير العمل...",
+        "loadFailed": "تعذر تحميل سياسة سير العمل",
+        "loadFailedDescription": "تحقق من الاتصال ثم أعد المحاولة."
+      },
+      "messages": {
+        "saved": "تم حفظ سياسة سير العمل.",
+        "saveFailed": "تعذر حفظ سياسة سير العمل. تم الاحتفاظ بتغييراتك."
+      },
+      "accessDenied": {
+        "title": "غير مصرح بعرض سياسة سير العمل",
+        "description": "ليس لديك صلاحية عرض سياسة سير عمل القبول."
+      }
     },
     "context_bar": {
       "title": "السياق الأكاديمي",
@@ -10540,7 +10570,8 @@
       "preparing": "قيد التحضير",
       "ready": "جاهز",
       "completed": "مكتمل",
-      "cancelled": "ملغى"
+      "cancelled": "ملغى",
+      "retry_academic_structure": "إعادة محاولة الهيكل الأكاديمي"
     },
     "status": {
       "pending": "معلق",
@@ -10574,7 +10605,16 @@
       "blocked": "محظور",
       "enabled": "مفعّل",
       "disabled": "معطل",
-      "no_actions": "لا توجد إجراءات"
+      "no_actions": "لا توجد إجراءات",
+      "staff": "الموظف",
+      "code": "الرمز",
+      "name": "الاسم",
+      "campus": "الحرم",
+      "scope": "النطاق",
+      "lead": "مسؤول",
+      "active": "نشط",
+      "yes": "نعم",
+      "no": "لا"
     },
     "filters": {
       "search_placeholder": "بحث بالطلب، الطالب، او الولي الامر",
@@ -10584,7 +10624,24 @@
       "all_statuses": "كل الحالات",
       "all_gates": "كل البوابات",
       "show_filters": "عرض الفلاتر",
-      "clear_filters": "مسح الفلاتر"
+      "clear_filters": "مسح الفلاتر",
+      "search_gates_placeholder": "ابحث في البوابات بالرمز أو الاسم أو الحرم",
+      "search_staff_assignments_placeholder": "ابحث في تكليفات الموظفين",
+      "active_state": "حالة التفعيل",
+      "lead_state": "حالة المسؤول",
+      "staff_user": "الموظف",
+      "stage": "المرحلة",
+      "grade": "الصف",
+      "section": "الشعبة",
+      "classroom": "الفصل",
+      "all_active_states": "كل حالات التفعيل",
+      "active_only": "النشطة فقط",
+      "inactive_only": "غير النشطة فقط",
+      "all_lead_states": "كل حالات المسؤول",
+      "lead_only": "المسؤولون فقط",
+      "non_lead_only": "غير المسؤولين فقط",
+      "no_options": "لا توجد خيارات متاحة",
+      "no_results": "لا توجد نتائج مطابقة"
     },
     "gates": {
       "main_gate": "البوابة الرئيسية",
@@ -10652,6 +10709,120 @@
       "timeline_subtitle": "نظرة عامة على الأحداث الزمنية.",
       "no_timeline": "لا توجد أحداث زمنية."
     },
+    "operations": {
+      "title": "عمليات نداء",
+      "subtitle": "إدارة طلبات الانصراف النشطة والطلاب المنتظرين وسجل الاستلام من مساحة عمل واحدة.",
+      "empty_title": "لا توجد سجلات انصراف",
+      "empty_description": "عدّل الفلاتر أو حدّث مساحة العمل لتحميل أحدث نشاط للانصراف.",
+      "detail_loading": "جاري تحميل تفاصيل الطلب..."
+    },
+    "operations_tabs": {
+      "active": "الطلبات النشطة",
+      "waiting": "الطلاب المنتظرون",
+      "history": "السجل"
+    },
+    "operations_actions": {
+      "refresh": "تحديث",
+      "view": "عرض",
+      "view_history": "عرض السجل",
+      "recipients": "المستلمون",
+      "advance_status": "تغيير الحالة",
+      "save_status": "حفظ الحالة",
+      "deliver": "تسليم",
+      "save_delivery": "حفظ التسليم",
+      "escalate": "تصعيد",
+      "save_escalation": "حفظ التصعيد",
+      "confirm_arrival": "تأكيد الوصول",
+      "save_arrival": "حفظ الوصول"
+    },
+    "operations_filters": {
+      "search_placeholder": "ابحث باسم الطالب أو البوابة",
+      "all": "الكل",
+      "stage": "المرحلة",
+      "grade": "الصف",
+      "section": "الشعبة",
+      "classroom": "الفصل",
+      "child": "الطالب",
+      "search_child": "ابحث باسم الطالب أو رقمه",
+      "primary_group": "الفلاتر الأساسية",
+      "academic_group": "النطاق الأكاديمي",
+      "period_group": "فترة السجل",
+      "status_group": "نطاق الحالة",
+      "flags_group": "خصائص الطلب",
+      "additional_statuses": "حالات إضافية",
+      "date_from": "تاريخ الطلب من",
+      "date_to": "تاريخ الطلب إلى",
+      "flags": "خصائص الطلب",
+      "active_only": "النشطة فقط",
+      "terminal_only": "المنتهية فقط",
+      "delayed_only": "المتأخرة فقط",
+      "urgent_only": "العاجلة فقط",
+      "escalated_only": "المصعّدة فقط",
+      "sort": "الترتيب",
+      "arrival_stage_asc": "مرحلة الوصول",
+      "urgency_desc": "الأكثر إلحاحًا أولًا",
+      "requested_at_asc": "الأقدم طلبًا أولًا",
+      "requested_at_desc": "الأحدث طلبًا أولًا",
+      "created_at_desc": "الأحدث إنشاءً أولًا",
+      "created_at_asc": "الأقدم إنشاءً أولًا",
+      "updated_at_desc": "الأحدث تحديثًا أولًا",
+      "wait_minutes_desc": "الأطول انتظارًا أولًا"
+    },
+    "operations_fields": {
+      "student": "الطالب",
+      "requester": "مقدم الطلب",
+      "wait": "الانتظار",
+      "wait_minutes": "{minutes} دقيقة",
+      "signals": "المؤشرات",
+      "requested_at": "وقت الطلب",
+      "updated_at": "آخر تحديث",
+      "arrival_state": "حالة الوصول",
+      "pickup_code": "رمز الاستلام",
+      "pickup_recipient_token": "رمز المستلم",
+      "note": "ملاحظة"
+    },
+    "operations_summary": {
+      "total": "الإجمالي",
+      "called": "تم النداء",
+      "moving": "في الطريق",
+      "ready": "جاهز",
+      "arrived": "وصل",
+      "terminal": "منتهية",
+      "delayed": "متأخر",
+      "urgent": "عاجل",
+      "escalated": "مصعّد"
+    },
+    "operations_status": {
+      "requested": "مطلوب",
+      "queued": "في القائمة",
+      "called": "تم النداء",
+      "moving": "في الطريق",
+      "at_gate": "عند البوابة",
+      "ready": "جاهز",
+      "handed_over": "تم التسليم",
+      "cancelled": "ملغي",
+      "expired": "منتهي"
+    },
+    "operations_arrival": {
+      "called": "تم النداء",
+      "in_transit": "في الطريق",
+      "arrived": "وصل",
+      "ready": "جاهز"
+    },
+    "operations_signals": {
+      "normal": "طبيعي",
+      "delayed": "متأخر",
+      "urgent": "عاجل",
+      "escalated": "مصعّد"
+    },
+    "operations_reasons": {
+      "student_not_arrived": "الطالب لم يصل",
+      "gate_congestion": "ازدحام البوابة",
+      "parent_waiting": "ولي الأمر ينتظر",
+      "safety_concern": "ملاحظة سلامة",
+      "manual_follow_up": "متابعة يدوية",
+      "other": "أخرى"
+    },
     "settings": {
       "title": "الإعدادات",
       "subtitle": "إدارة إعدادات نظام النداء والمتطلبات والحدود الجغرافية.",
@@ -10711,6 +10882,55 @@
           "name_en_required": "اسم البوابة بالإنجليزية مطلوب.",
           "invalid_id": "لم معرف بوابة صحيح من اسم الإنجليزية.",
           "duplicate_id": "تستخدم بوابة أخرى بالفعل معرف بوابة للآلية. عدل افسم للانجليزية وحاول مرة أخرى."
+        },
+        "status": "الحالة",
+        "sort_order": "ترتيب الفرز",
+        "latitude": "خط العرض",
+        "longitude": "خط الطول",
+        "waiting_zones": "مناطق الانتظار",
+        "waiting_zones_help": "تسميات مناطق الانتظار في الخلفية مفصولة بفواصل."
+      },
+      "enabled": "مفعل",
+      "timezone": "المنطقة الزمنية",
+      "delay_threshold": "حد التأخير بالدقائق",
+      "urgent_threshold": "حد الاستعجال بالدقائق",
+      "expiry_threshold": "حد انتهاء الصلاحية بالدقائق",
+      "school_latitude": "خط عرض المدرسة",
+      "school_longitude": "خط طول المدرسة",
+      "campus": "الحرم",
+      "notes": "ملاحظات",
+      "export_setting": "الإعداد",
+      "export_value": "القيمة",
+      "status_options": {
+        "open": "مفتوحة",
+        "busy": "مشغولة",
+        "closed": "مغلقة",
+        "maintenance": "صيانة"
+      },
+      "location_picker": {
+        "search_label": "البحث عن عنوان",
+        "search_placeholder": "ابحث بالحي أو الشارع أو المعلم",
+        "results": "نتائج البحث",
+        "map_title": "الخريطة وتحديد الدبوس",
+        "selected_location": "الموقع المحدد",
+        "no_results": "لا توجد مواقع مطابقة.",
+        "empty_state": "ابحث عن مكان أو انقر على الخريطة أو أدخل الإحداثيات.",
+        "loading_maps": "جار تحميل خرائط Google...",
+        "searching": "جار البحث عن المواقع...",
+        "resolving": "جار تحديد العنوان...",
+        "manual_coordinates": "إحداثيات يدوية",
+        "latitude": "خط العرض",
+        "longitude": "خط الطول",
+        "errors": {
+          "api_key_missing": "خرائط Google غير متاحة لأن مفتاح API مفقود. ما زال بإمكانك إدخال الإحداثيات يدويا.",
+          "maps_load_failed": "تعذر تحميل خرائط Google. ما زال بإمكانك إدخال الإحداثيات يدويا.",
+          "search_failed": "فشل البحث عن الموقع. حاول مرة أخرى أو أدخل الإحداثيات يدويا.",
+          "resolve_failed": "تعذر تحويل الموضع المحدد إلى عنوان.",
+          "coordinate_pair_required": "أدخل خط العرض وخط الطول معا، أو امسح الحقلين معا.",
+          "latitude_invalid": "يجب أن يكون خط العرض رقما صحيحا.",
+          "latitude_out_of_range": "يجب أن يكون خط العرض بين -90 و 90.",
+          "longitude_invalid": "يجب أن يكون خط الطول رقما صحيحا.",
+          "longitude_out_of_range": "يجب أن يكون خط الطول بين -180 و 180."
         }
       }
     },
@@ -10742,12 +10962,41 @@
       "load_requests_failed": "فشل تحميل الطلبات.",
       "load_gates_failed": "فشل تحميل البوابات.",
       "load_history_failed": "فشل تحميل التاريخ.",
-      "load_settings_failed": "فشل تحميل الإعدادات."
+      "load_settings_failed": "فشل تحميل الإعدادات.",
+      "load_academic_structure_failed": "تعذر تحميل الهيكل الأكاديمي المحدد.",
+      "load_staff_assignments_failed": "تعذر تحميل تكليفات موظفي الانصراف.",
+      "staff_assignment_created": "تم إنشاء تكليف موظف الانصراف.",
+      "staff_assignment_updated": "تم تحديث تكليف موظف الانصراف.",
+      "staff_assignment_deleted": "تم حذف تكليف موظف الانصراف.",
+      "staff_assignment_save_failed": "تعذر حفظ تكليف موظف الانصراف.",
+      "staff_assignment_delete_failed": "تعذر حذف تكليف موظف الانصراف."
     },
     "access": {
       "denied_title": "ليس لديك الوصول إلى هذا الجزء من نداء",
       "denied_description": "اطلب من مسؤول النظام تحديث أذونات نداء الخاصة بك إذا كنت بحاجة إلى الوصول.",
       "manage_notice": "يمكنك عرض هذا الجزء من نداء، لكن دورك لا يمكنه إجراء تغييرات هنا."
+    },
+    "staff_assignments": {
+      "title": "تكليفات موظفي الانصراف",
+      "subtitle": "سجلات تكليف موظفي الانصراف للمدرسة الحالية.",
+      "add_assignment": "إضافة تكليف",
+      "create_title": "إنشاء تكليف موظف",
+      "edit_title": "تعديل تكليف موظف",
+      "staff_user_id": "معرف حساب الموظف",
+      "staff_user_unchanged": "دون تغيير",
+      "staff_user_required": "معرف حساب الموظف مطلوب.",
+      "gate_id": "معرف البوابة",
+      "stage_id": "معرف المرحلة",
+      "grade_id": "معرف الصف",
+      "section_id": "معرف الشعبة",
+      "classroom_id": "معرف الفصل",
+      "starts_at": "يبدأ في",
+      "ends_at": "ينتهي في",
+      "lead_assignment": "تكليف مسؤول",
+      "empty_title": "لا توجد تكليفات موظفين",
+      "empty_description": "أنشئ تكليفا لربط موظفي الانصراف بالبوابات أو النطاقات الأكاديمية.",
+      "delete_title": "حذف تكليف الموظف",
+      "delete_description": "هل تريد حذف تكليف {staffName}؟ لا يمكن التراجع عن هذا الإجراء."
     }
   },
   "teachers": {
@@ -11319,9 +11568,15 @@
     }
   },
   "onboarding": {
-    "layout": { "label": "إعداد المدرسة" },
-    "loading": { "preparing": "جارٍ تجهيز الإعداد…" },
-    "errors": { "stepLoadFailed": "تعذر تحميل خطوة الإعداد هذه." },
+    "layout": {
+      "label": "إعداد المدرسة"
+    },
+    "loading": {
+      "preparing": "جارٍ تجهيز الإعداد…"
+    },
+    "errors": {
+      "stepLoadFailed": "تعذر تحميل خطوة الإعداد هذه."
+    },
     "welcome": {
       "eyebrow": "إعداد المدرسة",
       "title": "مرحبًا بك في مساحة عمل مدرستك",
@@ -11329,11 +11584,26 @@
       "start": "بدء الإعداد",
       "stagesLabel": "مراحل الإعداد",
       "stages": {
-        "organization": { "title": "المؤسسة", "description": "أضف ملف المدرسة وبياناتها الأساسية." },
-        "academicContext": { "title": "العام والفصول الدراسية", "description": "حدد التقويم المستخدم في الصفحات الأكاديمية." },
-        "structure": { "title": "الهيكل الأكاديمي", "description": "أنشئ المراحل والصفوف والشُعب." },
-        "subjects": { "title": "المواد والتوزيعات", "description": "اربط المواد بالصفوف والساعات الأسبوعية." },
-        "rooms": { "title": "الغرف", "description": "أضف الغرف المستخدمة في الجداول والتوزيعات." }
+        "organization": {
+          "title": "المؤسسة",
+          "description": "أضف ملف المدرسة وبياناتها الأساسية."
+        },
+        "academicContext": {
+          "title": "العام والفصول الدراسية",
+          "description": "حدد التقويم المستخدم في الصفحات الأكاديمية."
+        },
+        "structure": {
+          "title": "الهيكل الأكاديمي",
+          "description": "أنشئ المراحل والصفوف والشُعب."
+        },
+        "subjects": {
+          "title": "المواد والتوزيعات",
+          "description": "اربط المواد بالصفوف والساعات الأسبوعية."
+        },
+        "rooms": {
+          "title": "الغرف",
+          "description": "أضف الغرف المستخدمة في الجداول والتوزيعات."
+        }
       }
     },
     "setup": {

@@ -65,7 +65,10 @@ export interface GoogleAutocompleteService {
 export interface GooglePlacesService {
   getDetails: (
     request: { placeId: string; fields: string[]; language?: string },
-    callback: (place: GooglePlaceResult | null, status: GoogleMapsStatus) => void,
+    callback: (
+      place: GooglePlaceResult | null,
+      status: GoogleMapsStatus,
+    ) => void,
   ) => void;
 }
 
@@ -149,7 +152,9 @@ export function loadGoogleMapsApi(apiKey: string, language: string) {
       const existingScript = document.getElementById(GOOGLE_MAPS_SCRIPT_ID);
 
       if (existingScript) {
-        existingScript.addEventListener("load", resolveLoadedApi, { once: true });
+        existingScript.addEventListener("load", resolveLoadedApi, {
+          once: true,
+        });
         existingScript.addEventListener("error", rejectLoad, { once: true });
         return;
       }

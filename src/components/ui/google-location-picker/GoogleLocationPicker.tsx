@@ -63,9 +63,7 @@ export interface GoogleLocationPickerProps {
 const DEFAULT_CENTER = { lat: 24.7136, lng: 46.6753 };
 
 function toPosition(value: GoogleLocationValue | null): GoogleLatLngLiteral {
-  return value
-    ? { lat: value.latitude, lng: value.longitude }
-    : DEFAULT_CENTER;
+  return value ? { lat: value.latitude, lng: value.longitude } : DEFAULT_CENTER;
 }
 
 export default function GoogleLocationPicker({
@@ -88,7 +86,9 @@ export default function GoogleLocationPicker({
   const geocoderRef = useRef<GoogleGeocoder | null>(null);
   const mountedRef = useRef(true);
   const requestIdRef = useRef(0);
-  const [query, setQuery] = useState(value?.formattedAddress || value?.label || "");
+  const [query, setQuery] = useState(
+    value?.formattedAddress || value?.label || "",
+  );
   const [predictions, setPredictions] = useState<GooglePlacePrediction[]>([]);
   const [draft, setDraft] = useState({
     latitude: value ? String(value.latitude) : "",
@@ -106,6 +106,8 @@ export default function GoogleLocationPicker({
   const [errorKey, setErrorKey] = useState<keyof typeof labels.errors | null>(
     apiKey ? null : "api_key_missing",
   );
+  const controlledLatitude = value?.latitude;
+  const controlledLongitude = value?.longitude;
 
   useEffect(() => {
     return () => {
@@ -117,10 +119,12 @@ export default function GoogleLocationPicker({
 
   useEffect(() => {
     setDraft({
-      latitude: value ? String(value.latitude) : "",
-      longitude: value ? String(value.longitude) : "",
+      latitude:
+        controlledLatitude === undefined ? "" : String(controlledLatitude),
+      longitude:
+        controlledLongitude === undefined ? "" : String(controlledLongitude),
     });
-  }, [value?.latitude, value?.longitude]);
+  }, [controlledLatitude, controlledLongitude]);
 
   const updateMapPosition = useCallback((position: GoogleLatLngLiteral) => {
     markerRef.current?.setPosition(position);
@@ -187,7 +191,8 @@ export default function GoogleLocationPicker({
 
     void loadGoogleMapsApi(apiKey, locale)
       .then((googleApi) => {
-        if (!active || !mapContainerRef.current || !placesHostRef.current) return;
+        if (!active || !mapContainerRef.current || !placesHostRef.current)
+          return;
         const position = toPosition(value);
         const map = new googleApi.maps.Map(mapContainerRef.current, {
           center: position,
@@ -214,7 +219,8 @@ export default function GoogleLocationPicker({
 
         mapRef.current = map;
         markerRef.current = marker;
-        autocompleteRef.current = new googleApi.maps.places.AutocompleteService();
+        autocompleteRef.current =
+          new googleApi.maps.places.AutocompleteService();
         placesRef.current = new googleApi.maps.places.PlacesService(
           placesHostRef.current,
         );
@@ -310,7 +316,8 @@ export default function GoogleLocationPicker({
       (place, status) => {
         if (!mountedRef.current || requestId !== requestIdRef.current) return;
         setIsResolving(false);
-        const location = status === "OK" && place ? placeToLocationValue(place) : null;
+        const location =
+          status === "OK" && place ? placeToLocationValue(place) : null;
         if (!location) {
           setErrorKey("resolve_failed");
           return;
@@ -428,7 +435,9 @@ export default function GoogleLocationPicker({
           />
         </div>
         {!validation.valid ? (
-          <p className="text-sm text-red-600">{labels.errors[validation.reason]}</p>
+          <p className="text-sm text-red-600">
+            {labels.errors[validation.reason]}
+          </p>
         ) : null}
       </fieldset>
 

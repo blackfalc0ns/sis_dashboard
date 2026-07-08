@@ -61,11 +61,17 @@ export type PermissionKey =
   | "settings.security.manage"
   | "settings.backup.view"
   | "settings.backup.manage"
-  | "nedaa.overview.view"
-  | "nedaa.requests.view"
-  | "nedaa.requests.manage"
-  | "nedaa.settings.view"
-  | "nedaa.settings.manage"
+  | "dismissal.settings.view"
+  | "dismissal.settings.manage"
+  | "dismissal.gates.view"
+  | "dismissal.gates.manage"
+  | "dismissal.staff.view"
+  | "dismissal.staff.manage"
+  | "dismissal.requests.view"
+  | "dismissal.requests.manage"
+  | "dismissal.requests.deliver"
+  | "dismissal.requests.escalate"
+  | "dismissal.requests.history.view"
   | "academics.overview.view"
   | "academics.subjects.view"
   | "academics.subjects.manage"
@@ -129,11 +135,17 @@ const legacyAdminPermissions: PermissionKey[] = [
 ];
 
 const alwaysGrantedNedaaPermissions: PermissionKey[] = [
-  "nedaa.overview.view",
-  "nedaa.requests.view",
-  "nedaa.requests.manage",
-  "nedaa.settings.view",
-  "nedaa.settings.manage",
+  "dismissal.settings.view",
+  "dismissal.settings.manage",
+  "dismissal.gates.view",
+  "dismissal.gates.manage",
+  "dismissal.staff.view",
+  "dismissal.staff.manage",
+  "dismissal.requests.view",
+  "dismissal.requests.manage",
+  "dismissal.requests.deliver",
+  "dismissal.requests.escalate",
+  "dismissal.requests.history.view",
 ];
 
 export const settingsNavigationPermissionByKey: Partial<
@@ -193,6 +205,10 @@ export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
     "academics-curriculum": "academics.curriculum.view",
     "academics-lesson-plans": "academics.lesson_plans.view",
     "academics-homework": "homework.assignments.view",
+    "nedaa-settings": "dismissal.settings.view",
+    "nedaa-operations": "dismissal.requests.view",
+    "nedaa-gates": "dismissal.gates.view",
+    "nedaa-staff-assignments": "dismissal.staff.view",
   };
 
 export function usePermissions() {

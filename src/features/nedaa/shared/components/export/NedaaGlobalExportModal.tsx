@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Download, Table } from "lucide-react";
 import { useTranslations } from "next-intl";
+import Button from "@/components/ui/button/Button";
 import Modal from "@/components/ui/modal/Modal";
 import type { NedaaExportFormat } from "@/features/nedaa/shared/utils/nedaaExport";
 
@@ -74,30 +75,23 @@ export default function NedaaGlobalExportModal({
 
   const footer = (
     <>
-      <button
+      <Button
+        variant="secondary"
         onClick={onClose}
         disabled={isExporting}
-        className="flex-1 rounded-lg border border-gray-300 px-6 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 sm:flex-none"
+        className="flex-1 sm:flex-none"
       >
         {t("actions.cancel")}
-      </button>
-      <button
+      </Button>
+      <Button
         onClick={handleExport}
+        loading={isExporting}
         disabled={isExporting || !hasData}
-        className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 font-medium text-white transition-colors hover:bg-hover disabled:opacity-50"
+        leftIcon={<Download className="h-4 w-4" />}
+        className="flex-1"
       >
-        {isExporting ? (
-          <>
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            {t("actions.exporting")}
-          </>
-        ) : (
-          <>
-            <Download className="h-4 w-4" />
-            {confirmLabel || t("actions.export")}
-          </>
-        )}
-      </button>
+        {isExporting ? t("actions.exporting") : confirmLabel || t("actions.export")}
+      </Button>
     </>
   );
 

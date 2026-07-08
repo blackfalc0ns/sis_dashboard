@@ -46,8 +46,10 @@ export default function SchoolLocationPickerModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    setLocation(toPickerValue(initialLocation, initialQuery));
-    setIsValid(true);
+    queueMicrotask(() => {
+      setLocation(toPickerValue(initialLocation, initialQuery));
+      setIsValid(true);
+    });
   }, [initialLocation, initialQuery, isOpen]);
 
   const labels: GoogleLocationPickerLabels = {

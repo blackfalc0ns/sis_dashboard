@@ -809,17 +809,47 @@
     "workflowPolicy": {
       "title": "Admissions workflow policy",
       "description": "Control the school requirements used to determine decision and registration readiness.",
-      "summary": { "title": "Effective policy", "description": "These rules apply to all admissions applications in this school.", "updatedAt": "Last updated: {value}" },
-      "source": { "default": "Default policy", "school_override": "School override" },
-      "requiresPlacementTest": { "label": "Require placement test", "description": "Applications must have at least one completed placement test before a decision." },
-      "requiresInterview": { "label": "Require interview", "description": "Applications must have at least one completed interview before a decision." },
-      "allowDirectAcceptance": { "label": "Allow direct acceptance", "description": "Allow acceptance without tests or interviews when both workflow steps are optional." },
+      "summary": {
+        "title": "Effective policy",
+        "description": "These rules apply to all admissions applications in this school.",
+        "updatedAt": "Last updated: {value}"
+      },
+      "source": {
+        "default": "Default policy",
+        "school_override": "School override"
+      },
+      "requiresPlacementTest": {
+        "label": "Require placement test",
+        "description": "Applications must have at least one completed placement test before a decision."
+      },
+      "requiresInterview": {
+        "label": "Require interview",
+        "description": "Applications must have at least one completed interview before a decision."
+      },
+      "allowDirectAcceptance": {
+        "label": "Allow direct acceptance",
+        "description": "Allow acceptance without tests or interviews when both workflow steps are optional."
+      },
       "directAcceptanceWarning": "Acceptance remains blocked when tests and interviews are optional unless direct acceptance is enabled. Waitlist and reject remain available.",
       "readOnly": "You can view this policy, but you do not have permission to change it.",
-      "actions": { "save": "Save policy", "reset": "Reset changes", "retry": "Try again" },
-      "states": { "loading": "Loading workflow policy...", "loadFailed": "Could not load workflow policy", "loadFailedDescription": "Check your connection and try again." },
-      "messages": { "saved": "Workflow policy saved.", "saveFailed": "Could not save workflow policy. Your changes were preserved." },
-      "accessDenied": { "title": "Workflow policy access denied", "description": "You do not have permission to view the admissions workflow policy." }
+      "actions": {
+        "save": "Save policy",
+        "reset": "Reset changes",
+        "retry": "Try again"
+      },
+      "states": {
+        "loading": "Loading workflow policy...",
+        "loadFailed": "Could not load workflow policy",
+        "loadFailedDescription": "Check your connection and try again."
+      },
+      "messages": {
+        "saved": "Workflow policy saved.",
+        "saveFailed": "Could not save workflow policy. Your changes were preserved."
+      },
+      "accessDenied": {
+        "title": "Workflow policy access denied",
+        "description": "You do not have permission to view the admissions workflow policy."
+      }
     },
     "context_bar": {
       "title": "Academic Context",
@@ -1345,6 +1375,7 @@
       },
       "tabs": {
         "details": "Details",
+        "readiness": "Readiness",
         "guardians": "Guardians",
         "documents": "Documents",
         "tests": "Tests",
@@ -1355,6 +1386,9 @@
         "student_info": "Student Information",
         "english_name": "English Name",
         "arabic_name": "Arabic Name",
+        "not_provided": "Not provided in this application.",
+        "personal_info_not_provided": "No personal profile details were provided yet.",
+        "contact_not_provided": "No student contact details were provided yet.",
         "gender": "Gender",
         "date_of_birth": "Date of Birth",
         "nationality": "Nationality",
@@ -1374,10 +1408,37 @@
         "notes": "Notes",
         "important_dates": "Important Dates",
         "submitted_date": "Submitted Date",
-        "expected_start_date": "Expected Start Date"
+        "expected_start_date": "Expected Start Date",
+        "readiness_title": "Application readiness",
+        "readiness_subtitle": "Backend-computed action state for decision, registration, documents, and workflow requirements.",
+        "decision_action": "Decision action",
+        "registration_action": "Registration action",
+        "enabled": "Enabled",
+        "blocked": "Blocked",
+        "document_summary": "Document summary",
+        "documents_complete": "Complete",
+        "documents_missing": "Missing",
+        "documents_pending_review": "Pending review",
+        "documents_total": "{total} total documents",
+        "workflow_readiness": "Workflow readiness",
+        "placement_test": "Placement test",
+        "interview": "Interview",
+        "required": "Required",
+        "optional": "Optional",
+        "satisfied": "Satisfied",
+        "not_satisfied": "Not satisfied",
+        "completed_count": "{completed} of {total} completed",
+        "policy_source": "Policy source",
+        "direct_acceptance": "Direct acceptance",
+        "allowed": "Allowed",
+        "not_allowed": "Not allowed",
+        "blockers": "Blockers"
       },
       "guardians": {
         "title": "Guardian Information",
+        "loading": "Loading guardian data...",
+        "retry": "Retry",
+        "empty": "No guardian data was provided for this application yet.",
         "primary": "Primary",
         "primary_phone": "Primary Phone",
         "secondary_phone": "Secondary Phone",
@@ -1440,6 +1501,7 @@
         "make_decision": "Make Decision",
         "enroll_student": "Enroll Student",
         "submit_application": "Submit Application",
+        "blocked_title": "Action blockers",
         "enrolled_status": "Student Enrolled Successfully",
         "waitlisted_no_transition": "This application is waitlisted. No transition action is available yet.",
         "rejected_no_actions": "This application has been rejected. No further actions are available."
@@ -8117,6 +8179,9 @@
         "selected_location": "Selected location",
         "empty_state": "Search for a place or click on the map to choose the school location.",
         "resolving": "Resolving address details...",
+        "manual_coordinates": "Manual coordinates",
+        "latitude": "Latitude",
+        "longitude": "Longitude",
         "confirm": "Use this location",
         "iframe_title": "School location preview",
         "coordinates": "Lat {lat}, Lng {lng}",
@@ -8124,7 +8189,12 @@
           "search_failed": "Failed to search for locations.",
           "resolve_failed": "Failed to resolve the selected map position.",
           "api_key_missing": "Google Maps API key is missing. Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to use the map picker.",
-          "maps_load_failed": "Failed to load Google Maps. Check the API key, billing, and enabled Maps JavaScript/Places APIs."
+          "maps_load_failed": "Failed to load Google Maps. Check the API key, billing, and enabled Maps JavaScript/Places APIs.",
+          "coordinate_pair_required": "Enter both latitude and longitude, or clear both fields.",
+          "latitude_invalid": "Latitude must be a valid number.",
+          "latitude_out_of_range": "Latitude must be between -90 and 90.",
+          "longitude_invalid": "Longitude must be a valid number.",
+          "longitude_out_of_range": "Longitude must be between -180 and 180."
         },
         "dropzone_title": "Click anywhere inside this area to place the school pin",
         "loading_maps": "Loading Google Maps..."
@@ -10539,7 +10609,8 @@
       "preparing": "Mark preparing",
       "ready": "Mark ready",
       "completed": "Mark completed",
-      "cancelled": "Cancel request"
+      "cancelled": "Cancel request",
+      "retry_academic_structure": "Retry academic structure"
     },
     "status": {
       "pending": "Pending",
@@ -10560,10 +10631,17 @@
     "table": {
       "request_id": "Request ID",
       "student": "Student",
+      "staff": "Staff",
       "guardian": "Guardian",
       "relation": "Relation",
+      "code": "Code",
+      "name": "Name",
+      "campus": "Campus",
       "gate": "Gate",
+      "scope": "Scope",
       "status": "Status",
+      "lead": "Lead",
+      "active": "Active",
       "created_at": "Created At",
       "updated_at": "Updated At",
       "can_pickup": "Can Pickup",
@@ -10573,6 +10651,8 @@
       "blocked": "Blocked",
       "enabled": "Enabled",
       "disabled": "Disabled",
+      "yes": "Yes",
+      "no": "No",
       "no_actions": "No actions"
     },
     "filters": {
@@ -10583,7 +10663,24 @@
       "all_statuses": "All statuses",
       "all_gates": "All gates",
       "show_filters": "Filters",
-      "clear_filters": "Clear filters"
+      "clear_filters": "Clear filters",
+      "search_gates_placeholder": "Search gates by code, name, or campus",
+      "search_staff_assignments_placeholder": "Search staff assignments",
+      "active_state": "Active state",
+      "lead_state": "Lead state",
+      "staff_user": "Staff user",
+      "stage": "Stage",
+      "grade": "Grade",
+      "section": "Section",
+      "classroom": "Classroom",
+      "all_active_states": "All active states",
+      "active_only": "Active only",
+      "inactive_only": "Inactive only",
+      "all_lead_states": "All lead states",
+      "lead_only": "Lead only",
+      "non_lead_only": "Non-lead only",
+      "no_options": "No options available",
+      "no_results": "No matching results"
     },
     "gates": {
       "main_gate": "Main Gate",
@@ -10651,6 +10748,120 @@
       "timeline_subtitle": "Operational events captured for the selected Nedaa request.",
       "no_timeline": "No timeline events are available for this request yet."
     },
+    "operations": {
+      "title": "Nedaa Operations",
+      "subtitle": "Run active dismissal requests, waiting students, and pickup history from one live workspace.",
+      "empty_title": "No dismissal records found",
+      "empty_description": "Adjust filters or refresh the workspace to load the latest dismissal activity.",
+      "detail_loading": "Loading request details..."
+    },
+    "operations_tabs": {
+      "active": "Active Requests",
+      "waiting": "Waiting Students",
+      "history": "History"
+    },
+    "operations_actions": {
+      "refresh": "Refresh",
+      "view": "View",
+      "view_history": "View history",
+      "recipients": "Recipients",
+      "advance_status": "Advance status",
+      "save_status": "Save status",
+      "deliver": "Deliver",
+      "save_delivery": "Save delivery",
+      "escalate": "Escalate",
+      "save_escalation": "Save escalation",
+      "confirm_arrival": "Confirm arrival",
+      "save_arrival": "Save arrival"
+    },
+    "operations_filters": {
+      "search_placeholder": "Search student name or gate",
+      "all": "All",
+      "stage": "Stage",
+      "grade": "Grade",
+      "section": "Section",
+      "classroom": "Classroom",
+      "child": "Student",
+      "search_child": "Search student name or ID",
+      "primary_group": "Primary filters",
+      "academic_group": "Academic scope",
+      "period_group": "History period",
+      "status_group": "Status scope",
+      "flags_group": "Request flags",
+      "additional_statuses": "Additional statuses",
+      "date_from": "Requested from",
+      "date_to": "Requested to",
+      "flags": "Request flags",
+      "active_only": "Active only",
+      "terminal_only": "Terminal only",
+      "delayed_only": "Delayed only",
+      "urgent_only": "Urgent only",
+      "escalated_only": "Escalated only",
+      "sort": "Sort",
+      "arrival_stage_asc": "Arrival stage",
+      "urgency_desc": "Most urgent first",
+      "requested_at_asc": "Oldest request first",
+      "requested_at_desc": "Newest request first",
+      "created_at_desc": "Newest created first",
+      "created_at_asc": "Oldest created first",
+      "updated_at_desc": "Recently updated first",
+      "wait_minutes_desc": "Longest wait first"
+    },
+    "operations_fields": {
+      "student": "Student",
+      "requester": "Requester",
+      "wait": "Wait",
+      "wait_minutes": "{minutes} min",
+      "signals": "Signals",
+      "requested_at": "Requested at",
+      "updated_at": "Updated at",
+      "arrival_state": "Arrival state",
+      "pickup_code": "Pickup code",
+      "pickup_recipient_token": "Pickup recipient token",
+      "note": "Note"
+    },
+    "operations_summary": {
+      "total": "Total",
+      "called": "Called",
+      "moving": "Moving",
+      "ready": "Ready",
+      "arrived": "Arrived",
+      "terminal": "Terminal",
+      "delayed": "Delayed",
+      "urgent": "Urgent",
+      "escalated": "Escalated"
+    },
+    "operations_status": {
+      "requested": "Requested",
+      "queued": "Queued",
+      "called": "Called",
+      "moving": "Moving",
+      "at_gate": "At gate",
+      "ready": "Ready",
+      "handed_over": "Handed over",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    },
+    "operations_arrival": {
+      "called": "Called",
+      "in_transit": "In transit",
+      "arrived": "Arrived",
+      "ready": "Ready"
+    },
+    "operations_signals": {
+      "normal": "Normal",
+      "delayed": "Delayed",
+      "urgent": "Urgent",
+      "escalated": "Escalated"
+    },
+    "operations_reasons": {
+      "student_not_arrived": "Student not arrived",
+      "gate_congestion": "Gate congestion",
+      "parent_waiting": "Parent waiting",
+      "safety_concern": "Safety concern",
+      "manual_follow_up": "Manual follow-up",
+      "other": "Other"
+    },
     "settings": {
       "title": "Nedaa Settings",
       "subtitle": "Configure radius rules, pickup windows, default routing, and gate management for the Nedaa workflow.",
@@ -10658,19 +10869,56 @@
       "reset": "Reset",
       "rules_title": "Operational Rules",
       "rules_subtitle": "Controls that shape request validation and queue behavior.",
+      "enabled": "Enabled",
+      "timezone": "Timezone",
       "allowed_radius": "Allowed Radius (meters)",
+      "delay_threshold": "Delay threshold (minutes)",
+      "urgent_threshold": "Urgent threshold (minutes)",
+      "expiry_threshold": "Expiry threshold (minutes)",
       "duplicate_cooldown": "Duplicate Request Cooldown (minutes)",
       "auto_cancel_timeout": "Auto-cancel Timeout (minutes)",
       "pickup_window_title": "Pickup Window",
       "pickup_window_subtitle": "Operational time range when Nedaa requests can be processed.",
       "pickup_start": "Pickup Start Time",
       "pickup_end": "Pickup End Time",
+      "school_latitude": "School latitude",
+      "school_longitude": "School longitude",
+      "location_picker": {
+        "search_label": "Search address",
+        "search_placeholder": "Search by district, street, or landmark",
+        "results": "Search results",
+        "map_title": "Map and pin placement",
+        "selected_location": "Selected location",
+        "no_results": "No matching locations found.",
+        "empty_state": "Search for a place, click the map, or enter coordinates.",
+        "loading_maps": "Loading Google Maps...",
+        "searching": "Searching locations...",
+        "resolving": "Resolving address...",
+        "manual_coordinates": "Manual coordinates",
+        "latitude": "Latitude",
+        "longitude": "Longitude",
+        "errors": {
+          "api_key_missing": "Google Maps is unavailable because the API key is missing. You can still enter coordinates manually.",
+          "maps_load_failed": "Google Maps failed to load. You can still enter coordinates manually.",
+          "search_failed": "Location search failed. Try again or enter coordinates manually.",
+          "resolve_failed": "The selected position could not be resolved to an address.",
+          "coordinate_pair_required": "Enter both latitude and longitude, or clear both fields.",
+          "latitude_invalid": "Latitude must be a valid number.",
+          "latitude_out_of_range": "Latitude must be between -90 and 90.",
+          "longitude_invalid": "Longitude must be a valid number.",
+          "longitude_out_of_range": "Longitude must be between -180 and 180."
+        }
+      },
       "active_gates_title": "Active Gates",
       "active_gates_subtitle": "Enable the gates that should appear in the Nedaa workflow.",
       "default_gate": "Default Gate",
       "no_default_gate": "No default gate selected",
       "default_gate_badge": "Default gate",
       "no_location_hint": "No location hint added",
+      "campus": "Campus",
+      "notes": "Notes",
+      "export_setting": "Setting",
+      "export_value": "Value",
       "gate_management_title": "Gate Management",
       "gate_management_subtitle": "Create, update, and control the gates available to the Nedaa pickup workflow.",
       "gate_management_empty_title": "No gates configured",
@@ -10688,17 +10936,29 @@
         "no_pickup": "Not in pickup flow",
         "staff_only": "Staff only"
       },
+      "status_options": {
+        "open": "Open",
+        "busy": "Busy",
+        "closed": "Closed",
+        "maintenance": "Maintenance"
+      },
       "gate_form": {
         "create_title": "Add Nedaa gate",
         "edit_title": "Edit Nedaa gate",
         "create_action": "Create gate",
         "save_action": "Save gate",
-        "name_ar": "Gate Name (AR)",
-        "name_en": "Gate Name (EN)",
+        "name_ar": "Gate Name",
+        "name_en": "Gate Name",
         "generated_id": "Gate ID",
         "generated_id_help": "Generated automatically from the English name when creating a new gate.",
         "location_hint": "Location Hint",
         "location_hint_placeholder": "Example: North parking lane near the reception building",
+        "status": "Status",
+        "sort_order": "Sort order",
+        "latitude": "Latitude",
+        "longitude": "Longitude",
+        "waiting_zones": "Waiting zones",
+        "waiting_zones_help": "Comma-separated backend waiting zone labels.",
         "active_toggle": "Gate is active",
         "active_toggle_help": "Inactive gates stay configured but do not appear on the active Nedaa board.",
         "supports_pickup_toggle": "Supports pickup workflow",
@@ -10712,6 +10972,28 @@
           "duplicate_id": "Another gate already uses this generated ID. Adjust the English name and try again."
         }
       }
+    },
+    "staff_assignments": {
+      "title": "Dismissal Staff Assignments",
+      "subtitle": "Backend dismissal staff assignment records for the current school.",
+      "add_assignment": "Add Assignment",
+      "create_title": "Create Staff Assignment",
+      "edit_title": "Edit Staff Assignment",
+      "staff_user_id": "Staff user ID",
+      "staff_user_unchanged": "Unchanged",
+      "staff_user_required": "Staff user ID is required.",
+      "gate_id": "Gate ID",
+      "stage_id": "Stage ID",
+      "grade_id": "Grade ID",
+      "section_id": "Section ID",
+      "classroom_id": "Classroom ID",
+      "starts_at": "Starts at",
+      "ends_at": "Ends at",
+      "lead_assignment": "Lead assignment",
+      "empty_title": "No staff assignments",
+      "empty_description": "Create an assignment to connect dismissal staff with gates or academic scopes.",
+      "delete_title": "Delete staff assignment",
+      "delete_description": "Delete the assignment for {staffName}? This cannot be undone."
     },
     "read_only_notice": "The selected term is closed. Nedaa actions are currently read-only.",
     "timeline": {
@@ -10741,7 +11023,14 @@
       "load_requests_failed": "Failed to load Nedaa requests.",
       "load_gates_failed": "Failed to load Nedaa gates.",
       "load_history_failed": "Failed to load Nedaa history.",
-      "load_settings_failed": "Failed to load Nedaa settings."
+      "load_settings_failed": "Failed to load Nedaa settings.",
+      "load_academic_structure_failed": "Failed to load the selected academic structure.",
+      "load_staff_assignments_failed": "Failed to load dismissal staff assignments.",
+      "staff_assignment_created": "Dismissal staff assignment created.",
+      "staff_assignment_updated": "Dismissal staff assignment updated.",
+      "staff_assignment_deleted": "Dismissal staff assignment deleted.",
+      "staff_assignment_save_failed": "Failed to save dismissal staff assignment.",
+      "staff_assignment_delete_failed": "Failed to delete dismissal staff assignment."
     },
     "access": {
       "denied_title": "You do not have access to this Nedaa area",
@@ -11328,11 +11617,26 @@
       "start": "Start setup",
       "stagesLabel": "Setup stages",
       "stages": {
-        "organization": { "title": "Organization", "description": "Add your school profile and core details." },
-        "academicContext": { "title": "Academic year and terms", "description": "Define the calendar used across academics." },
-        "structure": { "title": "Academic structure", "description": "Create stages, grades, and sections." },
-        "subjects": { "title": "Subjects and allocations", "description": "Connect subjects to grades and weekly hours." },
-        "rooms": { "title": "Rooms", "description": "Add rooms used by schedules and assignments." }
+        "organization": {
+          "title": "Organization",
+          "description": "Add your school profile and core details."
+        },
+        "academicContext": {
+          "title": "Academic year and terms",
+          "description": "Define the calendar used across academics."
+        },
+        "structure": {
+          "title": "Academic structure",
+          "description": "Create stages, grades, and sections."
+        },
+        "subjects": {
+          "title": "Subjects and allocations",
+          "description": "Connect subjects to grades and weekly hours."
+        },
+        "rooms": {
+          "title": "Rooms",
+          "description": "Add rooms used by schedules and assignments."
+        }
       }
     },
     "setup": {

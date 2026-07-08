@@ -46,14 +46,12 @@ describe("GoogleLocationPicker", () => {
     const onChange = vi.fn();
 
     render(
-      <GoogleLocationPicker
-        value={null}
-        labels={labels}
-        onChange={onChange}
-      />,
+      <GoogleLocationPicker value={null} labels={labels} onChange={onChange} />,
     );
 
-    expect(await screen.findByText(labels.errors.api_key_missing)).toBeVisible();
+    expect(
+      await screen.findByText(labels.errors.api_key_missing),
+    ).toBeVisible();
     await user.type(screen.getByLabelText(labels.latitude), "24.7136");
     await user.type(screen.getByLabelText(labels.longitude), "46.6753");
 

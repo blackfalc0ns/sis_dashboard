@@ -1,9 +1,10 @@
-﻿import NedaaOverviewPage from "@/features/nedaa/pages/NedaaOverviewPage";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return (
-    <main className="flex-1 p-4 sm:p-6 min-w-0 overflow-x-hidden">
-      <NedaaOverviewPage />
-    </main>
-  );
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
+  redirect(`/${lang}/nedaa/settings`);
 }

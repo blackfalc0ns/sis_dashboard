@@ -31,8 +31,7 @@ export default function SideBarTopNav({ children }: LayoutWrapperProps) {
       : `${user.firstName} ${user.lastName}`.trim();
   const userRole = user?.activeMembership?.roleKey ?? user?.userType;
   const schoolName = brandingProfile?.schoolName?.trim() || t("school_name");
-  const shortSchoolName =
-    brandingProfile?.shortName?.trim() || t("short_school_name");
+  const shortSchoolName = brandingProfile?.shortName?.trim() || schoolName;
 
   // Set initial sidebar state based on screen size
   useEffect(() => {

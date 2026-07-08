@@ -28,6 +28,10 @@ const serviceMocks = vi.hoisted(() => ({
   uploadAdmissionsFile: vi.fn(),
 }));
 
+const settingsMocks = vi.hoisted(() => ({
+  fetchAdmissionsDocumentRequirements: vi.fn(),
+}));
+
 const toastMocks = vi.hoisted(() => ({
   showToast: vi.fn(),
 }));
@@ -46,6 +50,8 @@ vi.mock(
   "@/features/admissions/applications/services/applicationDocumentsApiService",
   () => serviceMocks,
 );
+
+vi.mock("@/features/settings/services/settingsService", () => settingsMocks);
 
 vi.mock("@/components/ui/toast/Toast", () => ({
   useToast: () => ({
@@ -131,6 +137,7 @@ function renderDocumentsTabWithDocuments(documents: Document[]) {
 describe("DocumentsTab review actions", () => {
   beforeEach(() => {
     Object.values(serviceMocks).forEach((mock) => mock.mockReset());
+    settingsMocks.fetchAdmissionsDocumentRequirements.mockReset().mockResolvedValue([]);
     toastMocks.showToast.mockReset();
     permissionMocks.permissions = new Set([
       "admissions.documents.view",
@@ -383,6 +390,35 @@ describe("DocumentsTab review actions", () => {
         "No documents have been submitted for this application yet.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("uses configured admissions document requirements as upload type choices", async () => {
+    const user = userEvent.setup();
+    settingsMocks.fetchAdmissionsDocumentRequirements.mockResolvedValue([
+      {
+        id: "birth-certificate",
+        nameEn: "Configured Birth Certificate",
+        nameAr: "شهادة ميلاد",
+        required: true,
+        active: true,
+        sortOrder: 1,
+      },
+      {
+        id: "inactive-passport",
+        nameEn: "Inactive Passport",
+        nameAr: "جواز سفر",
+        required: false,
+        active: false,
+        sortOrder: 2,
+      },
+    ]);
+    renderDocumentsTab();
+
+    await user.click(await screen.findByRole("button", { name: "documents.add" }));
+
+    expect(screen.getByText("Configured Birth Certificate")).toBeInTheDocument();
+    expect(screen.queryByText("Inactive Passport")).not.toBeInTheDocument();
+    expect(screen.queryByText("Passport Copy")).not.toBeInTheDocument();
   });
 
   it("revalidates empty initial documents from the Admissions API on entry", async () => {

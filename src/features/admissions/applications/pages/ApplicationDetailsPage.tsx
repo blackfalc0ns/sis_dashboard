@@ -10,6 +10,7 @@ import {
   MessageSquare,
   FileCheck,
   ArrowRight,
+  ShieldCheck,
 } from "lucide-react";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import TabNavigation from "@/features/admissions/shared/TabNavigation";
@@ -25,6 +26,7 @@ import GuardiansTab from "@/features/admissions/applications/components/tabs/Gua
 import DocumentsTab from "@/features/admissions/applications/components/tabs/DocumentsTab";
 import TestsTab from "@/features/admissions/applications/components/tabs/TestsTab";
 import InterviewsTab from "@/features/admissions/applications/components/tabs/InterviewsTab";
+import ApplicationReadinessPanel from "@/features/admissions/applications/components/tabs/ApplicationReadinessPanel";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useToast } from "@/components/ui/toast/Toast";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -35,18 +37,14 @@ import type {
   DecisionType,
 } from "@/features/admissions/types/admissions";
 import { fetchApplicationById } from "@/features/admissions/applications/services/applicationsApiService";
-import { fetchApplicationDocuments } from "@/features/admissions/applications/services/applicationDocumentsApiService";
 import {
   createPlacementTest,
-  fetchPlacementTests,
 } from "@/features/admissions/tests/services/testsApiService";
 import {
   createInterview,
-  fetchInterviews,
 } from "@/features/admissions/interviews/services/interviewsApiService";
 import {
   createDecision,
-  fetchDecisions,
   getDecisionFriendlyErrorMessage,
 } from "@/features/admissions/decisions/services/decisionsApiService";
 
@@ -74,6 +72,7 @@ export default function ApplicationDetailsPage({
     (values: Record<"tab", string>) => {
       const validTabs = new Set([
         "details",
+        "readiness",
         "guardians",
         "documents",
         "tests",
@@ -103,40 +102,19 @@ export default function ApplicationDetailsPage({
   const [application, setApplication] = useState<Application | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const needsRegistrationHandoff =
+    activeTab === "details" || activeTab === "guardians";
   const relatedData = useApplicationRelatedData(
     applicationId,
     application?.requestedGradeId,
+    needsRegistrationHandoff,
   );
 
   const loadApplication = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [app, documents, tests, interviews, decisions] = await Promise.all([
-        fetchApplicationById(applicationId),
-        fetchApplicationDocuments(applicationId).catch(() => []),
-        fetchPlacementTests({}).catch(() => []),
-        fetchInterviews({}).catch(() => []),
-        fetchDecisions({}).catch(() => []),
-      ]);
-
-      // Filter related data by applicationId client-side
-      // (backend list endpoints don't support applicationId as a query filter)
-      const appTests = tests.filter((t) => t.applicationId === applicationId);
-      const appInterviews = interviews.filter((i) => i.applicationId === applicationId);
-      const appDecisions = decisions.filter((d) => d.applicationId === applicationId);
-
-      // Merge separately-fetched relations into the application object
-      // Only override if the application response didn't already include them
-      const merged: Application = {
-        ...app,
-        documents: app.documents.length > 0 ? app.documents : documents,
-        tests: app.tests.length > 0 ? app.tests : appTests,
-        interviews: app.interviews.length > 0 ? app.interviews : appInterviews,
-        decision: app.decision ?? appDecisions[0] ?? undefined,
-      };
-
-      setApplication(merged);
+      setApplication(await fetchApplicationById(applicationId));
     } catch (loadError) {
       console.error("Failed to load application:", loadError);
       setApplication(null);
@@ -185,6 +163,11 @@ export default function ApplicationDetailsPage({
       icon: <FileText className="w-4 h-4" />,
     },
     {
+      id: "readiness",
+      label: t("tabs.readiness"),
+      icon: <ShieldCheck className="w-4 h-4" />,
+    },
+    {
       id: "documents",
       label: t("tabs.documents"),
       icon: <FileCheck className="w-4 h-4" />,
@@ -223,6 +206,7 @@ export default function ApplicationDetailsPage({
   );
   const canMakeDecision = application.dashboardState?.canProceedToDecision
     ?? canMakeDecisionStatuses.includes(application.status);
+  const actionBlockers = application.dashboardState?.blockers ?? [];
   const finalDecisionMessage =
     application.status === "waitlisted"
       ? t("actions.waitlisted_no_transition")
@@ -370,6 +354,9 @@ export default function ApplicationDetailsPage({
               previousSchool={relatedData.previousSchool}
             />
           )}
+          {activeTab === "readiness" && (
+            <ApplicationReadinessPanel application={application} />
+          )}
           {activeTab === "guardians" && (
             <GuardiansTab
               application={application}
@@ -401,62 +388,76 @@ export default function ApplicationDetailsPage({
 
         {/* Sticky Action Bar */}
         <div className="bg-white rounded-xl shadow-sm p-6 sticky bottom-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            {canManageApplications && canScheduleAdmissionsStep && (
-              <>
+          <div className="space-y-4">
+            {actionBlockers.length > 0 && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                <p className="font-medium">{t("actions.blocked_title")}</p>
+                <ul className="mt-2 list-disc space-y-1 ps-5">
+                  {actionBlockers.map((blocker) => (
+                    <li key={`${blocker.code}-${blocker.message}`}>
+                      {blocker.message}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div className="flex items-center gap-3 flex-wrap">
+              {canManageApplications && canScheduleAdmissionsStep && (
+                <>
+                  <Button
+                    type="button"
+                    onClick={handleScheduleTest}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    {t("actions.schedule_test")}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleScheduleInterview}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    {t("actions.schedule_interview")}
+                  </Button>
+                </>
+              )}
+              {canManageDecisions && canMakeDecision && (
                 <Button
                   type="button"
-                  onClick={handleScheduleTest}
-                  variant="secondary"
+                  onClick={handleMakeDecision}
                   size="sm"
                 >
-                  {t("actions.schedule_test")}
+                  {t("actions.make_decision")}
                 </Button>
+              )}
+              {application.status === "accepted" && !application.registrationState?.registered && (
                 <Button
                   type="button"
-                  onClick={handleScheduleInterview}
-                  variant="secondary"
+                  onClick={handleEnroll}
+                  disabled={!canRegisterApplication || application.dashboardState?.canRegister === false}
+                  title={
+                    canRegisterApplication && application.dashboardState?.canRegister !== false
+                      ? undefined
+                      : application.dashboardState?.blockers?.map((blocker) => blocker.message).join("; ") || "Registration is blocked or additional permissions are required"
+                  }
+                  variant="success"
                   size="sm"
                 >
-                  {t("actions.schedule_interview")}
+                  {t("actions.enroll_student")}
                 </Button>
-              </>
-            )}
-            {canManageDecisions && canMakeDecision && (
-              <Button
-                type="button"
-                onClick={handleMakeDecision}
-                size="sm"
-              >
-                {t("actions.make_decision")}
-              </Button>
-            )}
-            {application.status === "accepted" && !application.registrationState?.registered && (
-              <Button
-                type="button"
-                onClick={handleEnroll}
-                disabled={!canRegisterApplication || application.dashboardState?.canRegister === false}
-                title={
-                  canRegisterApplication && application.dashboardState?.canRegister !== false
-                    ? undefined
-                    : application.dashboardState?.blockers?.map((blocker) => blocker.message).join("; ") || "Registration is blocked or additional permissions are required"
-                }
-                variant="success"
-                size="sm"
-              >
-                {t("actions.enroll_student")}
-              </Button>
-            )}
-            {application.registrationState?.registered && (
-              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
-                {t("actions.enrolled_status")}
-              </p>
-            )}
-            {isFinalDecisionStatus && finalDecisionMessage && (
-              <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700">
-                {finalDecisionMessage}
-              </p>
-            )}
+              )}
+              {application.registrationState?.registered && (
+                <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+                  {t("actions.enrolled_status")}
+                </p>
+              )}
+              {isFinalDecisionStatus && finalDecisionMessage && (
+                <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700">
+                  {finalDecisionMessage}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>

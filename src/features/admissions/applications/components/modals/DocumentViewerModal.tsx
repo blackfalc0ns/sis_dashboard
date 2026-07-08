@@ -2,7 +2,6 @@
 
 import { FileText, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
 
 interface DocumentViewerModalProps {
   isOpen: boolean;
@@ -77,7 +76,9 @@ export default function DocumentViewerModal({
                   title={document.name}
                 />
               ) : document.fileType === "image" ? (
-                <Image
+                // Blob URLs come from authenticated downloads and cannot be optimized by next/image.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={document.url}
                   alt={document.name}
                   className="w-full h-full object-contain"

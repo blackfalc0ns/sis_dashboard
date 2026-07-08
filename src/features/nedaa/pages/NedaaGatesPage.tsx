@@ -1,61 +1,92 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
+import Button from "@/components/ui/button/Button";
+import { DataTable, type Column } from "@/components/ui/data-table";
+import FilterPanel from "@/components/ui/filter-panel/FilterPanel";
+import Input from "@/components/ui/input/Input";
+import Select from "@/components/ui/input/Select";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import { useToast } from "@/components/ui/toast/Toast";
+import { useDebounce } from "@/hooks/useDebounce";
 import { usePermissions } from "@/hooks/usePermissions";
 import NedaaAccessNotice from "@/features/nedaa/components/NedaaAccessNotice";
-import NedaaGlobalExportModal from "@/features/nedaa/shared/components/export/NedaaGlobalExportModal";
+import NedaaGateFormModal from "@/features/nedaa/components/NedaaGateFormModal";
 import {
-  fetchNedaaGateBoard,
-  fetchNedaaRequests,
-  fetchNedaaSettings,
-} from "@/features/nedaa/services/nedaaService";
-import {
-  exportNedaaData,
-  formatNedaaExportDate,
-  generateNedaaExportFilename,
-  type ExportColumn,
-  type NedaaExportFormat,
-} from "@/features/nedaa/shared/utils/nedaaExport";
+  createDismissalGate,
+  listDismissalGates,
+  updateDismissalGate,
+} from "@/features/nedaa/services/dismissalApiService";
 import type {
-  NedaaGateStats,
-  NedaaRequest,
-  NedaaSettings,
+  CreateDismissalGatePayload,
+  DismissalGateStatus,
+  NedaaGate,
 } from "@/features/nedaa/types/nedaa";
 import {
-  formatNedaaMinutes,
-  getNedaaGateLabel,
-  isNedaaActiveStatus,
-} from "@/features/nedaa/utils/nedaaPresentation";
-import NedaaGatesView from "@/features/nedaa/views/NedaaGatesView";
-import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
+  buildDismissalGatesListParams,
+  type NedaaBooleanFilterValue,
+} from "@/features/nedaa/utils/nedaaFilters";
+
+interface GateTableRow extends Record<string, unknown> {
+  code: string;
+  name: string;
+  campus: string;
+  status: string;
+  active: string;
+  gate: NedaaGate;
+}
+
+const GATE_PAGE_SIZE = 10;
+const gateStatuses: DismissalGateStatus[] = [
+  "open",
+  "busy",
+  "closed",
+  "maintenance",
+];
+
+function cloneGate(gate: NedaaGate): NedaaGate {
+  return {
+    ...gate,
+    location: { ...gate.location },
+    waitingZones: [...gate.waitingZones],
+  };
+}
 
 export default function NedaaGatesPage() {
-  const locale = useLocale();
   const t = useTranslations("nedaa");
+  const { showSuccess, showError } = useToast();
   const { hasPermission } = usePermissions();
-  const {
-    academicYears,
-    terms,
-    yearId,
-    termId,
-    isLoading: isContextLoading,
-    error,
-    isReadOnly,
-  } = useStudentsGuardiansYearTermContext();
-  const canViewRequests = hasPermission("nedaa.requests.view");
-  const [gates, setGates] = useState<NedaaGateStats[]>([]);
-  const [requests, setRequests] = useState<NedaaRequest[]>([]);
-  const [settings, setSettings] = useState<NedaaSettings | null>(null);
+  const canView = hasPermission("dismissal.gates.view");
+  const canManage = hasPermission("dismissal.gates.manage");
+  const [gates, setGates] = useState<NedaaGate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [showExportModal, setShowExportModal] = useState(false);
+  const [isGateModalOpen, setIsGateModalOpen] = useState(false);
+  const [gateModalMode, setGateModalMode] = useState<"create" | "edit">(
+    "create",
+  );
+  const [editingGate, setEditingGate] = useState<NedaaGate | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [activeFilter, setActiveFilter] = useState<NedaaBooleanFilterValue>("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(GATE_PAGE_SIZE);
+  const [totalItems, setTotalItems] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const debouncedSearch = useDebounce(searchInput, 350);
+  const hasActiveFilters =
+    Boolean(searchInput.trim()) ||
+    Boolean(statusFilter) ||
+    Boolean(activeFilter);
 
   useEffect(() => {
     let cancelled = false;
 
-    if (!canViewRequests || isContextLoading || !yearId || !termId) {
+    if (!canView) {
       setIsLoading(false);
       return () => {
         cancelled = true;
@@ -66,15 +97,18 @@ export default function NedaaGatesPage() {
       setIsLoading(true);
       setLoadError(null);
       try {
-        const [nextGates, nextRequests, nextSettings] = await Promise.all([
-          fetchNedaaGateBoard({ yearId, termId }),
-          fetchNedaaRequests({ yearId, termId }),
-          fetchNedaaSettings(),
-        ]);
+        const response = await listDismissalGates(
+          buildDismissalGatesListParams({
+            q: debouncedSearch,
+            status: statusFilter,
+            active: activeFilter,
+            page,
+            limit: pageSize,
+          }),
+        );
         if (!cancelled) {
-          setGates(nextGates);
-          setRequests(nextRequests);
-          setSettings(nextSettings);
+          setGates(response.data.map(cloneGate));
+          setTotalItems(response.summary.totalCount);
         }
       } catch (requestError) {
         if (!cancelled) {
@@ -87,6 +121,7 @@ export default function NedaaGatesPage() {
       } finally {
         if (!cancelled) {
           setIsLoading(false);
+          setHasLoaded(true);
         }
       }
     });
@@ -94,166 +129,217 @@ export default function NedaaGatesPage() {
     return () => {
       cancelled = true;
     };
-  }, [canViewRequests, isContextLoading, t, termId, yearId]);
+  }, [
+    activeFilter,
+    canView,
+    debouncedSearch,
+    page,
+    pageSize,
+    refreshKey,
+    statusFilter,
+    t,
+  ]);
 
-  const activeRequests = useMemo(
-    () => requests.filter((request) => isNedaaActiveStatus(request.status)),
-    [requests],
+  const gateRows = useMemo<GateTableRow[]>(
+    () =>
+      gates.map((gate) => ({
+        code: gate.code,
+        name: gate.name,
+        campus: gate.campus || "-",
+        status: t(`settings.status_options.${gate.status}`),
+        active: gate.isActive ? t("table.yes") : t("table.no"),
+        gate,
+      })),
+    [gates, t],
+  );
+  const gateColumns = useMemo<Column<GateTableRow>[]>(
+    () => [
+      { key: "code", label: t("table.code"), searchable: true },
+      { key: "name", label: t("table.name"), searchable: true },
+      { key: "campus", label: t("table.campus"), searchable: true },
+      { key: "status", label: t("table.status") },
+      { key: "active", label: t("table.active") },
+      {
+        key: "actions",
+        label: t("table.actions"),
+        sortable: false,
+        render: (_value, row) => (
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={!canManage}
+              onClick={() => {
+                setGateModalMode("edit");
+                setEditingGate(row.gate);
+                setIsGateModalOpen(true);
+              }}
+            >
+              {t("settings.edit_gate")}
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [canManage, t],
+  );
+  const statusOptions = useMemo(
+    () => [
+      { value: "", label: t("filters.all_statuses") },
+      ...gateStatuses.map((status) => ({
+        value: status,
+        label: t(`settings.status_options.${status}`),
+      })),
+    ],
+    [t],
+  );
+  const activeOptions = useMemo(
+    () => [
+      { value: "", label: t("filters.all_active_states") },
+      { value: "true", label: t("filters.active_only") },
+      { value: "false", label: t("filters.inactive_only") },
+    ],
+    [t],
   );
 
-  const selectedYearName =
-    ((locale === "ar"
-      ? academicYears.find((item) => item.id === yearId)?.nameAr
-      : academicYears.find((item) => item.id === yearId)?.nameEn) ||
-      academicYears.find((item) => item.id === yearId)?.nameEn ||
-      yearId ||
-      "");
-  const selectedTerm = terms.find((item) => item.id === termId) || null;
-  const selectedTermName =
-    (locale === "ar" ? selectedTerm?.nameAr : selectedTerm?.nameEn) ||
-    selectedTerm?.nameEn ||
-    selectedTerm?.nameAr ||
-    selectedTerm?.name ||
-    termId ||
-    "";
-
-  const handleExport = async (format: NedaaExportFormat) => {
-    if (!settings) return;
-
-    const gateColumns: ExportColumn[] =
-      locale === "ar"
-        ? [
-            { key: "gateId", label: "معرّف البوابة" },
-            { key: "gateName", label: "البوابة" },
-            { key: "waitingCount", label: "في الانتظار" },
-            { key: "preparingCount", label: "قيد التحضير" },
-            { key: "readyCount", label: "جاهز" },
-            { key: "completedToday", label: "مكتمل اليوم" },
-            { key: "avgHandlingTime", label: "متوسط وقت المعالجة" },
-            { key: "activeRequests", label: "الطلبات النشطة" },
-          ]
-        : [
-            { key: "gateId", label: "Gate ID" },
-            { key: "gateName", label: "Gate" },
-            { key: "waitingCount", label: "Waiting" },
-            { key: "preparingCount", label: "Preparing" },
-            { key: "readyCount", label: "Ready" },
-            { key: "completedToday", label: "Completed Today" },
-            { key: "avgHandlingTime", label: "Avg Handling Time" },
-            { key: "activeRequests", label: "Active Requests" },
-          ];
-
-    const requestColumns: ExportColumn[] =
-      locale === "ar"
-        ? [
-            { key: "requestId", label: "رقم الطلب" },
-            { key: "studentName", label: "الطالب" },
-            { key: "guardianName", label: "ولي الأمر" },
-            { key: "gate", label: "البوابة" },
-            { key: "status", label: "الحالة" },
-            { key: "createdAt", label: "تاريخ الإنشاء" },
-          ]
-        : [
-            { key: "requestId", label: "Request ID" },
-            { key: "studentName", label: "Student" },
-            { key: "guardianName", label: "Guardian" },
-            { key: "gate", label: "Gate" },
-            { key: "status", label: "Status" },
-            { key: "createdAt", label: "Created At" },
-          ];
-
-    const gateRows = gates.map((gateStats) => ({
-      gateId: gateStats.gate.id,
-      gateName: locale === "ar" ? gateStats.gate.nameAr : gateStats.gate.nameEn,
-      waitingCount: gateStats.waitingCount,
-      preparingCount: gateStats.preparingCount,
-      readyCount: gateStats.readyCount,
-      completedToday: gateStats.completedToday,
-      avgHandlingTime: formatNedaaMinutes(gateStats.avgHandlingTimeMinutes, locale),
-      activeRequests: gateStats.activeRequests,
-    }));
-
-    const activeRequestRows = activeRequests.map((request) => ({
-      requestId: request.id,
-      studentName: request.studentName,
-      guardianName: request.guardianName,
-      gate: getNedaaGateLabel(request.gate, settings.gates, locale),
-      status: t(`status.${request.status}`),
-      createdAt: request.createdAt,
-    }));
-
-    exportNedaaData({
-      title: t("gates_page.title"),
-      metadata: {
-        yearName: selectedYearName,
-        termName: selectedTermName,
-        viewName: t("gates_page.title"),
-        exportDate: formatNedaaExportDate(locale),
-      },
-      filename: generateNedaaExportFilename("nedaa-gates", termId),
-      format,
-      sections: [
-        {
-          title: t("overview.gate_summary"),
-          columns: gateColumns,
-          rows: gateRows,
-        },
-        {
-          title: t("gates_page.live_queue"),
-          columns: requestColumns,
-          rows: activeRequestRows,
-        },
-      ],
-        jsonData: {
-          title: "Nedaa Gates",
-          metadata: {
-            yearName: academicYears.find((item) => item.id === yearId)?.nameEn || yearId || "",
-            termName: selectedTerm?.nameEn || selectedTerm?.name || termId || "",
-            viewName: "Gates",
-            exportDate: formatNedaaExportDate("en"),
-        },
-        gateBoard: gates,
-        activeRequests,
-      },
-      locale,
-      emptyMessage: t("export.errors.noData"),
-    });
+  const resetFilters = () => {
+    setSearchInput("");
+    setStatusFilter("");
+    setActiveFilter("");
+    setPage(1);
   };
 
-  if (!canViewRequests) {
-    return <NedaaAccessNotice />;
-  }
+  const closeGateModal = () => {
+    setIsGateModalOpen(false);
+    setEditingGate(null);
+    setGateModalMode("create");
+  };
 
-  if (isContextLoading || isLoading) {
-    return <MainLoader />;
-  }
+  const submitGate = async (payload: CreateDismissalGatePayload) => {
+    if (!canManage) return;
 
-  if (error || loadError || !settings) {
+    try {
+      if (gateModalMode === "edit" && editingGate) {
+        await updateDismissalGate(editingGate.id, payload);
+      } else {
+        await createDismissalGate(payload);
+      }
+      closeGateModal();
+      setRefreshKey((current) => current + 1);
+      showSuccess(t("messages.settings_saved"));
+    } catch {
+      showError(t("messages.settings_save_failed"));
+    }
+  };
+
+  if (!canView) return <NedaaAccessNotice />;
+  if (!hasLoaded && isLoading) return <MainLoader />;
+  if (loadError) {
     return (
       <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
-        <p className="text-sm text-red-600">
-          {error || loadError || t("messages.load_gates_failed")}
-        </p>
+        <p className="text-sm text-red-600">{loadError}</p>
       </div>
     );
   }
 
   return (
-    <>
-      <NedaaGatesView
-        gates={gates}
-        activeRequests={activeRequests}
-        requestGates={settings.gates}
-        isReadOnly={isReadOnly}
-        onOpenExport={() => setShowExportModal(true)}
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t("gates_page.title")}
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            {t("gates_page.subtitle")}
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          leftIcon={<Plus className="h-4 w-4" />}
+          disabled={!canManage}
+          onClick={() => {
+            setGateModalMode("create");
+            setEditingGate(null);
+            setIsGateModalOpen(true);
+          }}
+        >
+          {t("settings.add_gate")}
+        </Button>
+      </div>
+
+      <FilterPanel
+        showFilters={showFilters}
+        onToggleFilters={() => setShowFilters((current) => !current)}
+        hasActiveFilters={hasActiveFilters}
+        toggleTitle={t("filters.show_filters")}
+        toggleAriaLabel={t("filters.show_filters")}
+        searchSlot={
+          <Input
+            value={searchInput}
+            onChange={(event) => {
+              setSearchInput(event.target.value);
+              setPage(1);
+            }}
+            placeholder={t("filters.search_gates_placeholder")}
+          />
+        }
+        filtersSlot={
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Select
+              label={t("table.status")}
+              value={statusFilter}
+              onChange={(value) => {
+                setStatusFilter(value);
+                setPage(1);
+              }}
+              options={statusOptions}
+            />
+            <Select
+              label={t("filters.active_state")}
+              value={activeFilter}
+              onChange={(value) => {
+                setActiveFilter(value as NedaaBooleanFilterValue);
+                setPage(1);
+              }}
+              options={activeOptions}
+            />
+          </div>
+        }
+        clearAction={
+          <Button variant="ghost" size="sm" onClick={resetFilters}>
+            {t("filters.clear_filters")}
+          </Button>
+        }
       />
-      <NedaaGlobalExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        onExport={handleExport}
-        datasetCount={gates.length + activeRequests.length}
-        emptyStateMessage={t("export.errors.noData")}
+
+      <DataTable
+        columns={gateColumns}
+        data={gateRows}
+        itemsPerPage={pageSize}
+        isLoading={isLoading}
+        serverPagination={{
+          enabled: true,
+          currentPage: page,
+          pageSize,
+          totalItems,
+          onPageChange: setPage,
+          onPageSizeChange: (nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPage(1);
+          },
+        }}
+        emptyTitle={t("settings.gate_management_empty_title")}
+        emptyDescription={t("settings.gate_management_empty_description")}
       />
-    </>
+
+      <NedaaGateFormModal
+        isOpen={isGateModalOpen}
+        mode={gateModalMode}
+        initialGate={editingGate}
+        existingGateIds={gates.map((gate) => gate.code)}
+        onClose={closeGateModal}
+        onSubmit={submitGate}
+      />
+    </div>
   );
 }

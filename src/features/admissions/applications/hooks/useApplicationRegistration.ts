@@ -9,11 +9,9 @@ import {
 } from "@/features/academics/services/academicStructureApiService";
 import {
   getApplicationRegistrationHandoff,
-  previewApplicationEnrollment,
   registerApplication,
 } from "../api/applicationRegistrationApi";
 import type {
-  EnrollmentHandoffPreviewDto,
   RegisterApplicationResponseDto,
   RegistrationHandoffResponseDto,
 } from "../api/registrationDtos";
@@ -30,7 +28,6 @@ import {
 
 interface RegistrationContext {
   handoff: RegistrationHandoffResponseDto;
-  preview: EnrollmentHandoffPreviewDto;
   grades: AcademicStructureGrade[];
   sections: AcademicStructureSection[];
   classrooms: AcademicStructureClassroom[];
@@ -52,12 +49,11 @@ async function loadRegistrationContext(
   const structurePromise = academicYearId && termId
     ? fetchAcademicStructureTree({ yearId: academicYearId, termId })
     : Promise.resolve({ grades: [], sections: [], classrooms: [] });
-  const [handoff, preview, structure] = await Promise.all([
+  const [handoff, structure] = await Promise.all([
     getApplicationRegistrationHandoff(applicationId),
-    previewApplicationEnrollment(applicationId),
     structurePromise,
   ]);
-  return { handoff, preview, ...structure };
+  return { handoff, ...structure };
 }
 
 export function useApplicationRegistration({
@@ -85,7 +81,10 @@ export function useApplicationRegistration({
         setForm((current) => registrationFormFromHandoff(
           current,
           loadedContext.handoff,
-          loadedContext.preview.handoff.enrollmentDraft.requestedGradeId,
+          loadedContext.handoff.wizardDraft?.enrollment?.gradeId ??
+            loadedContext.handoff.source?.application?.requestedGradeId ??
+            loadedContext.handoff.source?.applicantRequest?.requestedGradeId ??
+            null,
         ));
       })
       .catch((loadError: unknown) => {

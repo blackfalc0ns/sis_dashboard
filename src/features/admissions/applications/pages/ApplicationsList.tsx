@@ -432,13 +432,7 @@ export default function ApplicationsList() {
           icon={Users}
           iconColor="#3b82f6"
           iconBgColor="#dbeafe"
-          chartData={[
-            { label: "W1", value: 25 },
-            { label: "W2", value: 30 },
-            { label: "W3", value: 35 },
-            { label: "W4", value: kpis.total },
-          ]}
-          chartColor="#3b82f6"
+          showChart={false}
         />
         <KPICardV2
           title={t("pending_review")}
@@ -447,13 +441,7 @@ export default function ApplicationsList() {
           icon={Clock}
           iconColor="#f59e0b"
           iconBgColor="#fef3c7"
-          chartData={[
-            { label: "W1", value: 8 },
-            { label: "W2", value: 10 },
-            { label: "W3", value: 12 },
-            { label: "W4", value: kpis.pendingReview },
-          ]}
-          chartColor="#f59e0b"
+          showChart={false}
         />
         <KPICardV2
           title={t("missing_documents")}
@@ -462,13 +450,7 @@ export default function ApplicationsList() {
           icon={Users}
           iconColor="#ef4444"
           iconBgColor="#fee2e2"
-          chartData={[
-            { label: "W1", value: 5 },
-            { label: "W2", value: 6 },
-            { label: "W3", value: 7 },
-            { label: "W4", value: kpis.missingDocuments },
-          ]}
-          chartColor="#ef4444"
+          showChart={false}
         />
         <KPICardV2
           title={t("approved")}
@@ -477,13 +459,7 @@ export default function ApplicationsList() {
           icon={CheckCircle}
           iconColor="#10b981"
           iconBgColor="#d1fae5"
-          chartData={[
-            { label: "W1", value: 15 },
-            { label: "W2", value: 18 },
-            { label: "W3", value: 20 },
-            { label: "W4", value: kpis.approved },
-          ]}
-          chartColor="#10b981"
+          showChart={false}
         />
         <KPICardV2
           title={t("rejected")}
@@ -492,13 +468,7 @@ export default function ApplicationsList() {
           icon={Users}
           iconColor="#6b7280"
           iconBgColor="#f3f4f6"
-          chartData={[
-            { label: "W1", value: 3 },
-            { label: "W2", value: 4 },
-            { label: "W3", value: 5 },
-            { label: "W4", value: kpis.rejected },
-          ]}
-          chartColor="#6b7280"
+          showChart={false}
         />
         <KPICardV2
           title={t("avg_processing_time")}
@@ -507,13 +477,7 @@ export default function ApplicationsList() {
           icon={TrendingUp}
           iconColor="#8b5cf6"
           iconBgColor="#ede9fe"
-          chartData={[
-            { label: "W1", value: 48 },
-            { label: "W2", value: 45 },
-            { label: "W3", value: 42 },
-            { label: "W4", value: 40 },
-          ]}
-          chartColor="#8b5cf6"
+          showChart={false}
         />
       </div>
 

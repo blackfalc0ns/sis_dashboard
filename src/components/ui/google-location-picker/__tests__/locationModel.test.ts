@@ -6,10 +6,7 @@ import {
 
 describe("validateCoordinateDraft", () => {
   it.each([
-    [
-      { latitude: "24.7", longitude: "" },
-      "coordinate_pair_required",
-    ],
+    [{ latitude: "24.7", longitude: "" }, "coordinate_pair_required"],
     [{ latitude: "latitude", longitude: "46" }, "latitude_invalid"],
     [{ latitude: "91", longitude: "46" }, "latitude_out_of_range"],
     [{ latitude: "24", longitude: "longitude" }, "longitude_invalid"],

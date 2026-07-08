@@ -17,6 +17,8 @@ import {
   createApplicationDocument,
   deleteApplicationDocument,
 } from "@/features/admissions/applications/services/applicationDocumentsApiService";
+import { fetchAdmissionsDocumentRequirements } from "@/features/settings/services/settingsService";
+import type { AdmissionsRequiredDocumentConfig } from "@/features/settings/types";
 import { isApiError } from "@/lib/api-error";
 import { useToast } from "@/components/ui/toast/Toast";
 import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
@@ -123,6 +125,9 @@ export default function DocumentsTab({
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [selectedType, setSelectedType] = useState("");
   const [customType, setCustomType] = useState("");
+  const [documentRequirements, setDocumentRequirements] = useState<
+    AdmissionsRequiredDocumentConfig[]
+  >([]);
   const [reviewingDocumentId, setReviewingDocumentId] = useState<string | null>(
     null,
   );
@@ -157,6 +162,35 @@ export default function DocumentsTab({
   useEffect(() => {
     void loadDocuments();
   }, [loadDocuments]);
+
+  useEffect(() => {
+    if (!canManageDocuments) return;
+    let isMounted = true;
+
+    async function loadDocumentRequirements() {
+      try {
+        const requirements = await fetchAdmissionsDocumentRequirements();
+        if (isMounted) {
+          setDocumentRequirements(
+            requirements
+              .filter((requirement) => requirement.active)
+              .sort((first, second) => first.sortOrder - second.sortOrder),
+          );
+        }
+      } catch (requirementsError) {
+        console.error("Failed to load admissions document requirements:", requirementsError);
+        if (isMounted) {
+          setDocumentRequirements([]);
+        }
+      }
+    }
+
+    void loadDocumentRequirements();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [canManageDocuments]);
 
   useEffect(() => {
     return () => {
@@ -414,6 +448,14 @@ export default function DocumentsTab({
   };
 
   const usedTypes = new Set(documents.map((d) => d.type));
+  const configuredTypeOptions = documentRequirements.map((requirement) => ({
+    value: requirement.nameEn,
+    label: locale === "ar" ? requirement.nameAr || requirement.nameEn : requirement.nameEn,
+  }));
+  const documentTypeOptions =
+    configuredTypeOptions.length > 0
+      ? configuredTypeOptions
+      : DOCUMENT_TYPES.map((type) => ({ value: type, label: type }));
 
   if (!canViewDocuments) {
     return <AdmissionsAccessDenied />;
@@ -608,25 +650,25 @@ export default function DocumentsTab({
       >
         <div className="space-y-4">
           <div className="space-y-2 max-h-60 overflow-y-auto">
-            {DOCUMENT_TYPES.map((type) => (
+            {documentTypeOptions.map((type) => (
               <label
-                key={type}
+                key={type.value}
                 className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                  selectedType === type
+                  selectedType === type.value
                     ? "border-primary bg-primary/5"
                     : "border-gray-200 hover:border-gray-300"
-                } ${usedTypes.has(type) ? "opacity-50" : ""}`}
+                } ${usedTypes.has(type.value) ? "opacity-50" : ""}`}
               >
                 <input
                   type="radio"
                   name="documentType"
-                  value={type}
-                  checked={selectedType === type}
-                  onChange={() => setSelectedType(type)}
+                  value={type.value}
+                  checked={selectedType === type.value}
+                  onChange={() => setSelectedType(type.value)}
                   className="text-primary focus:ring-primary"
                 />
-                <span className="text-sm text-gray-900">{type}</span>
-                {usedTypes.has(type) && (
+                <span className="text-sm text-gray-900">{type.label}</span>
+                {usedTypes.has(type.value) && (
                   <span className="ml-auto text-xs text-gray-400">
                     {t("documents.already_uploaded")}
                   </span>

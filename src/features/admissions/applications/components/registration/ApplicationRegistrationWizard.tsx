@@ -90,7 +90,7 @@ export default function ApplicationRegistrationWizard(props: ApplicationRegistra
         {handoff?.alreadyRegistered && <Notice message={t("already_registered")} tone="success" />}
         {messages.length > 0 && <MessageList messages={messages} />}
         {validationMessages.length > 0 && <MessageList messages={validationMessages} />}
-        {registration.context?.preview.eligible && !registration.isLoading && (
+        {registration.context?.handoff.eligible && !registration.isLoading && (
           <p className="text-sm text-emerald-700">{t("readiness_passed")}</p>
         )}
         <RegistrationFields

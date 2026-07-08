@@ -3,8 +3,8 @@
 import { useTranslations } from "next-intl";
 import { FileText, User, MapPin, Heart, Calendar } from "lucide-react";
 import { Application } from "@/features/admissions/types/admissions";
-import StatusBadge from "../../../shared/StatusBadge";
 import type { RegistrationStudentRequest } from "@/features/admissions/applications/api/registrationDtos";
+import StatusBadge from "../../../shared/StatusBadge";
 
 interface DetailsTabProps {
   application: Application;
@@ -40,6 +40,22 @@ export default function DetailsTab({
       gradeLabel || undefined,
     );
   const displayGrade = gradeLabel;
+  const hasArabicName =
+    Boolean(studentDraft?.first_name_ar) ||
+    Boolean(studentDraft?.father_name_ar) ||
+    Boolean(studentDraft?.grandfather_name_ar) ||
+    Boolean(studentDraft?.family_name_ar) ||
+    Boolean(studentDraft?.full_name_ar);
+  const hasPersonalInfo =
+    Boolean(studentDraft?.gender) ||
+    Boolean(studentDraft?.date_of_birth || studentDraft?.dateOfBirth) ||
+    Boolean(studentDraft?.nationality);
+  const hasContactInfo =
+    Boolean(studentContact?.address_line) ||
+    Boolean(studentContact?.district) ||
+    Boolean(studentContact?.city) ||
+    Boolean(studentContact?.student_phone) ||
+    Boolean(studentContact?.student_email);
 
   return (
     <div className="space-y-6">
@@ -55,6 +71,9 @@ export default function DetailsTab({
             <p className="text-xs font-semibold text-gray-600 mb-2">
               {t("details.arabic_name")}
             </p>
+            {!hasArabicName && (
+              <p className="text-sm text-gray-500">{t("details.not_provided")}</p>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
             {studentDraft?.first_name_ar && (
                 <div>
@@ -150,6 +169,11 @@ export default function DetailsTab({
 
           {/* Personal Information */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {!hasPersonalInfo && (
+              <p className="text-sm text-gray-500 md:col-span-3">
+                {t("details.personal_info_not_provided")}
+              </p>
+            )}
             {studentDraft?.gender && (
               <div>
                 <p className="text-xs text-gray-500">{t("details.gender")}</p>
@@ -245,6 +269,11 @@ export default function DetailsTab({
           {t("details.contact_info")}
         </h3>
         <div className="space-y-3">
+          {!hasContactInfo && (
+            <p className="text-sm text-gray-500">
+              {t("details.contact_not_provided")}
+            </p>
+          )}
           {studentContact?.address_line && (
             <div>
               <p className="text-xs text-gray-500">{t("details.address")}</p>

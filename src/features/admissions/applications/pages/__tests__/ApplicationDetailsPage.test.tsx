@@ -60,12 +60,14 @@ vi.mock("next-intl", () => ({
       "actions.schedule_interview": "Schedule Interview",
       "actions.make_decision": "Make Decision",
       "actions.enroll_student": "Enroll Student",
+      "actions.blocked_title": "Action blockers",
       "actions.waitlisted_no_transition":
         "This application is waitlisted. No transition action is available yet.",
       "actions.rejected_no_actions":
         "This application has been rejected. No further actions are available.",
       "header.title": "Application",
       "tabs.details": "Details",
+      "tabs.readiness": "Readiness",
       "tabs.guardians": "Guardians",
       "tabs.documents": "Documents",
       "tabs.tests": "Tests",
@@ -85,7 +87,17 @@ vi.mock("@/features/admissions/shared/StatusBadge", () => ({
 }));
 
 vi.mock("@/features/admissions/shared/TabNavigation", () => ({
-  default: () => <nav aria-label="Application tabs" />,
+  default: ({
+    tabs,
+  }: {
+    tabs: Array<{ id: string; label: string }>;
+  }) => (
+    <nav aria-label="Application tabs">
+      {tabs.map((tab) => (
+        <span key={tab.id}>{tab.label}</span>
+      ))}
+    </nav>
+  ),
 }));
 
 vi.mock("@/features/admissions/tests/components/ScheduleTestModal", () => ({
@@ -122,6 +134,13 @@ vi.mock(
   "@/features/admissions/applications/components/tabs/DetailsTab",
   () => ({
     default: () => <section>Details content</section>,
+  }),
+);
+
+vi.mock(
+  "@/features/admissions/applications/components/tabs/ApplicationReadinessPanel",
+  () => ({
+    default: () => <section>Readiness content</section>,
   }),
 );
 
@@ -195,6 +214,38 @@ function applicationWithStatus(status: ApplicationStatus): Application {
     documents: [],
     tests: [],
     interviews: [],
+    dashboardState: {
+      canProceedToDecision: status === "submitted",
+      canRegister: status === "accepted",
+      registrationState: status === "accepted" ? "ready_to_register" : "not_accepted",
+      decisionState: {
+        canCreateDecision: status === "submitted",
+        canAccept: status === "submitted",
+        canWaitlist: status === "submitted",
+        canReject: status === "submitted",
+        reason: status === "submitted" ? "ready" : "application_status_not_decidable",
+      },
+      workflowReadiness: {
+        policy: {
+          requiresPlacementTest: true,
+          requiresInterview: true,
+          allowDirectAcceptance: false,
+          source: "default",
+        },
+        placementTests: { required: true, total: 0, completed: 0, satisfied: false },
+        interviews: { required: true, total: 0, completed: 0, satisfied: false },
+      },
+      documentSignals: {
+        hasPendingReview: false,
+        hasReviewableDocuments: false,
+        hasMissingDocuments: false,
+        pendingReviewCount: 0,
+        reviewableCount: 0,
+        missingCount: 0,
+        needsReplacementCount: 0,
+      },
+      blockers: [],
+    },
   };
 }
 
@@ -228,6 +279,22 @@ describe("ApplicationDetailsPage action bar", () => {
     expect(screen.getByRole("button", { name: "Schedule Interview" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Make Decision" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Enroll Student" })).not.toBeInTheDocument();
+  });
+
+  it("includes a dedicated readiness tab", async () => {
+    await renderApplicationDetails("submitted");
+
+    expect(screen.getByText("Readiness")).toBeInTheDocument();
+  });
+
+  it("does not prefetch related lists on the initial details view", async () => {
+    await renderApplicationDetails("submitted");
+
+    expect(applicationServiceMocks.fetchApplicationById).toHaveBeenCalledWith("app-1");
+    expect(documentServiceMocks.fetchApplicationDocuments).not.toHaveBeenCalled();
+    expect(testServiceMocks.fetchPlacementTests).not.toHaveBeenCalled();
+    expect(interviewServiceMocks.fetchInterviews).not.toHaveBeenCalled();
+    expect(decisionServiceMocks.fetchDecisions).not.toHaveBeenCalled();
   });
 
   it("shows schedule actions but hides decision for documents pending applications", async () => {
@@ -273,5 +340,31 @@ describe("ApplicationDetailsPage action bar", () => {
     expect(screen.queryByRole("button", { name: "Schedule Interview" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Make Decision" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Enroll Student" })).toBeInTheDocument();
+  });
+
+  it("shows backend blockers as visible text when registration is disabled", async () => {
+    applicationServiceMocks.fetchApplicationById.mockResolvedValue({
+      ...applicationWithStatus("accepted"),
+      dashboardState: {
+        ...applicationWithStatus("accepted").dashboardState!,
+        canRegister: false,
+        registrationState: "blocked_workflow_policy",
+        blockers: [
+          {
+            code: "workflow_policy_not_satisfied",
+            message: "Required admissions workflow steps are not satisfied.",
+          },
+        ],
+      },
+    });
+
+    render(<ApplicationDetailsPage applicationId="app-1" />);
+    await screen.findByText("Details content");
+
+    expect(screen.getByRole("button", { name: "Enroll Student" })).toBeDisabled();
+    expect(screen.getByText("Action blockers")).toBeInTheDocument();
+    expect(
+      screen.getByText("Required admissions workflow steps are not satisfied."),
+    ).toBeInTheDocument();
   });
 });

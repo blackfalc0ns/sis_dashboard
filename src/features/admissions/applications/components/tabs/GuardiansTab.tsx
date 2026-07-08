@@ -28,7 +28,7 @@ export default function GuardiansTab({
       <h3 className="font-semibold text-gray-900">{t("guardians.title")}</h3>
       {isLoading ? (
         <div className="rounded-lg bg-gray-50 p-6 text-center text-sm text-gray-500">
-          Loading guardian data...
+          {t("guardians.loading")}
         </div>
       ) : error ? (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
@@ -39,7 +39,7 @@ export default function GuardiansTab({
               onClick={onRetry}
               className="mt-3 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-red-700 ring-1 ring-red-200 hover:bg-red-100"
             >
-              Retry
+              {t("guardians.retry")}
             </button>
           ) : null}
         </div>
@@ -150,7 +150,7 @@ export default function GuardiansTab({
       ) : (
         <div className="bg-gray-50 rounded-lg p-6 text-center">
           <p className="text-sm text-gray-600">
-            No guardian data has been entered for this application yet.
+            {t("guardians.empty")}
           </p>
         </div>
       )}

@@ -87,7 +87,8 @@ export default function NedaaSettingsView({
 }: NedaaSettingsViewProps) {
   const t = useTranslations("nedaa");
   const isDirty =
-    JSON.stringify(settings.settings) !== JSON.stringify(initialSettings.settings);
+    JSON.stringify(settings.settings) !==
+    JSON.stringify(initialSettings.settings);
   const canEdit = canManage && !isReadOnly;
   const orderedGates = useMemo(
     () => getNedaaOrderedGates(settings.gates),
@@ -103,7 +104,9 @@ export default function NedaaSettingsView({
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t("settings.title")}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t("settings.title")}
+          </h1>
           <p className="mt-1 text-sm text-gray-500">{t("settings.subtitle")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -183,7 +186,9 @@ export default function NedaaSettingsView({
             value={String(settings.settings.thresholds.delayMinutes)}
             disabled={!canEdit}
             onChange={(event) =>
-              onChange({ delayThresholdMinutes: Number(event.target.value || 0) })
+              onChange({
+                delayThresholdMinutes: Number(event.target.value || 0),
+              })
             }
           />
           <Input
@@ -192,7 +197,9 @@ export default function NedaaSettingsView({
             value={String(settings.settings.thresholds.urgentMinutes)}
             disabled={!canEdit}
             onChange={(event) =>
-              onChange({ urgentThresholdMinutes: Number(event.target.value || 0) })
+              onChange({
+                urgentThresholdMinutes: Number(event.target.value || 0),
+              })
             }
           />
           <Input
@@ -201,7 +208,9 @@ export default function NedaaSettingsView({
             value={String(settings.settings.thresholds.expiryMinutes)}
             disabled={!canEdit}
             onChange={(event) =>
-              onChange({ expiryThresholdMinutes: Number(event.target.value || 0) })
+              onChange({
+                expiryThresholdMinutes: Number(event.target.value || 0),
+              })
             }
           />
         </div>
@@ -305,7 +314,10 @@ export default function NedaaSettingsView({
 
         <div className="space-y-3">
           {orderedGates.map((gate) => (
-            <div key={gate.id} className="rounded-2xl border border-gray-200 px-4 py-4">
+            <div
+              key={gate.id}
+              className="rounded-2xl border border-gray-200 px-4 py-4"
+            >
               <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <div className="space-y-3">
                   <div>

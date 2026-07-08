@@ -41,3 +41,28 @@ describe("Students & Guardians navigation", () => {
     );
   });
 });
+
+describe("Nedaa navigation", () => {
+  it("exposes only backend dismissal contract pages", () => {
+    const nedaa = menuItems.find((menuItem) => menuItem.key === "nedaa");
+
+    expect(nedaa).toBeDefined();
+    expect(nedaa?.href_en).toBe("/en/nedaa/settings");
+    expect(nedaa?.href_ar).toBe("/ar/nedaa/settings");
+    expect(nedaa?.children?.map((child) => child.key)).toEqual([
+      "nedaa-operations",
+      "nedaa-settings",
+      "nedaa-gates",
+      "nedaa-staff-assignments",
+    ]);
+    expect(nedaa?.children).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: "nedaa-operations",
+          href_en: "/en/nedaa/operations",
+          href_ar: "/ar/nedaa/operations",
+        }),
+      ]),
+    );
+  });
+});
