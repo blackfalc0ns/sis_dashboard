@@ -320,8 +320,8 @@ describe("useConversationMessages", () => {
 
   // ─── Property 11: Message Delete Marks as Deleted ───────────────────────
 
-  describe("Property 11: deleteFromRealtime marks message as deleted", () => {
-    it("sets body to empty and status to deleted for the target message", async () => {
+  describe("Property 11: message deletion removes the message from the list", () => {
+    it("removes the target message when deleteFromRealtime is received", async () => {
       const existingMessages = [
         createMessage({
           id: "msg-1",
@@ -364,15 +364,60 @@ describe("useConversationMessages", () => {
         result.current.deleteFromRealtime(deletePayload);
       });
 
-      // The deleted message should have empty body and deleted status
-      const deletedMsg = result.current.messages.find((m) => m.id === "msg-2");
-      expect(deletedMsg?.body).toBe("");
-      expect(deletedMsg?.status).toBe("deleted");
+      expect(result.current.messages.find((m) => m.id === "msg-2")).toBeUndefined();
 
       // The other message should be unaffected
       const keptMsg = result.current.messages.find((m) => m.id === "msg-1");
       expect(keptMsg?.body).toBe("Keep this");
       expect(keptMsg?.status).toBe("sent");
+    });
+
+    it("removes the entire local message row when delete is confirmed", async () => {
+      const existingMessages = [
+        createMessage({
+          id: "msg-1",
+          conversationId: TEST_CONVERSATION_ID,
+          body: "Keep this",
+          createdAt: "2024-01-01T10:00:00.000Z",
+        }),
+        createMessage({
+          id: "msg-2",
+          conversationId: TEST_CONVERSATION_ID,
+          body: "Voice message",
+          type: "audio",
+          createdAt: "2024-01-01T10:01:00.000Z",
+          attachments: [
+            {
+              id: "att-1",
+              messageId: "msg-2",
+              name: "voice-note.webm",
+              mimeType: "audio/webm",
+              size: 1234,
+            },
+          ],
+        }),
+      ];
+
+      apiMocks.getMessages.mockResolvedValue({
+        data: { items: existingMessages, total: 2 },
+      });
+
+      const { result } = renderHook(() =>
+        useConversationMessages(TEST_CONVERSATION_ID),
+      );
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.remove("msg-2");
+      });
+
+      expect(apiMocks.deleteMessage).toHaveBeenCalledWith("msg-2");
+      expect(result.current.messages.map((message) => message.id)).toEqual([
+        "msg-1",
+      ]);
     });
 
     it("ignores delete for a different conversation", async () => {

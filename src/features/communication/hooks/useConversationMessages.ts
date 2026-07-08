@@ -590,16 +590,7 @@ export function useConversationMessages(conversationId: string) {
   const remove = useCallback(async (messageId: string) => {
     setIsMutating(true);
     setMessages((current) =>
-      current.map((message) =>
-        message.id === messageId
-          ? {
-              ...message,
-              body: "",
-              status: "deleted",
-              deletedAt: new Date().toISOString(),
-            }
-          : message,
-      ),
+      current.filter((message) => message.id !== messageId),
     );
 
     try {
@@ -632,15 +623,10 @@ export function useConversationMessages(conversationId: string) {
     const message = messageFromPayload(payload);
     if (!message || message.conversationId !== conversationId) return;
     setMessages((current) =>
-      current.map((item) =>
-        item.id === message.id || item.clientMessageId === message.clientMessageId
-          ? {
-              ...item,
-              body: "",
-              status: "deleted",
-              deletedAt: message.deletedAt ?? new Date().toISOString(),
-            }
-          : item,
+      current.filter(
+        (item) =>
+          item.id !== message.id &&
+          item.clientMessageId !== message.clientMessageId,
       ),
     );
   }, [conversationId]);
