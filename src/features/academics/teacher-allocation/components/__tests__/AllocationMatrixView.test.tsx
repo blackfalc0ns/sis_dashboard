@@ -80,6 +80,16 @@ const subject: Subject = {
   isActive: true,
 };
 
+const unallocatedSubject: Subject = {
+  id: "subject-2",
+  name: "Science",
+  nameAr: "Science AR",
+  nameEn: "Science",
+  code: "SCI",
+  color: "#16a34a",
+  isActive: true,
+};
+
 const subjectAllocation: SubjectAllocation = {
   id: "subject-allocation-1",
   termId: "term-1",
@@ -97,15 +107,21 @@ const teacher: Teacher = {
 
 const mockedSaveTeacherAllocationChanges = vi.mocked(saveTeacherAllocationChanges);
 
-function renderMatrix(options: { isReadOnly?: boolean } = {}) {
+function renderMatrix(
+  options: {
+    isReadOnly?: boolean;
+    subjects?: Subject[];
+    subjectAllocations?: SubjectAllocation[];
+  } = {},
+) {
   return render(
     <AllocationMatrixView
       termId="term-1"
       grades={[grade]}
       sections={[section]}
       classrooms={[classroom]}
-      subjects={[subject]}
-      subjectAllocations={[subjectAllocation]}
+      subjects={options.subjects ?? [subject]}
+      subjectAllocations={options.subjectAllocations ?? [subjectAllocation]}
       teachers={[teacher]}
       teacherAllocations={[]}
       isReadOnly={options.isReadOnly ?? false}
@@ -125,6 +141,15 @@ describe("AllocationMatrixView", () => {
 
     expect(screen.getByLabelText("teacher-select")).toBeDisabled();
     expect(screen.getByRole("button", { name: /actions\.save/i })).toBeDisabled();
+  });
+
+  it("shows only allocated subjects in the subject filter", () => {
+    renderMatrix({ subjects: [subject, unallocatedSubject] });
+
+    fireEvent.click(screen.getByRole("button", { name: /filters\.subject/i }));
+
+    expect(screen.getByRole("button", { name: "Math" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Science" })).not.toBeInTheDocument();
   });
 
   it("shows mapped missing subject allocation errors after failed save", async () => {

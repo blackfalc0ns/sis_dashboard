@@ -6,6 +6,10 @@ import type {
   Grade,
   Section,
 } from "@/features/academics/academic-structure-tree/services/structureService";
+import type {
+  Subject,
+  SubjectAllocation,
+} from "@/features/academics/subjects/services/subjectsService";
 
 interface LessonPlansFilterState {
   stageId: string;
@@ -17,6 +21,36 @@ interface LessonPlansFilterState {
 
 interface UseLessonPlansFiltersParams {
   initialFilters?: Partial<LessonPlansFilterState>;
+}
+
+export function subjectsForLessonPlanGrade({
+  subjects,
+  subjectAllocations,
+  gradeId,
+  currentSubjectId,
+}: {
+  subjects: Subject[];
+  subjectAllocations: SubjectAllocation[];
+  gradeId?: string;
+  currentSubjectId?: string | null;
+}): Subject[] {
+  if (!gradeId) {
+    return subjects;
+  }
+
+  const allocatedSubjectIds = new Set(
+    subjectAllocations
+      .filter(
+        (allocation) =>
+          allocation.gradeId === gradeId && allocation.weeklyHours > 0,
+      )
+      .map((allocation) => allocation.subjectId),
+  );
+
+  return subjects.filter(
+    (subject) =>
+      allocatedSubjectIds.has(subject.id) || subject.id === currentSubjectId,
+  );
 }
 
 export function useLessonPlansFilters({

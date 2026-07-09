@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Select from "@/components/ui/input/Select";
 import { getConfig, listEntries } from "@/features/academics/timetable/services/timetableApiAdapter";
 import type {
+  BackendTimetableConfigDto,
   BackendTimetableEntryDto,
   TimetableScopeType,
 } from "@/features/academics/timetable/services/timetableApiTypes";
@@ -38,7 +39,7 @@ const responseEntries = (
   response: BackendTimetableEntryDto[] | { items: BackendTimetableEntryDto[] },
 ) => (Array.isArray(response) ? response : response.items || []);
 
-function timetableConfigAttempts(scope: TimetableSlotScope) {
+export function timetableConfigAttempts(scope: TimetableSlotScope) {
   type Attempt = {
     academicYearId: string;
     termId: string;
@@ -65,40 +66,111 @@ function timetableConfigAttempts(scope: TimetableSlotScope) {
   return attempts;
 }
 
+export function useTimetableConfigForScope(
+  scope: TimetableSlotScope,
+  enabled: boolean,
+) {
+  const [config, setConfig] = useState<BackendTimetableConfigDto | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (
+      !enabled ||
+      !scope.academicYearId ||
+      !scope.termId ||
+      !scope.classroomId
+    ) {
+      setConfig(null);
+      setIsLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    setConfig(null);
+    setIsLoading(true);
+    void (async () => {
+      for (const attempt of timetableConfigAttempts(scope)) {
+        if (!active) return;
+        try {
+          const resolvedConfig = await getConfig(attempt);
+          if (active) setConfig(resolvedConfig);
+          return;
+        } catch {
+          // Try the next broader timetable scope.
+        }
+      }
+      if (active) setConfig(null);
+    })().finally(() => {
+      if (active) setIsLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [enabled, scope]);
+
+  return { config, isLoading };
+}
+
+export function activeTimetableDates(
+  dates: string[],
+  config: Pick<BackendTimetableConfigDto, "activeDays" | "weekStartDay"> | null,
+): string[] {
+  if (!config) return [];
+  const activeDays = new Set(config.activeDays);
+  return dates
+    .filter((date) => activeDays.has(dayOfWeekFromDateOnly(date)))
+    .sort((left, right) => {
+      const leftOffset =
+        (dayOfWeekFromDateOnly(left) - config.weekStartDay + 7) % 7;
+      const rightOffset =
+        (dayOfWeekFromDateOnly(right) - config.weekStartDay + 7) % 7;
+      if (leftOffset !== rightOffset) return leftOffset - rightOffset;
+      return left.localeCompare(right);
+    });
+}
+
 export function filterEntriesForScope(
   entries: BackendTimetableEntryDto[],
   scope: TimetableSlotScope,
 ): BackendTimetableEntryDto[] {
-  return entries.filter((entry) => {
-    if (entry.status?.toLowerCase() === "cancelled") return false;
+  return entries.filter((entry) => entry.status?.toLowerCase() !== "cancelled");
+}
 
-    const allocationMatch = Boolean(
-      entry.teacherSubjectAllocationId &&
-        scope.teacherSubjectAllocationId &&
-        entry.teacherSubjectAllocationId === scope.teacherSubjectAllocationId,
-    );
-    const flatEntry = entry as BackendTimetableEntryDto & {
-      classroomId?: string;
-      subjectId?: string;
-      teacherUserId?: string;
-      teacher?: BackendTimetableEntryDto["teacher"] & { id?: string };
-    };
-    const classroomMatch =
-      !scope.classroomId ||
-      entry.classroom?.id === scope.classroomId ||
-      flatEntry.classroomId === scope.classroomId;
-    const subjectMatch =
-      !scope.subjectId ||
-      entry.subject?.id === scope.subjectId ||
-      flatEntry.subjectId === scope.subjectId;
-    const teacherMatch =
-      !scope.teacherUserId ||
-      entry.teacher?.userId === scope.teacherUserId ||
-      flatEntry.teacherUserId === scope.teacherUserId ||
-      flatEntry.teacher?.id === scope.teacherUserId;
+function entryMatchesLessonPlanScope(
+  entry: BackendTimetableEntryDto,
+  scope: TimetableSlotScope,
+): boolean {
+  if (entry.status?.toLowerCase() === "cancelled") return false;
 
-    return allocationMatch || (classroomMatch && subjectMatch && teacherMatch);
-  });
+  const allocationMatch = Boolean(
+    entry.teacherSubjectAllocationId &&
+      scope.teacherSubjectAllocationId &&
+      entry.teacherSubjectAllocationId === scope.teacherSubjectAllocationId,
+  );
+  const flatEntry = entry as BackendTimetableEntryDto & {
+    classroomId?: string;
+    subjectId?: string;
+    teacherUserId?: string;
+    teacher?: BackendTimetableEntryDto["teacher"] & { id?: string };
+  };
+  const classroomMatch =
+    !scope.classroomId ||
+    entry.classroom?.id === scope.classroomId ||
+    flatEntry.classroomId === scope.classroomId;
+  const subjectMatch =
+    !scope.subjectId ||
+    entry.subject?.id === scope.subjectId ||
+    flatEntry.subjectId === scope.subjectId;
+  const teacherMatch =
+    !scope.teacherUserId ||
+    entry.teacher?.userId === scope.teacherUserId ||
+    flatEntry.teacherUserId === scope.teacherUserId ||
+    flatEntry.teacher?.id === scope.teacherUserId;
+
+  return allocationMatch || (classroomMatch && subjectMatch && teacherMatch);
 }
 
 function entryOptionLabel(entry: BackendTimetableEntryDto): string {
@@ -183,10 +255,8 @@ export default function TimetableSlotSelect({
             dayOfWeek: dayOfWeekFromDateOnly(plannedDate),
           });
           const filtered = filterEntriesForScope(responseEntries(response), scope);
-          if (filtered.length > 0) {
-            if (active) setEntries(filtered);
-            return;
-          }
+          if (active) setEntries(filtered);
+          return;
         } catch {
           // Try the next broader timetable scope.
         }
@@ -207,7 +277,11 @@ export default function TimetableSlotSelect({
       disabled={isLoading}
       options={[
         { value: "", label: isLoading ? loadingMessage : emptyOptionLabel },
-        ...entries.map((entry) => ({ value: entry.id, label: entryOptionLabel(entry) })),
+        ...entries.map((entry) => ({
+          value: entry.id,
+          label: entryOptionLabel(entry),
+          disabled: !entryMatchesLessonPlanScope(entry, scope),
+        })),
       ]}
       helperText={!isLoading && entries.length === 0 ? noSlotsMessage : undefined}
     />

@@ -349,7 +349,7 @@ export default function AllocationMatrixView({
     syncQueryParams,
   ]);
 
-  const filteredSubjects = useMemo(() => {
+  const allocatedFilterSubjects = useMemo(() => {
     const weeklySubjectIds = new Set(
       subjectAllocations
         .filter(
@@ -359,14 +359,17 @@ export default function AllocationMatrixView({
         )
         .map((subjectAllocation) => subjectAllocation.subjectId),
     );
-    let filteredSubjectList = subjects.filter((subject) => weeklySubjectIds.has(subject.id));
 
-    if (selectedSubjectId) {
-      filteredSubjectList = filteredSubjectList.filter((subject) => subject.id === selectedSubjectId);
+    return subjects.filter((subject) => weeklySubjectIds.has(subject.id));
+  }, [selectedGradeId, subjectAllocations, subjects]);
+
+  const filteredSubjects = useMemo(() => {
+    if (!selectedSubjectId) {
+      return allocatedFilterSubjects;
     }
 
-    return filteredSubjectList;
-  }, [selectedGradeId, selectedSubjectId, subjectAllocations, subjects]);
+    return allocatedFilterSubjects.filter((subject) => subject.id === selectedSubjectId);
+  }, [allocatedFilterSubjects, selectedSubjectId]);
 
   const teacherLoads = useMemo(() => {
     const loads = new Map<string, number>();
@@ -896,7 +899,7 @@ export default function AllocationMatrixView({
         grades={grades}
         sections={sections}
         classrooms={classrooms}
-        subjects={subjects}
+        subjects={allocatedFilterSubjects}
         selectedGradeId={selectedGradeId}
         selectedSectionId={selectedSectionId}
         selectedClassroomId={selectedClassroomId}
@@ -908,6 +911,7 @@ export default function AllocationMatrixView({
               selectedGradeId: gradeId,
               selectedSectionId: "",
               selectedClassroomId: "",
+              selectedSubjectId: "",
             },
             "push"
           )

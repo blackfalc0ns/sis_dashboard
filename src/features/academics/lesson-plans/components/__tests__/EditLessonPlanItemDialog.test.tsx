@@ -50,7 +50,11 @@ const scope = {
 
 describe("EditLessonPlanItemDialog", () => {
   beforeEach(() => {
-    vi.mocked(getConfig).mockRejectedValue(new Error("not configured"));
+    vi.mocked(getConfig).mockResolvedValue({
+      id: "config-1",
+      activeDays: [3, 4],
+      weekStartDay: 0,
+    } as never);
     vi.mocked(listEntries).mockResolvedValue([]);
   });
 
@@ -91,7 +95,7 @@ describe("EditLessonPlanItemDialog", () => {
     });
   });
 
-  it("blocks saving when the week has no valid instructional day", () => {
+  it("blocks saving when the week has no valid instructional day", async () => {
     render(
       <EditLessonPlanItemDialog
         item={item}
@@ -103,11 +107,16 @@ describe("EditLessonPlanItemDialog", () => {
       />,
     );
 
+    expect(await screen.findByText("validation.no_instructional_days")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "editItem.save" })).toBeDisabled();
   });
 
   it("saves the selected timetable slot metadata", async () => {
-    vi.mocked(getConfig).mockReset().mockResolvedValue({ id: "config-1" } as never);
+    vi.mocked(getConfig).mockReset().mockResolvedValue({
+      id: "config-1",
+      activeDays: [3],
+      weekStartDay: 0,
+    } as never);
     vi.mocked(listEntries).mockReset().mockResolvedValue([
       {
         id: "entry-1",

@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import { Input, Select, TextArea } from "@/components/ui/input";
 import type { BackendTimetableEntryDto } from "@/features/academics/timetable/services/timetableApiTypes";
 import type { LessonPlanItem, UpdateLessonPlanItemRequest, WeekInfo } from "../services/lessonPlansBackendTypes";
-import TimetableSlotSelect, { dayOfWeekFromDateOnly, type TimetableSlotScope } from "./TimetableSlotSelect";
+import TimetableSlotSelect, {
+  activeTimetableDates,
+  dayOfWeekFromDateOnly,
+  type TimetableSlotScope,
+  useTimetableConfigForScope,
+} from "./TimetableSlotSelect";
 
 interface Props extends TimetableSlotScope {
   item: LessonPlanItem;
@@ -22,13 +27,50 @@ interface Props extends TimetableSlotScope {
 export default function EditLessonPlanItemDialog(props: Props) {
   const t = useTranslations("academics.lessonPlans");
   const locale = useLocale();
-  const validDays = props.week.instructionalDays.filter(
-    (date) =>
-      date >= props.week.startDate &&
-      date <= props.week.endDate &&
-      (!props.termStartDate || date >= props.termStartDate) &&
-      (!props.termEndDate || date <= props.termEndDate),
+  const timetableScope = useMemo(
+    () => ({
+      academicYearId: props.academicYearId,
+      termId: props.termId,
+      gradeId: props.gradeId,
+      sectionId: props.sectionId,
+      classroomId: props.classroomId,
+      teacherUserId: props.teacherUserId,
+      subjectId: props.subjectId,
+      teacherSubjectAllocationId: props.teacherSubjectAllocationId,
+    }),
+    [
+      props.academicYearId,
+      props.classroomId,
+      props.gradeId,
+      props.sectionId,
+      props.subjectId,
+      props.teacherSubjectAllocationId,
+      props.teacherUserId,
+      props.termId,
+    ],
   );
+  const { config: timetableConfig, isLoading: isTimetableConfigLoading } =
+    useTimetableConfigForScope(
+      timetableScope,
+      true,
+    );
+  const validDays = useMemo(() => {
+    const baseValidDays = props.week.instructionalDays.filter(
+      (date) =>
+        date >= props.week.startDate &&
+        date <= props.week.endDate &&
+        (!props.termStartDate || date >= props.termStartDate) &&
+        (!props.termEndDate || date <= props.termEndDate),
+    );
+    return activeTimetableDates(baseValidDays, timetableConfig);
+  }, [
+    props.termEndDate,
+    props.termStartDate,
+    props.week.endDate,
+    props.week.instructionalDays,
+    props.week.startDate,
+    timetableConfig,
+  ]);
   const [title, setTitle] = useState(props.item.title ?? "");
   const [notes, setNotes] = useState(props.item.notes ?? "");
   const [plannedDate, setPlannedDate] = useState(
@@ -37,6 +79,15 @@ export default function EditLessonPlanItemDialog(props: Props) {
       : (validDays[0] ?? ""),
   );
   const [slot, setSlot] = useState<BackendTimetableEntryDto | null>(null);
+  useEffect(() => {
+    if (plannedDate && validDays.includes(plannedDate)) return;
+    setPlannedDate(
+      validDays.includes(props.item.plannedDate ?? "")
+        ? props.item.plannedDate!
+        : (validDays[0] ?? ""),
+    );
+    setSlot(null);
+  }, [plannedDate, props.item.plannedDate, validDays]);
   const formatDate = (date: string) =>
     new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(
       new Date(date),
@@ -64,7 +115,11 @@ export default function EditLessonPlanItemDialog(props: Props) {
           <Button variant="secondary" onClick={props.onClose}>
             {t("editItem.cancel")}
           </Button>
-          <Button onClick={save} disabled={!plannedDate} loading={props.loading}>
+          <Button
+            onClick={save}
+            disabled={!plannedDate || isTimetableConfigLoading}
+            loading={props.loading}
+          >
             {t("editItem.save")}
           </Button>
         </>
@@ -78,8 +133,12 @@ export default function EditLessonPlanItemDialog(props: Props) {
           value={plannedDate}
           onChange={(date) => { setPlannedDate(date); setSlot(null); }}
           options={validDays.map((date) => ({ value: date, label: formatDate(date) }))}
-          disabled={validDays.length === 0}
-          error={validDays.length === 0 ? t("validation.no_instructional_days") : undefined}
+          disabled={isTimetableConfigLoading || validDays.length === 0}
+          error={
+            !isTimetableConfigLoading && validDays.length === 0
+              ? t("validation.no_instructional_days")
+              : undefined
+          }
         />
         {plannedDate && (
           <TimetableSlotSelect

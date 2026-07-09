@@ -46,6 +46,10 @@ import EditLessonPlanItemDialog from "./EditLessonPlanItemDialog";
 import { lessonPlansUiError } from "../services/lessonPlansErrors";
 import { isDateOnlyInside } from "../services/lessonPlanDates";
 import {
+  activeTimetableDates,
+  useTimetableConfigForScope,
+} from "./TimetableSlotSelect";
+import {
   deriveIssueWeekIndexes,
   filterLessonPlanWeeks,
   getDateOnlyToday,
@@ -141,6 +145,32 @@ export default function LessonPlansBoard({
     () => new Set(),
   );
   const [weekFilter, setWeekFilter] = useState<WeekBoardFilter>("ALL");
+  const timetableScope = useMemo(
+    () => ({
+      academicYearId,
+      termId,
+      gradeId,
+      sectionId,
+      classroomId,
+      teacherUserId: teacherId,
+      subjectId,
+      teacherSubjectAllocationId,
+    }),
+    [
+      academicYearId,
+      classroomId,
+      gradeId,
+      sectionId,
+      subjectId,
+      teacherId,
+      teacherSubjectAllocationId,
+      termId,
+    ],
+  );
+  const { config: timetableConfig } = useTimetableConfigForScope(
+    timetableScope,
+    Boolean(classroomId && termId && academicYearId),
+  );
 
   // Dialog states
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -234,7 +264,17 @@ export default function LessonPlansBoard({
             (candidate) => candidate.weekIndex === weekIndex,
           );
           if (!week) return;
-          const plannedDate = week.instructionalDays[0];
+          const activeDays = activeTimetableDates(
+            week.instructionalDays.filter(
+              (date) =>
+                date >= week.startDate &&
+                date <= week.endDate &&
+                (!termStartDate || date >= termStartDate) &&
+                (!termEndDate || date <= termEndDate),
+            ),
+            timetableConfig,
+          );
+          const plannedDate = activeDays[0];
           if (!plannedDate) {
             showError(validationMessages.noInstructionalDays);
             return;
@@ -330,6 +370,7 @@ export default function LessonPlansBoard({
       termId,
       termStartDate,
       termEndDate,
+      timetableConfig,
       academicYearId,
       subjectId,
       classroomId,

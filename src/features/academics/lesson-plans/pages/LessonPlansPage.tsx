@@ -23,7 +23,10 @@ import CreateLessonPlanDialog, {
 import LessonPlanValidationPanel from "../components/LessonPlanValidationPanel";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { useLessonPlansData } from "../hooks/useLessonPlansData";
-import { useLessonPlansFilters } from "../hooks/useLessonPlansFilters";
+import {
+  subjectsForLessonPlanGrade,
+  useLessonPlansFilters,
+} from "../hooks/useLessonPlansFilters";
 import { useLessonPlanMutations } from "../hooks/useLessonPlanMutations";
 import {
   canEditLessonPlans,
@@ -113,6 +116,7 @@ export default function LessonPlansPage() {
     sections,
     classrooms,
     subjects,
+    subjectAllocations,
     teachers,
     units,
     lessons,
@@ -167,6 +171,16 @@ export default function LessonPlansPage() {
   const filteredClassrooms = useMemo(
     () => getFilteredClassrooms(classrooms),
     [classrooms, getFilteredClassrooms],
+  );
+  const filteredSubjects = useMemo(
+    () =>
+      subjectsForLessonPlanGrade({
+        subjects,
+        subjectAllocations,
+        gradeId: selectedGradeId,
+        currentSubjectId: selectedSubjectId,
+      }),
+    [selectedGradeId, selectedSubjectId, subjectAllocations, subjects],
   );
   const displayedClassroomId = selectedClassroomId || resolvedClassroomId;
   const classroomRequired = classrooms.some(
@@ -372,7 +386,7 @@ export default function LessonPlansPage() {
     termStartDate: selectedTerm?.startDate,
     termEndDate: selectedTerm?.endDate,
     selectedSubjectId,
-    selectedClassroomId: resolvedClassroomId,
+    selectedClassroomId: displayedClassroomId,
     assignedTeacherId,
     teacherSubjectAllocationId,
     curriculumId,
@@ -638,12 +652,12 @@ export default function LessonPlansPage() {
       stageId: selectedStageId,
       gradeId: selectedGradeId,
       sectionId: selectedSectionId,
-      classroomId: resolvedClassroomId,
+      classroomId: displayedClassroomId,
       subjectId: selectedSubjectId,
     }),
     [
       academicYearId,
-      resolvedClassroomId,
+      displayedClassroomId,
       selectedGradeId,
       selectedSectionId,
       selectedStageId,
@@ -664,11 +678,11 @@ export default function LessonPlansPage() {
         lessons,
         selectedSubjectId,
         selectedGradeId,
-        selectedClassroomId: resolvedClassroomId,
+        selectedClassroomId: displayedClassroomId,
         teacherAllocation: {
           id: teacherSubjectAllocationId,
           subjectId: selectedSubjectId,
-          classroomId: resolvedClassroomId,
+          classroomId: displayedClassroomId,
         },
         curriculum: {
           id: curriculumId,
@@ -682,7 +696,7 @@ export default function LessonPlansPage() {
     [
       curriculumId,
       lessons,
-      resolvedClassroomId,
+      displayedClassroomId,
       scopeStatus,
       selectedGradeId,
       selectedSubjectId,
@@ -715,7 +729,7 @@ export default function LessonPlansPage() {
       !teacherSubjectAllocationId ||
       !curriculumId ||
       !selectedSubjectId ||
-      (classroomRequired && !resolvedClassroomId)
+      (classroomRequired && !displayedClassroomId)
     ) {
       showError(t("scope.incompleteScope"));
       return;
@@ -727,7 +741,7 @@ export default function LessonPlansPage() {
         termId,
         teacherSubjectAllocationId,
         teacherUserId: assignedTeacherId || undefined,
-        classroomId: resolvedClassroomId || undefined,
+        classroomId: displayedClassroomId || undefined,
         subjectId: selectedSubjectId || undefined,
         curriculumId,
         ...payload,
@@ -779,7 +793,7 @@ export default function LessonPlansPage() {
             grades={filteredGrades}
             sections={filteredSections}
             classrooms={filteredClassrooms}
-            subjects={subjects}
+            subjects={filteredSubjects}
             teachers={teachers}
             selectedStageId={selectedStageId}
             selectedGradeId={selectedGradeId}
@@ -836,7 +850,7 @@ export default function LessonPlansPage() {
             <div className="text-center py-12">
               <p className="text-gray-600">{t("scope.incompleteScope")}</p>
             </div>
-          ) : filteredClassrooms.length > 1 && !resolvedClassroomId ? (
+          ) : filteredClassrooms.length > 1 && !displayedClassroomId ? (
             <div className="text-center py-12">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 {t("filters.selectClassroom")}
@@ -913,7 +927,7 @@ export default function LessonPlansPage() {
                 subjectId={selectedSubjectId}
                 gradeId={selectedGradeId}
                 sectionId={selectedSectionId}
-                classroomId={resolvedClassroomId}
+                classroomId={displayedClassroomId}
                 teacherId={assignedTeacherId}
                 lessons={lessons}
                 units={units}
@@ -958,6 +972,7 @@ export default function LessonPlansPage() {
             sections={filteredSections}
             classrooms={filteredClassrooms}
             subjects={subjects}
+            subjectAllocations={subjectAllocations}
             teachers={teachers}
             selectedStageId={selectedStageId}
             selectedGradeId={selectedGradeId}
@@ -1002,7 +1017,7 @@ export default function LessonPlansPage() {
         termId={termId}
         gradeId={selectedGradeId}
         sectionId={selectedSectionId}
-        classroomId={resolvedClassroomId}
+        classroomId={displayedClassroomId}
         teacherUserId={assignedTeacherId}
         subjectId={selectedSubjectId}
         teacherSubjectAllocationId={teacherSubjectAllocationId}

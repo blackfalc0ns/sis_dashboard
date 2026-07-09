@@ -105,13 +105,10 @@ export default function FilterBar({
 
   const handleGradeFilterChange = (value: string) => {
     onGradeChange(value);
-    onSectionChange("");
-    onClassroomChange("");
   };
 
   const handleSectionFilterChange = (value: string) => {
     onSectionChange(value);
-    onClassroomChange("");
   };
 
   return (

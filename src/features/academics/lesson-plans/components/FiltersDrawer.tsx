@@ -6,8 +6,12 @@ import { Drawer } from "@mui/material";
 import { X } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
-import { Subject } from "@/features/academics/subjects/services/subjectsService";
+import {
+  Subject,
+  SubjectAllocation,
+} from "@/features/academics/subjects/services/subjectsService";
 import { Teacher } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
+import { subjectsForLessonPlanGrade } from "@/features/academics/lesson-plans/hooks/useLessonPlansFilters";
 
 interface FiltersDrawerProps {
   isOpen: boolean;
@@ -22,6 +26,7 @@ interface FiltersDrawerProps {
     sectionId: string;
   }[];
   subjects: Subject[];
+  subjectAllocations: SubjectAllocation[];
   teachers: Teacher[];
   selectedStageId: string;
   selectedGradeId: string;
@@ -46,6 +51,7 @@ export default function FiltersDrawer({
   sections,
   classrooms,
   subjects,
+  subjectAllocations,
   teachers,
   selectedStageId,
   selectedGradeId,
@@ -95,12 +101,14 @@ export default function FiltersDrawer({
     setLocalGradeId("");
     setLocalSectionId("");
     setLocalClassroomId("");
+    setLocalSubjectId("");
   };
 
   const handleGradeChange = (gradeId: string) => {
     setLocalGradeId(gradeId);
     setLocalSectionId("");
     setLocalClassroomId("");
+    setLocalSubjectId("");
   };
 
   const handleSectionChange = (sectionId: string) => {
@@ -147,6 +155,16 @@ export default function FiltersDrawer({
           !localSectionId || classroom.sectionId === localSectionId,
       ),
     [classrooms, localSectionId],
+  );
+  const filteredSubjects = useMemo(
+    () =>
+      subjectsForLessonPlanGrade({
+        subjects,
+        subjectAllocations,
+        gradeId: localGradeId,
+        currentSubjectId: localSubjectId,
+      }),
+    [localGradeId, localSubjectId, subjectAllocations, subjects],
   );
 
   return (
@@ -241,7 +259,7 @@ export default function FiltersDrawer({
             onChange={setLocalSubjectId}
             options={[
               { value: "", label: t("filters.selectSubject") },
-              ...subjects.map((subject) => ({
+              ...filteredSubjects.map((subject) => ({
                 value: subject.id,
                 label: isRTL ? subject.nameAr : subject.nameEn,
               })),

@@ -168,6 +168,7 @@ describe("useLessonPlanMutations", () => {
 
     expect(createLessonPlan).toHaveBeenCalledWith(
       expect.objectContaining({
+        classroomId: "class-1",
         weekStartDate: "2026-09-08",
         weekEndDate: "2026-09-14",
       }),

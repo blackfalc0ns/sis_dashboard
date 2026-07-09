@@ -25,8 +25,10 @@ import {
   type WeekInfo,
 } from "@/features/academics/lesson-plans/services/lessonPlansService";
 import {
+  fetchSubjectAllocations,
   fetchSubjects,
   type Subject,
+  type SubjectAllocation,
 } from "@/features/academics/subjects/services/subjectsService";
 import {
   fetchTeacherAllocations,
@@ -77,6 +79,9 @@ export function useLessonPlansData(params: Params) {
   const [sections, setSections] = useState<Section[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjectAllocations, setSubjectAllocations] = useState<
+    SubjectAllocation[]
+  >([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -111,16 +116,19 @@ export function useLessonPlansData(params: Params) {
       }
       try {
         setLoading(true);
-        const [tree, subjectList, teacherList] = await Promise.all([
-          fetchStructureTree(academicYearId, termId),
-          fetchSubjects(),
-          fetchTeachers(),
-        ]);
+        const [tree, subjectList, subjectAllocationList, teacherList] =
+          await Promise.all([
+            fetchStructureTree(academicYearId, termId),
+            fetchSubjects(),
+            fetchSubjectAllocations(termId),
+            fetchTeachers(),
+          ]);
         setStages(tree.stages);
         setGrades(tree.grades);
         setSections(tree.sections);
         setClassrooms(tree.classrooms);
         setSubjects(subjectList);
+        setSubjectAllocations(subjectAllocationList);
         setTeachers(teacherList);
       } catch (error) {
         console.error("Failed to load lesson plans context data:", error);
@@ -488,6 +496,7 @@ export function useLessonPlansData(params: Params) {
     sections,
     classrooms,
     subjects,
+    subjectAllocations,
     teachers,
     units,
     lessons,

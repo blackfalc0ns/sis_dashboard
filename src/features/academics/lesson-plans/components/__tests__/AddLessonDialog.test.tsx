@@ -58,13 +58,18 @@ function renderDialog(instructionalDays: string[], onConfirm = vi.fn()) {
 
 describe("AddLessonDialog planned day selection", () => {
   beforeEach(() => {
-    vi.mocked(getConfig).mockResolvedValue({ id: "config-1" } as never);
+    vi.mocked(getConfig).mockResolvedValue({
+      id: "config-1",
+      activeDays: [3, 4],
+      weekStartDay: 0,
+    } as never);
     vi.mocked(listEntries).mockResolvedValue([]);
   });
   it("defaults confirmation to the first instructional day", async () => {
     const user = userEvent.setup();
     const onConfirm = renderDialog(["2026-09-09", "2026-09-10"]);
 
+    await screen.findByText(/Sep 9/i);
     await user.click(screen.getByRole("button", { name: "confirm" }));
 
     expect(onConfirm).toHaveBeenCalledWith("lesson-1", 2, "2026-09-09", null);
@@ -74,6 +79,7 @@ describe("AddLessonDialog planned day selection", () => {
     const user = userEvent.setup();
     const onConfirm = renderDialog(["2026-09-09", "2026-09-10"]);
 
+    await screen.findByText(/Sep 9/i);
     await user.click(screen.getByRole("button", { name: "selectPlannedDay" }));
     await user.click(screen.getByRole("button", { name: /Sep 10/i }));
     await user.click(screen.getByRole("button", { name: "confirm" }));
@@ -81,8 +87,27 @@ describe("AddLessonDialog planned day selection", () => {
     expect(onConfirm).toHaveBeenCalledWith("lesson-1", 2, "2026-09-10", null);
   });
 
+  it("orders active instructional days from the timetable week start day", async () => {
+    vi.mocked(getConfig).mockResolvedValue({
+      id: "config-1",
+      activeDays: [0, 3, 4],
+      weekStartDay: 3,
+    } as never);
+    const user = userEvent.setup();
+    const onConfirm = renderDialog(["2026-09-14", "2026-09-09", "2026-09-10"]);
+
+    await screen.findByText(/Sep 9/i);
+    await user.click(screen.getByRole("button", { name: "confirm" }));
+
+    expect(onConfirm).toHaveBeenCalledWith("lesson-1", 2, "2026-09-09", null);
+  });
+
   it("includes the selected timetable slot in confirmation", async () => {
-    vi.mocked(getConfig).mockResolvedValue({ id: "config-1" } as never);
+    vi.mocked(getConfig).mockResolvedValue({
+      id: "config-1",
+      activeDays: [4],
+      weekStartDay: 0,
+    } as never);
     vi.mocked(listEntries).mockResolvedValue([
       {
         id: "entry-1",
@@ -113,11 +138,11 @@ describe("AddLessonDialog planned day selection", () => {
     );
   });
 
-  it("blocks confirmation when the week has no valid instructional day", () => {
+  it("blocks confirmation when the week has no valid instructional day", async () => {
     renderDialog([]);
 
     expect(
-      screen.getByText("validation.no_instructional_days"),
+      await screen.findByText("validation.no_instructional_days"),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "confirm" })).toBeDisabled();
   });

@@ -2,7 +2,10 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import { fetchCurriculumForScope } from "@/features/academics/curriculum/services/curriculumService";
-import { fetchSubjects } from "@/features/academics/subjects/services/subjectsService";
+import {
+  fetchSubjectAllocations,
+  fetchSubjects,
+} from "@/features/academics/subjects/services/subjectsService";
 import {
   fetchTeacherAllocations,
   fetchTeachers,
@@ -24,6 +27,7 @@ vi.mock("@/features/academics/curriculum/services/curriculumService", () => ({
   fetchCurriculumForScope: vi.fn(),
 }));
 vi.mock("@/features/academics/subjects/services/subjectsService", () => ({
+  fetchSubjectAllocations: vi.fn(),
   fetchSubjects: vi.fn(),
 }));
 vi.mock("@/features/academics/teacher-allocation/services/teacherAllocationService", () => ({
@@ -87,6 +91,7 @@ describe("useLessonPlansData", () => {
       classrooms: [],
     });
     vi.mocked(fetchSubjects).mockResolvedValue([]);
+    vi.mocked(fetchSubjectAllocations).mockResolvedValue([]);
     vi.mocked(fetchTeachers).mockResolvedValue([]);
     vi.mocked(fetchCurriculumForScope).mockResolvedValue({
       id: "curriculum-1",

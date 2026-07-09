@@ -11,7 +11,11 @@ vi.mock("@/features/academics/timetable/services/timetableApiAdapter", () => ({
 
 describe("MoveLessonDialog", () => {
   beforeEach(() => {
-    vi.mocked(getConfig).mockRejectedValue(new Error("not configured"));
+    vi.mocked(getConfig).mockResolvedValue({
+      id: "config-1",
+      activeDays: [3, 4],
+      weekStartDay: 0,
+    } as never);
     vi.mocked(listEntries).mockResolvedValue([]);
   });
   it("moves without a timetable slot using the selected instructional day", async () => {
@@ -58,7 +62,11 @@ describe("MoveLessonDialog", () => {
   });
 
   it("moves with only the selected timetable entry id", async () => {
-    vi.mocked(getConfig).mockReset().mockResolvedValue({ id: "config-1" } as never);
+    vi.mocked(getConfig).mockReset().mockResolvedValue({
+      id: "config-1",
+      activeDays: [3],
+      weekStartDay: 0,
+    } as never);
     vi.mocked(listEntries).mockReset().mockResolvedValue([
       {
         id: "entry-1",

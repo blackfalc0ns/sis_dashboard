@@ -188,7 +188,7 @@ export default function Select({
     <div
       id={menuId}
       ref={menuRef}
-      className={`fixed z-9999 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200`}
+      className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200"
       dir={isRTL ? "rtl" : "ltr"}
       style={{
         top: menuPosition.top,
