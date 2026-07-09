@@ -34,7 +34,7 @@ import type {
 } from "@/features/students-guardians/students/types";
 import { createHomeworkAssignment } from "@/features/academics/homework/services/homeworkService";
 import type { CreateHomeworkAssignmentRequest } from "@/features/academics/homework/services/homeworkApi.types";
-import { mapHomeworkApiError } from "@/features/academics/homework/services/homeworkErrors";
+import { getHomeworkErrorMessage } from "@/features/academics/homework/services/homeworkErrors";
 import type { SelectOption } from "@/components/ui/input/Select";
 
 interface AllocationSelectOption extends SelectOption {
@@ -185,6 +185,7 @@ function buildAllocationOptions(input: {
 export default function CreateHomeworkPage() {
   const locale = useLocale();
   const t = useTranslations("academics.homework.create");
+  const tHomeworkError = useTranslations("academics.homework.errorMessages");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showError, showSuccess } = useToast();
@@ -399,7 +400,7 @@ export default function CreateHomeworkPage() {
         `/${locale}/academics/homework/${created.id}?${params.toString()}`,
       );
     } catch (error) {
-      showError(t("errors.createFailed", { code: mapHomeworkApiError(error) }));
+      showError(t("errors.createFailed", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
     } finally {
       setIsSubmitting(false);
     }

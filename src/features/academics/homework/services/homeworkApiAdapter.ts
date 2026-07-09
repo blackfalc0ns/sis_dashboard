@@ -323,15 +323,24 @@ async function updateTrueFalseOptions(
     { text: "True", isCorrect: correctAnswer, sortOrder: 0 },
     { text: "False", isCorrect: !correctAnswer, sortOrder: 1 },
   ];
+  const retainedOptionIds = new Set<string>();
+
   for (const option of desired) {
     const currentOption = currentQuestion.options.find(({ sortOrder }) => sortOrder === option.sortOrder);
     if (currentOption) {
+      retainedOptionIds.add(currentOption.optionId);
       await apiPatch(`${path}/options/${currentOption.optionId}`, {
         text: option.text,
         isCorrect: option.isCorrect,
       });
     } else {
       await apiPost(`${path}/options`, option);
+    }
+  }
+
+  for (const option of currentQuestion.options) {
+    if (!retainedOptionIds.has(option.optionId)) {
+      await apiDelete(`${path}/options/${option.optionId}`);
     }
   }
 }

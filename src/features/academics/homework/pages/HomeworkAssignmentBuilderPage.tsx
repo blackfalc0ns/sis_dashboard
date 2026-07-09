@@ -60,7 +60,7 @@ import {
   mapBuilderAssignmentToHomeworkUpdate,
   mapHomeworkUiToBuilderAssignment,
 } from "@/features/academics/homework/services/homeworkMappers";
-import { mapHomeworkApiError } from "@/features/academics/homework/services/homeworkErrors";
+import { getHomeworkErrorMessage } from "@/features/academics/homework/services/homeworkErrors";
 import {
   validateHomeworkAssignment,
   validateHomeworkQuestion,
@@ -100,6 +100,7 @@ export default function HomeworkAssignmentBuilderPage({
   const isMobile = useMediaQuery(theme.breakpoints.down("xl"));
   const tValidation = useTranslations("validation");
   const tHomework = useTranslations("academics.homework.builder");
+  const tHomeworkError = useTranslations("academics.homework.errorMessages");
   const { termStatus } = useAcademicYearTermLayoutContext();
   const { hasPermission } = usePermissions();
   const canView = hasPermission("homework.assignments.view");
@@ -177,12 +178,12 @@ export default function HomeworkAssignmentBuilderPage({
       );
     } catch (error) {
       showError(
-        tHomework("errors.loadFailed", { code: mapHomeworkApiError(error) }),
+        tHomework("errors.loadFailed", { message: getHomeworkErrorMessage(error, tHomeworkError) }),
       );
     } finally {
       setIsLoading(false);
     }
-  }, [homeworkId, showError, tHomework]);
+  }, [homeworkId, showError, tHomework, tHomeworkError]);
 
   useEffect(() => {
     if (!canView) return;
@@ -378,7 +379,7 @@ export default function HomeworkAssignmentBuilderPage({
     } catch (error) {
       showError(
         tHomework("errors.homeworkSaveFailed", {
-          code: mapHomeworkApiError(error),
+          message: getHomeworkErrorMessage(error, tHomeworkError),
         }),
       );
     } finally {
@@ -475,7 +476,7 @@ export default function HomeworkAssignmentBuilderPage({
     } catch (error) {
       showError(
         tHomework("errors.attachmentUploadFailed", {
-          code: mapHomeworkApiError(error),
+          message: getHomeworkErrorMessage(error, tHomeworkError),
         }),
       );
     }
@@ -491,7 +492,7 @@ export default function HomeworkAssignmentBuilderPage({
     } catch (error) {
       showError(
         tHomework("errors.attachmentDeleteFailed", {
-          code: mapHomeworkApiError(error),
+          message: getHomeworkErrorMessage(error, tHomeworkError),
         }),
       );
     }
@@ -534,7 +535,7 @@ export default function HomeworkAssignmentBuilderPage({
     } catch (error) {
       showError(
         tHomework("errors.lifecycleFailed", {
-          code: mapHomeworkApiError(error),
+          message: getHomeworkErrorMessage(error, tHomeworkError),
         }),
       );
     } finally {

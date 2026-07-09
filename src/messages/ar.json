@@ -4778,8 +4778,8 @@
           "back": "رجوع"
         },
         "errors": {
-          "loadFailed": "فشل تحميل الواجبات ({code})",
-          "lifecycleFailed": "فشل إجراء الواجب ({code})"
+          "loadFailed": "فشل تحميل الواجبات: {message}",
+          "lifecycleFailed": "فشل إجراء الواجب: {message}"
         }
       },
       "create": {
@@ -4850,7 +4850,7 @@
           "studentsLoadFailed": "فشل تحميل الطلاب المؤهلين.",
           "noEligibleStudents": "لا يوجد طلاب مؤهلون في هذا الفصل لاستهداف الواجب.",
           "selectedStudentsRequired": "اختر طالبًا واحدًا على الأقل.",
-          "createFailed": "فشل إنشاء الواجب ({code})"
+          "createFailed": "فشل إنشاء الواجب: {message}"
         }
       },
       "builder": {
@@ -4906,14 +4906,14 @@
           "cancelCompleted": "تم تنفيذ إجراء إلغاء الواجب."
         },
         "errors": {
-          "loadFailed": "فشل تحميل الواجب ({code})",
-          "homeworkSaveFailed": "فشل حفظ الواجب ({code})",
+          "loadFailed": "فشل تحميل الواجب: {message}",
+          "homeworkSaveFailed": "فشل حفظ الواجب: {message}",
           "fixQuestionValidation": "أصلح أخطاء تحقق السؤال قبل الحفظ.",
-          "questionSaveFailed": "فشل حفظ السؤال ({code})",
-          "questionDeleteFailed": "فشل حذف السؤال ({code})",
-          "attachmentUploadFailed": "تعذر رفع المرفق. الخطأ: {code}",
-          "attachmentDeleteFailed": "فشل حذف المرفق ({code})",
-          "lifecycleFailed": "فشل إجراء دورة الحياة ({code})"
+          "questionSaveFailed": "فشل حفظ السؤال: {message}",
+          "questionDeleteFailed": "فشل حذف السؤال: {message}",
+          "attachmentUploadFailed": "تعذر رفع المرفق: {message}",
+          "attachmentDeleteFailed": "فشل حذف المرفق: {message}",
+          "lifecycleFailed": "فشل إجراء دورة الحياة: {message}"
         }
       },
       "review": {
@@ -4997,12 +4997,12 @@
           "synced": "تمت مزامنة درجة التسليم."
         },
         "errors": {
-          "loadSubmissions": "فشل تحميل التسليمات ({code})",
-          "loadDetail": "فشل تحميل تفاصيل التسليم ({code})",
-          "saveAnswer": "فشل حفظ مراجعة الإجابة ({code})",
-          "saveAll": "فشل حفظ مراجعات الإجابات ({code})",
-          "saveSubmission": "فشل حفظ مراجعة التسليم ({code})",
-          "sync": "فشل مزامنة درجة التسليم ({code})"
+          "loadSubmissions": "فشل تحميل التسليمات: {message}",
+          "loadDetail": "فشل تحميل تفاصيل التسليم: {message}",
+          "saveAnswer": "فشل حفظ مراجعة الإجابة: {message}",
+          "saveAll": "فشل حفظ مراجعات الإجابات: {message}",
+          "saveSubmission": "فشل حفظ مراجعة التسليم: {message}",
+          "sync": "فشل مزامنة درجة التسليم: {message}"
         }
       },
       "gradeSync": {
@@ -5049,11 +5049,77 @@
           "synced": "تمت مزامنة درجات الواجب."
         },
         "errors": {
-          "load": "فشل تحميل حالة مزامنة الدرجات ({code})",
-          "loadAssessments": "فشل تحميل التقييمات ({code})",
-          "link": "فشل ربط تقييم الدرجات ({code})",
-          "sync": "فشل مزامنة درجات الواجب ({code})"
+          "load": "فشل تحميل حالة مزامنة الدرجات: {message}",
+          "loadAssessments": "فشل تحميل التقييمات: {message}",
+          "link": "فشل ربط تقييم الدرجات: {message}",
+          "sync": "فشل مزامنة درجات الواجب: {message}"
         }
+      },
+      "errorMessages": {
+        "generic": "حدث خطأ غير متوقع. حاول مرة أخرى أو تواصل مع الدعم.",
+        "notFound": "لم يتم العثور على هذا الواجب أو أنه خارج نطاق صلاحياتك.",
+        "notMutable": "لا يمكن تعديل هذا الواجب في حالته الحالية.",
+        "notPublishable": "لا يمكن نشر هذا الواجب من حالته الحالية.",
+        "alreadyPublished": "هذا الواجب منشور بالفعل.",
+        "alreadyClosed": "هذا الواجب مغلق بالفعل.",
+        "cancelled": "تم إلغاء هذا الواجب.",
+        "scheduleMismatch": "الحصة المحددة لا تطابق سياق هذا الواجب.",
+        "allocationMismatch": "توزيع المعلم المحدد لا يطابق فصل الواجب أو مادته أو سنته أو فصله الدراسي.",
+        "dueDateInvalid": "يجب أن يكون موعد التسليم بعد وقت النشر وصالحًا لهذا الواجب.",
+        "targetRequired": "حدد مستهدفي الواجب قبل المتابعة.",
+        "noEligibleTargets": "لا يوجد طلاب مؤهلون للاستهداف المحدد.",
+        "targetConflict": "مستهدفو الواجب المحددون يتعارضون مع إعدادات الواجب.",
+        "validationFailed": "راجع حقول الواجب وأصلح أخطاء التحقق المظللة.",
+        "invalidQuestionStructure": "يوجد سؤال في الواجب بإعداد إجابات غير صالح. راجع اختيارات السؤال.",
+        "invalidQuestionStructureTrueFalse": "سؤال الصح والخطأ يجب أن يحتوي على اختيارين فقط، صح وخطأ، مع إجابة صحيحة واحدة فقط.",
+        "invalidQuestionStructureSingleChoice": "سؤال الاختيار الواحد يحتاج اختيارين على الأقل وإجابة صحيحة واحدة فقط.",
+        "invalidQuestionStructureMultipleChoice": "سؤال الاختيارات المتعددة يحتاج اختيارين على الأقل وإجابة صحيحة واحدة على الأقل.",
+        "questionNotFound": "لم يتم العثور على هذا السؤال. حدّث الواجب وحاول مرة أخرى.",
+        "questionInvalidTypePayload": "بيانات السؤال لا تطابق نوع السؤال المحدد.",
+        "questionInvalidOptions": "اختيارات السؤال غير صالحة. راجع نصوص الاختيارات وتحديد الإجابة الصحيحة.",
+        "questionReadOnly": "لا يمكن تغيير هذا السؤال بعد تغير حالة الواجب.",
+        "questionOptionNotFound": "لم يتم العثور على هذا الاختيار. حدّث الواجب وحاول مرة أخرى.",
+        "questionInvalidReorder": "ترتيب الأسئلة غير صالح. حدّث الصفحة ثم أعد الترتيب.",
+        "attachmentNotFound": "لم يتم العثور على هذا المرفق.",
+        "attachmentFileNotFound": "لم يتم العثور على ملف المرفق المحدد.",
+        "attachmentReadOnly": "لا يمكن تغيير المرفقات بعد تغير حالة الواجب.",
+        "attachmentInvalidReorder": "ترتيب المرفقات غير صالح. حدّث الصفحة ثم أعد الترتيب.",
+        "submissionTargetNotFound": "لم يتم العثور على الطالب المستهدف لهذا التسليم.",
+        "submissionNotFound": "لم يتم العثور على هذا التسليم.",
+        "submissionNotSubmittable": "لا يمكن تسليم هذا الواجب في حالته الحالية.",
+        "submissionAlreadySubmitted": "تم تسليم هذا الواجب بالفعل.",
+        "submissionNotReviewable": "لا يمكن مراجعة هذا التسليم في حالته الحالية.",
+        "submissionAlreadyReviewed": "تمت مراجعة هذا التسليم بالفعل.",
+        "submissionReviewInvalid": "مراجعة التسليم غير صالحة. راجع الدرجات والملاحظات.",
+        "answerNotFound": "لم يتم العثور على هذه الإجابة.",
+        "answerInvalidPayload": "بيانات الإجابة غير صالحة لنوع هذا السؤال.",
+        "answerInvalidOption": "اختيار الإجابة المحدد غير صالح لهذا السؤال.",
+        "answerMissingRequired": "توجد إجابة مطلوبة غير مكتملة.",
+        "answerReadOnly": "لا يمكن تغيير هذه الإجابة في حالة التسليم الحالية.",
+        "answerInvalidSubmissionScope": "هذه الإجابة لا تنتمي إلى التسليم المحدد.",
+        "answerReviewNotFound": "لم يتم العثور على هدف مراجعة الإجابة.",
+        "answerReviewInvalidScope": "مراجعة الإجابة لا تنتمي إلى تسليم الواجب المحدد.",
+        "answerReviewNotSubmitted": "يجب تسليم الإجابة قبل مراجعتها.",
+        "answerReviewInvalidPoints": "أدخل درجة صالحة وغير سالبة للإجابة.",
+        "answerReviewExceedsQuestionPoints": "درجة الإجابة لا يمكن أن تتجاوز درجة السؤال.",
+        "answerReviewExceedsAssignmentMarks": "درجات الإجابات المراجعة لا يمكن أن تتجاوز الدرجة الكلية للواجب.",
+        "answerReviewReadOnly": "لا يمكن تغيير مراجعة هذه الإجابة في حالة التسليم الحالية.",
+        "answerReviewIncompleteRequiredAnswers": "راجع كل الإجابات المطلوبة قبل إكمال مراجعة التسليم.",
+        "submissionAttachmentNotFound": "لم يتم العثور على مرفق التسليم.",
+        "submissionAttachmentFileNotFound": "لم يتم العثور على ملف مرفق التسليم.",
+        "submissionAttachmentReadOnly": "لا يمكن تغيير مرفقات التسليم في الحالة الحالية.",
+        "submissionAttachmentInvalidReorder": "ترتيب مرفقات التسليم غير صالح.",
+        "gradeSyncNotLinked": "اربط هذا الواجب بتقييم درجات قبل المزامنة.",
+        "gradeSyncInvalidAssessment": "تقييم الدرجات المحدد غير متوافق مع مزامنة الواجب.",
+        "gradeSyncIncompatibleScope": "تقييم الدرجات المحدد لا يطابق نطاق هذا الواجب.",
+        "gradeSyncAssessmentLocked": "تقييم الدرجات المرتبط مقفل. افتحه قبل مزامنة درجات الواجب.",
+        "gradeSyncSubmissionNotReviewed": "يمكن مزامنة التسليمات التي تمت مراجعتها فقط.",
+        "gradeSyncMissingScore": "هذا التسليم المراجع لا يحتوي على درجة ممنوحة للمزامنة.",
+        "gradeSyncScoreExceedsHomeworkMarks": "الدرجة الممنوحة تتجاوز الدرجة الكلية للواجب.",
+        "gradeSyncScoreExceedsAssessmentMarks": "الدرجة الممنوحة تتجاوز درجة التقييم المرتبط.",
+        "gradeSyncDuplicateLink": "هذا الواجب مرتبط بالفعل بتقييم درجات.",
+        "gradeSyncUnlinkNotAllowed": "لا يمكن إزالة رابط درجات هذا الواجب بأمان.",
+        "gradeSyncFailed": "فشلت مزامنة درجات الواجب. راجع درجات التسليمات وحاول مرة أخرى."
       }
     },
     "timetable": {
@@ -6790,6 +6856,12 @@
     "tooLarge": "حجم الملف كبير جدًا",
     "termClosed": "الترم مغلق. رفع الملفات متوقف.",
     "allowedHint": "المسموح: {types} • الحد الأقصى: {size}",
+    "previewAttachment": "معاينة المرفق",
+    "previewUnavailable": "المعاينة غير متاحة",
+    "previewUnavailableDescription": "هذا المرفق لا يحتوي على رابط معاينة متاح حالياً.",
+    "openInNewTab": "افتح هذا المرفق في تبويب جديد لعرضه.",
+    "fileType": "نوع الملف",
+    "fileSize": "حجم الملف",
     "invalidTypeStudy": "نوع الملف غير مدعوم للمحتوى التعليمي.",
     "fileBlocked": "تم حظر نوع الملف لأسباب أمنية.",
     "maxSizeExceeded": "حجم الملف يتجاوز الحد الأقصى ({size}).",

@@ -24,6 +24,7 @@ interface QuestionOptionRowProps {
   onMoveUp: (id: string) => void;
   onMoveDown: (id: string) => void;
   errors?: QuestionOptionRowErrors;
+  singleTextMode?: boolean;
   t: (key: string) => string;
 }
 
@@ -40,6 +41,7 @@ export default function QuestionOptionRow({
   onMoveUp,
   onMoveDown,
   errors,
+  singleTextMode = false,
   t,
 }: QuestionOptionRowProps) {
   const {
@@ -99,20 +101,32 @@ export default function QuestionOptionRow({
         </div>
 
         <div className="flex-1 space-y-2">
-          <Input
-            value={option.textAr}
-            onChange={(event) => onTextChange(option.id, event.target.value, option.textEn)}
-            placeholder={`${t("option_text")} (\u0639\u0631\u0628\u064a)`}
-            disabled={isReadOnly}
-            error={errors?.ar}
-          />
-          <Input
-            value={option.textEn}
-            onChange={(event) => onTextChange(option.id, option.textAr, event.target.value)}
-            placeholder={`${t("option_text")} (English)`}
-            disabled={isReadOnly}
-            error={errors?.en}
-          />
+          {singleTextMode ? (
+            <Input
+              value={option.textEn || option.textAr}
+              onChange={(event) => onTextChange(option.id, event.target.value, event.target.value)}
+              placeholder={t("option_text")}
+              disabled={isReadOnly}
+              error={errors?.en || errors?.ar}
+            />
+          ) : (
+            <>
+              <Input
+                value={option.textAr}
+                onChange={(event) => onTextChange(option.id, event.target.value, option.textEn)}
+                placeholder={`${t("option_text")} (\u0639\u0631\u0628\u064a)`}
+                disabled={isReadOnly}
+                error={errors?.ar}
+              />
+              <Input
+                value={option.textEn}
+                onChange={(event) => onTextChange(option.id, option.textAr, event.target.value)}
+                placeholder={`${t("option_text")} (English)`}
+                disabled={isReadOnly}
+                error={errors?.en}
+              />
+            </>
+          )}
         </div>
 
         {!isReadOnly && (

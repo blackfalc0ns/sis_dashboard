@@ -8,7 +8,7 @@ import Select, { type SelectOption } from "@/components/ui/input/Select";
 import { AccessDenied } from "@/components/ui";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/components/ui/toast/Toast";
-import { mapHomeworkApiError } from "@/features/academics/homework/services/homeworkErrors";
+import { getHomeworkErrorMessage } from "@/features/academics/homework/services/homeworkErrors";
 import {
   getHomeworkGradeSyncStatus,
   linkHomeworkGradeSync,
@@ -34,6 +34,7 @@ export default function HomeworkGradeSyncPanel({
 }: HomeworkGradeSyncPanelProps) {
   const locale = useLocale();
   const t = useTranslations("academics.homework.gradeSync");
+  const tHomeworkError = useTranslations("academics.homework.errorMessages");
   const { hasPermission } = usePermissions();
   const canView =
     hasPermission("homework.assignments.view") &&
@@ -65,11 +66,11 @@ export default function HomeworkGradeSyncPanel({
       setStatus(nextStatus);
       setGradeAssessmentId(nextStatus.gradeAssessment?.id ?? "");
     } catch (error) {
-      showError(t("errors.load", { code: mapHomeworkApiError(error) }));
+      showError(t("errors.load", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
     } finally {
       setIsLoading(false);
     }
-  }, [canView, homeworkId, showError, t]);
+  }, [canView, homeworkId, showError, t, tHomeworkError]);
 
   useEffect(() => {
     void loadStatus();
@@ -100,7 +101,7 @@ export default function HomeworkGradeSyncPanel({
       );
     } catch (error) {
       showError(
-        t("errors.loadAssessments", { code: mapHomeworkApiError(error) }),
+        t("errors.loadAssessments", { message: getHomeworkErrorMessage(error, tHomeworkError) }),
       );
     } finally {
       setIsLoadingAssessments(false);
@@ -114,6 +115,7 @@ export default function HomeworkGradeSyncPanel({
     locale,
     showError,
     t,
+    tHomeworkError,
   ]);
 
   useEffect(() => {
@@ -133,7 +135,7 @@ export default function HomeworkGradeSyncPanel({
       setStatus(nextStatus);
       showSuccess(t("messages.linked"));
     } catch (error) {
-      showError(t("errors.link", { code: mapHomeworkApiError(error) }));
+      showError(t("errors.link", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
     } finally {
       setIsLinking(false);
     }
@@ -147,7 +149,7 @@ export default function HomeworkGradeSyncPanel({
       setStatus(nextStatus);
       showSuccess(t("messages.synced"));
     } catch (error) {
-      showError(t("errors.sync", { code: mapHomeworkApiError(error) }));
+      showError(t("errors.sync", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
     } finally {
       setIsSyncing(false);
     }

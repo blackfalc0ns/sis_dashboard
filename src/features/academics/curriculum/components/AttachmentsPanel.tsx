@@ -10,6 +10,7 @@ import AttachmentListItem from "@/components/ui/attachment-list-item/AttachmentL
 import { AssignmentAttachment } from "@/features/academics/curriculum/services/curriculumService";
 import { validateHttpUrl, normalizeUrl } from "@/utils/validation/url";
 import { ATTACHMENT_RESTRICTIONS } from "@/features/academics/curriculum/libs/constants";
+import AssignmentAttachmentPreviewModal from "./AssignmentAttachmentPreviewModal";
 
 interface AttachmentsPanelProps {
   attachments: AssignmentAttachment[];
@@ -36,6 +37,7 @@ export default function AttachmentsPanel({
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [linkError, setLinkError] = useState("");
+  const [previewAttachment, setPreviewAttachment] = useState<AssignmentAttachment | null>(null);
 
   const handleAddLink = async () => {
     if (!onAddLink) return;
@@ -83,6 +85,12 @@ export default function AttachmentsPanel({
               accept={ATTACHMENT_RESTRICTIONS.ALLOWED_TYPES}
               maxSizeBytes={ATTACHMENT_RESTRICTIONS.MAX_FILE_SIZE}
             />
+            <p className="mt-2 text-xs text-gray-500">
+              {tUpload("allowedHint", {
+                types: ATTACHMENT_RESTRICTIONS.ALLOWED_TYPES_LABEL,
+                size: "10MB",
+              })}
+            </p>
 
             {showLinkUpload && onAddLink && (
               <Button
@@ -113,7 +121,13 @@ export default function AttachmentsPanel({
                     : attachment.title || tUpload("link")
                 }
                 subtitle={attachment.type === "LINK" ? attachment.url : undefined}
-                onClick={() => window.open(attachment.url, "_blank")}
+                onClick={() => {
+                  if (attachment.type === "LINK") {
+                    window.open(attachment.url, "_blank", "noopener,noreferrer");
+                    return;
+                  }
+                  setPreviewAttachment(attachment);
+                }}
                 actions={
                   !isReadOnly
                     ? [
@@ -173,6 +187,12 @@ export default function AttachmentsPanel({
           </div>
         </div>
       )}
+
+      <AssignmentAttachmentPreviewModal
+        attachment={previewAttachment}
+        isOpen={!!previewAttachment}
+        onClose={() => setPreviewAttachment(null)}
+      />
     </div>
   );
 }

@@ -119,6 +119,7 @@ export default function DesktopLayout({
                 allowedQuestionTypes={allowedQuestionTypes}
                 requireBothLocalizedTexts={requireBothLocalizedTexts}
                 showHomeworkFields={showHomeworkFields}
+                detailsInputMode={detailsInputMode}
               />
             </div>
           </div>

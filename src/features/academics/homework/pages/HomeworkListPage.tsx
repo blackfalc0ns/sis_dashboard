@@ -22,7 +22,7 @@ import type {
   HomeworkAssignmentUiModel,
   HomeworkAssignmentListFilters,
 } from "@/features/academics/homework/services/homeworkApi.types";
-import { mapHomeworkApiError } from "@/features/academics/homework/services/homeworkErrors";
+import { getHomeworkErrorMessage } from "@/features/academics/homework/services/homeworkErrors";
 import { useToast } from "@/components/ui/toast/Toast";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import HomeworkLifecycleMenu from "@/features/academics/homework/components/HomeworkLifecycleMenu";
@@ -57,6 +57,7 @@ function modeLabelKey(mode: HomeworkAssignmentUiModel["mode"]) {
 export default function HomeworkListPage() {
   const locale = useLocale();
   const t = useTranslations("academics.homework.list");
+  const tHomeworkError = useTranslations("academics.homework.errorMessages");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showError } = useToast();
@@ -293,13 +294,13 @@ export default function HomeworkListPage() {
         setItems(response.items);
         setMeta(response.meta);
       } catch (error) {
-        showError(t("errors.loadFailed", { code: mapHomeworkApiError(error) }));
+        showError(t("errors.loadFailed", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
       } finally {
         setIsLoading(false);
       }
     };
     void load();
-  }, [canView, filters, isInitializing, showError, t]);
+  }, [canView, filters, isInitializing, showError, t, tHomeworkError]);
 
   const pushWithFilters = () => {
     const params = new URLSearchParams(searchParams.toString());
@@ -331,7 +332,7 @@ export default function HomeworkListPage() {
       );
     } catch (error) {
       showError(
-        t("errors.lifecycleFailed", { code: mapHomeworkApiError(error) }),
+        t("errors.lifecycleFailed", { message: getHomeworkErrorMessage(error, tHomeworkError) }),
       );
     } finally {
       setPendingHomeworkId(null);

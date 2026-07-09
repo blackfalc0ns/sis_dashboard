@@ -282,13 +282,14 @@ describe("homeworkApiAdapter", () => {
     );
   });
 
-  it("updates hidden true false options without deleting them", async () => {
+  it("deletes stale hidden options when updating a true false question", async () => {
     const backendQuestion = {
       questionId: "question-1", homeworkId: "homework-1", type: "true_false",
       prompt: "Valid?", points: 1, sortOrder: 0, isRequired: true, createdAt: "", updatedAt: "",
       options: [
         { optionId: "true", questionId: "question-1", text: "True", isCorrect: true, sortOrder: 0 },
         { optionId: "false", questionId: "question-1", text: "False", isCorrect: false, sortOrder: 1 },
+        { optionId: "stale", questionId: "question-1", text: "Maybe", isCorrect: false, sortOrder: 2 },
       ],
     };
     mockedApiGet.mockResolvedValueOnce({ question: backendQuestion })
@@ -309,7 +310,9 @@ describe("homeworkApiAdapter", () => {
       "/homework/assignments/homework-1/questions/question-1/options/false",
       { text: "False", isCorrect: true },
     );
-    expect(mockedApiDelete).not.toHaveBeenCalled();
+    expect(mockedApiDelete).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/questions/question-1/options/stale",
+    );
   });
 
   it("lists dashboard submissions from the core homework review surface", async () => {

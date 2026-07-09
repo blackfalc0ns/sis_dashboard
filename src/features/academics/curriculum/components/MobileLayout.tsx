@@ -133,6 +133,7 @@ export default function MobileLayout({
                   allowedQuestionTypes={allowedQuestionTypes}
                   requireBothLocalizedTexts={requireBothLocalizedTexts}
                   showHomeworkFields={showHomeworkFields}
+                  detailsInputMode={detailsInputMode}
                 />
               ) : (
                 <EmptyQuestionState isReadOnly={isReadOnly} onAddQuestion={onAddQuestion} />

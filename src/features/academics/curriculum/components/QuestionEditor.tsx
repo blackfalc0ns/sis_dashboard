@@ -47,6 +47,7 @@ interface QuestionEditorProps {
   allowedQuestionTypes?: QuestionType[];
   requireBothLocalizedTexts?: boolean;
   showHomeworkFields?: boolean;
+  detailsInputMode?: "bilingual" | "single";
 }
 
 interface OptionErrors {
@@ -62,6 +63,7 @@ export default function QuestionEditor({
   allowedQuestionTypes,
   requireBothLocalizedTexts = true,
   showHomeworkFields = false,
+  detailsInputMode = "bilingual",
 }: QuestionEditorProps) {
   const t = useTranslations("academics.curriculum.questions");
   const tValidation = useTranslations("validation");
@@ -171,6 +173,7 @@ export default function QuestionEditor({
   const isMCQ = questionType === "MCQ_SINGLE" || questionType === "MCQ_MULTI";
   const canRemoveOption = options.length > 2;
   const radioGroupName = `editor-correct-option-${question.id}`;
+  const singleTextMode = detailsInputMode === "single";
 
   return (
     <div>
@@ -182,18 +185,29 @@ export default function QuestionEditor({
           </div>
         )}
         <div>
-          <BilingualTextField
-            label={t("question_text")}
-            value={{ ar: questionTextAr, en: questionTextEn }}
-            onChange={setQuestionText}
-            requiredAr={requireBothLocalizedTexts && questionType !== "MEDIA"}
-            requiredEn={questionType !== "MEDIA"}
-            disabled={isReadOnly}
-            placeholder={{
-              ar: "\u0623\u062f\u062e\u0644 \u0646\u0635 \u0627\u0644\u0633\u0624\u0627\u0644 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629",
-              en: "Enter question text in English",
-            }}
-          />
+          {singleTextMode ? (
+            <Input
+              label={t("question_text")}
+              value={questionTextEn || questionTextAr}
+              onChange={(event) => setQuestionText({ ar: event.target.value, en: event.target.value })}
+              disabled={isReadOnly}
+              placeholder={t("question_text")}
+              required={questionType !== "MEDIA"}
+            />
+          ) : (
+            <BilingualTextField
+              label={t("question_text")}
+              value={{ ar: questionTextAr, en: questionTextEn }}
+              onChange={setQuestionText}
+              requiredAr={requireBothLocalizedTexts && questionType !== "MEDIA"}
+              requiredEn={questionType !== "MEDIA"}
+              disabled={isReadOnly}
+              placeholder={{
+                ar: "\u0623\u062f\u062e\u0644 \u0646\u0635 \u0627\u0644\u0633\u0624\u0627\u0644 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629",
+                en: "Enter question text in English",
+              }}
+            />
+          )}
           {validationErrors?.textAr && (
             <div className="mt-1 flex items-center gap-1 text-red-600 text-xs" data-error="true">
               <AlertCircle className="w-3 h-3" />
@@ -300,6 +314,7 @@ export default function QuestionEditor({
                         onMoveUp={moveOptionUp}
                         onMoveDown={moveOptionDown}
                         errors={validateOption(option)}
+                        singleTextMode={singleTextMode}
                         t={t}
                       />
                     ))}

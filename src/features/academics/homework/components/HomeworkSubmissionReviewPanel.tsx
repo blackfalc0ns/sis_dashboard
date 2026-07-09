@@ -17,7 +17,7 @@ import TextArea from "@/components/ui/input/TextArea";
 import { AccessDenied } from "@/components/ui";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/components/ui/toast/Toast";
-import { mapHomeworkApiError } from "@/features/academics/homework/services/homeworkErrors";
+import { getHomeworkErrorMessage } from "@/features/academics/homework/services/homeworkErrors";
 import {
   bulkReviewHomeworkSubmissionAnswers,
   fetchHomeworkSubmission,
@@ -86,6 +86,7 @@ export default function HomeworkSubmissionReviewPanel({
 }: HomeworkSubmissionReviewPanelProps) {
   const locale = useLocale();
   const t = useTranslations("academics.homework.review");
+  const tHomeworkError = useTranslations("academics.homework.errorMessages");
   const { hasPermission } = usePermissions();
   const canView = hasPermission("homework.submissions.view");
   const canManage = hasPermission("homework.assignments.manage");
@@ -247,13 +248,13 @@ export default function HomeworkSubmissionReviewPanel({
       );
     } catch (error) {
       showError(
-        t("errors.loadSubmissions", { code: mapHomeworkApiError(error) }),
+        t("errors.loadSubmissions", { message: getHomeworkErrorMessage(error, tHomeworkError) }),
       );
       setPagination({ page, limit, total: 0 });
     } finally {
       setIsLoadingSubmissions(false);
     }
-  }, [appliedSearch, canView, homeworkId, limit, page, showError, statusFilter, t]);
+  }, [appliedSearch, canView, homeworkId, limit, page, showError, statusFilter, t, tHomeworkError]);
 
   const loadSubmissionDetail = useCallback(
     async (submissionId: string) => {
@@ -279,13 +280,13 @@ export default function HomeworkSubmissionReviewPanel({
             ]),
           ),
         );
-      } catch (error) {
-        showError(t("errors.loadDetail", { code: mapHomeworkApiError(error) }));
+    } catch (error) {
+        showError(t("errors.loadDetail", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
       } finally {
         setIsLoadingDetail(false);
       }
     },
-    [homeworkId, showError, t, updateSelectedSubmission],
+    [homeworkId, showError, t, tHomeworkError, updateSelectedSubmission],
   );
 
   useEffect(() => {
@@ -333,7 +334,7 @@ export default function HomeworkSubmissionReviewPanel({
       );
       showSuccess(t("messages.answerSaved"));
     } catch (error) {
-      showError(t("errors.saveAnswer", { code: mapHomeworkApiError(error) }));
+      showError(t("errors.saveAnswer", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
     } finally {
       setPendingAnswerId(null);
     }
@@ -360,7 +361,7 @@ export default function HomeworkSubmissionReviewPanel({
       setAnswers(updatedAnswers);
       showSuccess(t("messages.allSaved"));
     } catch (error) {
-      showError(t("errors.saveAll", { code: mapHomeworkApiError(error) }));
+      showError(t("errors.saveAll", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
     } finally {
       setIsBulkSaving(false);
     }
@@ -385,7 +386,7 @@ export default function HomeworkSubmissionReviewPanel({
       showSuccess(t("messages.submissionSaved"));
     } catch (error) {
       showError(
-        t("errors.saveSubmission", { code: mapHomeworkApiError(error) }),
+        t("errors.saveSubmission", { message: getHomeworkErrorMessage(error, tHomeworkError) }),
       );
     } finally {
       setIsSavingSubmissionReview(false);
@@ -400,7 +401,7 @@ export default function HomeworkSubmissionReviewPanel({
       showSuccess(t("messages.synced"));
       await loadSubmissions();
     } catch (error) {
-      showError(t("errors.sync", { code: mapHomeworkApiError(error) }));
+      showError(t("errors.sync", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
     } finally {
       setIsSyncingSubmission(false);
     }

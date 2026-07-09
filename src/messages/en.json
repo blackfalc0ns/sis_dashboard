@@ -4809,8 +4809,8 @@
           "back": "Back"
         },
         "errors": {
-          "loadFailed": "Failed to load homework ({code})",
-          "lifecycleFailed": "Homework action failed ({code})"
+          "loadFailed": "Failed to load homework: {message}",
+          "lifecycleFailed": "Homework action failed: {message}"
         }
       },
       "create": {
@@ -4881,7 +4881,7 @@
           "studentsLoadFailed": "Failed to load eligible students.",
           "noEligibleStudents": "This classroom has no eligible students for homework targets.",
           "selectedStudentsRequired": "Select at least one student.",
-          "createFailed": "Failed to create homework ({code})"
+          "createFailed": "Failed to create homework: {message}"
         }
       },
       "builder": {
@@ -4937,14 +4937,14 @@
           "cancelCompleted": "Homework cancel action completed."
         },
         "errors": {
-          "loadFailed": "Failed to load homework ({code})",
-          "homeworkSaveFailed": "Failed to save homework ({code})",
+          "loadFailed": "Failed to load homework: {message}",
+          "homeworkSaveFailed": "Failed to save homework: {message}",
           "fixQuestionValidation": "Fix question validation errors before saving.",
-          "questionSaveFailed": "Failed to save question ({code})",
-          "questionDeleteFailed": "Failed to delete question ({code})",
-          "attachmentUploadFailed": "Could not upload the attachment. Error: {code}",
-          "attachmentDeleteFailed": "Failed to delete attachment ({code})",
-          "lifecycleFailed": "Lifecycle action failed ({code})"
+          "questionSaveFailed": "Failed to save question: {message}",
+          "questionDeleteFailed": "Failed to delete question: {message}",
+          "attachmentUploadFailed": "Could not upload the attachment: {message}",
+          "attachmentDeleteFailed": "Failed to delete attachment: {message}",
+          "lifecycleFailed": "Lifecycle action failed: {message}"
         }
       },
       "review": {
@@ -5028,12 +5028,12 @@
           "synced": "Submission grade synced."
         },
         "errors": {
-          "loadSubmissions": "Failed to load submissions ({code})",
-          "loadDetail": "Failed to load submission details ({code})",
-          "saveAnswer": "Failed to save answer review ({code})",
-          "saveAll": "Failed to save answer reviews ({code})",
-          "saveSubmission": "Failed to save submission review ({code})",
-          "sync": "Failed to sync submission grade ({code})"
+          "loadSubmissions": "Failed to load submissions: {message}",
+          "loadDetail": "Failed to load submission details: {message}",
+          "saveAnswer": "Failed to save answer review: {message}",
+          "saveAll": "Failed to save answer reviews: {message}",
+          "saveSubmission": "Failed to save submission review: {message}",
+          "sync": "Failed to sync submission grade: {message}"
         }
       },
       "gradeSync": {
@@ -5080,11 +5080,77 @@
           "synced": "Homework grades synced."
         },
         "errors": {
-          "load": "Failed to load grade sync status ({code})",
-          "loadAssessments": "Failed to load assessments ({code})",
-          "link": "Failed to link grade assessment ({code})",
-          "sync": "Failed to sync homework grades ({code})"
+          "load": "Failed to load grade sync status: {message}",
+          "loadAssessments": "Failed to load assessments: {message}",
+          "link": "Failed to link grade assessment: {message}",
+          "sync": "Failed to sync homework grades: {message}"
         }
+      },
+      "errorMessages": {
+        "generic": "Something went wrong. Try again or contact support.",
+        "notFound": "This homework was not found or is outside your access scope.",
+        "notMutable": "This homework cannot be changed in its current status.",
+        "notPublishable": "This homework cannot be published from its current status.",
+        "alreadyPublished": "This homework is already published.",
+        "alreadyClosed": "This homework is already closed.",
+        "cancelled": "This homework has been cancelled.",
+        "scheduleMismatch": "The selected schedule does not match this homework context.",
+        "allocationMismatch": "The selected teacher allocation does not match the homework classroom, subject, year, or term.",
+        "dueDateInvalid": "The due date must be after the publish time and valid for this homework.",
+        "targetRequired": "Select homework targets before continuing.",
+        "noEligibleTargets": "There are no eligible students for the selected homework target.",
+        "targetConflict": "The selected homework targets conflict with the assignment setup.",
+        "validationFailed": "Review the homework fields and fix the highlighted validation errors.",
+        "invalidQuestionStructure": "One homework question has an invalid answer setup. Review the question options.",
+        "invalidQuestionStructureTrueFalse": "A true/false question must have exactly two options, True and False, with exactly one correct answer.",
+        "invalidQuestionStructureSingleChoice": "A single-choice question needs at least two options and exactly one correct answer.",
+        "invalidQuestionStructureMultipleChoice": "A multiple-choice question needs at least two options and at least one correct answer.",
+        "questionNotFound": "This homework question was not found. Refresh the homework and try again.",
+        "questionInvalidTypePayload": "The question data does not match the selected question type.",
+        "questionInvalidOptions": "The question options are invalid. Check option text and correct-answer selection.",
+        "questionReadOnly": "This question cannot be changed after the homework status changed.",
+        "questionOptionNotFound": "This question option was not found. Refresh the homework and try again.",
+        "questionInvalidReorder": "The question order is invalid. Refresh and reorder again.",
+        "attachmentNotFound": "This homework attachment was not found.",
+        "attachmentFileNotFound": "The selected attachment file was not found.",
+        "attachmentReadOnly": "Attachments cannot be changed after the homework status changed.",
+        "attachmentInvalidReorder": "The attachment order is invalid. Refresh and reorder again.",
+        "submissionTargetNotFound": "The student target for this submission was not found.",
+        "submissionNotFound": "This homework submission was not found.",
+        "submissionNotSubmittable": "This homework cannot be submitted in its current status.",
+        "submissionAlreadySubmitted": "This homework has already been submitted.",
+        "submissionNotReviewable": "This submission cannot be reviewed in its current status.",
+        "submissionAlreadyReviewed": "This submission has already been reviewed.",
+        "submissionReviewInvalid": "The submission review is invalid. Check awarded marks and review notes.",
+        "answerNotFound": "This answer was not found.",
+        "answerInvalidPayload": "The answer data is invalid for this question type.",
+        "answerInvalidOption": "The selected answer option is not valid for this question.",
+        "answerMissingRequired": "A required homework answer is missing.",
+        "answerReadOnly": "This answer cannot be changed in the current submission status.",
+        "answerInvalidSubmissionScope": "This answer does not belong to the selected submission.",
+        "answerReviewNotFound": "This answer review target was not found.",
+        "answerReviewInvalidScope": "This answer review does not belong to the selected homework submission.",
+        "answerReviewNotSubmitted": "The answer must be submitted before it can be reviewed.",
+        "answerReviewInvalidPoints": "Enter a valid non-negative score for the answer.",
+        "answerReviewExceedsQuestionPoints": "The answer score cannot exceed the question points.",
+        "answerReviewExceedsAssignmentMarks": "The reviewed answer scores cannot exceed the homework total marks.",
+        "answerReviewReadOnly": "This answer review cannot be changed in the current submission status.",
+        "answerReviewIncompleteRequiredAnswers": "Review all required answers before completing the submission review.",
+        "submissionAttachmentNotFound": "This submission attachment was not found.",
+        "submissionAttachmentFileNotFound": "The submitted attachment file was not found.",
+        "submissionAttachmentReadOnly": "Submission attachments cannot be changed in the current submission status.",
+        "submissionAttachmentInvalidReorder": "The submission attachment order is invalid.",
+        "gradeSyncNotLinked": "Link this homework to a grade assessment before syncing.",
+        "gradeSyncInvalidAssessment": "The selected grade assessment is not compatible with homework sync.",
+        "gradeSyncIncompatibleScope": "The selected grade assessment does not match this homework scope.",
+        "gradeSyncAssessmentLocked": "The linked grade assessment is locked. Unlock it before syncing homework grades.",
+        "gradeSyncSubmissionNotReviewed": "Only reviewed homework submissions can be synced to grades.",
+        "gradeSyncMissingScore": "This reviewed submission has no awarded marks to sync.",
+        "gradeSyncScoreExceedsHomeworkMarks": "The awarded marks exceed the homework total marks.",
+        "gradeSyncScoreExceedsAssessmentMarks": "The awarded marks exceed the linked assessment marks.",
+        "gradeSyncDuplicateLink": "This homework is already linked to a grade assessment.",
+        "gradeSyncUnlinkNotAllowed": "This homework grade link cannot be removed safely.",
+        "gradeSyncFailed": "The homework grade sync failed. Review the submission scores and try again."
       }
     },
     "teacherAllocation": {
@@ -6820,7 +6886,13 @@
     "invalidType": "Unsupported file type",
     "tooLarge": "File is too large",
     "termClosed": "Term is closed. Upload is disabled.",
-    "allowedHint": "Allowed: {types} Ã¢â‚¬Â¢ Max: {size}",
+    "allowedHint": "Allowed: {types} - Max: {size}",
+    "previewAttachment": "Preview attachment",
+    "previewUnavailable": "Preview unavailable",
+    "previewUnavailableDescription": "This attachment does not have a preview URL available yet.",
+    "openInNewTab": "Open this attachment in a new tab to view it.",
+    "fileType": "File type",
+    "fileSize": "File size",
     "invalidTypeStudy": "Unsupported file type for educational content.",
     "fileBlocked": "This file type is blocked for security reasons.",
     "maxSizeExceeded": "File exceeds max size ({size}).",

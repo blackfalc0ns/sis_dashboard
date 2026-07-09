@@ -35,6 +35,17 @@ export const DEFAULT_NEW_QUESTION = {
 };
 
 export const ATTACHMENT_RESTRICTIONS = {
-  MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
-  ALLOWED_TYPES: "*",
+  MAX_FILE_SIZE: 10 * 1024 * 1024, // Backend /files upload limit
+  ALLOWED_TYPES: [
+    "application/pdf",
+    "audio/mp4",
+    "audio/mpeg",
+    "audio/webm",
+    "image/jpeg",
+    "image/png",
+    "text/plain",
+    "video/mp4",
+    "video/webm",
+  ].join(","),
+  ALLOWED_TYPES_LABEL: "PDF, TXT, JPG, PNG, MP3, M4A, WebM, MP4",
 } as const;
