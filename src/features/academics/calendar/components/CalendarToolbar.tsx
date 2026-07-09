@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Plus, Filter, X, LayoutGrid, List, Calendar 
 import Button from "@/components/ui/button/Button";
 import DatePicker from "@/components/ui/input/DatePicker";
 import { AcademicEvent } from "@/features/academics/calendar/services/calendarService";
+import type { CalendarScopeTargetOption } from "@/features/academics/calendar/types";
 
 import {
   Drawer,
@@ -44,9 +45,9 @@ interface CalendarToolbarProps {
   termId?: string;
   scopeIdFilter?: string | null;
   onScopeIdFilterChange?: (id: string | null) => void;
-  stages: Array<{ id: string; name: string }>;
-  grades: Array<{ id: string; name: string }>;
-  sections: Array<{ id: string; name: string }>;
+  stages: CalendarScopeTargetOption[];
+  grades: CalendarScopeTargetOption[];
+  sections: CalendarScopeTargetOption[];
 }
 
 // Filters content component (reused in both Popover and Drawer)
@@ -63,6 +64,7 @@ function FiltersContent({
   onClear,
   onClose,
   t,
+  locale,
 }: {
   typeFilters: AcademicEvent["type"][];
   onTypeToggle: (type: AcademicEvent["type"]) => void;
@@ -70,20 +72,29 @@ function FiltersContent({
   onScopeChange: (scope: "ALL" | AcademicEvent["scopeType"]) => void;
   scopeIdFilter?: string | null;
   onScopeIdChange?: (id: string | null) => void;
-  stages: Array<{ id: string; name: string }>;
-  grades: Array<{ id: string; name: string }>;
-  sections: Array<{ id: string; name: string }>;
+  stages: CalendarScopeTargetOption[];
+  grades: CalendarScopeTargetOption[];
+  sections: CalendarScopeTargetOption[];
   onClear: () => void;
   onClose: () => void;
   t: (key: string) => string;
+  locale: string;
 }) {
   const eventTypes: AcademicEvent["type"][] = ["HOLIDAY", "EXAM", "ACTIVITY", "OTHER"];
   const scopeTypes: ("ALL" | AcademicEvent["scopeType"])[] = ["ALL", "SCHOOL", "STAGE", "GRADE", "SECTION"];
 
-  let targetOptions: Array<{ id: string; name: string }> = [];
+  let targetOptions: CalendarScopeTargetOption[] = [];
   if (scopeFilter === "STAGE") targetOptions = stages;
   if (scopeFilter === "GRADE") targetOptions = grades;
   if (scopeFilter === "SECTION") targetOptions = sections;
+
+  const getLocalizedScopeTargetName = (option: CalendarScopeTargetOption) => {
+    if (locale === "ar") {
+      return option.nameAr || option.name;
+    }
+
+    return option.nameEn || option.name;
+  };
 
   return (
     <div className="space-y-4">
@@ -176,7 +187,7 @@ function FiltersContent({
                   </MenuItem>
                   {targetOptions.map((opt) => (
                     <MenuItem key={opt.id} value={opt.id}>
-                      {opt.name}
+                      {getLocalizedScopeTargetName(opt)}
                     </MenuItem>
                   ))}
                 </Select>
@@ -581,6 +592,7 @@ export default function CalendarToolbar({
             onClear={handleClearFilters}
             onClose={handleCloseFilters}
             t={t}
+            locale={locale}
           />
         </div>
       </Popover>
@@ -627,6 +639,7 @@ export default function CalendarToolbar({
             onClear={handleClearFilters}
             onClose={handleCloseFilters}
             t={t}
+            locale={locale}
           />
         </div>
       </Drawer>

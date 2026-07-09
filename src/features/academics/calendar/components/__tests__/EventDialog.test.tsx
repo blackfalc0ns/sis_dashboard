@@ -1,7 +1,16 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 import EventDialog from "../EventDialog";
 import type { AcademicEvent } from "../../services/calendarService";
+
+const intlMock = vi.hoisted(() => ({
+  locale: "en",
+}));
+
+vi.mock("next-intl", () => ({
+  useTranslations: () => (key: string) => key,
+  useLocale: () => intlMock.locale,
+}));
 
 vi.mock("@/features/academics/academic-structure-tree/services/structureService", () => ({
   fetchStructureTree: vi.fn(
@@ -10,6 +19,10 @@ vi.mock("@/features/academics/academic-structure-tree/services/structureService"
 }));
 
 describe("EventDialog", () => {
+  beforeEach(() => {
+    intlMock.locale = "en";
+  });
+
   const existingEvent: AcademicEvent = {
     id: "e1",
     termId: "t1",
@@ -32,6 +45,16 @@ describe("EventDialog", () => {
     termId: "t1",
     prefilledDate: null,
     isReadOnly: false,
+    stages: [],
+    grades: [
+      {
+        id: "grade-1",
+        name: "Grade 1",
+        nameAr: "الصف الأول",
+        nameEn: "Grade 1",
+      },
+    ],
+    sections: [],
   };
 
   const renderComponent = (props = {}) => {
@@ -51,5 +74,18 @@ describe("EventDialog", () => {
   it("Create event renders Add Event", () => {
     renderComponent();
     expect(screen.getByText("add_event")).toBeInTheDocument();
+  });
+
+  it("localizes the selected scope target label for Arabic", () => {
+    intlMock.locale = "ar";
+    renderComponent({
+      event: {
+        ...existingEvent,
+        scopeType: "GRADE",
+        scopeId: "grade-1",
+      },
+    });
+
+    expect(screen.getByText("الصف الأول")).toBeInTheDocument();
   });
 });

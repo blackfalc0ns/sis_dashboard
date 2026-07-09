@@ -34,6 +34,7 @@ import {
   timetableErrorMessage,
   type TimetableErrorCode,
 } from "@/features/academics/timetable/services/timetableErrorHandling";
+import { subjectOptionsForGradeAllocations } from "@/features/academics/timetable/services/timetableSlotEditing";
 import { hasBlockingValidation } from "@/features/academics/timetable/services/timetableValidationSummary";
 import {
   getDefaultRoomSuggestion as getSuggestedDefaultRoom,
@@ -705,6 +706,20 @@ export default function TimetableView({
   const editingClassroom = editingSlot
     ? classrooms.find((item) => item.id === editingSlot.classroomId)
     : selectedClassroom;
+  const editingSection = editingSlot
+    ? sections.find((item) => item.id === editingSlot.sectionId)
+    : selectedSection;
+  const editingGradeId = editingSection?.gradeId ?? selectedGradeId;
+  const editableSlotSubjects = useMemo(
+    () =>
+      subjectOptionsForGradeAllocations({
+        subjects,
+        subjectAllocations,
+        gradeId: editingGradeId,
+        currentSubjectId: editingSlot?.entry?.subjectId,
+      }),
+    [editingGradeId, editingSlot?.entry?.subjectId, subjectAllocations, subjects],
+  );
   const displayedClassrooms = useMemo(() => {
     if (selectedClassroom) {
       return [selectedClassroom];
@@ -1669,7 +1684,7 @@ export default function TimetableView({
                   ?.nameEn || ""
           }
           entry={editingSlot.entry}
-          subjects={subjects}
+          subjects={editableSlotSubjects}
           teachers={teachers}
           teacherAllocations={teacherAllocations}
           rooms={rooms}

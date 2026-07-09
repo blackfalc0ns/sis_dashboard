@@ -2,7 +2,10 @@ import type {
   Teacher,
   TeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import type { Subject } from "@/features/academics/subjects/services/subjectsService";
+import type {
+  Subject,
+  SubjectAllocation,
+} from "@/features/academics/subjects/services/subjectsService";
 
 export interface TeacherAllocationOption {
   allocationId: string;
@@ -19,6 +22,35 @@ export interface TeacherAllocationOptionParams {
   classroomId?: string;
   subjectId?: string;
   locale: string;
+}
+
+export interface SubjectOptionsForGradeAllocationsParams {
+  subjects: Subject[];
+  subjectAllocations: SubjectAllocation[];
+  gradeId?: string;
+  currentSubjectId?: string | null;
+}
+
+export function subjectOptionsForGradeAllocations({
+  subjects,
+  subjectAllocations,
+  gradeId,
+  currentSubjectId,
+}: SubjectOptionsForGradeAllocationsParams): Subject[] {
+  if (!gradeId) {
+    return subjects;
+  }
+
+  const allocatedSubjectIds = new Set(
+    subjectAllocations
+      .filter((allocation) => allocation.gradeId === gradeId)
+      .map((allocation) => allocation.subjectId),
+  );
+
+  return subjects.filter(
+    (subject) =>
+      allocatedSubjectIds.has(subject.id) || subject.id === currentSubjectId,
+  );
 }
 
 export function teacherAllocationOptions({

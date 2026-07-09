@@ -4,7 +4,10 @@ import type {
   Teacher,
   TeacherAllocation,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import { teacherAllocationOptions } from "@/features/academics/timetable/services/timetableSlotEditing";
+import {
+  subjectOptionsForGradeAllocations,
+  teacherAllocationOptions,
+} from "@/features/academics/timetable/services/timetableSlotEditing";
 
 const teachers: Teacher[] = [
   {
@@ -141,5 +144,33 @@ describe("teacherAllocationOptions", () => {
         label: "allocation-without-label",
       },
     ]);
+  });
+});
+
+describe("subjectOptionsForGradeAllocations", () => {
+  it("returns only subjects allocated to the selected grade", () => {
+    expect(
+      subjectOptionsForGradeAllocations({
+        subjects,
+        subjectAllocations: [
+          { gradeId: "grade-1", subjectId: "subject-math", weeklyHours: 5 },
+          { gradeId: "grade-2", subjectId: "subject-science", weeklyHours: 4 },
+        ],
+        gradeId: "grade-1",
+      }).map((subject) => subject.id),
+    ).toEqual(["subject-math"]);
+  });
+
+  it("keeps the current entry subject visible when it is no longer allocated", () => {
+    expect(
+      subjectOptionsForGradeAllocations({
+        subjects,
+        subjectAllocations: [
+          { gradeId: "grade-1", subjectId: "subject-math", weeklyHours: 5 },
+        ],
+        gradeId: "grade-1",
+        currentSubjectId: "subject-science",
+      }).map((subject) => subject.id),
+    ).toEqual(["subject-math", "subject-science"]);
   });
 });

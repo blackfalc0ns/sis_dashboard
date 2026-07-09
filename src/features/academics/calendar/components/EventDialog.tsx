@@ -20,6 +20,7 @@ import {
 } from "@/features/academics/calendar/services/calendarService";
 import { getCalendarErrorMessage } from "@/features/academics/calendar/services/calendarErrors";
 import { Term } from "@/features/academics/academic-structure-tree/services/structureService";
+import type { CalendarScopeTargetOption } from "@/features/academics/calendar/types";
 
 interface EventDialogProps {
   isOpen: boolean;
@@ -31,9 +32,9 @@ interface EventDialogProps {
   termId: string;
   prefilledDate: Date | null;
   isReadOnly: boolean;
-  stages: Array<{ id: string; name: string }>;
-  grades: Array<{ id: string; name: string }>;
-  sections: Array<{ id: string; name: string }>;
+  stages: CalendarScopeTargetOption[];
+  grades: CalendarScopeTargetOption[];
+  sections: CalendarScopeTargetOption[];
 }
 
 export default function EventDialog({
@@ -213,14 +214,31 @@ export default function EventDialog({
     { value: "SECTION", label: t("scopes.section") },
   ];
 
+  const getLocalizedScopeTargetName = (option: CalendarScopeTargetOption) => {
+    if (locale === "ar") {
+      return option.nameAr || option.name;
+    }
+
+    return option.nameEn || option.name;
+  };
+
   const getScopeTargetOptions = () => {
     switch (scopeType) {
       case "STAGE":
-        return stages.map((s) => ({ value: s.id, label: s.name }));
+        return stages.map((s) => ({
+          value: s.id,
+          label: getLocalizedScopeTargetName(s),
+        }));
       case "GRADE":
-        return grades.map((g) => ({ value: g.id, label: g.name }));
+        return grades.map((g) => ({
+          value: g.id,
+          label: getLocalizedScopeTargetName(g),
+        }));
       case "SECTION":
-        return sections.map((s) => ({ value: s.id, label: s.name }));
+        return sections.map((s) => ({
+          value: s.id,
+          label: getLocalizedScopeTargetName(s),
+        }));
       default:
         return [];
     }

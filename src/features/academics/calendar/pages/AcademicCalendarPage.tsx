@@ -15,6 +15,7 @@ import WeekCalendar from "../components/WeekCalendar";
 import AgendaView from "../components/AgendaView";
 import EventDialog from "../components/EventDialog";
 import MoveEventDialog from "../components/MoveEventDialog";
+import type { CalendarScopeTargetOption } from "@/features/academics/calendar/types";
 import {
   type AcademicsExportFormat,
   exportAcademicsData,
@@ -150,9 +151,9 @@ export default function AcademicCalendarPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Scope options
-  const [stages, setStages] = useState<Array<{ id: string; name: string }>>([]);
-  const [grades, setGrades] = useState<Array<{ id: string; name: string }>>([]);
-  const [sections, setSections] = useState<Array<{ id: string; name: string }>>([]);
+  const [stages, setStages] = useState<CalendarScopeTargetOption[]>([]);
+  const [grades, setGrades] = useState<CalendarScopeTargetOption[]>([]);
+  const [sections, setSections] = useState<CalendarScopeTargetOption[]>([]);
 
   // Load structure data for scope target filter
   useEffect(() => {
@@ -176,13 +177,28 @@ export default function AcademicCalendarPage() {
       .then((structure) => {
         if (requestId !== structureRequestIdRef.current) return;
         setStages(
-          structure.stages.map((s) => ({ id: s.id, name: s.name }))
+          structure.stages.map((s) => ({
+            id: s.id,
+            name: s.name,
+            nameAr: s.nameAr,
+            nameEn: s.nameEn,
+          }))
         );
         setGrades(
-          structure.grades.map((g) => ({ id: g.id, name: g.name }))
+          structure.grades.map((g) => ({
+            id: g.id,
+            name: g.name,
+            nameAr: g.nameAr,
+            nameEn: g.nameEn,
+          }))
         );
         setSections(
-          structure.sections.map((s) => ({ id: s.id, name: s.name }))
+          structure.sections.map((s) => ({
+            id: s.id,
+            name: s.name,
+            nameAr: s.nameAr,
+            nameEn: s.nameEn,
+          }))
         );
       })
       .catch((error) => {
