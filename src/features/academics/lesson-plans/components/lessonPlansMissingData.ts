@@ -18,11 +18,7 @@ export interface LessonPlansMissingDataScope {
   subjectId?: string;
 }
 
-function setIfPresent(
-  params: URLSearchParams,
-  key: string,
-  value?: string,
-) {
+function setIfPresent(params: URLSearchParams, key: string, value?: string) {
   if (value) params.set(key, value);
 }
 
@@ -44,12 +40,18 @@ type RouteConfig = {
   ) => void;
 };
 
-const addGradeParent = (params: URLSearchParams, scope: LessonPlansMissingDataScope) =>
-  addStructureParent(params, "stage", scope.stageId);
-const addSectionParent = (params: URLSearchParams, scope: LessonPlansMissingDataScope) =>
-  addStructureParent(params, "grade", scope.gradeId);
-const addClassroomParent = (params: URLSearchParams, scope: LessonPlansMissingDataScope) =>
-  addStructureParent(params, "section", scope.sectionId);
+const addGradeParent = (
+  params: URLSearchParams,
+  scope: LessonPlansMissingDataScope,
+) => addStructureParent(params, "stage", scope.stageId);
+const addSectionParent = (
+  params: URLSearchParams,
+  scope: LessonPlansMissingDataScope,
+) => addStructureParent(params, "grade", scope.gradeId);
+const addClassroomParent = (
+  params: URLSearchParams,
+  scope: LessonPlansMissingDataScope,
+) => addStructureParent(params, "section", scope.sectionId);
 
 function addSubjectScope(params: URLSearchParams) {
   params.set("tab", "subjects");
@@ -70,8 +72,8 @@ function addCurriculumScope(
   params: URLSearchParams,
   scope: LessonPlansMissingDataScope,
 ) {
-  setIfPresent(params, "grade", scope.gradeId);
-  setIfPresent(params, "subject", scope.subjectId);
+  setIfPresent(params, "filterGrade", scope.gradeId);
+  setIfPresent(params, "filterSubject", scope.subjectId);
 }
 
 function addTimetableScope(
@@ -84,20 +86,38 @@ function addTimetableScope(
 }
 
 const routeByStatus: Record<LessonPlansMissingDataStatus, RouteConfig> = {
-  "missing-grade": { pathname: "/academics/structure", addScope: addGradeParent },
-  "missing-section": { pathname: "/academics/structure", addScope: addSectionParent },
-  "missing-classroom": { pathname: "/academics/structure", addScope: addClassroomParent },
-  "missing-subject": { pathname: "/academics/subjects", addScope: addSubjectScope },
+  "missing-grade": {
+    pathname: "/academics/structure",
+    addScope: addGradeParent,
+  },
+  "missing-section": {
+    pathname: "/academics/structure",
+    addScope: addSectionParent,
+  },
+  "missing-classroom": {
+    pathname: "/academics/structure",
+    addScope: addClassroomParent,
+  },
+  "missing-subject": {
+    pathname: "/academics/subjects",
+    addScope: addSubjectScope,
+  },
   "missing-teacher-allocation": {
     pathname: "/academics/teacher-allocation",
     addScope: addAllocationScope,
   },
-  "missing-curriculum": { pathname: "/academics/curriculum", addScope: addCurriculumScope },
+  "missing-curriculum": {
+    pathname: "/academics/curriculum",
+    addScope: addCurriculumScope,
+  },
   "no-curriculum-lessons": {
     pathname: "/academics/curriculum",
     addScope: addCurriculumScope,
   },
-  "missing-timetable-slots": { pathname: "/academics/timetable", addScope: addTimetableScope },
+  "missing-timetable-slots": {
+    pathname: "/academics/timetable",
+    addScope: addTimetableScope,
+  },
 };
 
 export function buildLessonPlansMissingDataHref(

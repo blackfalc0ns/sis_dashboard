@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Plus, FileText, Calendar, Award } from "lucide-react";
 import Button from "@/components/ui/button/Button";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useGuardedRouter } from "@/hooks/useGuardedRouter";
 import dayjs from "dayjs";
 import {
@@ -18,9 +18,13 @@ interface LessonAssignmentsProps {
   gradeId?: string; // For scope-aware holiday checking
 }
 
-export default function LessonAssignments({ lessonId, isReadOnly }: LessonAssignmentsProps) {
+export default function LessonAssignments({
+  lessonId,
+  isReadOnly,
+}: LessonAssignmentsProps) {
   const t = useTranslations("academics.curriculum.assignments");
   const locale = useLocale();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const guardedRouter = useGuardedRouter();
 
@@ -45,26 +49,38 @@ export default function LessonAssignments({ lessonId, isReadOnly }: LessonAssign
 
   const handleAddAssignment = () => {
     const params = new URLSearchParams(searchParams.toString());
+    const curriculumId = pathname.match(
+      /\/academics\/curriculum\/([^/]+)/,
+    )?.[1];
+    if (curriculumId && curriculumId !== "lessons") {
+      params.set("curriculumId", curriculumId);
+    }
     const url = `/${locale}/academics/curriculum/lessons/${lessonId}/assignments/new?${params.toString()}`;
     guardedRouter.push(url);
   };
 
   const handleEditAssignment = (assignmentId: string) => {
     const params = new URLSearchParams(searchParams.toString());
+    const curriculumId = pathname.match(
+      /\/academics\/curriculum\/([^/]+)/,
+    )?.[1];
+    if (curriculumId && curriculumId !== "lessons") {
+      params.set("curriculumId", curriculumId);
+    }
     const url = `/${locale}/academics/curriculum/lessons/${lessonId}/assignments/${assignmentId}?${params.toString()}`;
     guardedRouter.push(url);
   };
 
   const getDisplayTitle = (assignment: Assignment) => {
-    return locale === "ar" 
-      ? (assignment.titleAr || assignment.titleEn) 
-      : (assignment.titleEn || assignment.titleAr);
+    return locale === "ar"
+      ? assignment.titleAr || assignment.titleEn
+      : assignment.titleEn || assignment.titleAr;
   };
 
   const getDisplayDescription = (assignment: Assignment) => {
-    return locale === "ar" 
-      ? (assignment.descriptionAr || assignment.descriptionEn) 
-      : (assignment.descriptionEn || assignment.descriptionAr);
+    return locale === "ar"
+      ? assignment.descriptionAr || assignment.descriptionEn
+      : assignment.descriptionEn || assignment.descriptionAr;
   };
 
   // Show message if no lesson selected
@@ -106,8 +122,8 @@ export default function LessonAssignments({ lessonId, isReadOnly }: LessonAssign
         <div className="space-y-2">
           {assignments.map((assignment) => {
             return (
-              <div 
-                key={assignment.id} 
+              <div
+                key={assignment.id}
                 className="border border-border rounded-lg hover:border-primary hover:shadow-sm transition-all cursor-pointer"
                 onClick={() => handleEditAssignment(assignment.id)}
               >
@@ -115,7 +131,9 @@ export default function LessonAssignments({ lessonId, isReadOnly }: LessonAssign
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <h4 className="font-medium">{getDisplayTitle(assignment)}</h4>
+                        <h4 className="font-medium">
+                          {getDisplayTitle(assignment)}
+                        </h4>
                         {assignment.isPublished && (
                           <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">
                             {t("published")}
@@ -151,7 +169,6 @@ export default function LessonAssignments({ lessonId, isReadOnly }: LessonAssign
           })}
         </div>
       )}
-
     </div>
   );
 }

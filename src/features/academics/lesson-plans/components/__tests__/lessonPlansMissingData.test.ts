@@ -35,20 +35,18 @@ describe("lesson plans missing-data routes", () => {
     ],
     [
       "missing-curriculum",
-      "/en/academics/curriculum?year=year-1&term=term-1&grade=grade-1&subject=subject-1",
+      "/en/academics/curriculum?year=year-1&term=term-1&filterGrade=grade-1&filterSubject=subject-1",
     ],
     [
       "no-curriculum-lessons",
-      "/en/academics/curriculum?year=year-1&term=term-1&grade=grade-1&subject=subject-1",
+      "/en/academics/curriculum?year=year-1&term=term-1&filterGrade=grade-1&filterSubject=subject-1",
     ],
     [
       "missing-timetable-slots",
       "/en/academics/timetable?year=year-1&term=term-1&grade=grade-1&section=section-1&classroom=classroom-1",
     ],
   ] as const)("builds the %s destination", (status, expected) => {
-    expect(buildLessonPlansMissingDataHref(status, "en", scope)).toBe(
-      expected,
-    );
+    expect(buildLessonPlansMissingDataHref(status, "en", scope)).toBe(expected);
   });
 
   it("omits unavailable optional scope parameters", () => {

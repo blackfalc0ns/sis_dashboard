@@ -23,7 +23,7 @@ describe("AutoPlanDialog missing-data actions", () => {
     [
       "academics.lesson_plan.auto_plan_no_curriculum",
       "ctas.curriculum",
-      "/en/academics/curriculum?year=year-1&term=term-1&grade=grade-1&subject=subject-1",
+      "/en/academics/curriculum?year=year-1&term=term-1&filterGrade=grade-1&filterSubject=subject-1",
     ],
   ] as const)(
     "offers a scoped resolution for %s",
@@ -36,7 +36,9 @@ describe("AutoPlanDialog missing-data actions", () => {
           termStartDate="2026-09-01"
           termEndDate="2026-12-31"
           onClose={vi.fn()}
-          onPreview={vi.fn().mockRejectedValue(new ApiError("blocked", 422, code))}
+          onPreview={vi
+            .fn()
+            .mockRejectedValue(new ApiError("blocked", 422, code))}
           onApply={vi.fn()}
           showError={vi.fn()}
           readiness={{ canAutoPlan: true, blockingReasons: [], warnings: [] }}

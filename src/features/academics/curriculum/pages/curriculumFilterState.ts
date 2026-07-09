@@ -24,7 +24,8 @@ export function curriculumPageVisibility(input: CurriculumPageVisibilityInput) {
   const isPageLoading =
     input.isInitializing ||
     input.isOptionsLoading ||
-    (input.hasScope && input.isCurriculumLoading);
+    (input.hasScope &&
+      (input.isCurriculumLoading || !input.hasCheckedCurriculum));
   const checkedEmptyScope =
     !isPageLoading &&
     input.hasScope &&

@@ -1,14 +1,13 @@
 export type BackendCurriculumStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 export type CurriculumStatus = "draft" | "active" | "archived" | "unknown";
 export type LessonContentType =
-  | "TEXT"
-  | "FILE"
-  | "VIDEO_LINK"
-  | "EXTERNAL_LINK";
+  "TEXT" | "FILE" | "VIDEO_LINK" | "EXTERNAL_LINK";
 
 export interface CurriculumScopeSummaryDto {
   id: string;
   name: string;
+  nameAr?: string;
+  nameEn?: string;
 }
 
 export interface CurriculumSubjectSummaryDto extends CurriculumScopeSummaryDto {

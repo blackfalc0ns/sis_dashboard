@@ -44,19 +44,19 @@ describe("LessonPlansMissingDataCta", () => {
     [
       "missing-curriculum",
       "ctas.curriculum",
-      "/en/academics/curriculum?year=year-1&term=term-1&grade=grade-1&subject=subject-1",
+      "/en/academics/curriculum?year=year-1&term=term-1&filterGrade=grade-1&filterSubject=subject-1",
     ],
     [
       "no-curriculum-lessons",
       "ctas.curriculum",
-      "/en/academics/curriculum?year=year-1&term=term-1&grade=grade-1&subject=subject-1",
+      "/en/academics/curriculum?year=year-1&term=term-1&filterGrade=grade-1&filterSubject=subject-1",
     ],
     [
       "missing-timetable-slots",
       "ctas.timetable",
       "/en/academics/timetable?year=year-1&term=term-1&grade=grade-1&section=section-1&classroom=classroom-1",
     ],
-  ] satisfies Array<[LessonPlansMissingDataStatus, string, string]>) (
+  ] satisfies Array<[LessonPlansMissingDataStatus, string, string]>)(
     "navigates %s to its scoped setup page",
     async (status, label, href) => {
       const onNavigate = vi.fn();

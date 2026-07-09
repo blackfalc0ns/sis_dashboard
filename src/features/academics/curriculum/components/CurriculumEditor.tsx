@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Save, Trash2, BookOpen } from "lucide-react";
 import Button from "@/components/ui/button/Button";
@@ -80,7 +80,8 @@ export default function CurriculumEditor({
   void termWeeks;
 
   const [formData, setFormData] = useState<CurriculumEditorForm>(emptyForm);
-  const [originalData, setOriginalData] = useState<CurriculumEditorForm>(emptyForm);
+  const [originalData, setOriginalData] =
+    useState<CurriculumEditorForm>(emptyForm);
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<keyof CurriculumEditorForm, string>>
   >({});
@@ -92,7 +93,7 @@ export default function CurriculumEditor({
   const [isDirty, setIsDirty] = useState(false);
   const [learningContentOpen, setLearningContentOpen] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setFieldErrors({});
     setFormMessages([]);
     setPendingDeleteNode(null);
@@ -196,7 +197,9 @@ export default function CurriculumEditor({
           .filter(Boolean);
         if (selectedNode.id.startsWith("new-")) {
           const unitId = selectedNode.id.replace("new-", "");
-          const unitLessons = lessons.filter((lesson) => lesson.unitId === unitId);
+          const unitLessons = lessons.filter(
+            (lesson) => lesson.unitId === unitId,
+          );
           await createLesson(curriculum.id, unitId, {
             title,
             description: formData.description.trim() || null,
@@ -222,7 +225,9 @@ export default function CurriculumEditor({
       const mapped = curriculumUiError(error, tValidation("invalid"));
       const projected = curriculumFormErrors(mapped, curriculumEditorFields);
       setFieldErrors(projected.fieldErrors);
-      setFormMessages([...new Set([mapped.message, ...projected.formMessages])]);
+      setFormMessages([
+        ...new Set([mapped.message, ...projected.formMessages]),
+      ]);
     } finally {
       setIsSaving(false);
     }
@@ -342,7 +347,9 @@ export default function CurriculumEditor({
               label={t("estimated_lessons")}
               type="number"
               value={formData.estimatedLessons}
-              onChange={(e) => updateFormField("estimatedLessons", e.target.value)}
+              onChange={(e) =>
+                updateFormField("estimatedLessons", e.target.value)
+              }
               error={fieldErrors.estimatedLessons}
               disabled={isReadOnly}
             />
@@ -362,7 +369,9 @@ export default function CurriculumEditor({
                 label={t("duration_minutes")}
                 type="number"
                 value={formData.estimatedMinutes}
-                onChange={(e) => updateFormField("estimatedMinutes", e.target.value)}
+                onChange={(e) =>
+                  updateFormField("estimatedMinutes", e.target.value)
+                }
                 error={fieldErrors.estimatedMinutes}
                 disabled={isReadOnly}
               />

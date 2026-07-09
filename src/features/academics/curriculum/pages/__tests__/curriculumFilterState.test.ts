@@ -33,6 +33,20 @@ describe("curriculum page visibility", () => {
     ).toBe(false);
   });
 
+  it("keeps a scoped page loading before the curriculum request starts", () => {
+    expect(
+      curriculumPageVisibility({
+        isInitializing: false,
+        isOptionsLoading: false,
+        isCurriculumLoading: false,
+        hasScope: true,
+        hasCheckedCurriculum: false,
+        hasCurriculum: false,
+        hasCurriculumError: false,
+      }).isPageLoading,
+    ).toBe(true);
+  });
+
   it("shows create only after the backend confirms the scope is empty", () => {
     expect(
       curriculumPageVisibility({

@@ -7,10 +7,16 @@ import { useMediaQuery, useTheme } from "@mui/material";
 import { useGuardedRouter } from "@/hooks/useGuardedRouter";
 import { useDirtyKey } from "@/hooks/useDirtyKey";
 import { useToast } from "@/components/ui/toast/Toast";
-import { Assignment, AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
+import {
+  Assignment,
+  AssignmentQuestion,
+} from "@/features/academics/curriculum/services/curriculumService";
 import { useAssignmentData } from "@/features/academics/curriculum/hooks/useAssignmentData";
 import { useAssignmentMutations } from "@/features/academics/curriculum/hooks/useAssignmentMutations";
-import { validateAssignment, validateQuestion } from "@/features/academics/curriculum/utils/validation";
+import {
+  validateAssignment,
+  validateQuestion,
+} from "@/features/academics/curriculum/utils/validation";
 import { calculatePointsSummary } from "@/features/academics/curriculum/utils/points";
 import { ValidationErrors } from "../types";
 import BuilderHeader from "@/features/academics/curriculum/components/BuilderHeader";
@@ -50,24 +56,40 @@ export default function AssignmentBuilderPage({
   const isReadOnly = termStatus === "closed" || !canManageAssignment;
 
   // State
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
-  
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
+    null,
+  );
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+    {},
+  );
+
   // Draft state management for assignment
-  const [assignmentDraft, setAssignmentDraft] = useState<Assignment | null>(null);
-  const [lastSavedAssignment, setLastSavedAssignment] = useState<Assignment | null>(null);
+  const [assignmentDraft, setAssignmentDraft] = useState<Assignment | null>(
+    null,
+  );
+  const [lastSavedAssignment, setLastSavedAssignment] =
+    useState<Assignment | null>(null);
   const [isAssignmentSaving, setIsAssignmentSaving] = useState(false);
-  
+
   // Draft state management for selected question
-  const [questionDraft, setQuestionDraft] = useState<AssignmentQuestion | null>(null);
-  const [lastSavedQuestion, setLastSavedQuestion] = useState<AssignmentQuestion | null>(null);
+  const [questionDraft, setQuestionDraft] = useState<AssignmentQuestion | null>(
+    null,
+  );
+  const [lastSavedQuestion, setLastSavedQuestion] =
+    useState<AssignmentQuestion | null>(null);
   const [isQuestionSaving, setIsQuestionSaving] = useState(false);
   const lastInitializedAssignmentId = useRef<string | null>(null);
-  
+
   // Confirm dialogs state
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
-    type: "delete" | "reset" | "deleteQuestion" | "autoDistribute" | "switchQuestion" | null;
+    type:
+      | "delete"
+      | "reset"
+      | "deleteQuestion"
+      | "autoDistribute"
+      | "switchQuestion"
+      | null;
     questionId?: string;
     targetQuestionId?: string;
   }>({
@@ -77,7 +99,7 @@ export default function AssignmentBuilderPage({
 
   // Dirty state management
   const { markDirty, clearDirty } = useDirtyKey(
-    `assignment-builder:${assignmentId || "new"}:${lessonId}`
+    `assignment-builder:${assignmentId || "new"}:${lessonId}`,
   );
 
   // Data fetching
@@ -126,7 +148,9 @@ export default function AssignmentBuilderPage({
   // Compute dirty states
   const isAssignmentDirty = useMemo(() => {
     if (!assignmentDraft || !lastSavedAssignment) return false;
-    return JSON.stringify(assignmentDraft) !== JSON.stringify(lastSavedAssignment);
+    return (
+      JSON.stringify(assignmentDraft) !== JSON.stringify(lastSavedAssignment)
+    );
   }, [assignmentDraft, lastSavedAssignment]);
 
   const isQuestionDirty = useMemo(() => {
@@ -195,7 +219,13 @@ export default function AssignmentBuilderPage({
   // Handlers
   const handleBack = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
-    guardedRouter.push(`/${locale}/academics/curriculum?${params.toString()}`);
+    const curriculumId = params.get("curriculumId");
+    params.delete("curriculumId");
+    const query = params.toString();
+    const curriculumPath = curriculumId
+      ? `/${locale}/academics/curriculum/${curriculumId}`
+      : `/${locale}/academics/curriculum`;
+    guardedRouter.push(`${curriculumPath}${query ? `?${query}` : ""}`);
   }, [guardedRouter, locale, searchParams]);
 
   const handleSaveAssignment = useCallback(async () => {
@@ -212,7 +242,15 @@ export default function AssignmentBuilderPage({
     } finally {
       setIsAssignmentSaving(false);
     }
-  }, [assignmentDraft, isAssignmentDirty, isReadOnly, saveAssignment, showSuccess, showError, tCommon]);
+  }, [
+    assignmentDraft,
+    isAssignmentDirty,
+    isReadOnly,
+    saveAssignment,
+    showSuccess,
+    showError,
+    tCommon,
+  ]);
 
   const handleSaveQuestion = useCallback(async () => {
     if (isReadOnly || !questionDraft || !isQuestionDirty) return;
@@ -229,10 +267,12 @@ export default function AssignmentBuilderPage({
     try {
       await updateQuestion(questionDraft.id, questionDraft);
       setLastSavedQuestion(questionDraft);
-      
+
       // Update the question in the questions array
-      setQuestions(questions.map((q) => (q.id === questionDraft.id ? questionDraft : q)));
-      
+      setQuestions(
+        questions.map((q) => (q.id === questionDraft.id ? questionDraft : q)),
+      );
+
       showSuccess(tCommon("save_success"));
     } catch (error) {
       console.error("Failed to save question:", error);
@@ -240,7 +280,18 @@ export default function AssignmentBuilderPage({
     } finally {
       setIsQuestionSaving(false);
     }
-  }, [questionDraft, isQuestionDirty, isReadOnly, updateQuestion, questions, setQuestions, showSuccess, showError, tCommon, tValidation]);
+  }, [
+    questionDraft,
+    isQuestionDirty,
+    isReadOnly,
+    updateQuestion,
+    questions,
+    setQuestions,
+    showSuccess,
+    showError,
+    tCommon,
+    tValidation,
+  ]);
 
   const handlePublishToggle = useCallback(async () => {
     if (isReadOnly) return;
@@ -250,7 +301,7 @@ export default function AssignmentBuilderPage({
       showError(t("mustSaveBeforePublish"));
       return;
     }
-    
+
     await togglePublish();
   }, [togglePublish, isDirty, isReadOnly, showError, t]);
 
@@ -299,12 +350,15 @@ export default function AssignmentBuilderPage({
     (questionId: string, updates: Partial<AssignmentQuestion>) => {
       if (isReadOnly) return;
       if (!questionDraft || questionDraft.id !== questionId) return;
-      
+
       // Update draft immediately (no API call)
-      const updatedQuestion: AssignmentQuestion = { ...questionDraft, ...updates };
+      const updatedQuestion: AssignmentQuestion = {
+        ...questionDraft,
+        ...updates,
+      };
       setQuestionDraft(updatedQuestion);
     },
-    [isReadOnly, questionDraft]
+    [isReadOnly, questionDraft],
   );
 
   const handleDeleteQuestion = useCallback(
@@ -312,20 +366,30 @@ export default function AssignmentBuilderPage({
       if (isReadOnly) return;
       setConfirmDialog({ isOpen: true, type: "deleteQuestion", questionId });
     },
-    [isReadOnly]
+    [isReadOnly],
   );
 
   const handleConfirmDeleteQuestion = useCallback(async () => {
     if (isReadOnly) return;
     if (!confirmDialog.questionId) return;
-    
+
     await removeQuestion(confirmDialog.questionId);
-    const newQuestions = questions.filter((q) => q.id !== confirmDialog.questionId);
+    const newQuestions = questions.filter(
+      (q) => q.id !== confirmDialog.questionId,
+    );
     if (selectedQuestionId === confirmDialog.questionId) {
-      setSelectedQuestionId(newQuestions.length > 0 ? newQuestions[0].id : null);
+      setSelectedQuestionId(
+        newQuestions.length > 0 ? newQuestions[0].id : null,
+      );
     }
     setConfirmDialog({ isOpen: false, type: null });
-  }, [confirmDialog.questionId, isReadOnly, removeQuestion, questions, selectedQuestionId]);
+  }, [
+    confirmDialog.questionId,
+    isReadOnly,
+    removeQuestion,
+    questions,
+    selectedQuestionId,
+  ]);
 
   const handleMoveQuestion = useCallback(
     async (questionId: string, direction: "up" | "down") => {
@@ -348,22 +412,22 @@ export default function AssignmentBuilderPage({
 
       await reorderQuestions(newQuestions.map((q) => q.id));
     },
-    [isReadOnly, questions, reorderQuestions]
+    [isReadOnly, questions, reorderQuestions],
   );
 
   const handleUpdateAssignment = useCallback(
     (updates: Partial<Assignment>) => {
       if (isReadOnly) return;
       if (!assignmentDraft) return;
-      
+
       // Update draft immediately (no API call)
       const updatedAssignment: Assignment = { ...assignmentDraft, ...updates };
       setAssignmentDraft(updatedAssignment);
-      
+
       // Also update the main assignment state for UI consistency
       setAssignment(updatedAssignment);
     },
-    [assignmentDraft, isReadOnly, setAssignment]
+    [assignmentDraft, isReadOnly, setAssignment],
   );
 
   const handleAutoDistributePoints = useCallback(async () => {
@@ -394,20 +458,25 @@ export default function AssignmentBuilderPage({
         setSelectedQuestionId(questionId);
       }
     },
-    [isQuestionDirty]
+    [isQuestionDirty],
   );
 
   const handleSaveAndSwitch = useCallback(async () => {
     if (isReadOnly) return;
 
     await handleSaveQuestion();
-    
+
     // Only switch if save was successful (no longer dirty)
     if (confirmDialog.targetQuestionId && !isQuestionDirty) {
       setSelectedQuestionId(confirmDialog.targetQuestionId);
       setConfirmDialog({ isOpen: false, type: null });
     }
-  }, [confirmDialog.targetQuestionId, handleSaveQuestion, isQuestionDirty, isReadOnly]);
+  }, [
+    confirmDialog.targetQuestionId,
+    handleSaveQuestion,
+    isQuestionDirty,
+    isReadOnly,
+  ]);
 
   const handleDiscardAndSwitch = useCallback(() => {
     if (confirmDialog.targetQuestionId) {
@@ -458,10 +527,10 @@ export default function AssignmentBuilderPage({
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="mx-auto max-w-xl rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-          <h1 className="text-xl font-semibold text-gray-900">{t("createDraftTitle")}</h1>
-          <p className="mt-3 text-sm text-gray-600">
-            {t("createDraftBody")}
-          </p>
+          <h1 className="text-xl font-semibold text-gray-900">
+            {t("createDraftTitle")}
+          </h1>
+          <p className="mt-3 text-sm text-gray-600">{t("createDraftBody")}</p>
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
             <button
               onClick={handleBack}
@@ -483,7 +552,10 @@ export default function AssignmentBuilderPage({
   }
 
   const selectedQuestion = questions.find((q) => q.id === selectedQuestionId);
-  const pointsSummary = calculatePointsSummary(assignment.maxScore || 0, questions);
+  const pointsSummary = calculatePointsSummary(
+    assignment.maxScore || 0,
+    questions,
+  );
 
   // Get confirm dialog props based on type
   const getConfirmDialogProps = () => {
@@ -631,13 +703,17 @@ export default function AssignmentBuilderPage({
         cancelLabel={confirmDialogProps.cancelLabel}
         severity={confirmDialogProps.severity}
       />
-      
+
       {/* Switch Question Dialog with Discard Option */}
       {confirmDialog.type === "switchQuestion" && confirmDialog.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-            <h3 className="text-lg font-semibold mb-2">{tCommon("unsavedChanges")}</h3>
-            <p className="text-gray-600 mb-6">{tCommon("unsavedChangesMessage")}</p>
+            <h3 className="text-lg font-semibold mb-2">
+              {tCommon("unsavedChanges")}
+            </h3>
+            <p className="text-gray-600 mb-6">
+              {tCommon("unsavedChangesMessage")}
+            </p>
             <div className="flex flex-col gap-2">
               <button
                 onClick={handleSaveAndSwitch}
