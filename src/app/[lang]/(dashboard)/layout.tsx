@@ -4,6 +4,8 @@ import { NavigationGuardProvider } from "@/providers/NavigationGuardProvider";
 import { ProgressBarProvider } from "@/providers/ProgressBarProvider";
 import { ToastProvider } from "@/components/ui/toast/Toast";
 import { OnboardingRedirectGuard } from "@/features/onboarding/components/OnboardingRedirectGuard";
+import { AuthReadyGate } from "@/features/auth/components/AuthReadyGate";
+import { SetupStatusProvider } from "@/features/onboarding/context/SetupStatusContext";
 
 export default function DashboardLayout({
   children,
@@ -15,9 +17,13 @@ export default function DashboardLayout({
       <UnsavedChangesProvider>
         <NavigationGuardProvider>
           <ProgressBarProvider>
-            <OnboardingRedirectGuard>
-              <SideBarTopNav>{children}</SideBarTopNav>
-            </OnboardingRedirectGuard>
+            <AuthReadyGate>
+              <SetupStatusProvider>
+                <OnboardingRedirectGuard>
+                  <SideBarTopNav>{children}</SideBarTopNav>
+                </OnboardingRedirectGuard>
+              </SetupStatusProvider>
+            </AuthReadyGate>
           </ProgressBarProvider>
         </NavigationGuardProvider>
       </UnsavedChangesProvider>

@@ -46,6 +46,7 @@ import {
   getStudentDisplayName,
   getStudentDisplayId,
   getStudentGrade,
+  getStudentSection,
   getStudentClassroom,
 } from "@/features/students-guardians/students/utils/studentUtils";
 import MainLoader from "@/components/ui/loaders/MainLoader";
@@ -311,7 +312,7 @@ export default function StudentProfilePage({
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="font-medium">{t("section")}:</span>{" "}
-                  {profileStudent?.enrollment?.section ?? profileStudent.section ?? t("na")}
+                  {getStudentSection(profileStudent) ?? t("na")}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="font-medium">{t("classroom")}:</span>{" "}

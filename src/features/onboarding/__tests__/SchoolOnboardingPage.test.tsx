@@ -5,15 +5,15 @@ import SchoolOnboardingPage from "../pages/SchoolOnboardingPage";
 import type { SetupEvaluation, SetupSnapshot } from "../types";
 
 const hookMock = vi.hoisted(() => ({
-  useSetupStatus: vi.fn(),
+  useSetupStatusContext: vi.fn(),
 }));
 
 const navigationMock = vi.hoisted(() => ({
   push: vi.fn(),
 }));
 
-vi.mock("../hooks/useSetupStatus", () => ({
-  useSetupStatus: hookMock.useSetupStatus,
+vi.mock("../context/SetupStatusContext", () => ({
+  useSetupStatusContext: hookMock.useSetupStatusContext,
 }));
 
 vi.mock("next-intl", () => ({
@@ -84,7 +84,7 @@ describe("SchoolOnboardingPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
-    hookMock.useSetupStatus.mockReturnValue({
+    hookMock.useSetupStatusContext.mockReturnValue({
       snapshot,
       evaluation: createEvaluation({ isComplete: true }),
       selectedYear: null,
@@ -121,7 +121,7 @@ describe("SchoolOnboardingPage", () => {
   });
 
   it("disables skip until academic context and structure are complete", () => {
-    hookMock.useSetupStatus.mockReturnValue({
+    hookMock.useSetupStatusContext.mockReturnValue({
       snapshot,
       evaluation: createEvaluation({
         academicContextComplete: false,
@@ -142,7 +142,7 @@ describe("SchoolOnboardingPage", () => {
 
   it("stores a session skip and returns to the dashboard when minimum academic setup exists", async () => {
     const user = userEvent.setup();
-    hookMock.useSetupStatus.mockReturnValue({
+    hookMock.useSetupStatusContext.mockReturnValue({
       snapshot,
       evaluation: createEvaluation({
         academicContextComplete: true,

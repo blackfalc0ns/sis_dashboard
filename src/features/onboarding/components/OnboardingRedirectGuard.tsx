@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import MainLoader from "@/components/ui/loaders/MainLoader";
-import { useSetupStatus } from "../hooks/useSetupStatus";
+import { useSetupStatusContext } from "../context/SetupStatusContext";
 import { isSetupSnapshotLoading } from "../utils/setupStatus";
 
 function skippedStorageKey(schoolId: string) {
@@ -35,7 +35,7 @@ export function OnboardingRedirectGuard({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { evaluation, schoolId, snapshot } = useSetupStatus();
+  const { evaluation, schoolId, snapshot } = useSetupStatusContext();
   const isSnapshotLoading = isSetupSnapshotLoading(snapshot);
   const onboardingPath = isOnboardingPath(pathname);
   const skipped = schoolId ? hasSkippedOnboarding(schoolId) : false;

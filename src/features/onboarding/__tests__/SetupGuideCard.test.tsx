@@ -5,11 +5,11 @@ import { SetupGuideCard } from "../components/SetupGuideCard";
 import type { SetupEvaluation, SetupSnapshot } from "../types";
 
 const hookMock = vi.hoisted(() => ({
-  useSetupStatus: vi.fn(),
+  useSetupStatusContext: vi.fn(),
 }));
 
-vi.mock("../hooks/useSetupStatus", () => ({
-  useSetupStatus: hookMock.useSetupStatus,
+vi.mock("../context/SetupStatusContext", () => ({
+  useSetupStatusContext: hookMock.useSetupStatusContext,
 }));
 
 vi.mock("next-intl", () => ({
@@ -42,7 +42,7 @@ function evaluation(isComplete = false): SetupEvaluation {
 }
 
 function mockHook(isComplete = false) {
-  hookMock.useSetupStatus.mockReturnValue({
+  hookMock.useSetupStatusContext.mockReturnValue({
     snapshot,
     evaluation: evaluation(isComplete),
     selectedYear: null,

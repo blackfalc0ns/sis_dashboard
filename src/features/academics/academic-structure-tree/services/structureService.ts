@@ -84,6 +84,7 @@ const unsupportedMessage =
 
 let yearsCache: AcademicYear[] = [];
 const termsByYearCache = new Map<string, Term[]>();
+const pendingTermsByYearRequests = new Map<string, Promise<Term[]>>();
 const structureByTermCache = new Map<string, StructureTree>();
 
 const fallbackAcademicYears: AcademicYear[] = [
@@ -243,12 +244,24 @@ export const fetchAcademicYears = async (): Promise<AcademicYear[]> => {
 };
 
 export const fetchTermsByYear = async (yearId: string): Promise<Term[]> => {
-  const terms = await structureApiAdapter.fetchTermsByYear(yearId);
-  termsByYearCache.set(
-    yearId,
-    terms.map((item) => ({ ...item }))
-  );
-  return terms;
+  const pendingRequest = pendingTermsByYearRequests.get(yearId);
+  if (pendingRequest) return pendingRequest;
+
+  const request = structureApiAdapter
+    .fetchTermsByYear(yearId)
+    .then((terms) => {
+      termsByYearCache.set(
+        yearId,
+        terms.map((item) => ({ ...item }))
+      );
+      return terms;
+    })
+    .finally(() => {
+      pendingTermsByYearRequests.delete(yearId);
+    });
+
+  pendingTermsByYearRequests.set(yearId, request);
+  return request;
 };
 
 export const createAcademicYear = async (

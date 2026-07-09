@@ -12,7 +12,7 @@ import {
   Network,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSetupStatus } from "../hooks/useSetupStatus";
+import { useSetupStatusContext } from "../context/SetupStatusContext";
 import { isSetupSnapshotLoading } from "../utils/setupStatus";
 
 const welcomeStages = [
@@ -24,7 +24,7 @@ const welcomeStages = [
 ] as const;
 
 export default function OnboardingWelcomePage() {
-  const { evaluation, snapshot } = useSetupStatus();
+  const { evaluation, snapshot } = useSetupStatusContext();
   const t = useTranslations("onboarding");
   const router = useRouter();
   const params = useParams<{ lang?: string }>();

@@ -28,7 +28,7 @@ export default function SupportHomePage() {
   const helpCenterUrl = `https://moazez.sa/${locale}/help-center`;
 
   return (
-    <main className="min-h-[calc(100dvh-96px)] bg-slate-50 px-4 py-8 text-slate-950 sm:px-6 lg:px-8">
+    <main className="min-h-[calc(100dvh-96px)] flex justify-center items-center bg-slate-50 px-4 py-8 text-slate-950 sm:px-6 lg:px-8">
       <section className="mx-auto flex max-w-4xl flex-col gap-8">
         <div className="space-y-3">
           <h1 className="text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">
@@ -51,7 +51,7 @@ export default function SupportHomePage() {
           </a>
 
           <Link
-            href={`/${locale}/dashboard/help/chat`}
+            href={`/${locale}/help/chat`}
             className="inline-flex min-h-14 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-800 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <MessageCircle className="h-5 w-5 text-primary" />

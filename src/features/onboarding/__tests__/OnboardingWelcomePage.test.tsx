@@ -4,11 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import OnboardingWelcomePage from "../pages/OnboardingWelcomePage";
 import type { SetupEvaluation, SetupSnapshot } from "../types";
 
-const hookMock = vi.hoisted(() => ({ useSetupStatus: vi.fn() }));
+const hookMock = vi.hoisted(() => ({ useSetupStatusContext: vi.fn() }));
 const navigationMock = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
 
-vi.mock("../hooks/useSetupStatus", () => ({
-  useSetupStatus: hookMock.useSetupStatus,
+vi.mock("../context/SetupStatusContext", () => ({
+  useSetupStatusContext: hookMock.useSetupStatusContext,
 }));
 
 vi.mock("next-intl", () => ({
@@ -60,7 +60,7 @@ function evaluation(isComplete: boolean): SetupEvaluation {
 }
 
 function mockStatus(currentSnapshot = snapshot, isComplete = false) {
-  hookMock.useSetupStatus.mockReturnValue({
+  hookMock.useSetupStatusContext.mockReturnValue({
     snapshot: currentSnapshot,
     evaluation: evaluation(isComplete),
     selectedYear: null,

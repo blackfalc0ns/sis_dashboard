@@ -3,12 +3,12 @@
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { useSetupStatus } from "../hooks/useSetupStatus";
+import { useSetupStatusContext } from "../context/SetupStatusContext";
 import { SetupGuideContent } from "../components/SetupGuideContent";
 import { markOnboardingSkipped } from "../components/OnboardingRedirectGuard";
 
 export default function SchoolOnboardingPage() {
-  const result = useSetupStatus();
+  const result = useSetupStatusContext();
   const t = useTranslations("onboarding");
   const router = useRouter();
   const params = useParams<{ lang?: string }>();

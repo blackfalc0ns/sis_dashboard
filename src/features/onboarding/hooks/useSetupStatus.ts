@@ -99,7 +99,7 @@ export interface UseSetupStatusResult {
 }
 
 export function useSetupStatus(): UseSetupStatusResult {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const schoolId = user?.activeMembership?.schoolId ?? "";
   const [snapshot, setSnapshot] = useState<SetupSnapshot>(() => createInitialSnapshot());
   const [selectedYear, setSelectedYear] = useState<AcademicYear | null>(null);
@@ -245,6 +245,11 @@ export function useSetupStatus(): UseSetupStatusResult {
 
   useEffect(() => {
     isMountedRef.current = true;
+    if (authLoading) {
+      return () => {
+        isMountedRef.current = false;
+      };
+    }
 
     async function loadInitial() {
       await Promise.all([loadOrganization(), loadAcademicAndDependents(), loadRooms()]);
@@ -255,7 +260,7 @@ export function useSetupStatus(): UseSetupStatusResult {
     return () => {
       isMountedRef.current = false;
     };
-  }, [loadAcademicAndDependents, loadOrganization, loadRooms]);
+  }, [authLoading, loadAcademicAndDependents, loadOrganization, loadRooms]);
 
   const evaluation = useMemo(() => evaluateSetup(snapshot), [snapshot]);
 

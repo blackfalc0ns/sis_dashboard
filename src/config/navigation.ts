@@ -801,8 +801,8 @@ export const bottomItems: MenuItem[] = [
     key: "help",
     label_en: "Get Help",
     label_ar: "المساعدة",
-    href_en: "/en/dashboard/help",
-    href_ar: "/ar/dashboard/help",
+    href_en: "/en/help",
+    href_ar: "/ar/help",
     icon: HelpCircle,
   },
 ];

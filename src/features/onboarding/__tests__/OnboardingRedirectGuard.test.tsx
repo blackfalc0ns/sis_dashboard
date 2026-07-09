@@ -4,7 +4,7 @@ import { OnboardingRedirectGuard } from "../components/OnboardingRedirectGuard";
 import type { SetupEvaluation, SetupSnapshot } from "../types";
 
 const hookMock = vi.hoisted(() => ({
-  useSetupStatus: vi.fn(),
+  useSetupStatusContext: vi.fn(),
 }));
 
 const navigationMock = vi.hoisted(() => ({
@@ -12,8 +12,8 @@ const navigationMock = vi.hoisted(() => ({
   usePathname: vi.fn(),
 }));
 
-vi.mock("../hooks/useSetupStatus", () => ({
-  useSetupStatus: hookMock.useSetupStatus,
+vi.mock("../context/SetupStatusContext", () => ({
+  useSetupStatusContext: hookMock.useSetupStatusContext,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -83,7 +83,7 @@ function mockStatus(overrides?: {
   schoolId?: string;
   snapshot?: SetupSnapshot;
 }) {
-  hookMock.useSetupStatus.mockReturnValue({
+  hookMock.useSetupStatusContext.mockReturnValue({
     snapshot: overrides?.snapshot ?? snapshot,
     evaluation: evaluation(overrides?.isComplete ?? false),
     selectedYear: null,

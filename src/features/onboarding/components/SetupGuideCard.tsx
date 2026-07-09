@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { useSetupStatus } from "../hooks/useSetupStatus";
+import { useSetupStatusContext } from "../context/SetupStatusContext";
 import { SetupGuideContent } from "./SetupGuideContent";
 
 function dismissedKey(schoolId: string) {
@@ -12,7 +12,7 @@ function dismissedKey(schoolId: string) {
 
 export function SetupGuideCard() {
   const t = useTranslations("onboarding");
-  const result = useSetupStatus();
+  const result = useSetupStatusContext();
   const [isDismissed, setIsDismissed] = useState(false);
   const key = dismissedKey(result.schoolId);
 

@@ -222,4 +222,24 @@ describe("useSetupStatus", () => {
     expect(mockedFetchRooms).not.toHaveBeenCalled();
     expect(result.current.snapshot.rooms.error).toBe("No school selected");
   });
+
+  it("waits for auth to restore before loading setup resources", async () => {
+    mockedUseAuth.mockReturnValue({ user: null, isLoading: true } as never);
+
+    const { result } = renderHook(() => useSetupStatus());
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.schoolId).toBe("");
+    expect(result.current.snapshot.organization.status).toBe("loading");
+    expect(mockedFetchBrandingProfile).not.toHaveBeenCalled();
+    expect(mockedFetchAcademicYears).not.toHaveBeenCalled();
+    expect(mockedFetchTermsByYear).not.toHaveBeenCalled();
+    expect(mockedFetchStructureTree).not.toHaveBeenCalled();
+    expect(mockedFetchSubjects).not.toHaveBeenCalled();
+    expect(mockedFetchSubjectAllocations).not.toHaveBeenCalled();
+    expect(mockedFetchRooms).not.toHaveBeenCalled();
+  });
 });

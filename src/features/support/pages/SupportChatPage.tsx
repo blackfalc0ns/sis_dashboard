@@ -46,7 +46,7 @@ export default function SupportChatPage() {
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
-            onClick={() => router.push(`/${locale}/dashboard/help`)}
+            onClick={() => router.push(`/${locale}/help`)}
             className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             aria-label={pageLabels.back}
           >

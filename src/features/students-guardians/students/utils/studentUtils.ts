@@ -91,6 +91,17 @@ export function getStudentGrade(
 }
 
 /**
+ * Get display section for a student when available
+ */
+export function getStudentSection(
+  student: Student & {
+    enrollment?: { section?: string };
+  },
+): string | undefined {
+  return student.enrollment?.section ?? student.section;
+}
+
+/**
  * Get display classroom for a student when available
  */
 export function getStudentClassroom(
