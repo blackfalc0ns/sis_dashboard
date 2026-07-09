@@ -83,6 +83,7 @@ const unsupportedMessage =
   "This action is not supported by the current Academic Structure API contract.";
 
 let yearsCache: AcademicYear[] = [];
+let pendingAcademicYearsRequest: Promise<AcademicYear[]> | null = null;
 const termsByYearCache = new Map<string, Term[]>();
 const pendingTermsByYearRequests = new Map<string, Promise<Term[]>>();
 const structureByTermCache = new Map<string, StructureTree>();
@@ -238,9 +239,20 @@ const applyClassroomOrder = (
 };
 
 export const fetchAcademicYears = async (): Promise<AcademicYear[]> => {
-  const years = await structureApiAdapter.fetchAcademicYears();
-  yearsCache = years.map((item) => ({ ...item }));
-  return years;
+  if (pendingAcademicYearsRequest) return pendingAcademicYearsRequest;
+
+  const request = structureApiAdapter
+    .fetchAcademicYears()
+    .then((years) => {
+      yearsCache = years.map((item) => ({ ...item }));
+      return years;
+    })
+    .finally(() => {
+      pendingAcademicYearsRequest = null;
+    });
+
+  pendingAcademicYearsRequest = request;
+  return request;
 };
 
 export const fetchTermsByYear = async (yearId: string): Promise<Term[]> => {

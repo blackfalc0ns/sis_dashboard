@@ -22,6 +22,7 @@ const EMPTY_BRANDING_PROFILE: SchoolProfileSettings = {
 };
 
 let brandingCache: SchoolProfileSettings | null = null;
+let pendingBrandingRequest: Promise<SchoolProfileSettings> | null = null;
 
 function normalizeNullableText(value: string | null | undefined): string {
   return value ?? "";
@@ -106,8 +107,16 @@ export async function fetchBrandingProfile(
     return cloneProfile(brandingCache);
   }
 
-  const response = await apiGet<BrandingApiDto>("/settings/branding");
-  return cacheAndReturn(brandingApiToForm(response));
+  if (pendingBrandingRequest) return pendingBrandingRequest;
+
+  const request = apiGet<BrandingApiDto>("/settings/branding")
+    .then((response) => cacheAndReturn(brandingApiToForm(response)))
+    .finally(() => {
+      pendingBrandingRequest = null;
+    });
+
+  pendingBrandingRequest = request;
+  return request;
 }
 
 export async function updateBrandingProfile(

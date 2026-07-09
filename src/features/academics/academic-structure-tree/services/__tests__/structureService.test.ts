@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { structureApiAdapter } from "../structureApiAdapter";
-import { fetchTermsByYear } from "../structureService";
-import type { Term } from "../structureService";
+import { fetchAcademicYears, fetchTermsByYear } from "../structureService";
+import type { AcademicYear, Term } from "../structureService";
 
 vi.mock("../structureApiAdapter", () => ({
   structureApiAdapter: {
@@ -11,6 +11,15 @@ vi.mock("../structureApiAdapter", () => ({
 }));
 
 const mockedFetchTermsByYear = vi.mocked(structureApiAdapter.fetchTermsByYear);
+const mockedFetchAcademicYears = vi.mocked(structureApiAdapter.fetchAcademicYears);
+
+const academicYear: AcademicYear = {
+  id: "year-1",
+  name: "2026-2027",
+  startDate: "2026-09-01",
+  endDate: "2027-06-30",
+  isActive: true,
+};
 
 const term: Term = {
   id: "term-1",
@@ -23,7 +32,27 @@ const term: Term = {
 
 describe("structureService", () => {
   beforeEach(() => {
+    mockedFetchAcademicYears.mockReset();
     mockedFetchTermsByYear.mockReset();
+  });
+
+  it("shares concurrent academic year requests", async () => {
+    let resolveYears: (years: AcademicYear[]) => void = () => undefined;
+    mockedFetchAcademicYears.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveYears = resolve;
+      }),
+    );
+
+    const firstRequest = fetchAcademicYears();
+    const secondRequest = fetchAcademicYears();
+
+    expect(mockedFetchAcademicYears).toHaveBeenCalledTimes(1);
+
+    resolveYears([academicYear]);
+
+    await expect(firstRequest).resolves.toEqual([academicYear]);
+    await expect(secondRequest).resolves.toEqual([academicYear]);
   });
 
   it("shares concurrent term requests for the same academic year", async () => {

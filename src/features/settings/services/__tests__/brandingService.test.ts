@@ -1,6 +1,17 @@
-import { describe, expect, it } from "vitest";
-import { calculateBrandingProfileCompleteness } from "../brandingService";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { apiGet } from "@/lib/api";
+import {
+  calculateBrandingProfileCompleteness,
+  fetchBrandingProfile,
+} from "../brandingService";
 import type { SchoolProfileSettings } from "../../types";
+
+vi.mock("@/lib/api", () => ({
+  apiGet: vi.fn(),
+  apiPatch: vi.fn(),
+}));
+
+const mockedApiGet = vi.mocked(apiGet);
 
 const completeProfile: SchoolProfileSettings = {
   schoolName: "Al Noor School",
@@ -18,6 +29,10 @@ const completeProfile: SchoolProfileSettings = {
 };
 
 describe("calculateBrandingProfileCompleteness", () => {
+  beforeEach(() => {
+    mockedApiGet.mockReset();
+  });
+
   it("requires the full approved branding profile for 100 percent", () => {
     expect(calculateBrandingProfileCompleteness(completeProfile)).toBe(100);
     expect(
@@ -32,5 +47,24 @@ describe("calculateBrandingProfileCompleteness", () => {
         longitude: null,
       }),
     ).toBeLessThan(100);
+  });
+
+  it("shares concurrent branding profile requests", async () => {
+    let resolveProfile: (profile: SchoolProfileSettings) => void = () => undefined;
+    mockedApiGet.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveProfile = resolve;
+      }),
+    );
+
+    const firstRequest = fetchBrandingProfile({ force: true });
+    const secondRequest = fetchBrandingProfile({ force: true });
+
+    expect(mockedApiGet).toHaveBeenCalledTimes(1);
+
+    resolveProfile(completeProfile);
+
+    await expect(firstRequest).resolves.toEqual(completeProfile);
+    await expect(secondRequest).resolves.toEqual(completeProfile);
   });
 });
