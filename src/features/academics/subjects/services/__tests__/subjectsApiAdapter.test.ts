@@ -100,27 +100,24 @@ describe("subjectsApiAdapter", () => {
     );
   });
 
-  it("keeps subject CRUD calls on the subjects endpoint", async () => {
+  it("keeps subject CRUD calls catalog-only on the subjects endpoint", async () => {
     mockedApiGet.mockResolvedValueOnce({ items: [] });
     mockedApiPost.mockResolvedValueOnce({ id: "subject-1" });
     mockedApiPatch.mockResolvedValueOnce({ id: "subject-1" });
     mockedApiDelete.mockResolvedValueOnce(undefined);
 
-    await adapter.fetchSubjects("term-1");
-    await adapter.createSubject("term-1", {
+    await adapter.fetchSubjects();
+    await adapter.createSubject({
       name: "Math",
       nameAr: "Math AR",
       nameEn: "Math",
       isActive: true,
     });
-    await adapter.updateSubject("term-1", "subject-1", { isActive: false });
-    await adapter.deleteSubject("term-1", "subject-1");
+    await adapter.updateSubject("subject-1", { isActive: false });
+    await adapter.deleteSubject("subject-1");
 
-    expect(mockedApiGet).toHaveBeenCalledWith("/academics/subjects", {
-      params: { termId: "term-1" },
-    });
+    expect(mockedApiGet).toHaveBeenCalledWith("/academics/subjects");
     expect(mockedApiPost).toHaveBeenCalledWith("/academics/subjects", {
-      termId: "term-1",
       name: "Math",
       nameAr: "Math AR",
       nameEn: "Math",
@@ -129,15 +126,9 @@ describe("subjectsApiAdapter", () => {
     expect(mockedApiPatch).toHaveBeenCalledWith(
       "/academics/subjects/subject-1",
       {
-        termId: "term-1",
         isActive: false,
       },
     );
-    expect(mockedApiDelete).toHaveBeenCalledWith(
-      "/academics/subjects/subject-1",
-      {
-        params: { termId: "term-1" },
-      },
-    );
+    expect(mockedApiDelete).toHaveBeenCalledWith("/academics/subjects/subject-1");
   });
 });

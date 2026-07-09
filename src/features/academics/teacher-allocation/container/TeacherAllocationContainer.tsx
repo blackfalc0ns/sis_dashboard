@@ -100,7 +100,7 @@ export default function TeacherAllocationContainer() {
         teacherAllocsData,
       ] = await Promise.all([
         fetchStructureTree(academicYearId, termId),
-        fetchSubjects(termId),
+        fetchSubjects(),
         fetchSubjectAllocations(termId),
         fetchTeachers(),
         fetchTeacherAllocations(termId),

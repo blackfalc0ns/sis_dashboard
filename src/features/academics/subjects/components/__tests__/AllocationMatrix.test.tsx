@@ -57,7 +57,6 @@ const stage: Stage = {
 
 const subject: Subject = {
   id: "subject-1",
-  termId: "term-1",
   name: "Math",
   nameAr: "Math AR",
   nameEn: "Math",
@@ -81,6 +80,7 @@ const mockedBulkUpsertSubjectAllocations = vi.mocked(
 
 function renderAllocationMatrix(options?: {
   allocations?: SubjectAllocation[];
+  isLoading?: boolean;
   onRefresh?: () => Promise<void>;
   onDirtyChange?: (isDirty: boolean) => void;
   onSaveError?: (error: unknown) => void;
@@ -96,6 +96,7 @@ function renderAllocationMatrix(options?: {
       subjects={[subject]}
       allocations={options?.allocations ?? [subjectAllocation]}
       termId="term-1"
+      isLoading={options?.isLoading}
       isReadOnly={false}
       onAllocationsChange={vi.fn()}
       onDirtyChange={onDirtyChange}
@@ -132,6 +133,13 @@ describe("AllocationMatrix", () => {
     expect(
       screen.queryByRole("button", { name: "stage-1" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows a matrix skeleton while filtered allocations are loading", () => {
+    renderAllocationMatrix({ isLoading: true });
+
+    expect(screen.getByRole("status", { name: "loading" })).toBeInTheDocument();
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
   });
 
   it("saves edited allocations through the API service", async () => {

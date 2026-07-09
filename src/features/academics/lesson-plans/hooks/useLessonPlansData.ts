@@ -113,7 +113,7 @@ export function useLessonPlansData(params: Params) {
         setLoading(true);
         const [tree, subjectList, teacherList] = await Promise.all([
           fetchStructureTree(academicYearId, termId),
-          fetchSubjects(termId),
+          fetchSubjects(),
           fetchTeachers(),
         ]);
         setStages(tree.stages);

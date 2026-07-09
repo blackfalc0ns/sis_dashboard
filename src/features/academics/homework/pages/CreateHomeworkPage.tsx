@@ -254,7 +254,7 @@ export default function CreateHomeworkPage() {
       try {
         const [structure, subjects, teachers, allocations] = await Promise.all([
           fetchStructureTree(academicYearId, termId),
-          fetchSubjects(termId),
+          fetchSubjects(),
           fetchTeachers(),
           fetchTeacherAllocations(termId),
         ]);

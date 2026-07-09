@@ -177,7 +177,7 @@ export function useSetupStatus(): UseSetupStatusResult {
 
     try {
       const [subjects, allocations] = await Promise.all([
-        fetchSubjects(term.id),
+        fetchSubjects(),
         fetchSubjectAllocations(term.id),
       ]);
       updateSnapshot((current) => ({ ...current, subjects: success({ subjects, allocations }) }));

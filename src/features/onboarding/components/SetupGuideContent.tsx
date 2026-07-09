@@ -91,7 +91,6 @@ function createStepContent(
         copy={copy.subjects}
         grades={structure.grades}
         refreshStep={result.refreshStep}
-        stages={structure.stages}
         subjectsData={subjectsData}
         termId={result.selectedTerm?.id ?? ""}
       />

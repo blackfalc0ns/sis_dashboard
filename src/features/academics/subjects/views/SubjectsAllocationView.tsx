@@ -35,6 +35,7 @@ interface SubjectsAllocationViewProps {
   subjects: Subject[];
   allocations: SubjectAllocation[];
   isLoading: boolean;
+  isMatrixLoading: boolean;
   apiError: string | null;
   apiErrorTraceId?: string;
   activeTab: "subjects" | "matrix";
@@ -67,6 +68,7 @@ export default function SubjectsAllocationView({
   subjects,
   allocations,
   isLoading,
+  isMatrixLoading,
   apiError,
   apiErrorTraceId,
   activeTab,
@@ -197,7 +199,6 @@ export default function SubjectsAllocationView({
               <SubjectsList
                 subjects={subjects}
                 allocations={allocations}
-                termId={termId}
                 isReadOnly={isReadOnly}
                 onAdd={onAddSubject}
                 onEdit={onEditSubject}
@@ -215,6 +216,7 @@ export default function SubjectsAllocationView({
                 termId={termId}
                 yearName={yearName}
                 termName={termName}
+                isLoading={isMatrixLoading}
                 isReadOnly={isReadOnly}
                 onAllocationsChange={onAllocationsChange}
                 onDirtyChange={onDirtyChange}
@@ -230,7 +232,6 @@ export default function SubjectsAllocationView({
               <SubjectsList
                 subjects={subjects}
                 allocations={allocations}
-                termId={termId}
                 isReadOnly={isReadOnly}
                 onAdd={onAddSubject}
                 onEdit={onEditSubject}
@@ -245,6 +246,7 @@ export default function SubjectsAllocationView({
                 termId={termId}
                 yearName={yearName}
                 termName={termName}
+                isLoading={isMatrixLoading}
                 isReadOnly={isReadOnly}
                 onAllocationsChange={onAllocationsChange}
                 onDirtyChange={onDirtyChange}
@@ -261,10 +263,8 @@ export default function SubjectsAllocationView({
         isOpen={showSubjectDialog}
         onClose={onCloseSubjectDialog}
         onSuccess={onSubjectSuccess}
-        termId={termId}
         subject={editingSubject}
         existingSubjects={subjects}
-        stages={stages}
       />
 
       {/* Carry Over Dialog */}

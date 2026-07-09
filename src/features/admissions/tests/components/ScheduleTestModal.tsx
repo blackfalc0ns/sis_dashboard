@@ -92,7 +92,7 @@ export default function ScheduleTestModal({
     if (!isOpen || !termId) return;
     let cancelled = false;
     setIsLoadingSubjects(true);
-    void fetchSubjects(termId)
+    void fetchSubjects()
       .then((items) => {
         if (!cancelled) setSubjects(items.filter((subject) => subject.isActive));
       })

@@ -365,7 +365,7 @@ export default function CurriculumPageContent() {
       setContextError("");
       const [structureData, subjectsData] = await Promise.all([
         fetchStructureTree(academicYearId, termId),
-        fetchSubjects(termId),
+        fetchSubjects(),
       ]);
       if (requestId !== optionsRequestIdRef.current) return;
 

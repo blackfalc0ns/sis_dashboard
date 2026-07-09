@@ -16,10 +16,8 @@ export const createSubjectsApiAdapter = (
   basePath: string = "/academics/subjects",
   allocationPath: string = "/academics/subject-allocations",
 ): SubjectsAdapter => ({
-  async fetchSubjects(termId) {
-    const response = await apiGet<unknown>(basePath, {
-      params: { termId },
-    });
+  async fetchSubjects() {
+    const response = await apiGet<unknown>(basePath);
     if (Array.isArray(response)) return response as Subject[];
     if (isObjectRecord(response) && Array.isArray(response.data)) {
       return response.data as Subject[];
@@ -33,26 +31,18 @@ export const createSubjectsApiAdapter = (
     return [];
   },
 
-  async createSubject(termId, payload) {
-    const response = await apiPost<unknown>(basePath, {
-      termId,
-      ...payload,
-    });
+  async createSubject(payload) {
+    const response = await apiPost<unknown>(basePath, payload);
     return subjectFromResponse(response);
   },
 
-  async updateSubject(termId, subjectId, payload) {
-    const response = await apiPatch<unknown>(`${basePath}/${subjectId}`, {
-      termId,
-      ...payload,
-    });
+  async updateSubject(subjectId, payload) {
+    const response = await apiPatch<unknown>(`${basePath}/${subjectId}`, payload);
     return subjectFromResponse(response);
   },
 
-  async deleteSubject(termId, subjectId) {
-    await apiDelete<void>(`${basePath}/${subjectId}`, {
-      params: { termId },
-    });
+  async deleteSubject(subjectId) {
+    await apiDelete<void>(`${basePath}/${subjectId}`);
   },
 
   async fetchSubjectAllocations(termId, filters) {

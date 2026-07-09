@@ -5,17 +5,13 @@ import type {
 } from "@/features/academics/subjects/services/subjectsService";
 
 export interface SubjectsAdapter {
-  fetchSubjects(termId: string): Promise<Subject[]>;
-  createSubject(
-    termId: string,
-    payload: Omit<Subject, "id" | "termId">
-  ): Promise<Subject>;
+  fetchSubjects(): Promise<Subject[]>;
+  createSubject(payload: Omit<Subject, "id">): Promise<Subject>;
   updateSubject(
-    termId: string,
     subjectId: string,
-    payload: Partial<Omit<Subject, "id" | "termId">>
+    payload: Partial<Omit<Subject, "id">>
   ): Promise<Subject>;
-  deleteSubject(termId: string, subjectId: string): Promise<void>;
+  deleteSubject(subjectId: string): Promise<void>;
   fetchSubjectAllocations(
     termId: string,
     filters?: { gradeId?: string; subjectId?: string },

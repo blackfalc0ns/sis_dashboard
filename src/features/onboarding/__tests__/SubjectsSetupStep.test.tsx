@@ -32,7 +32,6 @@ const grade = {
 };
 const subject = {
   id: "subject-1",
-  termId: "term-1",
   name: "Math",
   nameAr: "رياضيات",
   nameEn: "Math",
@@ -63,7 +62,6 @@ describe("SubjectsSetupStep", () => {
         copy={copy}
         grades={[grade]}
         refreshStep={vi.fn()}
-        stages={[stage]}
         subjectsData={{ subjects: [], allocations: [] }}
         termId="term-1"
       />,
@@ -75,8 +73,6 @@ describe("SubjectsSetupStep", () => {
     expect(dialogMocks.subjectDialog).toHaveBeenLastCalledWith(
       expect.objectContaining({
         isOpen: true,
-        termId: "term-1",
-        stages: [stage],
         existingSubjects: [],
         subject: null,
         onSuccess: expect.any(Function),
@@ -94,7 +90,6 @@ describe("SubjectsSetupStep", () => {
         copy={copy}
         grades={[grade]}
         refreshStep={refreshStep}
-        stages={[stage]}
         subjectsData={{ subjects: [subject], allocations: [] }}
         termId="term-1"
       />,

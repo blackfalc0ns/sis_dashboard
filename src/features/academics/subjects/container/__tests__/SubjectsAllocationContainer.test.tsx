@@ -10,10 +10,16 @@ import {
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { usePermissions } from "@/hooks/usePermissions";
 
-const { mockedSubjectsAllocationView, mockedClearDirty, mockedMarkDirty } = vi.hoisted(() => ({
+const {
+  mockedSubjectsAllocationView,
+  mockedClearDirty,
+  mockedMarkDirty,
+  mockedSearchParams,
+} = vi.hoisted(() => ({
   mockedSubjectsAllocationView: vi.fn(),
   mockedClearDirty: vi.fn(),
   mockedMarkDirty: vi.fn(),
+  mockedSearchParams: { current: "" },
 }));
 
 vi.mock("@/features/academics/subjects/views/SubjectsAllocationView", () => ({
@@ -21,6 +27,7 @@ vi.mock("@/features/academics/subjects/views/SubjectsAllocationView", () => ({
     canView: boolean;
     isReadOnly: boolean;
     isLoading: boolean;
+    isMatrixLoading: boolean;
     apiError: string | null;
   }) => {
     mockedSubjectsAllocationView(props);
@@ -29,6 +36,7 @@ vi.mock("@/features/academics/subjects/views/SubjectsAllocationView", () => ({
         <span>{props.canView ? "can-view" : "Access denied"}</span>
         <span>{props.isReadOnly ? "read-only" : "editable"}</span>
         <span>{props.isLoading ? "loading" : "loaded"}</span>
+        <span>{props.isMatrixLoading ? "matrix-loading" : "matrix-idle"}</span>
         {props.apiError && <span>{props.apiError}</span>}
       </div>
     );
@@ -67,7 +75,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
   }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(mockedSearchParams.current),
 }));
 
 const mockedFetchStructureTree = vi.mocked(fetchStructureTree);
@@ -130,7 +138,6 @@ function mockSubjectAllocationBackend() {
   mockedFetchSubjects.mockResolvedValue([
     {
       id: "subject-1",
-      termId: "term-1",
       name: "Math",
       nameAr: "Math AR",
       nameEn: "Math",
@@ -154,6 +161,7 @@ function mockSubjectAllocationBackend() {
 describe("SubjectsAllocationContainer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedSearchParams.current = "";
     mockAcademicContext("open");
     mockPermissions(["academics.subjects.view", "academics.subjects.manage"]);
     mockSubjectAllocationBackend();
@@ -178,6 +186,48 @@ describe("SubjectsAllocationContainer", () => {
       );
     });
     expect(screen.getByText("loaded")).toBeInTheDocument();
+  });
+
+  it("applies grade and subject query filters to the server allocation read", async () => {
+    mockedSearchParams.current = "gradeId=grade-1&subjectId=subject-1";
+
+    render(<SubjectsAllocationContainer />);
+
+    await waitFor(() => {
+      expect(mockedFetchSubjectAllocations).toHaveBeenCalledWith("term-1", {
+        gradeId: "grade-1",
+        subjectId: "subject-1",
+      });
+    });
+  });
+
+  it("keeps the page visible and shows matrix loading while filter results reload", async () => {
+    const { rerender } = render(<SubjectsAllocationContainer />);
+
+    await waitFor(() => {
+      expect(mockedSubjectsAllocationView).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          isLoading: false,
+          isMatrixLoading: false,
+        }),
+      );
+    });
+
+    mockedSearchParams.current = "gradeId=grade-1";
+    mockedFetchSubjectAllocations.mockReturnValueOnce(new Promise(() => undefined));
+
+    rerender(<SubjectsAllocationContainer />);
+
+    await waitFor(() => {
+      expect(mockedSubjectsAllocationView).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          isLoading: false,
+          isMatrixLoading: true,
+        }),
+      );
+    });
+    expect(screen.getByText("loaded")).toBeInTheDocument();
+    expect(screen.getByText("matrix-loading")).toBeInTheDocument();
   });
 
   it("shows a mapped API error when loading fails", async () => {

@@ -37,6 +37,7 @@ interface AllocationMatrixProps {
   termId: string;
   yearName?: string;
   termName?: string;
+  isLoading?: boolean;
   isReadOnly: boolean;
   onAllocationsChange: (allocations: SubjectAllocation[]) => void;
   onDirtyChange: (isDirty: boolean) => void;
@@ -52,6 +53,7 @@ export default function AllocationMatrix({
   termId,
   yearName,
   termName,
+  isLoading = false,
   isReadOnly,
   onDirtyChange,
   onSaveError,
@@ -65,11 +67,14 @@ export default function AllocationMatrix({
   const queryState = useMemo(
     () => ({
       stageFilter: searchParams.get("stage") || "",
+      gradeFilter: searchParams.get("gradeId") || "",
+      subjectFilter: searchParams.get("subjectId") || "",
       showOnlyMissing: searchParams.get("missing") === "1",
     }),
     [searchParams],
   );
-  const { stageFilter, showOnlyMissing } = queryState;
+  const { stageFilter, gradeFilter, subjectFilter, showOnlyMissing } =
+    queryState;
 
   const [localAllocations, setLocalAllocations] = useState<SubjectAllocation[]>(
     [],
@@ -113,6 +118,8 @@ export default function AllocationMatrix({
   const syncQueryParams = (
     nextState: Partial<{
       stageFilter: string;
+      gradeFilter: string;
+      subjectFilter: string;
       showOnlyMissing: boolean;
     }>,
     historyMode: "push" | "replace" = "push",
@@ -120,6 +127,8 @@ export default function AllocationMatrix({
     const params = new URLSearchParams(searchParams.toString());
     const mergedState = {
       stageFilter: nextState.stageFilter ?? queryState.stageFilter,
+      gradeFilter: nextState.gradeFilter ?? queryState.gradeFilter,
+      subjectFilter: nextState.subjectFilter ?? queryState.subjectFilter,
       showOnlyMissing: nextState.showOnlyMissing ?? queryState.showOnlyMissing,
     };
 
@@ -127,6 +136,18 @@ export default function AllocationMatrix({
       params.set("stage", mergedState.stageFilter);
     } else {
       params.delete("stage");
+    }
+
+    if (mergedState.gradeFilter) {
+      params.set("gradeId", mergedState.gradeFilter);
+    } else {
+      params.delete("gradeId");
+    }
+
+    if (mergedState.subjectFilter) {
+      params.set("subjectId", mergedState.subjectFilter);
+    } else {
+      params.delete("subjectId");
     }
 
     if (mergedState.showOnlyMissing) {
@@ -155,6 +176,16 @@ export default function AllocationMatrix({
     return grades.filter((g) => g.stageId === stageFilter);
   }, [grades, stageFilter]);
 
+  const selectedGrades = useMemo(() => {
+    if (!gradeFilter) return stageFilteredGrades;
+    return stageFilteredGrades.filter((grade) => grade.id === gradeFilter);
+  }, [gradeFilter, stageFilteredGrades]);
+
+  const selectedSubjects = useMemo(() => {
+    if (!subjectFilter) return subjects;
+    return subjects.filter((subject) => subject.id === subjectFilter);
+  }, [subjectFilter, subjects]);
+
   const stagesData = useMemo(() => {
     const stageIds = new Set(grades.map((grade) => grade.stageId));
     return stages.filter((stage) => stageIds.has(stage.id));
@@ -168,6 +199,28 @@ export default function AllocationMatrix({
         locale === "ar"
           ? stage.nameAr || stage.nameEn || stage.name
           : stage.nameEn || stage.nameAr || stage.name,
+    })),
+  ];
+
+  const gradeOptions = [
+    { value: "", label: t("filters.all_grades") },
+    ...stageFilteredGrades.map((grade) => ({
+      value: grade.id,
+      label:
+        locale === "ar"
+          ? grade.nameAr || grade.nameEn || grade.name
+          : grade.nameEn || grade.nameAr || grade.name,
+    })),
+  ];
+
+  const subjectOptions = [
+    { value: "", label: t("filters.all_subjects") },
+    ...subjects.map((subject) => ({
+      value: subject.id,
+      label:
+        locale === "ar"
+          ? subject.nameAr || subject.nameEn || subject.name
+          : subject.nameEn || subject.nameAr || subject.name,
     })),
   ];
 
@@ -185,20 +238,52 @@ export default function AllocationMatrix({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stageFilter, stagesData]);
 
-  const filteredGrades = useMemo(() => {
-    if (!showOnlyMissing) {
-      return stageFilteredGrades;
+  useEffect(() => {
+    if (!gradeFilter) {
+      return;
     }
 
-    return stageFilteredGrades.filter((grade) =>
-      subjects.some((subject) => {
+    const isValidGrade = stageFilteredGrades.some(
+      (grade) => grade.id === gradeFilter,
+    );
+    if (isValidGrade) {
+      return;
+    }
+
+    syncQueryParams({ gradeFilter: "" }, "replace");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gradeFilter, stageFilteredGrades]);
+
+  useEffect(() => {
+    if (!subjectFilter) {
+      return;
+    }
+
+    const isValidSubject = subjects.some(
+      (subject) => subject.id === subjectFilter,
+    );
+    if (isValidSubject) {
+      return;
+    }
+
+    syncQueryParams({ subjectFilter: "" }, "replace");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subjectFilter, subjects]);
+
+  const filteredGrades = useMemo(() => {
+    if (!showOnlyMissing) {
+      return selectedGrades;
+    }
+
+    return selectedGrades.filter((grade) =>
+      selectedSubjects.some((subject) => {
         const allocation = localAllocations.find(
           (item) => item.gradeId === grade.id && item.subjectId === subject.id,
         );
         return (allocation?.weeklyHours || 0) <= 0;
       }),
     );
-  }, [showOnlyMissing, stageFilteredGrades, subjects, localAllocations]);
+  }, [showOnlyMissing, selectedGrades, selectedSubjects, localAllocations]);
 
   const setAllocation = (
     gradeId: string,
@@ -225,7 +310,7 @@ export default function AllocationMatrix({
   };
 
   const getGradeTotal = (gradeId: string): number => {
-    return subjects.reduce((sum, subject) => {
+    return selectedSubjects.reduce((sum, subject) => {
       return sum + getAllocation(gradeId, subject.id);
     }, 0);
   };
@@ -273,7 +358,7 @@ export default function AllocationMatrix({
     // Prepare columns
     const columns: ExportColumn[] = [
       { key: "grade", label: t("columns.grade") },
-      ...subjects.map((subject) => ({
+      ...selectedSubjects.map((subject) => ({
         key: `subject_${subject.id}`,
         label: locale === "ar" ? subject.nameAr : subject.nameEn,
       })),
@@ -285,7 +370,7 @@ export default function AllocationMatrix({
         grade: locale === "ar" ? grade.nameAr : grade.nameEn,
       };
 
-      subjects.forEach((subject) => {
+      selectedSubjects.forEach((subject) => {
         const hours = getAllocation(grade.id, subject.id);
         row[`subject_${subject.id}`] = hours || "";
       });
@@ -313,13 +398,13 @@ export default function AllocationMatrix({
   };
 
   const completionPercentage = useMemo(() => {
-    const totalCells = filteredGrades.length * subjects.length;
+    const totalCells = filteredGrades.length * selectedSubjects.length;
     if (totalCells === 0) return 0;
 
     const filledCells = filteredGrades.reduce((count, grade) => {
       return (
         count +
-        subjects.filter((subject) => {
+        selectedSubjects.filter((subject) => {
           const allocation = localAllocations.find(
             (a) => a.gradeId === grade.id && a.subjectId === subject.id,
           );
@@ -329,7 +414,7 @@ export default function AllocationMatrix({
     }, 0);
 
     return Math.round((filledCells / totalCells) * 100);
-  }, [filteredGrades, subjects, localAllocations]);
+  }, [filteredGrades, selectedSubjects, localAllocations]);
 
   const getCellId = (gradeId: string, subjectId: string) =>
     `${gradeId}-${subjectId}`;
@@ -348,7 +433,7 @@ export default function AllocationMatrix({
 
   const matrixColumns: (MatrixColumn & { subjectId: string })[] =
     useMemo(() => {
-      return subjects.map((subject) => ({
+      return selectedSubjects.map((subject) => ({
         id: subject.id,
         subjectId: subject.id,
         label:
@@ -357,7 +442,7 @@ export default function AllocationMatrix({
             : subject.nameEn || subject.nameAr || subject.name,
         code: subject.code,
       }));
-    }, [subjects, locale]);
+    }, [selectedSubjects, locale]);
 
   const renderCell = (
     row: MatrixRow & { gradeId: string },
@@ -530,7 +615,9 @@ export default function AllocationMatrix({
             <Button
               onClick={() => setShowExportModal(true)}
               variant="secondary"
-              disabled={filteredGrades.length === 0 || subjects.length === 0}
+              disabled={
+                isLoading || filteredGrades.length === 0 || subjects.length === 0
+              }
             >
               {t("actions.export")}
             </Button>
@@ -538,7 +625,7 @@ export default function AllocationMatrix({
               onClick={handleReset}
               variant="secondary"
               leftIcon={<RotateCcw className="w-4 h-4" />}
-              disabled={!isDirty || isReadOnly}
+              disabled={isLoading || !isDirty || isReadOnly}
             >
               {t("actions.reset")}
             </Button>
@@ -546,7 +633,7 @@ export default function AllocationMatrix({
               onClick={handleSave}
               variant="primary"
               leftIcon={<Save className="w-4 h-4" />}
-              disabled={!isDirty || isReadOnly || isSaving}
+              disabled={isLoading || !isDirty || isReadOnly || isSaving}
             >
               {isSaving ? t("actions.saving") : t("actions.save")}
             </Button>
@@ -560,9 +647,33 @@ export default function AllocationMatrix({
               label={t("filters.stage")}
               value={stageFilter}
               onChange={(value) =>
-                syncQueryParams({ stageFilter: value }, "push")
+                syncQueryParams({ stageFilter: value, gradeFilter: "" }, "push")
               }
               options={stageOptions}
+              selectSize="sm"
+            />
+          </div>
+
+          <div className="w-48">
+            <Select
+              label={t("filters.grade")}
+              value={gradeFilter}
+              onChange={(value) =>
+                syncQueryParams({ gradeFilter: value }, "push")
+              }
+              options={gradeOptions}
+              selectSize="sm"
+            />
+          </div>
+
+          <div className="w-48">
+            <Select
+              label={t("filters.subject")}
+              value={subjectFilter}
+              onChange={(value) =>
+                syncQueryParams({ subjectFilter: value }, "push")
+              }
+              options={subjectOptions}
               selectSize="sm"
             />
           </div>
@@ -593,7 +704,7 @@ export default function AllocationMatrix({
               className="font-medium"
               style={{ color: "var(--color-primary-900)" }}
             >
-              {subjects.length}
+              {selectedSubjects.length}
             </span>
           </div>
           <div>
@@ -624,15 +735,23 @@ export default function AllocationMatrix({
       {/* Matrix */}
       <div className="flex-1 overflow-hidden">
         <div className="h-full overflow-auto p-4">
-          <AllocationMatrixTable
-            rows={matrixRows}
-            columns={matrixColumns}
-            rowHeaderLabel={t("table.grade")}
-            totalColumnLabel={t("table.total")}
-            renderCell={renderCell}
-            getRowTotal={getRowTotal}
-            renderRowTotal={renderRowTotal}
-          />
+          {isLoading ? (
+            <AllocationMatrixSkeleton
+              ariaLabel="loading"
+              columnCount={Math.max(2, Math.min(selectedSubjects.length + 2, 6))}
+              rowCount={Math.max(3, Math.min(filteredGrades.length || 5, 8))}
+            />
+          ) : (
+            <AllocationMatrixTable
+              rows={matrixRows}
+              columns={matrixColumns}
+              rowHeaderLabel={t("table.grade")}
+              totalColumnLabel={t("table.total")}
+              renderCell={renderCell}
+              getRowTotal={getRowTotal}
+              renderRowTotal={renderRowTotal}
+            />
+          )}
         </div>
       </div>
 
@@ -644,6 +763,48 @@ export default function AllocationMatrix({
         subtitle={t("title")}
         datasetCount={filteredGrades.length}
       />
+    </div>
+  );
+}
+
+function AllocationMatrixSkeleton({
+  ariaLabel,
+  columnCount,
+  rowCount,
+}: {
+  ariaLabel: string;
+  columnCount: number;
+  rowCount: number;
+}) {
+  return (
+    <div
+      role="status"
+      aria-label={ariaLabel}
+      className="overflow-hidden rounded-lg border border-[var(--color-primary-100)] bg-white shadow-sm"
+    >
+      <div className="grid animate-pulse" style={{ gridTemplateColumns: `200px repeat(${columnCount}, minmax(140px, 1fr))` }}>
+        {Array.from({ length: columnCount + 1 }).map((_, columnIndex) => (
+          <div
+            key={`header-${columnIndex}`}
+            className="border-b border-[var(--color-primary-100)] bg-[var(--color-primary-100)] px-4 py-3"
+          >
+            <div className="h-4 rounded bg-[var(--color-primary-200)]" />
+          </div>
+        ))}
+        {Array.from({ length: rowCount }).flatMap((_, rowIndex) =>
+          Array.from({ length: columnCount + 1 }).map((__, columnIndex) => (
+            <div
+              key={`row-${rowIndex}-column-${columnIndex}`}
+              className="border-b border-[var(--color-primary-100)] px-4 py-4"
+            >
+              <div
+                className="h-5 rounded bg-gray-100"
+                style={{ width: columnIndex === 0 ? "70%" : "50%" }}
+              />
+            </div>
+          )),
+        )}
+      </div>
     </div>
   );
 }

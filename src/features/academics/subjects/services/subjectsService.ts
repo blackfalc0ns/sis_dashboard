@@ -2,12 +2,10 @@ import { subjectsApiAdapter } from "@/features/academics/subjects/services/subje
 
 export interface Subject {
   id: string;
-  termId: string;
   name: string; // Display name (backward compatibility)
   nameAr: string;
   nameEn: string;
   code?: string;
-  stage?: string;
   color?: string;
   isActive: boolean;
 }
@@ -77,22 +75,20 @@ const carryOverSubjectsAndAllocationsImpl = async (
 };
 
 // Direct API Delegation for Subjects
-export const fetchSubjects = (termId: string): Promise<Subject[]> =>
-  subjectsApiAdapter.fetchSubjects(termId);
+export const fetchSubjects = (): Promise<Subject[]> =>
+  subjectsApiAdapter.fetchSubjects();
 
 export const createSubject = (
-  termId: string,
-  payload: Omit<Subject, "id" | "termId">
-): Promise<Subject> => subjectsApiAdapter.createSubject(termId, payload);
+  payload: Omit<Subject, "id">
+): Promise<Subject> => subjectsApiAdapter.createSubject(payload);
 
 export const updateSubject = (
-  termId: string,
   subjectId: string,
-  payload: Partial<Omit<Subject, "id" | "termId">>
-): Promise<Subject> => subjectsApiAdapter.updateSubject(termId, subjectId, payload);
+  payload: Partial<Omit<Subject, "id">>
+): Promise<Subject> => subjectsApiAdapter.updateSubject(subjectId, payload);
 
-export const deleteSubject = (termId: string, subjectId: string): Promise<void> =>
-  subjectsApiAdapter.deleteSubject(termId, subjectId);
+export const deleteSubject = (subjectId: string): Promise<void> =>
+  subjectsApiAdapter.deleteSubject(subjectId);
 
 // Direct API Delegation for Allocations
 export const fetchSubjectAllocations = (

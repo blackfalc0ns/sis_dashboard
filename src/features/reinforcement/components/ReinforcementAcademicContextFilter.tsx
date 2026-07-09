@@ -450,7 +450,7 @@ export default function ReinforcementAcademicContextFilter({
     }
 
     if (showSubject) {
-      void fetchSubjects(value.termId)
+      void fetchSubjects()
         .then((items) => {
           if (!cancelled) setSubjects({ data: items, loading: false, error: null });
         })

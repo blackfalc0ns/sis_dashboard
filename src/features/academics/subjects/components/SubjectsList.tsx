@@ -18,7 +18,6 @@ import {
 interface SubjectsListProps {
   subjects: Subject[];
   allocations: SubjectAllocation[];
-  termId: string;
   isReadOnly: boolean;
   onAdd: () => void;
   onEdit: (subject: Subject) => void;
@@ -28,7 +27,6 @@ interface SubjectsListProps {
 export default function SubjectsList({
   subjects,
   allocations,
-  termId,
   isReadOnly,
   onAdd,
   onEdit,
@@ -80,8 +78,7 @@ export default function SubjectsList({
         s.nameAr.toLowerCase().includes(query) ||
         s.nameEn.toLowerCase().includes(query) ||
         s.name.toLowerCase().includes(query) ||
-        s.code?.toLowerCase().includes(query) ||
-        s.stage?.toLowerCase().includes(query),
+        s.code?.toLowerCase().includes(query),
     );
   }, [searchInputValue, subjects]);
 
@@ -100,7 +97,7 @@ export default function SubjectsList({
 
     setIsDeleting(true);
     try {
-      await deleteSubject(termId, deleteConfirm.id);
+      await deleteSubject(deleteConfirm.id);
       await onRefresh();
       setDeleteConfirm(null);
     } catch (error) {
@@ -180,7 +177,7 @@ export default function SubjectsList({
                           {subject.code}
                         </span>
                       )}
-                      <h3 className="font-medium text-gray-900 truncate">
+                      <h3 className="font-medium text-gray-900 truncate max-w-full">
                         {locale === "ar"
                           ? subject.nameAr || subject.nameEn || subject.name
                           : subject.nameEn || subject.nameAr || subject.name}
@@ -188,15 +185,6 @@ export default function SubjectsList({
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
-                      {subject.stage && (
-                        <span className="text-xs text-gray-600">
-                          {t(
-                            `subjects_list.stages.${subject.stage.toLowerCase()}`,
-                            { default: subject.stage },
-                          )}
-                        </span>
-                      )}
-
                       <span
                         className={`text-xs px-2 py-0.5 rounded-full ${
                           status === "allocated"

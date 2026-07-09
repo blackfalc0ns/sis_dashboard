@@ -4210,6 +4210,10 @@
         "filters": {
           "stage": "المرحلة",
           "all_stages": "جميع المراحل",
+          "grade": "الصف",
+          "all_grades": "جميع الصفوف",
+          "subject": "المادة",
+          "all_subjects": "جميع المواد",
           "show_missing": "إظهار التوزيعات المفقودة فقط"
         },
         "summary": {

@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDirtyKey } from "@/hooks/useDirtyKey";
 import {
@@ -25,6 +25,8 @@ import { subjectAllocationUiError } from "@/features/academics/subjects/services
 
 type SubjectsAllocationQueryState = {
   activeTab: "subjects" | "matrix";
+  gradeId?: string;
+  subjectId?: string;
 };
 
 export default function SubjectsAllocationContainer() {
@@ -46,8 +48,10 @@ export default function SubjectsAllocationContainer() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [allocations, setAllocations] = useState<SubjectAllocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMatrixLoading, setIsMatrixLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [apiErrorTraceId, setApiErrorTraceId] = useState<string | undefined>();
+  const hasLoadedData = useRef(false);
 
   // UI State
   const [showSubjectDialog, setShowSubjectDialog] = useState(false);
@@ -56,6 +60,8 @@ export default function SubjectsAllocationContainer() {
   const queryState = useMemo<SubjectsAllocationQueryState>(
     () => ({
       activeTab: searchParams.get("tab") === "matrix" ? "matrix" : "subjects",
+      gradeId: searchParams.get("gradeId") || undefined,
+      subjectId: searchParams.get("subjectId") || undefined,
     }),
     [searchParams]
   );
@@ -75,14 +81,22 @@ export default function SubjectsAllocationContainer() {
       return;
     }
 
-    setIsLoading(true);
+    const isReloadingMatrix = hasLoadedData.current;
+    if (isReloadingMatrix) {
+      setIsMatrixLoading(true);
+    } else {
+      setIsLoading(true);
+    }
     setApiError(null);
     setApiErrorTraceId(undefined);
     try {
       const [structureData, subjectsData, allocationsData] = await Promise.all([
         fetchStructureTree(academicYearId, termId),
-        fetchSubjects(termId),
-        fetchSubjectAllocations(termId),
+        fetchSubjects(),
+        fetchSubjectAllocations(termId, {
+          gradeId: queryState.gradeId,
+          subjectId: queryState.subjectId,
+        }),
       ]);
 
       setStages(structureData.stages || []);
@@ -90,6 +104,7 @@ export default function SubjectsAllocationContainer() {
       setSubjects(subjectsData);
       setAllocations(allocationsData);
       clearDirty();
+      hasLoadedData.current = true;
     } catch (error) {
       console.error("Failed to load subject allocation data:", error);
       const uiError = subjectAllocationUiError(
@@ -100,8 +115,16 @@ export default function SubjectsAllocationContainer() {
       setApiErrorTraceId(uiError.traceId);
     } finally {
       setIsLoading(false);
+      setIsMatrixLoading(false);
     }
-  }, [academicYearId, canView, clearDirty, termId]);
+  }, [
+    academicYearId,
+    canView,
+    clearDirty,
+    queryState.gradeId,
+    queryState.subjectId,
+    termId,
+  ]);
 
   // Load data when year/term changes
   useEffect(() => {
@@ -147,8 +170,11 @@ export default function SubjectsAllocationContainer() {
     setApiErrorTraceId(undefined);
     try {
       const [subjectsData, allocationsData] = await Promise.all([
-        fetchSubjects(termId),
-        fetchSubjectAllocations(termId),
+        fetchSubjects(),
+        fetchSubjectAllocations(termId, {
+          gradeId: queryState.gradeId,
+          subjectId: queryState.subjectId,
+        }),
       ]);
       setSubjects(subjectsData);
       setAllocations(allocationsData);
@@ -237,6 +263,7 @@ export default function SubjectsAllocationContainer() {
       subjects={subjects}
       allocations={allocations}
       isLoading={isLoading}
+      isMatrixLoading={isMatrixLoading}
       apiError={apiError}
       apiErrorTraceId={apiErrorTraceId}
       activeTab={queryState.activeTab}

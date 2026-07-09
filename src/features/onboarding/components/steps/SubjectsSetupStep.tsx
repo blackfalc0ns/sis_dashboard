@@ -6,7 +6,6 @@ import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import type {
   Grade,
-  Stage,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import SubjectDialog from "@/features/academics/subjects/components/SubjectDialog";
 import {
@@ -29,7 +28,6 @@ export interface SubjectsSetupStepCopy {
 interface SubjectsSetupStepProps {
   copy: SubjectsSetupStepCopy;
   termId: string;
-  stages: Stage[];
   grades: Grade[];
   subjectsData: SubjectsSetupData;
   refreshStep(stepId: "subjects"): Promise<void> | void;
@@ -38,7 +36,6 @@ interface SubjectsSetupStepProps {
 export function SubjectsSetupStep({
   copy,
   termId,
-  stages,
   grades,
   subjectsData,
   refreshStep,
@@ -122,9 +119,7 @@ export function SubjectsSetupStep({
         isOpen={isSubjectDialogOpen}
         onClose={() => setIsSubjectDialogOpen(false)}
         onSuccess={handleSubjectSuccess}
-        stages={stages}
         subject={null}
-        termId={termId}
       />
     </div>
   );

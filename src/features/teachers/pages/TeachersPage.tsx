@@ -149,7 +149,7 @@ export default function TeachersPage() {
       const [teachersData, structureData, subjectsData] = await Promise.all([
         fetchTeachers(),
         fetchStructureTree(academicYearId, termId),
-        fetchSubjects(termId),
+        fetchSubjects(),
       ]);
 
       setTeachers(teachersData);

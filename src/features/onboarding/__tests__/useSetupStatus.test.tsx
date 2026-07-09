@@ -109,7 +109,6 @@ const section = {
 };
 const subject = {
   id: "subject-1",
-  termId: openTerm.id,
   name: "Math",
   nameAr: "رياضيات",
   nameEn: "Math",
@@ -164,7 +163,7 @@ describe("useSetupStatus", () => {
     expect(mockedFetchTermsByYear).toHaveBeenCalledWith(inactiveYear.id);
     expect(mockedFetchTermsByYear).toHaveBeenCalledWith(activeYear.id);
     expect(mockedFetchStructureTree).toHaveBeenCalledWith(activeYear.id, openTerm.id);
-    expect(mockedFetchSubjects).toHaveBeenCalledWith(openTerm.id);
+    expect(mockedFetchSubjects).toHaveBeenCalledWith();
     expect(mockedFetchSubjectAllocations).toHaveBeenCalledWith(openTerm.id);
     expect(mockedFetchRooms).toHaveBeenCalledWith("school-1");
     expect(result.current.selectedYear).toEqual(activeYear);
@@ -199,7 +198,7 @@ describe("useSetupStatus", () => {
     mockedFetchTermsByYear.mockImplementation(async (yearId) =>
       yearId === activeYear.id ? [nextTerm] : [],
     );
-    mockedFetchSubjects.mockResolvedValue([{ ...subject, termId: nextTerm.id }]);
+    mockedFetchSubjects.mockResolvedValue([subject]);
 
     await act(async () => {
       await result.current.refreshStep("academicContext");
@@ -207,7 +206,7 @@ describe("useSetupStatus", () => {
 
     expect(mockedFetchAcademicYears).toHaveBeenCalledTimes(2);
     expect(mockedFetchStructureTree).toHaveBeenLastCalledWith(activeYear.id, nextTerm.id);
-    expect(mockedFetchSubjects).toHaveBeenLastCalledWith(nextTerm.id);
+    expect(mockedFetchSubjects).toHaveBeenLastCalledWith();
     expect(mockedFetchSubjectAllocations).toHaveBeenLastCalledWith(nextTerm.id);
     expect(result.current.selectedTerm).toEqual(nextTerm);
   });

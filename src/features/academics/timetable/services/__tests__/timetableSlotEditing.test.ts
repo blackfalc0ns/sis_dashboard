@@ -24,7 +24,6 @@ const teachers: Teacher[] = [
 const subjects: Subject[] = [
   {
     id: "subject-math",
-    termId: "term-1",
     name: "Math",
     nameAr: "رياضيات",
     nameEn: "Math",
@@ -32,7 +31,6 @@ const subjects: Subject[] = [
   },
   {
     id: "subject-science",
-    termId: "term-1",
     name: "Science",
     nameAr: "علوم",
     nameEn: "Science",

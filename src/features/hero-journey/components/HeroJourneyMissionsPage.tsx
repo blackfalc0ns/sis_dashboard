@@ -249,7 +249,7 @@ export default function HeroJourneyMissionsPage() {
 
     void Promise.all([
       fetchStructureTree(academicYearId, termId),
-      fetchSubjects(termId),
+      fetchSubjects(),
       fetchSubjectAllocations(termId),
       fetchAssessments(academicYearId, termId, { includeDrafts: true }),
     ])
@@ -317,8 +317,7 @@ export default function HeroJourneyMissionsPage() {
             subject.nameAr,
             subject.name,
           ),
-          searchText: `${subject.nameEn} ${subject.nameAr} ${subject.code || ""} ${subject.stage || ""}`,
-          stageId: subject.stage,
+          searchText: `${subject.nameEn} ${subject.nameAr} ${subject.code || ""}`,
           gradeIds: gradeIdsBySubject.get(subject.id) || [],
         }));
         const nextAssessmentOptions = assessments.map((assessment) => ({

@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
-import Input from "@/components/ui/input/Input";
-import Select from "@/components/ui/input/Select";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
 import { validateArEnDifferent } from "@/utils/validation/bilingualValidation";
 import {
@@ -13,26 +11,21 @@ import {
   createSubject,
   updateSubject,
 } from "@/features/academics/subjects/services/subjectsService";
-import type { Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 
 interface SubjectDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  termId: string;
   subject?: Subject | null;
   existingSubjects: Subject[];
-  stages: Stage[];
 }
 
 export default function SubjectDialog({
   isOpen,
   onClose,
   onSuccess,
-  termId,
   subject,
   existingSubjects,
-  stages,
 }: SubjectDialogProps) {
   const t = useTranslations("academics.subjects.subject_dialog");
   const tValidation = useTranslations("validation");
@@ -40,7 +33,6 @@ export default function SubjectDialog({
   const [nameAr, setNameAr] = useState("");
   const [nameEn, setNameEn] = useState("");
   const [code, setCode] = useState("");
-  const [stage, setStage] = useState("");
   const [color, setColor] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -53,7 +45,6 @@ export default function SubjectDialog({
     nameAr: "",
     nameEn: "",
     code: "",
-    stage: "",
     color: "#2563EB",
     isActive: true,
   });
@@ -64,7 +55,6 @@ export default function SubjectDialog({
         nameAr: subject?.nameAr || "",
         nameEn: subject?.nameEn || "",
         code: subject?.code || "",
-        stage: subject?.stage || "",
         color: subject?.color || "#2563EB",
         isActive: subject?.isActive ?? true,
       };
@@ -72,7 +62,6 @@ export default function SubjectDialog({
       setNameAr(initialValues.nameAr);
       setNameEn(initialValues.nameEn);
       setCode(initialValues.code);
-      setStage(initialValues.stage);
       setColor(initialValues.color);
       setIsActive(initialValues.isActive);
       setOriginalValues(initialValues);
@@ -88,7 +77,6 @@ export default function SubjectDialog({
       nameAr: nameAr.trim(),
       nameEn: nameEn.trim(),
       code: code.trim(),
-      stage: stage.trim(),
       color,
       isActive,
     };
@@ -97,12 +85,11 @@ export default function SubjectDialog({
       currentValues.nameAr !== originalValues.nameAr.trim() ||
       currentValues.nameEn !== originalValues.nameEn.trim() ||
       currentValues.code !== originalValues.code.trim() ||
-      currentValues.stage !== originalValues.stage.trim() ||
       currentValues.color !== originalValues.color ||
       currentValues.isActive !== originalValues.isActive;
 
     setIsDirty(dirty);
-  }, [nameAr, nameEn, code, stage, isActive, originalValues]);
+  }, [nameAr, nameEn, code, color, isActive, originalValues]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -172,15 +159,14 @@ export default function SubjectDialog({
         nameEn: nameEn.trim(),
         name: nameEn.trim() || nameAr.trim(), // Fallback display name
         code: finalCode || undefined,
-        stage: stage.trim() || undefined,
         color: color || undefined,
         isActive,
       };
 
       if (subject) {
-        await updateSubject(termId, subject.id, payload);
+        await updateSubject(subject.id, payload);
       } else {
-        await createSubject(termId, payload);
+        await createSubject(payload);
       }
 
       onSuccess();
@@ -191,14 +177,6 @@ export default function SubjectDialog({
       setIsSubmitting(false);
     }
   };
-
-  const stageOptions = [
-    { value: "", label: t("fields.stage_none") },
-    ...stages.map((s) => ({
-      value: s.nameEn || s.nameAr || s.name,
-      label: s.nameEn || s.nameAr || s.name,
-    })),
-  ];
 
   return (
     <Modal
@@ -238,17 +216,6 @@ export default function SubjectDialog({
             en: "e.g., Mathematics",
           }}
         />
-
-
-
-        <Select
-          label={t("fields.stage")}
-          value={stage}
-          onChange={setStage}
-          options={stageOptions}
-          selectSize="md"
-        />
-
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">Color</label>
           <div className="flex items-center gap-3">

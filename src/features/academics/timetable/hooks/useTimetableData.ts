@@ -410,7 +410,7 @@ export function useTimetableData({
         roomsData,
       ] = await Promise.all([
         fetchStructureTree(academicYearId, termId),
-        fetchSubjects(termId),
+        fetchSubjects(),
         fetchSubjectAllocations(termId),
         fetchTeachers(),
         fetchTeacherAllocations(termId),

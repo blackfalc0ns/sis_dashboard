@@ -4241,6 +4241,10 @@
         "filters": {
           "stage": "Stage",
           "all_stages": "All Stages",
+          "grade": "Grade",
+          "all_grades": "All Grades",
+          "subject": "Subject",
+          "all_subjects": "All Subjects",
           "show_missing": "Show only missing allocations"
         },
         "summary": {

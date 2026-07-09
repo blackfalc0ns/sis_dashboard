@@ -16,6 +16,7 @@ import type {
 import { useAuth } from "@/hooks/use-auth";
 
 const PAGE_SIZE = 50;
+const SUPPORT_CHAT_POLL_INTERVAL_MS = 5_000;
 const SUPPORT_SENDER_ID = "moazez-support";
 const SYSTEM_SENDER_ID = "support-system";
 
@@ -121,6 +122,10 @@ export function useSchoolSupportChat() {
   const currentUserId = user?.id;
   const mountedRef = useRef(false);
   const messagesRef = useRef<ConversationMessage[]>([]);
+  const refreshRequestRef = useRef<{
+    key: string;
+    request: Promise<void>;
+  } | null>(null);
   const [conversation, setConversation] =
     useState<SchoolSupportConversationSummary | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
@@ -139,10 +144,16 @@ export function useSchoolSupportChat() {
     return [user.firstName, user.lastName].filter(Boolean).join(" ") || "You";
   }, [user]);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (options?: { silent?: boolean }) => {
+    const requestKey = currentUserId ?? "anonymous";
+    if (refreshRequestRef.current?.key === requestKey) {
+      return refreshRequestRef.current.request;
+    }
+
+    const shouldShowLoading = !options?.silent;
     setError(null);
 
-    try {
+    const request = (async () => {
       const [conversationResponse, messagesResponse] = await Promise.all([
         getSchoolSupportConversation(),
         getSchoolSupportMessages({ page: 1, limit: PAGE_SIZE }),
@@ -157,12 +168,21 @@ export function useSchoolSupportChat() {
       setMessages(sortMessages(nextMessages));
       setHasOlderMessages(nextMessages.length >= PAGE_SIZE);
       void markSchoolSupportRead().catch(() => undefined);
+    })();
+
+    refreshRequestRef.current = { key: requestKey, request };
+
+    try {
+      await request;
     } catch (nextError) {
       if (!mountedRef.current) return;
       setError(errorMessage(nextError));
-      setMessages([]);
+      if (shouldShowLoading) setMessages([]);
     } finally {
-      if (mountedRef.current) setIsLoading(false);
+      if (refreshRequestRef.current?.request === request) {
+        refreshRequestRef.current = null;
+      }
+      if (mountedRef.current && shouldShowLoading) setIsLoading(false);
     }
   }, [currentUserId]);
 
@@ -174,6 +194,20 @@ export function useSchoolSupportChat() {
     return () => {
       mountedRef.current = false;
     };
+  }, [refresh]);
+
+  useEffect(() => {
+    const pollSupportChat = () => {
+      if (document.visibilityState === "hidden") return;
+      void refresh({ silent: true });
+    };
+
+    const interval = window.setInterval(
+      pollSupportChat,
+      SUPPORT_CHAT_POLL_INTERVAL_MS,
+    );
+
+    return () => window.clearInterval(interval);
   }, [refresh]);
 
   const loadOlderMessages = useCallback(async () => {
