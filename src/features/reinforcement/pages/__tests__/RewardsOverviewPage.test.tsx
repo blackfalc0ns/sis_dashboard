@@ -46,6 +46,30 @@ vi.mock(
   () => filterOptionMocks,
 );
 
+vi.mock("@/features/reinforcement/hooks/useReinforcementUrlFilters", async () => {
+  const React = await import("react");
+  return {
+    useReinforcementUrlFilters: ({
+      paramKeys,
+      defaults = {},
+    }: {
+      paramKeys: string[];
+      defaults?: Record<string, string>;
+    }) => {
+      const [values, setValues] = React.useState<Record<string, string>>(() => {
+        const params = new URLSearchParams(window.location.search);
+        return Object.fromEntries(
+          paramKeys.map((key) => [key, params.get(key) || defaults[key] || ""]),
+        );
+      });
+      const setValue = React.useCallback((key: string, value: string) => {
+        setValues((current) => ({ ...current, [key]: value }));
+      }, []);
+      return { values, setValue };
+    },
+  };
+});
+
 function renderPage() {
   return render(
     <ToastProvider>
@@ -92,14 +116,16 @@ describe("RewardsOverviewPage", () => {
       classrooms: [{ id: "classroom-1", section: "section-1", nameEn: "Classroom 1", nameAr: "Classroom 1" }],
       students: [{
         studentId: "student-123",
-        stageId: "stage-1",
-        gradeId: "grade-1",
-        sectionId: "section-1",
-        classroomId: "classroom-1",
+        stage: "stage-1",
+        grade: "grade-1",
+        section: "section-1",
+        classroom: "classroom-1",
+        code: "ST-123",
         nameEn: "Student 123",
         nameAr: "Student 123",
       }],
     });
+    window.history.replaceState(null, "", "/en/reinforcement/rewards");
   });
 
   it("calls getRewardsOverview and getRewardCatalogSummary with query parameters on load", async () => {
@@ -109,6 +135,41 @@ describe("RewardsOverviewPage", () => {
       expect(dashboardMocks.getRewardsOverview).toHaveBeenCalled();
       expect(dashboardMocks.getRewardCatalogSummary).toHaveBeenCalled();
     });
+  });
+
+  it("hydrates the academic cascade from an existing studentId URL filter", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/en/reinforcement/rewards?studentId=student-123",
+    );
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Stage")).toHaveTextContent("Stage 1");
+      expect(screen.getByLabelText("Grade")).toHaveTextContent("Grade 1");
+      expect(screen.getByLabelText("Section")).toHaveTextContent("Section 1");
+      expect(screen.getByLabelText("Classroom")).toHaveTextContent("Classroom 1");
+      expect(
+        screen.getByLabelText("rewardsModule.redemptions.create.student"),
+      ).toHaveTextContent("Student 123");
+    });
+  });
+
+  it("searches students by identifiers in the cascade", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await selectOption(user, "Stage", "Stage 1");
+    await selectOption(user, "Grade", "Grade 1");
+    await selectOption(user, "Section", "Section 1");
+    await selectOption(user, "Classroom", "Classroom 1");
+    await user.click(
+      screen.getByLabelText("rewardsModule.redemptions.create.student"),
+    );
+    await user.type(screen.getByPlaceholderText("Search..."), "ST-123");
+
+    expect(screen.getByRole("button", { name: "Student 123" })).toBeInTheDocument();
   });
 
   it("refetches overview with selected student after ordered academic cascade selection", async () => {

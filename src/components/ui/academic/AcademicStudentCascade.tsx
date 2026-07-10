@@ -98,10 +98,22 @@ const toSelectOption = (
 ): SelectOption | null => {
   const value = recordId(record);
   if (!value) return null;
+  const searchableIdentifiers = [
+    record.searchText,
+    record.student_id,
+    record.studentId,
+    record.enrollmentId,
+    record.enrollment_id,
+    record.code,
+    record.admissionNo,
+    record.admission_no,
+  ]
+    .filter((item) => typeof item === "string" && item.trim())
+    .join(" ");
   return {
     value,
     label: recordLabel(record, locale),
-    searchText: `${recordLabel(record, "ar")} ${recordLabel(record, "en")}`,
+    searchText: `${recordLabel(record, "ar")} ${recordLabel(record, "en")} ${searchableIdentifiers}`,
   };
 };
 

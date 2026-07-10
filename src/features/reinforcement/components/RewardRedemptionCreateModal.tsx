@@ -268,6 +268,7 @@ export default function RewardRedemptionCreateModal({
         gradeId: student.gradeId,
         sectionId: student.sectionId,
         classroomId: student.classroomId,
+        searchText: student.searchText,
       })),
     }),
     [academicOptions, students],

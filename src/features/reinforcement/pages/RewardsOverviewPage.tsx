@@ -167,12 +167,22 @@ const normalizeStudentRecord = (value: unknown): AcademicCascadeRecord | null =>
       .join(" ") || studentId);
   const nameAr =
     getLocalizedValue(record, ["nameAr", "fullNameAr", "full_name_ar", "name"]) ?? nameEn;
+  const searchText = [
+    getLocalizedValue(record, ["searchText"]),
+    studentId,
+    getLocalizedValue(record, ["enrollmentId", "enrollment_id"]),
+    getLocalizedValue(record, ["code"]),
+    getLocalizedValue(record, ["admissionNo", "admission_no"]),
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return {
     ...record,
     id: studentId,
     nameEn,
     nameAr,
+    searchText,
     stageId:
       getLocalizedValue(record, ["stageId", "stage_id", "stage"]) ??
       getLocalizedValue(grade || {}, ["stageId", "stage_id"]) ??
@@ -327,6 +337,42 @@ export default function RewardsOverviewPage() {
       active = false;
     };
   }, [academicYearId, canView, locale, termId]);
+
+  useEffect(() => {
+    if (academicContextLoading || optionsLoading) return;
+    if (!academicYearId || !termId) {
+      setCascadeValue({});
+      if (values.studentId) setValue("studentId", "");
+      return;
+    }
+    if (!academicOptions.students) return;
+
+    if (!values.studentId) {
+      setCascadeValue((current) =>
+        current.studentId ? {} : current,
+      );
+      return;
+    }
+
+    const selectedStudent = academicOptions.students.find(
+      (student) => student.id === values.studentId || student.studentId === values.studentId,
+    );
+    if (!selectedStudent) {
+      setCascadeValue({});
+      setValue("studentId", "");
+      return;
+    }
+
+    const asString = (value: unknown): string | undefined =>
+      typeof value === "string" && value ? value : undefined;
+    setCascadeValue({
+      stageId: asString(selectedStudent.stageId),
+      gradeId: asString(selectedStudent.gradeId),
+      sectionId: asString(selectedStudent.sectionId),
+      classroomId: asString(selectedStudent.classroomId),
+      studentId: values.studentId,
+    });
+  }, [academicContextLoading, academicOptions.students, academicYearId, optionsLoading, setValue, termId, values.studentId]);
 
   const fetchData = useCallback(async () => {
     if (!canView) return;

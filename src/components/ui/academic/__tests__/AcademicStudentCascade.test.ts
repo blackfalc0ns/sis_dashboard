@@ -154,4 +154,30 @@ describe("AcademicStudentCascade", () => {
       studentId: "student-2",
     });
   });
+
+  it("includes record search text when searching student identifiers", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      createElement(AcademicStudentCascade, {
+        value: {
+          stageId: "stage-1",
+          gradeId: "grade-1",
+          sectionId: "section-1",
+          classroomId: "classroom-1",
+        },
+        options: {
+          ...options,
+          students: [{ ...options.students[0], searchText: "ST-123" }],
+        },
+        onChange,
+      }),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Student" }));
+    await user.type(screen.getByPlaceholderText("Search..."), "ST-123");
+
+    expect(screen.getByRole("button", { name: "Student 1" })).toBeInTheDocument();
+  });
 });
