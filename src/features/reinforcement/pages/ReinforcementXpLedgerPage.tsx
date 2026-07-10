@@ -147,9 +147,6 @@ export default function ReinforcementXpLedgerPage() {
       setGrantOpen(false);
       await refreshLedger();
     } catch (nextError) {
-      const message =
-        nextError instanceof Error ? nextError.message : t("common.error");
-      showError(message);
       throw nextError;
     }
   };

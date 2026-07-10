@@ -9946,6 +9946,15 @@
       "sourceId": "Source (Task)",
       "noSource": "No source (manual grant)",
       "noTasksAvailable": "No tasks available. Select a year and term first.",
+      "policyInstructions": {
+        "title": "XP policy instructions",
+        "description": "This grant is checked against the student's active policy. Use an allowed reason and stay within the configured caps.",
+        "loading": "Loading the student's XP policy...",
+        "loadFailed": "Could not load the student's XP policy.",
+        "currentTotal": "Current total",
+        "dailyCapReached": "Daily XP cap reached. Daily cap: {dailyCap}; current XP: {currentXp}; requested: {requestedAmount}.",
+        "weeklyCapReached": "Weekly XP cap reached. Weekly cap: {weeklyCap}; current XP: {currentXp}; requested: {requestedAmount}."
+      },
       "dedupeKey": "Dedupe key",
       "dedupeKeyHelp": "Leave blank to generate a unique key on submit.",
       "effectivePolicyStudentModal": {
