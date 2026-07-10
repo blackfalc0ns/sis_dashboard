@@ -87,9 +87,9 @@ describe("RewardsOverviewPage", () => {
       academicYears: [{ id: "year-1", nameEn: "Year 1", nameAr: "Year 1" }],
       terms: [{ id: "term-1", nameEn: "Term 1", nameAr: "Term 1" }],
       stages: [{ id: "stage-1", nameEn: "Stage 1", nameAr: "Stage 1" }],
-      grades: [{ id: "grade-1", stageId: "stage-1", nameEn: "Grade 1", nameAr: "Grade 1" }],
-      sections: [{ id: "section-1", gradeId: "grade-1", nameEn: "Section 1", nameAr: "Section 1" }],
-      classrooms: [{ id: "classroom-1", sectionId: "section-1", nameEn: "Classroom 1", nameAr: "Classroom 1" }],
+      grades: [{ id: "grade-1", stage: "stage-1", nameEn: "Grade 1", nameAr: "Grade 1" }],
+      sections: [{ id: "section-1", grade: "grade-1", nameEn: "Section 1", nameAr: "Section 1" }],
+      classrooms: [{ id: "classroom-1", section: "section-1", nameEn: "Classroom 1", nameAr: "Classroom 1" }],
       students: [{
         studentId: "student-123",
         stageId: "stage-1",
@@ -115,6 +115,9 @@ describe("RewardsOverviewPage", () => {
     const user = userEvent.setup();
     renderPage();
 
+    expect(
+      await screen.findByLabelText("rewardsModule.redemptions.create.student"),
+    ).toBeDisabled();
     await selectOption(user, "Stage", "Stage 1");
     await selectOption(user, "Grade", "Grade 1");
     await selectOption(user, "Section", "Section 1");

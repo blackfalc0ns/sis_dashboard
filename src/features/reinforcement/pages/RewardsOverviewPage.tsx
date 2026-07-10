@@ -136,8 +136,11 @@ const normalizeAcademicRecord = (
   if (parentKey) {
     const parentId =
       getLocalizedValue(record, [
+        parentKey,
         `${parentKey}Id`,
         `${parentKey}_id`,
+        "parentId",
+        "parent_id",
       ]) ?? nestedRecordId(record, parentKey);
     if (parentId) {
       normalized[`${parentKey}Id`] = parentId;
@@ -171,20 +174,20 @@ const normalizeStudentRecord = (value: unknown): AcademicCascadeRecord | null =>
     nameEn,
     nameAr,
     stageId:
-      getLocalizedValue(record, ["stageId", "stage_id"]) ??
+      getLocalizedValue(record, ["stageId", "stage_id", "stage"]) ??
       getLocalizedValue(grade || {}, ["stageId", "stage_id"]) ??
       nestedRecordId(grade || {}, "stage") ??
       recordId(stage || {}),
     gradeId:
-      getLocalizedValue(record, ["gradeId", "grade_id"]) ??
-      getLocalizedValue(section || {}, ["gradeId", "grade_id"]) ??
+      getLocalizedValue(record, ["gradeId", "grade_id", "grade"]) ??
+      getLocalizedValue(section || {}, ["gradeId", "grade_id", "grade"]) ??
       recordId(grade || {}),
     sectionId:
-      getLocalizedValue(record, ["sectionId", "section_id"]) ??
-      getLocalizedValue(classroom || {}, ["sectionId", "section_id"]) ??
+      getLocalizedValue(record, ["sectionId", "section_id", "section"]) ??
+      getLocalizedValue(classroom || {}, ["sectionId", "section_id", "section"]) ??
       recordId(section || {}),
     classroomId:
-      getLocalizedValue(record, ["classroomId", "classroom_id"]) ??
+      getLocalizedValue(record, ["classroomId", "classroom_id", "classroom"]) ??
       recordId(classroom || {}),
   };
 };
