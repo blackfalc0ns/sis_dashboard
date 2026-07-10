@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
+import AcademicStudentCascade, {
+  type AcademicCascadeRecord,
+  type AcademicStudentCascadeOptions,
+} from "@/components/ui/academic/AcademicStudentCascade";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
 import Modal from "@/components/ui/modal/Modal";
@@ -31,12 +35,6 @@ interface StudentRedemptionOption {
   classroomId?: string;
   label: string;
   searchText: string;
-}
-
-interface ScopeOption {
-  id: string;
-  parentId?: string;
-  label: string;
 }
 
 interface CreateFormState {
@@ -93,6 +91,10 @@ function mapStudentOption(
   const student = toRecord(value);
   if (!student) return null;
 
+  const classroom = toRecord(student.classroom);
+  const section = toRecord(classroom?.section);
+  const grade = toRecord(section?.grade);
+
   const studentId = getStringField(student, ["studentId", "id", "student_id"]);
   if (!studentId) return null;
 
@@ -108,13 +110,28 @@ function mapStudentOption(
   ]);
   const label = locale === "ar" ? nameAr : nameEn;
 
+  const stageId =
+    getStringField(student, ["stageId", "stage_id"]) ??
+    getStringField(grade || {}, ["stageId", "stage_id"]);
+  const gradeId =
+    getStringField(student, ["gradeId", "grade_id"]) ??
+    getStringField(section || {}, ["gradeId", "grade_id"]) ??
+    getStringField(grade || {}, ["id", "gradeId", "grade_id"]);
+  const sectionId =
+    getStringField(student, ["sectionId", "section_id"]) ??
+    getStringField(classroom || {}, ["sectionId", "section_id"]) ??
+    getStringField(section || {}, ["id", "sectionId", "section_id"]);
+  const classroomId =
+    getStringField(student, ["classroomId", "classroom_id"]) ??
+    getStringField(classroom || {}, ["id", "classroomId", "classroom_id"]);
+
   return {
     studentId,
     enrollmentId,
-    stageId: getStringField(student, ["stageId", "stage_id"]),
-    gradeId: getStringField(student, ["gradeId", "grade_id"]),
-    sectionId: getStringField(student, ["sectionId", "section_id"]),
-    classroomId: getStringField(student, ["classroomId", "classroom_id"]),
+    stageId,
+    gradeId,
+    sectionId,
+    classroomId,
     label,
     searchText: [nameEn, nameAr, studentId, enrollmentId]
       .filter(Boolean)
@@ -153,10 +170,8 @@ export default function RewardRedemptionCreateModal({
   const [form, setForm] = useState<CreateFormState>(emptyFormState);
   const [errors, setErrors] = useState<CreateFormErrors>({});
   const [students, setStudents] = useState<StudentRedemptionOption[]>([]);
-  const [stages, setStages] = useState<ScopeOption[]>([]);
-  const [grades, setGrades] = useState<ScopeOption[]>([]);
-  const [sections, setSections] = useState<ScopeOption[]>([]);
-  const [classrooms, setClassrooms] = useState<ScopeOption[]>([]);
+  const [academicOptions, setAcademicOptions] =
+    useState<AcademicStudentCascadeOptions>({});
   const [catalogItems, setCatalogItems] = useState<RewardCatalogItem[]>([]);
   const [lookupsLoading, setLookupsLoading] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
@@ -186,28 +201,13 @@ export default function RewardRedemptionCreateModal({
             .filter((student): student is StudentRedemptionOption =>
               Boolean(student),
             ),
-        );
-        const option = (value: unknown, parentKey?: string): ScopeOption | null => {
-          const record = toRecord(value);
-          if (!record) return null;
-          const id = getStringField(record, ["id", "value"]);
-          if (!id) return null;
-          const label =
-            (locale === "ar"
-              ? getStringField(record, ["nameAr", "fullNameAr", "name"])
-              : getStringField(record, ["nameEn", "fullNameEn", "name"])) || id;
-          return {
-            id,
-            label,
-            parentId: parentKey
-              ? getStringField(record, [parentKey, `${parentKey}Id`, `${parentKey}_id`])
-              : undefined,
-          };
-        };
-        setStages((filterOptions.stages ?? []).map((item) => option(item)).filter(Boolean) as ScopeOption[]);
-        setGrades((filterOptions.grades ?? []).map((item) => option(item, "stage")).filter(Boolean) as ScopeOption[]);
-        setSections((filterOptions.sections ?? []).map((item) => option(item, "grade")).filter(Boolean) as ScopeOption[]);
-        setClassrooms((filterOptions.classrooms ?? []).map((item) => option(item, "section")).filter(Boolean) as ScopeOption[]);
+          );
+        setAcademicOptions({
+          stages: filterOptions.stages as AcademicCascadeRecord[],
+          grades: filterOptions.grades as AcademicCascadeRecord[],
+          sections: filterOptions.sections as AcademicCascadeRecord[],
+          classrooms: filterOptions.classrooms as AcademicCascadeRecord[],
+        });
         setCatalogItems(catalogResponse.items);
       } catch (error) {
         if (!active.current) return;
@@ -236,32 +236,22 @@ export default function RewardRedemptionCreateModal({
     };
   }, [isOpen, loadLookups]);
 
-  const stageOptions = useMemo(
-    () => stages.map((item) => ({ value: item.id, label: item.label })),
-    [stages],
-  );
-  const gradeOptions = useMemo(
-    () => grades.filter((item) => !item.parentId || item.parentId === form.stageId).map((item) => ({ value: item.id, label: item.label })),
-    [form.stageId, grades],
-  );
-  const sectionOptions = useMemo(
-    () => sections.filter((item) => !item.parentId || item.parentId === form.gradeId).map((item) => ({ value: item.id, label: item.label })),
-    [form.gradeId, sections],
-  );
-  const classroomOptions = useMemo(
-    () => classrooms.filter((item) => !item.parentId || item.parentId === form.sectionId).map((item) => ({ value: item.id, label: item.label })),
-    [classrooms, form.sectionId],
-  );
-  const studentOptions = useMemo<SelectOption[]>(
-    () => students
-      .filter((student) =>
-        (!form.stageId || !student.stageId || student.stageId === form.stageId) &&
-        (!form.gradeId || !student.gradeId || student.gradeId === form.gradeId) &&
-        (!form.sectionId || !student.sectionId || student.sectionId === form.sectionId) &&
-        (!form.classroomId || !student.classroomId || student.classroomId === form.classroomId),
-      )
-      .map((student) => ({ value: student.studentId, label: student.label, searchText: student.searchText })),
-    [form.classroomId, form.gradeId, form.sectionId, form.stageId, students],
+  const cascadeOptions = useMemo(
+    () => ({
+      stages: academicOptions.stages || [],
+      grades: academicOptions.grades || [],
+      sections: academicOptions.sections || [],
+      classrooms: academicOptions.classrooms || [],
+      students: students.map((student) => ({
+        id: student.studentId,
+        name: student.label,
+        stageId: student.stageId,
+        gradeId: student.gradeId,
+        sectionId: student.sectionId,
+        classroomId: student.classroomId,
+      })),
+    }),
+    [academicOptions, students],
   );
 
   const catalogOptions = useMemo<SelectOption[]>(
@@ -366,55 +356,27 @@ export default function RewardRedemptionCreateModal({
             {submitError}
           </div>
         ) : null}
-        <Select
-          label="Stage"
-          value={form.stageId}
-          onChange={(value) => setForm((current) => ({ ...current, stageId: value, gradeId: "", sectionId: "", classroomId: "", studentId: "", enrollmentId: "" }))}
-          options={stageOptions}
-          disabled={loading || lookupsLoading}
-          placeholder="Select stage"
-        />
-        <Select
-          label="Grade"
-          value={form.gradeId}
-          onChange={(value) => setForm((current) => ({ ...current, gradeId: value, sectionId: "", classroomId: "", studentId: "", enrollmentId: "" }))}
-          options={gradeOptions}
-          disabled={loading || lookupsLoading || !form.stageId}
-          placeholder="Select grade"
-        />
-        <Select
-          label="Section"
-          value={form.sectionId}
-          onChange={(value) => setForm((current) => ({ ...current, sectionId: value, classroomId: "", studentId: "", enrollmentId: "" }))}
-          options={sectionOptions}
-          disabled={loading || lookupsLoading || !form.gradeId}
-          placeholder="Select section"
-        />
-        <Select
-          label="Classroom"
-          value={form.classroomId}
-          onChange={(value) => setForm((current) => ({ ...current, classroomId: value, studentId: "", enrollmentId: "" }))}
-          options={classroomOptions}
-          disabled={loading || lookupsLoading || !form.sectionId}
-          placeholder="Select classroom"
-        />
-        <Select
-          label={t("rewardsModule.redemptions.create.student")}
-          value={form.studentId}
-          onChange={(value) => {
-            const selected = students.find((student) => student.studentId === value);
-            setForm((current) => ({ ...current, studentId: value, enrollmentId: selected?.enrollmentId || "" }));
+        <AcademicStudentCascade
+          value={form}
+          options={cascadeOptions}
+          loading={loading || lookupsLoading}
+          labels={{ student: t("rewardsModule.redemptions.create.student") }}
+          onChange={(selection) => {
+            const selected = students.find(
+              (student) => student.studentId === selection.studentId,
+            );
+            setForm((current) => ({
+              ...current,
+              stageId: selection.stageId || "",
+              gradeId: selection.gradeId || "",
+              sectionId: selection.sectionId || "",
+              classroomId: selection.classroomId || "",
+              studentId: selection.studentId || "",
+              enrollmentId: selected?.enrollmentId || "",
+            }));
             setErrors((current) => ({ ...current, studentId: undefined }));
             setSubmitError(null);
           }}
-          options={studentOptions}
-          searchable
-          disabled={loading || lookupsLoading || !form.classroomId}
-          error={errors.studentId}
-          placeholder={t("rewardsModule.redemptions.create.studentPlaceholder")}
-          searchPlaceholder={t("rewardsModule.redemptions.create.searchPlaceholder")}
-          noOptionsText={t("rewardsModule.redemptions.create.noStudents")}
-          noResultsText={t("rewardsModule.redemptions.create.noResults")}
         />
         {errors.studentId ? (
           <p className="text-sm text-red-600">{errors.studentId}</p>

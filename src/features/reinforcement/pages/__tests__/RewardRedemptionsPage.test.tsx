@@ -183,6 +183,17 @@ function mockSuccessfulLookups() {
         studentId: "student-1",
         enrollmentId: "enrollment-1",
         nameEn: "Student One",
+        classroomId: "classroom-1",
+        classroom: {
+          id: "classroom-1",
+          section: {
+            id: "section-1",
+            grade: {
+              id: "grade-1",
+              stageId: "stage-1",
+            },
+          },
+        },
         nameAr: "الطالب الأول",
       },
     ],
