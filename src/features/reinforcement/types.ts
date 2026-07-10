@@ -251,6 +251,9 @@ export interface ReinforcementFilterOptions {
   stages?: unknown[];
   grades?: unknown[];
   sections?: unknown[];
+  sources?: unknown[];
+  statuses?: unknown[];
+  tasks?: unknown[];
   scopeTargets?: Partial<
     Record<ReinforcementTargetScope, ReinforcementScopeOption[]>
   >;
@@ -531,6 +534,9 @@ export interface ListReinforcementReviewQueueParams {
   taskId?: string;
   studentId?: string;
   classroomId?: string;
+  sectionId?: string;
+  gradeId?: string;
+  stageId?: string;
   search?: string;
   submittedFrom?: string;
   submittedTo?: string;
@@ -833,8 +839,11 @@ export interface RewardsOverviewParams {
   academicYearId?: string;
   termId?: string;
   studentId?: string;
+  status?: RedemptionStatus;
+  type?: RewardItemType;
   dateFrom?: string;
   dateTo?: string;
+  includeArchived?: boolean;
   [key: string]: string | number | boolean | undefined;
 }
 
@@ -849,6 +858,10 @@ export interface RewardCatalogSummaryParams {
   termId?: string;
   status?: RewardCatalogStatus;
   type?: RewardItemType;
+  includeArchived?: boolean;
+  includeDeleted?: boolean;
   onlyAvailable?: boolean;
+  dateFrom?: string;
+  dateTo?: string;
   [key: string]: string | number | boolean | undefined;
 }

@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/toast/Toast";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import ManualXpGrantModal from "../components/ManualXpGrantModal";
 import ReinforcementAcademicContextFilter, {
   type ReinforcementAcademicContextSelection,
@@ -52,21 +53,22 @@ export default function ReinforcementXpLedgerPage() {
   const { showSuccess, showError } = useToast();
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
+  const { academicYearId, termId } = useAcademicYearTermLayoutContext();
 
   // ─── URL-synced filters ──────────────────────────────────────────────────
   const {
     values,
     setValue,
   } = useReinforcementUrlFilters({
-    paramKeys: ["academicYearId", "termId", "stageId", "gradeId", "sectionId", "classroomId", "studentId", "enrollmentId"],
+    paramKeys: ["stageId", "gradeId", "sectionId", "classroomId", "studentId", "enrollmentId"],
     defaults: {},
   });
 
-  // ─── Academic context derived from URL params ────────────────────────────
+  // Academic year and term come from the shared layout context.
   const context: ReinforcementAcademicContextValue = useMemo(
     () => ({
-      academicYearId: values.academicYearId || undefined,
-      termId: values.termId || undefined,
+      academicYearId,
+      termId,
       stageId: values.stageId || undefined,
       gradeId: values.gradeId || undefined,
       sectionId: values.sectionId || undefined,
@@ -74,7 +76,7 @@ export default function ReinforcementXpLedgerPage() {
       studentId: values.studentId || undefined,
       enrollmentId: values.enrollmentId || undefined,
     }),
-    [values.academicYearId, values.termId, values.stageId, values.gradeId, values.sectionId, values.classroomId, values.studentId, values.enrollmentId],
+    [academicYearId, termId, values.stageId, values.gradeId, values.sectionId, values.classroomId, values.studentId, values.enrollmentId],
   );
 
   const [entries, setEntries] = useState<XpLedgerEntry[]>([]);
@@ -209,11 +211,10 @@ export default function ReinforcementXpLedgerPage() {
         <div className="mt-4">
           <ReinforcementAcademicContextFilter
             value={context}
+            showAcademicYearTerm={false}
             showSubject={false}
             showStudent
             onChange={(selection: ReinforcementAcademicContextSelection) => {
-              setValue("academicYearId", selection.academicYearId || "");
-              setValue("termId", selection.termId || "");
               setValue("stageId", selection.stageId || "");
               setValue("gradeId", selection.gradeId || "");
               setValue("sectionId", selection.sectionId || "");

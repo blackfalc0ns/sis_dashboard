@@ -10030,10 +10030,12 @@
       "no": "No",
       "retry": "Retry",
       "close": "Close",
+      "cancel": "Cancel",
       "search": "Search..."
     },
     "validation": {
       "required": "This field is required.",
+      "atLeastOneTitle": "At least one title (English or Arabic) is required.",
       "titleRequired": "Enter at least one task title.",
       "stageRequired": "Add at least one stage.",
       "targetRequired": "Select at least one target.",
@@ -10207,6 +10209,11 @@
       "dueDate": "Due date",
       "allStudents": "All students",
       "allClasses": "All classes",
+      "allStages": "All stages",
+      "allGrades": "All grades",
+      "allSections": "All sections",
+      "allClassrooms": "All classrooms",
+      "allTasks": "All tasks",
       "allSources": "All sources",
       "allStatuses": "All statuses",
       "allRewardTypes": "All reward types",
@@ -10413,6 +10420,10 @@
         "student": "Student",
         "task": "Task",
         "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
+        "classroom": "Classroom",
+        "source": "Source",
         "status": "Status",
         "submittedAt": "Submitted at",
         "actions": "Actions"
@@ -10494,6 +10505,12 @@
         "selectYear": "Select Year",
         "selectTerm": "Select Term",
         "allStudents": "All Students",
+        "allStatuses": "All statuses",
+        "allTypes": "All types",
+        "allCatalogStatuses": "All catalog statuses",
+        "includeArchived": "Include archived",
+        "includeDeleted": "Include deleted",
+        "onlyAvailable": "Only available",
         "filtersTitle": "Filters",
         "dateFrom": "Date From",
         "dateTo": "Date To",
@@ -10509,7 +10526,10 @@
           "unlimited": "Unlimited"
         },
         "form": {
+          "titlePlaceholderAr": "Enter the reward title in Arabic",
+          "descriptionPlaceholderAr": "Enter the reward description in Arabic (optional)",
           "stockRemaining": "Stock remaining",
+          "stockRemainingRequired": "Stock remaining is required for limited rewards.",
           "stockRemainingHelp": "Current available quantity. Leave empty to let the backend use the stock quantity.",
           "academicScope": "Academic scope",
           "academicYear": "Academic year",
@@ -10535,6 +10555,10 @@
           "description": "Archive this reward so it no longer appears as an active catalog option. Existing historical records remain available.",
           "reason": "Archive reason",
           "reasonPlaceholder": "Optional reason for archiving this reward"
+        },
+        "publish": {
+          "title": "Publish reward",
+          "description": "Are you sure you want to publish this reward? Published rewards can no longer be edited."
         },
         "availability": {
           "available": "Available",
@@ -11711,6 +11735,42 @@
   "password_changed_successfully": "Password changed successfully!",
   "mute_notifications": "Mute notifications",
   "unmute_notifications": "Unmute notifications",
+  "top_nav_profile": {
+    "title": "Profile",
+    "description": "Current account details from the authenticated user session.",
+    "not_provided": "Not provided",
+    "yes": "Yes",
+    "no": "No",
+    "permissions": "Permissions",
+    "no_permissions": "No permissions available for the active membership.",
+    "fields": {
+      "user_id": "User ID",
+      "username": "Username",
+      "login_email": "Login email",
+      "contact_email": "Contact email",
+      "password_change_required": "Password change required",
+      "active_role": "Active role",
+      "organization_id": "Organization ID",
+      "school_id": "School ID"
+    },
+    "statuses": {
+      "ACTIVE": "Active",
+      "INVITED": "Invited",
+      "SUSPENDED": "Suspended",
+      "DISABLED": "Disabled"
+    },
+    "user_types": {
+      "PLATFORM_USER": "Platform user",
+      "ORGANIZATION_USER": "Organization user",
+      "SCHOOL_USER": "School user",
+      "TEACHER": "Teacher",
+      "PARENT": "Parent",
+      "STUDENT": "Student",
+      "APPLICANT": "Applicant",
+      "PICKUP_DELEGATE": "Pickup delegate",
+      "SERVICE_ACCOUNT": "Service account"
+    }
+  },
   "top_nav_notifications": {
     "title": "Notifications",
     "unread_count": "{count, plural, =0 {No unread updates} =1 {1 unread update} other {# unread updates}}",

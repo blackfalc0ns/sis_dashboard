@@ -11,10 +11,6 @@ import type {
   XpPolicy,
   XpPolicyScopeType,
 } from "../types";
-import ReinforcementAcademicContextFilter, {
-  type ReinforcementAcademicContextSelection,
-  type ReinforcementAcademicContextValue,
-} from "./ReinforcementAcademicContextFilter";
 import ReinforcementTaskTargetSelector, {
   type ReinforcementTaskTargetSelection,
 } from "./ReinforcementTaskTargetSelector";
@@ -24,6 +20,8 @@ interface XpPolicyFormProps {
   onCancel: () => void;
   mode?: "create" | "edit";
   initialPolicy?: XpPolicy | null;
+  academicYearId?: string;
+  termId?: string;
 }
 
 const parseOptionalNumber = (value: string): number | undefined => {
@@ -66,13 +64,15 @@ export default function XpPolicyForm({
   onCancel,
   mode = "create",
   initialPolicy = null,
+  academicYearId,
+  termId,
 }: XpPolicyFormProps) {
   const locale = useLocale();
   const t = useTranslations("reinforcement");
-  const [context, setContext] = useState<ReinforcementAcademicContextValue>({
-    academicYearId: initialPolicy?.academicYearId,
-    termId: initialPolicy?.termId,
-  });
+  const context = {
+    academicYearId: academicYearId || initialPolicy?.academicYearId,
+    termId: termId || initialPolicy?.termId,
+  };
   const [targets, setTargets] =
     useState<ReinforcementTaskTargetSelection[]>(initialTargetFor(initialPolicy));
   const [dailyCap, setDailyCap] = useState(
@@ -142,19 +142,6 @@ export default function XpPolicyForm({
           {error}
         </div>
       ) : null}
-
-      <ReinforcementAcademicContextFilter
-        value={context}
-        showSubject={false}
-        showStudent={false}
-        showStructure={false}
-        onChange={(selection: ReinforcementAcademicContextSelection) =>
-          setContext({
-            academicYearId: selection.academicYearId,
-            termId: selection.termId,
-          })
-        }
-      />
 
       <section className="rounded-lg border border-gray-100 bg-white p-4">
         <h3 className="text-base font-semibold text-gray-900">

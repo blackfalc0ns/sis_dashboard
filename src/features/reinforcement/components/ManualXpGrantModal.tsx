@@ -159,12 +159,13 @@ export default function ManualXpGrantModal({
         ) : null}
         <ReinforcementAcademicContextFilter
           value={selection}
+          showAcademicYearTerm={false}
           showSubject={false}
           showStudent
           onChange={(next: ReinforcementAcademicContextSelection) =>
             setSelection({
-              academicYearId: next.academicYearId,
-              termId: next.termId,
+              academicYearId: context?.academicYearId,
+              termId: context?.termId,
               stageId: next.stageId,
               gradeId: next.gradeId,
               sectionId: next.sectionId,

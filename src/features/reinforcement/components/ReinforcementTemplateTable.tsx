@@ -6,6 +6,7 @@ import type {
   ReinforcementTemplate,
   ReinforcementTemplateStage,
 } from "../types";
+import ReinforcementTableSkeleton from "./shared/ReinforcementTableSkeleton";
 
 interface ReinforcementTemplateTableProps {
   templates: ReinforcementTemplate[];
@@ -114,13 +115,7 @@ export default function ReinforcementTemplateTable({
     );
   };
 
-  if (loading && templates.length === 0) {
-    return (
-      <div className="rounded-lg border border-gray-100 bg-white p-6 text-sm text-gray-500 shadow-sm">
-        {t("common.loading")}
-      </div>
-    );
-  }
+  if (loading) return <ReinforcementTableSkeleton columns={5} />;
 
   if (templates.length === 0) {
     return (

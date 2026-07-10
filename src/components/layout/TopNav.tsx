@@ -7,14 +7,17 @@ import {
   LogOut,
   Menu,
   Search,
+  UserCircle,
   X,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import Modal from "@/components/ui/modal/Modal";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/features/communication/hooks/useNotifications";
+import type { MeResponse } from "@/types/user";
 import TopNavNotificationDropdown from "./TopNavNotificationDropdown";
 
 type NotificationTab = "all" | "chat" | "announcements";
@@ -258,10 +261,11 @@ function ProfileDropdown({
   t: (key: string) => string;
 }) {
   const [open, setOpen] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   useEffect(() => {
     if (!open) return;
@@ -325,11 +329,12 @@ function ProfileDropdown({
             type="button"
             onClick={() => {
               setOpen(false);
+              setShowProfileModal(true);
               onProfileClick?.();
             }}
             className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
           >
-            <span className="text-base">👤</span>
+            <UserCircle className="h-4 w-4 text-gray-500" />
             {t("profile") || "Profile"}
           </button>
 
@@ -362,6 +367,15 @@ function ProfileDropdown({
       ) : null}
     </div>
 
+    <ProfileModal
+      isOpen={showProfileModal}
+      onClose={() => setShowProfileModal(false)}
+      user={user}
+      fallbackName={userName}
+      fallbackRole={userRole}
+      t={t}
+    />
+
     {/* Change Password Dialog */}
     {showChangePassword ? (
       <ChangePasswordDialog
@@ -370,6 +384,148 @@ function ProfileDropdown({
       />
     ) : null}
     </>
+  );
+}
+
+function ProfileModal({
+  isOpen,
+  onClose,
+  user,
+  fallbackName,
+  fallbackRole,
+  t,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  user: MeResponse | null;
+  fallbackName: string;
+  fallbackRole: string;
+  t: (key: string) => string;
+}) {
+  const sessionName =
+    user && `${user.firstName} ${user.lastName}`.trim()
+      ? `${user.firstName} ${user.lastName}`.trim()
+      : "";
+  const displayName = sessionName || fallbackName;
+  const activeMembership = user?.activeMembership ?? null;
+  const permissions = activeMembership?.permissions ?? [];
+  const emptyValue = t("top_nav_profile.not_provided");
+  const userTypeLabel = user?.userType
+    ? t(`top_nav_profile.user_types.${user.userType}`)
+    : fallbackRole;
+  const statusLabel = user?.status
+    ? t(`top_nav_profile.statuses.${user.status}`)
+    : "";
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t("top_nav_profile.title")}
+      description={t("top_nav_profile.description")}
+      size="lg"
+      icon={<UserCircle className="h-6 w-6" />}
+    >
+      <div className="space-y-6 pb-4">
+        <div className="flex items-center gap-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary-600 text-lg font-semibold text-white">
+            {displayName
+              .split(" ")
+              .filter(Boolean)
+              .map((part) => part[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2) || "U"}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-base font-semibold text-gray-900">
+              {displayName}
+            </p>
+            <p className="text-sm text-gray-500">
+              {userTypeLabel}
+              {statusLabel ? ` - ${statusLabel}` : ""}
+            </p>
+          </div>
+        </div>
+
+        <dl className="grid gap-3 sm:grid-cols-2">
+          <ProfileField
+            label={t("top_nav_profile.fields.user_id")}
+            value={user?.id ?? emptyValue}
+          />
+          <ProfileField
+            label={t("top_nav_profile.fields.username")}
+            value={user?.username ?? emptyValue}
+          />
+          <ProfileField
+            label={t("top_nav_profile.fields.login_email")}
+            value={user?.loginEmail ?? user?.email ?? emptyValue}
+          />
+          <ProfileField
+            label={t("top_nav_profile.fields.contact_email")}
+            value={user?.contactEmail ?? emptyValue}
+          />
+          <ProfileField
+            label={t("top_nav_profile.fields.password_change_required")}
+            value={
+              user?.mustChangePassword
+                ? t("top_nav_profile.yes")
+                : t("top_nav_profile.no")
+            }
+          />
+          <ProfileField
+            label={t("top_nav_profile.fields.active_role")}
+            value={activeMembership?.roleKey ?? fallbackRole ?? emptyValue}
+          />
+          <ProfileField
+            label={t("top_nav_profile.fields.organization_id")}
+            value={activeMembership?.organizationId ?? emptyValue}
+          />
+          <ProfileField
+            label={t("top_nav_profile.fields.school_id")}
+            value={activeMembership?.schoolId ?? emptyValue}
+          />
+        </dl>
+
+        <div>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-gray-900">
+              {t("top_nav_profile.permissions")}
+            </h3>
+            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
+              {permissions.length}
+            </span>
+          </div>
+          {permissions.length > 0 ? (
+            <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto rounded-xl border border-gray-100 bg-white p-3">
+              {permissions.map((permission) => (
+                <span
+                  key={permission}
+                  className="rounded-full bg-primary-50 px-2.5 py-1 text-xs font-medium text-primary-700"
+                >
+                  {permission}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm text-gray-500">
+              {t("top_nav_profile.no_permissions")}
+            </p>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function ProfileField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-gray-100 bg-white p-3">
+      <dt className="text-xs font-medium uppercase text-gray-500">{label}</dt>
+      <dd className="mt-1 break-words text-sm font-medium text-gray-900">
+        {value}
+      </dd>
+    </div>
   );
 }
 

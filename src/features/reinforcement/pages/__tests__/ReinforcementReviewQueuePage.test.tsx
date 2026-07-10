@@ -26,6 +26,10 @@ const filterOptionMocks = vi.hoisted(() => ({
   getReinforcementFilterOptions: vi.fn(),
 }));
 
+const taskMocks = vi.hoisted(() => ({
+  listReinforcementTasks: vi.fn(),
+}));
+
 vi.mock("@/hooks/use-auth", () => ({
   useAuth: () => ({ isLoading: false }),
 }));
@@ -34,6 +38,14 @@ vi.mock("@/hooks/usePermissions", () => ({
   usePermissions: () => ({
     hasPermission: (permission: string) =>
       permissionState.permissions.includes(permission),
+  }),
+}));
+
+vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({
+  useAcademicYearTermLayoutContext: () => ({
+    academicYearId: "year-1",
+    termId: "term-1",
+    isInitializing: false,
   }),
 }));
 
@@ -50,6 +62,11 @@ vi.mock(
 vi.mock(
   "@/features/reinforcement/services/reinforcementXpService",
   () => xpMocks,
+);
+
+vi.mock(
+  "@/features/reinforcement/services/reinforcementTasksService",
+  () => taskMocks,
 );
 
 function renderPage() {
@@ -105,6 +122,7 @@ describe("ReinforcementReviewQueuePage", () => {
       terms: [{ id: "term-1", nameEn: "Term 1", nameAr: "Term 1" }],
       students: [{ studentId: "student-123", nameEn: "Student 123", nameAr: "Student 123" }],
     });
+    taskMocks.listReinforcementTasks.mockResolvedValue({ items: [], total: 0 });
   });
 
   it("calls listReinforcementReviewQueue and getReinforcementFilterOptions on load", async () => {
@@ -122,8 +140,6 @@ describe("ReinforcementReviewQueuePage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await selectOption(user, "rewardsModule.catalog.form.academicYear", "Year 1");
-    await selectOption(user, "rewardsModule.catalog.form.term", "Term 1");
     await selectOption(user, "rewardsModule.redemptions.create.student", "Student 123");
 
     await waitFor(() => {
@@ -137,12 +153,10 @@ describe("ReinforcementReviewQueuePage", () => {
     });
   });
 
-  it("clears local filters and keeps academic context when Clear Filters is clicked", async () => {
+  it("clears all filters when Clear Filters is clicked", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    await selectOption(user, "rewardsModule.catalog.form.academicYear", "Year 1");
-    await selectOption(user, "rewardsModule.catalog.form.term", "Term 1");
     await selectOption(user, "rewardsModule.redemptions.create.student", "Student 123");
 
     await waitFor(() => {
@@ -499,4 +513,3 @@ describe("ReinforcementReviewQueuePage", () => {
     expect(dashes.length).toBeGreaterThanOrEqual(2);
   });
 });
-

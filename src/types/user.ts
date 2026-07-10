@@ -17,6 +17,7 @@ export interface AuthenticatedUser {
   id: string;
   email: string;
   username?: string | null;
+  loginEmail?: string;
   contactEmail?: string | null;
   firstName: string;
   lastName: string;
@@ -37,6 +38,7 @@ export interface MeResponse {
   id: string;
   email: string;
   username?: string | null;
+  loginEmail?: string;
   contactEmail?: string | null;
   firstName: string;
   lastName: string;

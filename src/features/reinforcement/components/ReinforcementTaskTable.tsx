@@ -5,6 +5,7 @@ import { ClipboardList } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import type { ReinforcementRewardType, ReinforcementTask } from "../types";
+import ReinforcementTableSkeleton from "./shared/ReinforcementTableSkeleton";
 
 interface ReinforcementTaskTableProps {
   tasks: ReinforcementTask[];
@@ -82,13 +83,7 @@ export default function ReinforcementTaskTable({
   const locale = useLocale();
   const t = useTranslations("reinforcement");
 
-  if (loading && tasks.length === 0) {
-    return (
-      <div className="rounded-lg border border-gray-100 bg-white p-6 text-sm text-gray-500 shadow-sm">
-        {t("common.loading")}
-      </div>
-    );
-  }
+  if (loading) return <ReinforcementTableSkeleton columns={6} />;
 
   if (tasks.length === 0) {
     return (

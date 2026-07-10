@@ -9,19 +9,6 @@ vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key,
 }));
 
-vi.mock("../ReinforcementAcademicContextFilter", () => ({
-  default: ({
-    value,
-  }: {
-    value: { academicYearId?: string; termId?: string };
-  }) => (
-    <div>
-      <span>{value.academicYearId}</span>
-      <span>{value.termId}</span>
-    </div>
-  ),
-}));
-
 vi.mock("../ReinforcementTaskTargetSelector", () => ({
   default: ({
     value,
@@ -70,8 +57,6 @@ describe("XpPolicyForm", () => {
       />,
     );
 
-    expect(screen.getByText("year-1")).toBeInTheDocument();
-    expect(screen.getByText("term-1")).toBeInTheDocument();
     expect(screen.getByText("section:section-1")).toBeInTheDocument();
     expect(screen.getByLabelText("xp.dailyCap")).toHaveValue(100);
     expect(screen.getByLabelText("xp.weeklyCap")).toHaveValue(2000);

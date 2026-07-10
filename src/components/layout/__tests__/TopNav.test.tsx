@@ -39,6 +39,23 @@ vi.mock("next-intl", () => ({
         "top_nav_notifications.untitled": "Untitled update",
         "top_nav_notifications.no_preview": "No preview available.",
         "top_nav_notifications.system": "System",
+        "top_nav_profile.title": "Profile",
+        "top_nav_profile.description": "Current account details from the authenticated user session.",
+        "top_nav_profile.not_provided": "Not provided",
+        "top_nav_profile.yes": "Yes",
+        "top_nav_profile.no": "No",
+        "top_nav_profile.permissions": "Permissions",
+        "top_nav_profile.no_permissions": "No permissions available for the active membership.",
+        "top_nav_profile.fields.user_id": "User ID",
+        "top_nav_profile.fields.username": "Username",
+        "top_nav_profile.fields.login_email": "Login email",
+        "top_nav_profile.fields.contact_email": "Contact email",
+        "top_nav_profile.fields.password_change_required": "Password change required",
+        "top_nav_profile.fields.active_role": "Active role",
+        "top_nav_profile.fields.organization_id": "Organization ID",
+        "top_nav_profile.fields.school_id": "School ID",
+        "top_nav_profile.statuses.ACTIVE": "Active",
+        "top_nav_profile.user_types.SCHOOL_USER": "School user",
         mute_notifications: "Mute notifications",
         unmute_notifications: "Unmute notifications",
       };
@@ -52,7 +69,28 @@ vi.mock("next-intl", () => ({
 // Mock useAuth
 vi.mock("@/hooks/use-auth", () => ({
   useAuth: () => ({
-    user: { id: "user-1" },
+    user: {
+      id: "user-1",
+      email: "admin@moazez.dev",
+      username: "admin",
+      loginEmail: "admin@moazez.dev",
+      contactEmail: "owner@school.test",
+      firstName: "Test",
+      lastName: "User",
+      userType: "SCHOOL_USER",
+      status: "ACTIVE",
+      mustChangePassword: false,
+      activeMembership: {
+        membershipId: "membership-1",
+        organizationId: "organization-1",
+        schoolId: "school-1",
+        roleId: "role-1",
+        roleKey: "school.admin",
+        permissions: ["settings.users.view", "attendance.sessions.view"],
+      },
+    },
+    logout: vi.fn(),
+    changePassword: vi.fn(),
   }),
 }));
 
@@ -191,5 +229,30 @@ describe("TopNav Notification Integration", () => {
     expect(
       screen.queryByRole("button", { name: "Mute notifications" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("opens the authenticated profile modal from the profile menu", async () => {
+    render(
+      <TopNav
+        userName="Fallback User"
+        userRole="Admin"
+        schoolName="Test School"
+      />
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(150);
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Fallback User Admin FU/i }));
+    fireEvent.click(screen.getByRole("button", { name: "profile" }));
+
+    expect(screen.getByRole("dialog", { name: "Profile" })).toBeInTheDocument();
+    expect(screen.getByText("Test User")).toBeInTheDocument();
+    expect(screen.getByText("School user - Active")).toBeInTheDocument();
+    expect(screen.getAllByText("admin@moazez.dev").length).toBeGreaterThan(0);
+    expect(screen.getByText("owner@school.test")).toBeInTheDocument();
+    expect(screen.getByText("school.admin")).toBeInTheDocument();
+    expect(screen.getByText("settings.users.view")).toBeInTheDocument();
+    expect(screen.getByText("attendance.sessions.view")).toBeInTheDocument();
   });
 });

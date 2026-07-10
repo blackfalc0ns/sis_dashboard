@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import type { XpLedgerEntry } from "../types";
+import ReinforcementTableSkeleton from "./shared/ReinforcementTableSkeleton";
 
 interface XpLedgerTableProps {
   entries: XpLedgerEntry[];
@@ -19,13 +20,7 @@ export default function XpLedgerTable({
   const router = useRouter();
   const t = useTranslations("reinforcement");
 
-  if (loading && entries.length === 0) {
-    return (
-      <div className="rounded-lg border border-gray-100 bg-white p-6 text-sm text-gray-500 shadow-sm">
-        {t("common.loading")}
-      </div>
-    );
-  }
+  if (loading) return <ReinforcementTableSkeleton columns={5} />;
 
   if (entries.length === 0) {
     return (

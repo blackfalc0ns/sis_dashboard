@@ -6,7 +6,10 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
-import type { ReinforcementProofType, ReinforcementStagePayload } from "../types";
+import type {
+  ReinforcementProofType,
+  ReinforcementStagePayload,
+} from "../types";
 
 export type ReinforcementTaskStageDraft = Omit<
   ReinforcementStagePayload,
@@ -101,7 +104,9 @@ export default function ReinforcementTaskStagesEditor({
                   type="button"
                   disabled={disabled}
                   onClick={() =>
-                    onChange(stages.filter((_, stageIndex) => stageIndex !== index))
+                    onChange(
+                      stages.filter((_, stageIndex) => stageIndex !== index),
+                    )
                   }
                   className="inline-flex items-center gap-1 text-sm font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
                 >
@@ -113,15 +118,6 @@ export default function ReinforcementTaskStagesEditor({
 
             <div className="grid gap-4 md:grid-cols-2">
               <Input
-                label={t("tasks.form.stageTitleEn")}
-                value={stage.titleEn}
-                error={errors[index]}
-                disabled={disabled}
-                onChange={(event) =>
-                  updateStage(index, { titleEn: event.target.value })
-                }
-              />
-              <Input
                 label={t("tasks.form.stageTitleAr")}
                 value={stage.titleAr}
                 error={errors[index]}
@@ -131,14 +127,17 @@ export default function ReinforcementTaskStagesEditor({
                   updateStage(index, { titleAr: event.target.value })
                 }
               />
-              <TextArea
-                label={t("tasks.form.stageDescriptionEn")}
-                value={stage.descriptionEn}
+
+              <Input
+                label={t("tasks.form.stageTitleEn")}
+                value={stage.titleEn}
+                error={errors[index]}
                 disabled={disabled}
                 onChange={(event) =>
-                  updateStage(index, { descriptionEn: event.target.value })
+                  updateStage(index, { titleEn: event.target.value })
                 }
               />
+
               <TextArea
                 label={t("tasks.form.stageDescriptionAr")}
                 value={stage.descriptionAr}
@@ -146,6 +145,15 @@ export default function ReinforcementTaskStagesEditor({
                 dir="rtl"
                 onChange={(event) =>
                   updateStage(index, { descriptionAr: event.target.value })
+                }
+              />
+
+              <TextArea
+                label={t("tasks.form.stageDescriptionEn")}
+                value={stage.descriptionEn}
+                disabled={disabled}
+                onChange={(event) =>
+                  updateStage(index, { descriptionEn: event.target.value })
                 }
               />
             </div>
@@ -156,7 +164,9 @@ export default function ReinforcementTaskStagesEditor({
                 value={stage.proofType}
                 disabled={disabled}
                 onChange={(value) =>
-                  updateStage(index, { proofType: value as ReinforcementProofType })
+                  updateStage(index, {
+                    proofType: value as ReinforcementProofType,
+                  })
                 }
                 options={[
                   { value: "none", label: t("proofType.none") },

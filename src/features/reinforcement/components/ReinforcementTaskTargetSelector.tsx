@@ -24,12 +24,31 @@ interface TargetOption {
   enrollmentId?: string;
 }
 
+type TargetHierarchyLevel = Exclude<ReinforcementTargetScope, "school">;
+type TargetSelection = Partial<Record<ReinforcementTargetScope, string>>;
+
+const targetHierarchy: Record<
+  ReinforcementTargetScope,
+  TargetHierarchyLevel[]
+> = {
+  school: [],
+  stage: ["stage"],
+  grade: ["stage", "grade"],
+  section: ["stage", "grade", "section"],
+  classroom: ["stage", "grade", "section", "classroom"],
+  student: ["stage", "grade", "section", "classroom", "student"],
+};
+
 interface NamedOptionRecord {
   id?: string;
   value?: string;
   name?: string;
   nameAr?: string;
   nameEn?: string;
+  fullNameAr?: string;
+  fullNameEn?: string;
+  name_ar?: string;
+  name_en?: string;
   full_name_ar?: string;
   full_name_en?: string;
   student_id?: string;
@@ -38,8 +57,7 @@ interface NamedOptionRecord {
   [key: string]: unknown;
 }
 
-export interface ReinforcementTaskTargetSelection
-  extends ReinforcementTargetPayload {
+export interface ReinforcementTaskTargetSelection extends ReinforcementTargetPayload {
   label?: string;
   enrollmentId?: string;
 }
@@ -110,10 +128,7 @@ const scopeOrder: ReinforcementTargetScope[] = [
   "school",
 ];
 
-const localized = (
-  item: NamedOptionRecord,
-  locale: Locale,
-) =>
+const localized = (item: NamedOptionRecord, locale: Locale) =>
   (locale === "ar" ? item.nameAr || item.nameEn : item.nameEn || item.name) ||
   item.name ||
   item.id ||
@@ -125,16 +140,32 @@ const optionValueFor = (item: NamedOptionRecord): string =>
 const studentIdFor = (student: NamedOptionRecord): string =>
   student.value || student.id || student.student_id || "";
 
-const studentLabel = (
+export const studentLabel = (
   student: NamedOptionRecord,
   locale: Locale,
 ): string =>
   locale === "ar"
-    ? student.full_name_ar || student.full_name_en || student.name || studentIdFor(student)
-    : student.full_name_en || student.name || student.full_name_ar || studentIdFor(student);
+    ? student.full_name_ar ||
+      student.fullNameAr ||
+      student.nameAr ||
+      student.name_ar ||
+      student.full_name_en ||
+      student.name ||
+      studentIdFor(student)
+    : student.full_name_en ||
+      student.fullNameEn ||
+      student.nameEn ||
+      student.name_en ||
+      student.name ||
+      student.full_name_ar ||
+      studentIdFor(student);
 
 const enrollmentIdFor = (student?: NamedOptionRecord): string | undefined => {
-  return student?.enrollmentId || student?.enrollment?.id || student?.enrollment?.enrollmentId;
+  return (
+    student?.enrollmentId ||
+    student?.enrollment?.id ||
+    student?.enrollment?.enrollmentId
+  );
 };
 
 const toSelectOption = (option: TargetOption): SelectOption => ({
@@ -157,7 +188,9 @@ const scopeTargetOption = (
   fallbackLabel?: string,
 ): TargetOption => {
   const label =
-    (locale === "ar" ? item.nameAr || item.nameEn : item.nameEn || item.nameAr) ||
+    (locale === "ar"
+      ? item.nameAr || item.nameEn
+      : item.nameEn || item.nameAr) ||
     fallbackLabel ||
     item.value;
   return {
@@ -179,7 +212,9 @@ const fallbackOption = (
     scopeType === "student" ? studentIdFor(item) : optionValueFor(item);
   if (!value) return null;
   const label =
-    scopeType === "student" ? studentLabel(item, locale) : localized(item, locale);
+    scopeType === "student"
+      ? studentLabel(item, locale)
+      : localized(item, locale);
   return {
     value,
     label,
@@ -189,17 +224,57 @@ const fallbackOption = (
   };
 };
 
+const relationIdFor = (
+  item: NamedOptionRecord,
+  relation: TargetHierarchyLevel,
+): string | undefined => {
+  const directValue = item[`${relation}Id`] || item[`${relation}_id`];
+  if (typeof directValue === "string") return directValue;
+
+  const nestedValue = item[relation];
+  if (nestedValue && typeof nestedValue === "object") {
+    const nestedId = (nestedValue as { id?: unknown }).id;
+    if (typeof nestedId === "string") return nestedId;
+  }
+
+  return undefined;
+};
+
+export const filterTargetRecordsByParent = (
+  records: NamedOptionRecord[],
+  relation: TargetHierarchyLevel,
+  parentId?: string,
+): NamedOptionRecord[] => {
+  if (!parentId) return records;
+  return records.filter((record) => {
+    const relationId = relationIdFor(record, relation);
+    return !relationId || relationId === parentId;
+  });
+};
+
 const scopeOptionsFor = (
   options: ReinforcementFilterOptions,
   scopeType: ReinforcementTargetScope,
   locale: Locale,
+  parentRelation?: TargetHierarchyLevel,
+  parentId?: string,
 ): TargetOption[] => {
   const scoped = options.scopeTargets?.[scopeType];
   if (scoped?.length) {
-    return scoped.map((item) => scopeTargetOption(item, locale));
+    return filterTargetRecordsByParent(
+      scoped as NamedOptionRecord[],
+      parentRelation || "stage",
+      parentId,
+    )
+      .map((item) => fallbackOption(item, scopeType, locale))
+      .filter((item): item is TargetOption => Boolean(item));
   }
   const fallbackKey = `${scopeType}s` as keyof ReinforcementFilterOptions;
-  return arrayOptionRecords(options, fallbackKey)
+  return filterTargetRecordsByParent(
+    arrayOptionRecords(options, fallbackKey),
+    parentRelation || "stage",
+    parentId,
+  )
     .map((item) => fallbackOption(item, scopeType, locale))
     .filter((item): item is TargetOption => Boolean(item));
 };
@@ -219,7 +294,7 @@ export default function ReinforcementTaskTargetSelector({
   const copy = labels[locale];
   const isRTL = locale === "ar";
   const [scope, setScope] = useState<ReinforcementTargetScope>(defaultScope);
-  const [targetId, setTargetId] = useState("");
+  const [selection, setSelection] = useState<TargetSelection>({});
   const [duplicateError, setDuplicateError] = useState("");
   const [state, setState] = useState<LoadState>({
     options: {},
@@ -263,38 +338,87 @@ export default function ReinforcementTaskTargetSelector({
     };
   }, [academicYearId, copy.error, termId]);
 
-  const optionsByScope = useMemo<Record<ReinforcementTargetScope, TargetOption[]>>(
+  useEffect(() => {
+    setSelection(scope === "school" && schoolId ? { school: schoolId } : {});
+    setDuplicateError("");
+  }, [academicYearId, schoolId, scope, termId]);
+
+  const optionsByScope = useMemo<
+    Record<ReinforcementTargetScope, TargetOption[]>
+  >(
     () => ({
       school: state.options.scopeTargets?.school?.length
         ? state.options.scopeTargets.school.map((item) =>
             scopeTargetOption(item, locale, copy.wholeSchool),
           )
         : schoolId
-        ? [
-            {
-              value: schoolId,
-              label: copy.wholeSchool,
-              scopeType: "school" as const,
-            },
-          ]
+          ? [
+              {
+                value: schoolId,
+                label: copy.wholeSchool,
+                scopeType: "school" as const,
+              },
+            ]
           : [],
       stage: scopeOptionsFor(state.options, "stage", locale),
-      grade: scopeOptionsFor(state.options, "grade", locale),
-      section: scopeOptionsFor(state.options, "section", locale),
-      classroom: scopeOptionsFor(state.options, "classroom", locale),
-      student: scopeOptionsFor(state.options, "student", locale),
+      grade: scopeOptionsFor(
+        state.options,
+        "grade",
+        locale,
+        "stage",
+        selection.stage,
+      ),
+      section: scopeOptionsFor(
+        state.options,
+        "section",
+        locale,
+        "grade",
+        selection.grade,
+      ),
+      classroom: scopeOptionsFor(
+        state.options,
+        "classroom",
+        locale,
+        "section",
+        selection.section,
+      ),
+      student: scopeOptionsFor(
+        state.options,
+        "student",
+        locale,
+        "classroom",
+        selection.classroom,
+      ),
     }),
-    [copy.wholeSchool, locale, schoolId, state.options],
+    [copy.wholeSchool, locale, schoolId, selection, state.options],
   );
 
+  const selectedTargetId =
+    selection[scope] || (scope === "school" ? schoolId : "");
   const currentOptions = optionsByScope[scope] || [];
   const scopeOptions = scopeOrder.map((item) => ({
     value: item,
     label: copy[item],
   }));
 
+  const updateSelection = (
+    level: ReinforcementTargetScope,
+    nextValue: string,
+  ) => {
+    const levels = targetHierarchy[scope];
+    const levelIndex = levels.indexOf(level as TargetHierarchyLevel);
+    const nextSelection: TargetSelection = { ...selection, [level]: nextValue };
+    levels.slice(levelIndex + 1).forEach((dependentLevel) => {
+      delete nextSelection[dependentLevel];
+    });
+    setSelection(nextSelection);
+    setDuplicateError("");
+  };
+
   const addTarget = () => {
-    const option = currentOptions.find((item) => item.value === targetId);
+    const option = currentOptions.find(
+      (item) => item.value === selectedTargetId,
+    );
     if (!option) return;
 
     const exists = value.some(
@@ -306,7 +430,10 @@ export default function ReinforcementTaskTargetSelector({
     }
 
     setDuplicateError("");
-    setTargetId("");
+    const finalLevel = targetHierarchy[scope].at(-1);
+    if (finalLevel) {
+      setSelection((current) => ({ ...current, [finalLevel]: undefined }));
+    }
     onChange([
       ...value,
       {
@@ -322,7 +449,8 @@ export default function ReinforcementTaskTargetSelector({
     onChange(
       value.filter(
         (item) =>
-          item.scopeType !== target.scopeType || item.scopeId !== target.scopeId,
+          item.scopeType !== target.scopeType ||
+          item.scopeId !== target.scopeId,
       ),
     );
   };
@@ -346,40 +474,69 @@ export default function ReinforcementTaskTargetSelector({
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] md:items-end">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 md:items-end">
         <Select
           label={copy.scope}
           value={scope}
           disabled={disabled}
           options={scopeOptions}
           onChange={(nextScope) => {
-            setScope(nextScope as ReinforcementTargetScope);
-            setTargetId("");
+            const nextScopeValue = nextScope as ReinforcementTargetScope;
+            setScope(nextScopeValue);
+            setSelection(
+              nextScopeValue === "school" && schoolId
+                ? { school: schoolId }
+                : {},
+            );
             setDuplicateError("");
           }}
         />
-        <Select
-          label={copy.target}
-          value={targetId}
-          disabled={disabled || state.loading || !academicYearId || !termId}
-          options={currentOptions.map(toSelectOption)}
-          searchable
-          searchPlaceholder={copy.search}
-          noOptionsText={copy.noOptions}
-          error={duplicateError}
-          onChange={(nextTargetId) => {
-            setTargetId(nextTargetId);
-            setDuplicateError("");
-          }}
-        />
+        {scope === "school" && (
+          <Select
+            label={copy.target}
+            value={selectedTargetId || ""}
+            disabled={disabled || state.loading || !academicYearId || !termId}
+            options={currentOptions.map(toSelectOption)}
+            searchable
+            searchPlaceholder={copy.search}
+            noOptionsText={copy.noOptions}
+            error={duplicateError}
+            onChange={(nextValue) => updateSelection("school", nextValue)}
+          />
+        )}
+        {targetHierarchy[scope].map((level, index) => {
+          const parentLevel = targetHierarchy[scope][index - 1];
+          const parentSelected =
+            !parentLevel || Boolean(selection[parentLevel]);
+          return (
+            <Select
+              key={level}
+              label={copy[level]}
+              value={selection[level] || ""}
+              disabled={
+                disabled ||
+                state.loading ||
+                !academicYearId ||
+                !termId ||
+                !parentSelected
+              }
+              options={optionsByScope[level].map(toSelectOption)}
+              searchable
+              searchPlaceholder={copy.search}
+              noOptionsText={copy.noOptions}
+              error={duplicateError}
+              onChange={(nextValue) => updateSelection(level, nextValue)}
+            />
+          );
+        })}
         <Button
           type="button"
           variant="primary"
-          disabled={disabled || !targetId}
+          disabled={disabled || !selectedTargetId}
           onClick={addTarget}
           className="h-10"
+          leftIcon={<Plus className="h-4 w-4" />}
         >
-          <Plus className="h-4 w-4" />
           {copy.add}
         </Button>
       </div>

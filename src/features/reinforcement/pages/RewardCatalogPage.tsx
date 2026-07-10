@@ -122,10 +122,7 @@ export default function RewardCatalogPage() {
     academicYearId,
     termId,
     academicYears,
-    terms,
     isInitializing: contextInitializing,
-    requestAcademicYearChange,
-    requestTermChange,
   } = useAcademicYearTermLayoutContext();
 
   // ─── URL-synced filters ──────────────────────────────────────────────────
@@ -154,6 +151,8 @@ export default function RewardCatalogPage() {
   const [archiveTarget, setArchiveTarget] = useState<RewardCatalogItem | null>(null);
   const [archiveReason, setArchiveReason] = useState("");
   const [archiveLoading, setArchiveLoading] = useState(false);
+  const [publishTarget, setPublishTarget] = useState<RewardCatalogItem | null>(null);
+  const [publishLoading, setPublishLoading] = useState(false);
 
   const canView = hasPermission("reinforcement.rewards.view");
   const canManage = hasPermission("reinforcement.rewards.manage");
@@ -164,26 +163,6 @@ export default function RewardCatalogPage() {
   // ─── Filter toolbar config ───────────────────────────────────────────────
   const catalogFilters: FilterConfig[] = useMemo(
     () => [
-      {
-        key: "academicYearId",
-        label: t("rewardsModule.catalog.form.academicYear"),
-        type: "select",
-        options: academicYears.map((year) => ({
-          value: year.id,
-          label:
-            (locale === "ar" ? year.nameAr : year.nameEn) || year.name,
-        })),
-      },
-      {
-        key: "termId",
-        label: t("rewardsModule.catalog.form.term"),
-        type: "select",
-        options: terms.map((term) => ({
-          value: term.id,
-          label:
-            (locale === "ar" ? term.nameAr : term.nameEn) || term.name,
-        })),
-      },
       {
         key: "status",
         label: t("rewardsModule.catalog.table.status"),
@@ -215,7 +194,7 @@ export default function RewardCatalogPage() {
         placeholder: t("filters.searchPlaceholder"),
       },
     ],
-    [academicYears, locale, t, terms],
+    [t],
   );
 
   const activeFilters: ActiveFilter[] = useMemo(() => {
@@ -250,17 +229,9 @@ export default function RewardCatalogPage() {
   const handleFilterChange = useCallback(
     (key: string, value: string) => {
       setCatalogPage(1);
-      if (key === "academicYearId") {
-        void requestAcademicYearChange(value);
-        return;
-      }
-      if (key === "termId") {
-        requestTermChange(value);
-        return;
-      }
       setValue(key, value);
     },
-    [requestAcademicYearChange, requestTermChange, setValue],
+    [setValue],
   );
 
   const handleClearAllFilters = useCallback(() => {
@@ -363,16 +334,29 @@ export default function RewardCatalogPage() {
     void Promise.resolve().then(refreshCatalog);
   }, [refreshCatalog]);
 
-  const handlePublish = useCallback(
+  const handleOpenPublish = useCallback((item: RewardCatalogItem) => {
+    setPublishTarget(item);
+  }, []);
+
+  const handleClosePublish = useCallback(() => {
+    if (publishLoading) return;
+    setPublishTarget(null);
+  }, [publishLoading]);
+
+  const handleConfirmPublish = useCallback(
     async (item: RewardCatalogItem) => {
+      setPublishLoading(true);
       try {
         await publishRewardCatalogItem(item.id);
         showSuccess(t("rewardsModule.messages.published"));
+        setPublishTarget(null);
         await refreshCatalog();
       } catch (nextError) {
         const message =
           nextError instanceof Error ? nextError.message : t("common.error");
         showError(message);
+      } finally {
+        setPublishLoading(false);
       }
     },
     [refreshCatalog, showSuccess, showError, t],
@@ -425,6 +409,11 @@ export default function RewardCatalogPage() {
   };
 
   const handleOpenEdit = (item: RewardCatalogItem) => {
+    if (item.status === "published") {
+      setFormModalOpen(false);
+      setEditingItem(undefined);
+      return;
+    }
     setEditingItem(item);
     setFormModalOpen(true);
   };
@@ -588,20 +577,22 @@ export default function RewardCatalogPage() {
           if (!canManage) return null;
           return (
             <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                leftIcon={<Edit className="h-3.5 w-3.5" />}
-                onClick={() => handleOpenEdit(row)}
-              >
-                {t("rewardsModule.actions.edit")}
-              </Button>
+              {row.status !== "published" ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  leftIcon={<Edit className="h-3.5 w-3.5" />}
+                  onClick={() => handleOpenEdit(row)}
+                >
+                  {t("rewardsModule.actions.edit")}
+                </Button>
+              ) : null}
               {row.status === "draft" ? (
                 <Button
                   variant="secondary"
                   size="sm"
                   leftIcon={<Rocket className="h-3.5 w-3.5" />}
-                  onClick={() => handlePublish(row)}
+                  onClick={() => handleOpenPublish(row)}
                 >
                   {t("rewardsModule.actions.publish")}
                 </Button>
@@ -626,7 +617,7 @@ export default function RewardCatalogPage() {
       locale,
       t,
       canManage,
-      handlePublish,
+      handleOpenPublish,
       handleOpenArchive,
     ],
   );
@@ -685,8 +676,6 @@ export default function RewardCatalogPage() {
       <ReinforcementFilterToolbar
         filters={catalogFilters}
         values={{
-          academicYearId,
-          termId,
           status: values.status,
           type: values.type,
           search: values.search,
@@ -714,10 +703,7 @@ export default function RewardCatalogPage() {
         </div>
       ) : null}
 
-      {loading && items.length === 0 ? (
-        <MainLoader />
-      ) : (
-        <>
+      <>
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {summaryCards.map((card) => (
               <div
@@ -738,6 +724,8 @@ export default function RewardCatalogPage() {
             <DataTable<RewardCatalogItem>
               columns={columns}
               data={items}
+              isLoading={loading}
+              skeletonRows={catalogPageSize}
               searchQuery={values.search}
               itemsPerPage={catalogPageSize}
               serverPagination={{
@@ -753,8 +741,40 @@ export default function RewardCatalogPage() {
               }}
             />
           </section>
-        </>
-      )}
+      </>
+
+      <Modal
+        isOpen={Boolean(publishTarget)}
+        onClose={handleClosePublish}
+        title={t("rewardsModule.catalog.publish.title")}
+        size="md"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={handleClosePublish}
+              disabled={publishLoading}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() =>
+                publishTarget && void handleConfirmPublish(publishTarget)
+              }
+              loading={publishLoading}
+              disabled={publishLoading}
+              leftIcon={<Rocket className="h-4 w-4" />}
+            >
+              {t("rewardsModule.actions.publish")}
+            </Button>
+          </>
+        }
+      >
+        <p className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
+          {t("rewardsModule.catalog.publish.description")}
+        </p>
+      </Modal>
 
       <Modal
         isOpen={Boolean(archiveTarget)}

@@ -149,6 +149,15 @@ export default function RewardCatalogFormModal({
       return;
     }
 
+    if (!isUnlimited && !stockRemaining.trim()) {
+      setValidationError(
+        t("rewardsModule.catalog.form.stockRemainingRequired", {
+          defaultMessage: "Stock remaining is required for limited rewards.",
+        }),
+      );
+      return;
+    }
+
     setValidationError(null);
 
     const scopedFields = scope.isGlobal
@@ -229,10 +238,19 @@ export default function RewardCatalogFormModal({
           value={scope}
           onChange={setScope}
           disabled={loading}
+          hideAcademicContextSelectors
         />
 
         {/* Title fields */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Input
+            label={t("rewardsModule.catalog.table.title") + " (AR)"}
+            value={titleAr}
+            onChange={(e) => setTitleAr(e.target.value)}
+            placeholder={t("rewardsModule.catalog.form.titlePlaceholderAr")}
+            dir="rtl"
+            required={!titleEn.trim()}
+          />
           <Input
             label={t("rewardsModule.catalog.table.title") + " (EN)"}
             value={titleEn}
@@ -240,31 +258,25 @@ export default function RewardCatalogFormModal({
             placeholder="Reward title in English"
             required={!titleAr.trim()}
           />
-          <Input
-            label={t("rewardsModule.catalog.table.title") + " (AR)"}
-            value={titleAr}
-            onChange={(e) => setTitleAr(e.target.value)}
-            placeholder={t("rewards.titlePlaceholderAr")}
-            dir="rtl"
-            required={!titleEn.trim()}
-          />
         </div>
 
         {/* Description fields */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <TextArea
+            label={`${t("rewardsModule.description")} (AR)`}
+            value={descriptionAr}
+            onChange={(e) => setDescriptionAr(e.target.value)}
+            placeholder={t(
+              "rewardsModule.catalog.form.descriptionPlaceholderAr",
+            )}
+            dir="rtl"
+            rows={3}
+          />
+          <TextArea
             label={`${t("rewardsModule.description")} (EN)`}
             value={descriptionEn}
             onChange={(e) => setDescriptionEn(e.target.value)}
             placeholder="Description in English"
-            rows={3}
-          />
-          <TextArea
-            label={`${t("rewardsModule.description")} (AR)`}
-            value={descriptionAr}
-            onChange={(e) => setDescriptionAr(e.target.value)}
-            placeholder={t("rewards.descriptionPlaceholderAr")}
-            dir="rtl"
             rows={3}
           />
         </div>
@@ -312,6 +324,7 @@ export default function RewardCatalogFormModal({
             onChange={(e) => setStockRemaining(e.target.value)}
             placeholder="0"
             disabled={isUnlimited}
+            required={!isUnlimited}
             helperText={t("rewardsModule.catalog.form.stockRemainingHelp")}
           />
           <Input
@@ -332,9 +345,7 @@ export default function RewardCatalogFormModal({
             className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
           />
           <div>
-            <p className="font-medium text-gray-900">
-              Unlimited Stock
-            </p>
+            <p className="font-medium text-gray-900">Unlimited Stock</p>
             <p className="mt-1 text-xs text-gray-500">
               When enabled, this reward has no stock limit.
             </p>

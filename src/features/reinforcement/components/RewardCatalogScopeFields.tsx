@@ -22,6 +22,7 @@ interface RewardCatalogScopeFieldsProps {
   value: RewardCatalogScopeValue;
   onChange: (value: RewardCatalogScopeValue) => void;
   disabled?: boolean;
+  hideAcademicContextSelectors?: boolean;
 }
 
 function localizedName(
@@ -38,6 +39,7 @@ export default function RewardCatalogScopeFields({
   value,
   onChange,
   disabled = false,
+  hideAcademicContextSelectors = false,
 }: RewardCatalogScopeFieldsProps) {
   const locale = useLocale();
   const t = useTranslations("reinforcement");
@@ -51,7 +53,7 @@ export default function RewardCatalogScopeFields({
   }, [value]);
 
   useEffect(() => {
-    if (value.isGlobal || !value.academicYearId) {
+    if (hideAcademicContextSelectors || value.isGlobal || !value.academicYearId) {
       return;
     }
 
@@ -82,7 +84,7 @@ export default function RewardCatalogScopeFields({
     return () => {
       active = false;
     };
-  }, [onChange, value.academicYearId, value.isGlobal]);
+  }, [hideAcademicContextSelectors, onChange, value.academicYearId, value.isGlobal]);
 
   const yearOptions = useMemo(
     () =>
@@ -137,7 +139,7 @@ export default function RewardCatalogScopeFields({
         </label>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      {!hideAcademicContextSelectors ? <div className="grid gap-4 md:grid-cols-2">
         <Select
           label={t("rewardsModule.catalog.form.academicYear")}
           value={value.academicYearId || ""}
@@ -158,7 +160,7 @@ export default function RewardCatalogScopeFields({
           searchable
           onChange={(termId) => onChange({ ...value, termId })}
         />
-      </div>
+      </div> : null}
 
       {!value.isGlobal && termsError ? (
         <p className="text-sm text-rose-600" role="alert">

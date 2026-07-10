@@ -69,6 +69,12 @@ export interface ReinforcementAcademicContextFilterProps {
   showSubject?: boolean;
   showStudent?: boolean;
   showStructure?: boolean;
+  showAcademicYearTerm?: boolean;
+  showStage?: boolean;
+  showGrade?: boolean;
+  showSection?: boolean;
+  showClassroom?: boolean;
+  subjectDependsOnGrade?: boolean;
 }
 
 interface LoadState<T> {
@@ -168,10 +174,15 @@ export const subjectsForStage = (
   allocations: SubjectAllocation[],
   grades: AcademicStructureGrade[],
   stageId?: string,
+  gradeId?: string,
 ): Subject[] => {
   const stageGradeIds = new Set(
     grades
-      .filter((grade) => !stageId || grade.stageId === stageId)
+      .filter(
+        (grade) =>
+          (!stageId || grade.stageId === stageId) &&
+          (!gradeId || grade.id === gradeId),
+      )
       .map((grade) => grade.id),
   );
   const subjectsById = new Map<string, Subject>();
@@ -304,6 +315,12 @@ export default function ReinforcementAcademicContextFilter({
   showSubject = true,
   showStudent = true,
   showStructure = true,
+  showAcademicYearTerm = true,
+  showStage = true,
+  showGrade = true,
+  showSection = true,
+  showClassroom = true,
+  subjectDependsOnGrade = false,
 }: ReinforcementAcademicContextFilterProps) {
   const locale = (useLocale() === "ar" ? "ar" : "en") as Locale;
   const copy = labels[locale];
@@ -388,12 +405,17 @@ export default function ReinforcementAcademicContextFilter({
 
   /* ─── Persist year+term to localStorage ─── */
   useEffect(() => {
+    if (!showAcademicYearTerm) {
+      setYears({ data: [], loading: false, error: null });
+      return;
+    }
+
     persistContext(value.academicYearId, value.termId);
   }, [value.academicYearId, value.termId]);
 
   /* ─── Restore from localStorage on mount ─── */
   useEffect(() => {
-    if (restoredRef.current) return;
+    if (!showAcademicYearTerm || restoredRef.current) return;
     restoredRef.current = true;
     const hasValue = value.academicYearId || value.termId;
     if (hasValue) return;
@@ -407,7 +429,7 @@ export default function ReinforcementAcademicContextFilter({
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [showAcademicYearTerm]);
 
   /* ─── Fetch academic years ─── */
   useEffect(() => {
@@ -429,10 +451,15 @@ export default function ReinforcementAcademicContextFilter({
         }
       });
     return () => { cancelled = true; };
-  }, [copy.error]);
+  }, [copy.error, showAcademicYearTerm]);
 
   /* ─── Fetch terms ─── */
   useEffect(() => {
+    if (!showAcademicYearTerm) {
+      setTerms({ data: [], loading: false, error: null });
+      return;
+    }
+
     if (!value.academicYearId) {
       setTerms({ data: [], loading: false, error: null });
       return;
@@ -455,7 +482,7 @@ export default function ReinforcementAcademicContextFilter({
         }
       });
     return () => { cancelled = true; };
-  }, [copy.error, value.academicYearId]);
+  }, [copy.error, showAcademicYearTerm, value.academicYearId]);
 
   /* ─── Fetch tree, subjects, students ─── */
   useEffect(() => {
@@ -549,8 +576,15 @@ export default function ReinforcementAcademicContextFilter({
         subjectAllocations.data,
         tree.data.grades,
         value.stageId,
+        subjectDependsOnGrade ? value.gradeId : undefined,
       ),
-    [subjectAllocations.data, tree.data.grades, value.stageId],
+    [
+      subjectAllocations.data,
+      subjectDependsOnGrade,
+      tree.data.grades,
+      value.gradeId,
+      value.stageId,
+    ],
   );
 
   useEffect(() => {
@@ -819,7 +853,8 @@ export default function ReinforcementAcademicContextFilter({
       )}
 
       {/* Primary selects: Year + Term (always shown) */}
-      <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2">
+      {showAcademicYearTerm && (
+        <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2">
         {years.loading ? (
           <SelectSkeleton label={copy.academicYear} />
         ) : (
@@ -878,21 +913,22 @@ export default function ReinforcementAcademicContextFilter({
             }
           />
         )}
-      </div>
+        </div>
+      )}
 
       {/* Secondary selects: Stage/Grade/Section/Classroom (after Term selected) */}
       {showSecondarySelects && (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {tree.loading ? (
             <>
-              <SelectSkeleton label={copy.stage} />
-              <SelectSkeleton label={copy.grade} />
-              <SelectSkeleton label={copy.section} />
-              <SelectSkeleton label={copy.classroom} />
+              {showStage && <SelectSkeleton label={copy.stage} />}
+              {showGrade && <SelectSkeleton label={copy.grade} />}
+              {showSection && <SelectSkeleton label={copy.section} />}
+              {showClassroom && <SelectSkeleton label={copy.classroom} />}
             </>
           ) : (
             <>
-              <Select
+              {showStage && <Select
                 label={copy.stage}
                 value={value.stageId || ""}
                 disabled={disabled || tree.loading}
@@ -913,8 +949,8 @@ export default function ReinforcementAcademicContextFilter({
                     enrollmentId: undefined,
                   })
                 }
-              />
-              <Select
+              />}
+              {showGrade && <Select
                 label={copy.grade}
                 value={value.gradeId || ""}
                 disabled={disabled || tree.loading}
@@ -934,9 +970,9 @@ export default function ReinforcementAcademicContextFilter({
                     enrollmentId: undefined,
                   })
                 }
-              />
+              />}
 
-              <Select
+              {showSection && <Select
                 label={copy.section}
                 value={value.sectionId || ""}
                 disabled={disabled || tree.loading}
@@ -955,8 +991,8 @@ export default function ReinforcementAcademicContextFilter({
                     enrollmentId: undefined,
                   })
                 }
-              />
-              <Select
+              />}
+              {showClassroom && <Select
                 label={copy.classroom}
                 value={value.classroomId || ""}
                 disabled={disabled || tree.loading}
@@ -968,7 +1004,7 @@ export default function ReinforcementAcademicContextFilter({
                 searchPlaceholder={copy.search}
                 noOptionsText={copy.noOptions}
                 onChange={(classroomId) => emit({ classroomId })}
-              />
+              />}
             </>
           )}
 
@@ -980,7 +1016,11 @@ export default function ReinforcementAcademicContextFilter({
               <Select
                 label={copy.subject}
                 value={value.subjectId || ""}
-                disabled={disabled || subjectAllocations.loading}
+                disabled={
+                  disabled ||
+                  subjectAllocations.loading ||
+                  (subjectDependsOnGrade && !value.gradeId)
+                }
                 options={compactOptions(
                   filteredSubjects.map((item) => toOption(item, locale)),
                 )}

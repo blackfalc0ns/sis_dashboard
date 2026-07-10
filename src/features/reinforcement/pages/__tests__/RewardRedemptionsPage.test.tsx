@@ -174,6 +174,10 @@ function renderPage() {
 
 function mockSuccessfulLookups() {
   filterOptionMocks.getReinforcementFilterOptions.mockResolvedValue({
+    stages: [{ id: "stage-1", nameEn: "Stage 1", nameAr: "Stage 1" }],
+    grades: [{ id: "grade-1", stageId: "stage-1", nameEn: "Grade 1", nameAr: "Grade 1" }],
+    sections: [{ id: "section-1", gradeId: "grade-1", nameEn: "Section 1", nameAr: "Section 1" }],
+    classrooms: [{ id: "classroom-1", sectionId: "section-1", nameEn: "Classroom 1", nameAr: "Classroom 1" }],
     students: [
       {
         studentId: "student-1",
@@ -213,12 +217,16 @@ async function selectCreateModalOptions(user: ReturnType<typeof userEvent.setup>
     expect(filterOptionMocks.getReinforcementFilterOptions).toHaveBeenCalled(),
   );
 
-  await user.click(
-    screen.getByRole("button", {
-      name: "rewardsModule.redemptions.create.student",
-    }),
-  );
-  await user.click(await screen.findByRole("button", { name: "Student One" }));
+  for (const [label, option] of [
+    ["Stage", "Stage 1"],
+    ["Grade", "Grade 1"],
+    ["Section", "Section 1"],
+    ["Classroom", "Classroom 1"],
+    ["rewardsModule.redemptions.create.student", "Student One"],
+  ]) {
+    await user.click(await screen.findByRole("button", { name: label }));
+    await user.click(await screen.findByRole("button", { name: option }));
+  }
 
   await user.click(
     screen.getByRole("button", {

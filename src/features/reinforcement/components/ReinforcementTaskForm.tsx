@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import ReinforcementAcademicContextFilter, {
   type ReinforcementAcademicContextSelection,
   type ReinforcementAcademicContextValue,
@@ -100,6 +101,8 @@ export default function ReinforcementTaskForm({
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations("reinforcement");
+  const { academicYearId, termId, isInitializing } =
+    useAcademicYearTermLayoutContext();
   const [draft, setDraft] = useState<TaskDraft>({
     context: {},
     titleEn: "",
@@ -118,6 +121,35 @@ export default function ReinforcementTaskForm({
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (isInitializing) return;
+    setDraft((current) => {
+      if (
+        current.context.academicYearId === academicYearId &&
+        current.context.termId === termId
+      ) {
+        return current;
+      }
+
+      return {
+        ...current,
+        context: {
+          ...current.context,
+          academicYearId,
+          termId,
+          stageId: undefined,
+          gradeId: undefined,
+          sectionId: undefined,
+          classroomId: undefined,
+          subjectId: undefined,
+          studentId: undefined,
+          enrollmentId: undefined,
+        },
+        targets: [],
+      };
+    });
+  }, [academicYearId, isInitializing, termId]);
+
   const stageErrors = useMemo(() => {
     const next: Record<number, string> = {};
     draft.stages.forEach((stage, index) => {
@@ -130,13 +162,15 @@ export default function ReinforcementTaskForm({
 
   const validate = (): boolean => {
     const next: FormErrors = {};
-    if (!draft.context.academicYearId) next.academicYear = t("validation.required");
+    if (!draft.context.academicYearId)
+      next.academicYear = t("validation.required");
     if (!draft.context.termId) next.term = t("validation.required");
     if (!draft.titleEn.trim() && !draft.titleAr.trim()) {
       next.title = t("validation.titleRequired");
     }
     if (!draft.dueDate) next.dueDate = t("validation.futureDueDateRequired");
-    if (draft.targets.length === 0) next.targets = t("validation.targetRequired");
+    if (draft.targets.length === 0)
+      next.targets = t("validation.targetRequired");
     if (draft.stages.length === 0) next.stages = t("validation.stageRequired");
     draft.stages.forEach((stage, index) => {
       if (!stage.titleEn.trim() && !stage.titleAr.trim()) {
@@ -169,7 +203,13 @@ export default function ReinforcementTaskForm({
         <div className="mt-4">
           <ReinforcementAcademicContextFilter
             value={draft.context}
-            showStudent
+            showAcademicYearTerm={false}
+            showStage
+            showGrade
+            showSection={false}
+            showClassroom={false}
+            showStudent={false}
+            subjectDependsOnGrade
             showSubject
             onChange={(selection: ReinforcementAcademicContextSelection) =>
               setDraft((current) => ({
@@ -202,14 +242,6 @@ export default function ReinforcementTaskForm({
         </h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <Input
-            label={t("tasks.form.titleEn")}
-            value={draft.titleEn}
-            error={errors.title}
-            onChange={(event) =>
-              setDraft({ ...draft, titleEn: event.target.value })
-            }
-          />
-          <Input
             label={t("tasks.form.titleAr")}
             value={draft.titleAr}
             error={errors.title}
@@ -218,19 +250,30 @@ export default function ReinforcementTaskForm({
               setDraft({ ...draft, titleAr: event.target.value })
             }
           />
-          <TextArea
-            label={t("tasks.form.descriptionEn")}
-            value={draft.descriptionEn}
+
+          <Input
+            label={t("tasks.form.titleEn")}
+            value={draft.titleEn}
+            error={errors.title}
             onChange={(event) =>
-              setDraft({ ...draft, descriptionEn: event.target.value })
+              setDraft({ ...draft, titleEn: event.target.value })
             }
           />
+
           <TextArea
             label={t("tasks.form.descriptionAr")}
             value={draft.descriptionAr}
             dir="rtl"
             onChange={(event) =>
               setDraft({ ...draft, descriptionAr: event.target.value })
+            }
+          />
+
+          <TextArea
+            label={t("tasks.form.descriptionEn")}
+            value={draft.descriptionEn}
+            onChange={(event) =>
+              setDraft({ ...draft, descriptionEn: event.target.value })
             }
           />
         </div>
@@ -257,7 +300,10 @@ export default function ReinforcementTaskForm({
             label={t("tasks.form.rewardType")}
             value={draft.rewardType}
             onChange={(value) =>
-              setDraft({ ...draft, rewardType: value as ReinforcementRewardType })
+              setDraft({
+                ...draft,
+                rewardType: value as ReinforcementRewardType,
+              })
             }
             options={[
               { value: "xp", label: t("rewardType.xp") },
@@ -273,19 +319,21 @@ export default function ReinforcementTaskForm({
               setDraft({ ...draft, rewardValue: event.target.value })
             }
           />
-          <Input
-            label={t("tasks.form.rewardLabelEn")}
-            value={draft.rewardLabelEn}
-            onChange={(event) =>
-              setDraft({ ...draft, rewardLabelEn: event.target.value })
-            }
-          />
+
           <Input
             label={t("tasks.form.rewardLabelAr")}
             value={draft.rewardLabelAr}
             dir="rtl"
             onChange={(event) =>
               setDraft({ ...draft, rewardLabelAr: event.target.value })
+            }
+          />
+
+          <Input
+            label={t("tasks.form.rewardLabelEn")}
+            value={draft.rewardLabelEn}
+            onChange={(event) =>
+              setDraft({ ...draft, rewardLabelEn: event.target.value })
             }
           />
           <Input

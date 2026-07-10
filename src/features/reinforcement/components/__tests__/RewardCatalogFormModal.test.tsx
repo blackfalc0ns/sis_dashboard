@@ -56,7 +56,7 @@ describe("RewardCatalogFormModal", () => {
     });
   });
 
-  it("submits the active context and uploaded image for create", async () => {
+  it("requires stock remaining for limited rewards", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
     render(
@@ -76,6 +76,46 @@ describe("RewardCatalogFormModal", () => {
       screen.getByPlaceholderText("Reward title in English"),
       "Reward",
     );
+    await user.click(
+      screen.getByRole("button", { name: "rewardsModule.actions.create" }),
+    );
+
+    expect(
+      await screen.findByText(
+        "rewardsModule.catalog.form.stockRemainingRequired",
+      ),
+    ).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("submits the active context and uploaded image for create", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(
+      <RewardCatalogFormModal
+        isOpen
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+        academicYears={academicYears}
+        defaultAcademicYearId="year-1"
+        defaultTermId="term-1"
+        canUploadFiles
+        canDownloadFiles={false}
+      />,
+    );
+
+    expect(
+      screen.queryByLabelText("rewardsModule.catalog.form.academicYear"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("rewardsModule.catalog.form.term"),
+    ).not.toBeInTheDocument();
+
+    await user.type(
+      screen.getByPlaceholderText("Reward title in English"),
+      "Reward",
+    );
+    await user.type(screen.getAllByRole("spinbutton")[2], "10");
     await user.upload(
       screen.getByLabelText("rewardsModule.catalog.form.uploadImage"),
       new File(["image"], "reward.png", { type: "image/png" }),
@@ -110,6 +150,7 @@ describe("RewardCatalogFormModal", () => {
           titleEn: "Reward",
           academicYearId: "year-1",
           termId: "term-1",
+          stockRemaining: 10,
           imageFileId: "file-1",
         }}
         academicYears={academicYears}

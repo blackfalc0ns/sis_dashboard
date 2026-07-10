@@ -318,7 +318,7 @@ export default function Sidebar({
       {/* Sidebar */}
       <aside
         onMouseLeave={() => setHoveredCollapsedItemKey(null)}
-        className={`fixed z-50 h-screen bg-[#065769] flex flex-col transition-all duration-300 ease-in-out
+        className={`group/sidebar fixed z-50 h-screen bg-[#065769] flex flex-col transition-all duration-300 ease-in-out
       ${isRTL ? "right-0 border-l" : "left-0 border-r"} border-white/10
       ${isOpen ? "translate-x-0" : isRTL ? "translate-x-full lg:translate-x-0" : "-translate-x-full lg:translate-x-0"}
       ${isOpen ? "w-[260px] max-w-[80vw]" : "lg:w-20 lg:px-3"}`}
@@ -326,7 +326,18 @@ export default function Sidebar({
         {/* Toggle Button (fixed top) */}
         <button
           onClick={onToggle}
-          className={`hidden lg:block p-2 rounded-lg text-white hover:bg-white/20 transition-colors border-white/30 border mt-2 shrink-0 ${
+          aria-label={tApp(isOpen ? "collapse" : "expand")}
+          className={`hidden lg:block rounded-lg border border-white/30 p-2 text-white
+            transition-[opacity,transform,background-color,box-shadow] duration-200 ease-out
+            motion-reduce:transition-none
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80
+            focus-visible:ring-offset-2 focus-visible:ring-offset-[#065769]
+            ${
+              isOpen
+                ? "-translate-y-1 pointer-events-none opacity-0 group-hover/sidebar:pointer-events-auto group-hover/sidebar:translate-y-0 group-hover/sidebar:opacity-100 group-focus-within/sidebar:pointer-events-auto group-focus-within/sidebar:translate-y-0 group-focus-within/sidebar:opacity-100"
+                : "translate-y-0 opacity-100 hover:bg-white/20 hover:shadow-md"
+            }
+            mt-2 shrink-0 ${
             isRTL ? "ml-2 mr-auto" : "ml-auto mr-2"
           }`}
         >

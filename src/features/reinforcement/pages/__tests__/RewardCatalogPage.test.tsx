@@ -205,21 +205,20 @@ describe("RewardCatalogPage", () => {
     ).toHaveAttribute("src", "blob:reward-image");
   });
 
-  it("routes academic filter changes through the shared context", async () => {
-    const user = userEvent.setup();
+  it("does not render academic year or term filters", async () => {
     renderPage();
 
     expect(await screen.findByText("Backend Catalog Item")).toBeInTheDocument();
-    await user.click(
-      screen.getAllByRole("button", {
+    expect(
+      screen.queryByRole("button", {
         name: "rewardsModule.catalog.form.academicYear",
-      })[0],
-    );
-    await user.click(screen.getByRole("button", { name: "2027/2028" }));
-
-    expect(academicContextState.requestAcademicYearChange).toHaveBeenCalledWith(
-      "year-2",
-    );
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "rewardsModule.catalog.form.term",
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it("uses backend pagination for catalog rows", async () => {
@@ -306,9 +305,12 @@ describe("RewardCatalogPage", () => {
       }),
     );
     await user.type(
-      screen.getByPlaceholderText("rewards.titlePlaceholderAr"),
+      screen.getByPlaceholderText(
+        "rewardsModule.catalog.form.titlePlaceholderAr",
+      ),
       "جائزة عربية",
     );
+    await user.type(screen.getAllByRole("spinbutton")[2], "10");
     await user.click(
       screen.getByRole("button", { name: "rewardsModule.actions.create" }),
     );

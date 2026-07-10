@@ -20,6 +20,7 @@ import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
 import { useReinforcementUrlFilters } from "../hooks/useReinforcementUrlFilters";
 import { getReinforcementFilterOptions } from "../services/reinforcementFilterOptionsService";
@@ -27,6 +28,11 @@ import {
   getRewardCatalogSummary,
   getRewardsOverview,
 } from "../services/rewardDashboardService";
+import type {
+  RedemptionStatus,
+  RewardCatalogStatus,
+  RewardItemType,
+} from "../types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -97,24 +103,6 @@ const toRecord = (value: unknown): Record<string, unknown> | null =>
     ? (value as Record<string, unknown>)
     : null;
 
-function mapGenericOption(
-  record: unknown,
-  locale: string,
-): SelectOption | null {
-  const rec = toRecord(record);
-  if (!rec) return null;
-
-  const id = getLocalizedValue(rec, ["id", "value"]);
-  if (!id) return null;
-
-  const nameEn = getLocalizedValue(rec, ["nameEn", "fullNameEn", "full_name_en", "name", "label"]) ?? id;
-  const nameAr = getLocalizedValue(rec, ["nameAr", "fullNameAr", "full_name_ar", "name", "label"]) ?? nameEn;
-  return {
-    value: id,
-    label: locale === "ar" ? nameAr : nameEn,
-  };
-}
-
 function mapStudentOption(
   record: unknown,
   locale: string,
@@ -183,15 +171,21 @@ export default function RewardsOverviewPage() {
   const t = useTranslations("reinforcement");
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
+  const { academicYearId, termId, isInitializing: academicContextLoading } =
+    useAcademicYearTermLayoutContext();
 
   const {
     values,
     setValue,
   } = useReinforcementUrlFilters({
     paramKeys: [
-      "academicYearId",
-      "termId",
       "studentId",
+      "status",
+      "catalogStatus",
+      "type",
+      "includeArchived",
+      "includeDeleted",
+      "onlyAvailable",
       "dateFrom",
       "dateTo",
     ],
@@ -205,8 +199,6 @@ export default function RewardsOverviewPage() {
   const [dateValidationError, setDateValidationError] = useState<string | null>(null);
 
   // Dropdown options states
-  const [yearsOptions, setYearsOptions] = useState<SelectOption[]>([]);
-  const [termsOptions, setTermsOptions] = useState<SelectOption[]>([]);
   const [studentsOptions, setStudentsOptions] = useState<SelectOption[]>([]);
   const [optionsLoading, setOptionsLoading] = useState(false);
 
@@ -214,32 +206,21 @@ export default function RewardsOverviewPage() {
 
   // Load filter options
   useEffect(() => {
-    if (!canView) return;
+    if (!canView || !academicYearId || !termId) {
+      setOptionsLoading(false);
+      return;
+    }
     
     let active = true;
     const loadOptions = async () => {
       setOptionsLoading(true);
       try {
         const opts = await getReinforcementFilterOptions({
-          academicYearId: values.academicYearId || undefined,
-          termId: values.termId || undefined,
+          academicYearId,
+          termId,
         });
         if (!active) return;
         
-        if (opts.academicYears) {
-          setYearsOptions(
-            opts.academicYears
-              .map((y) => mapGenericOption(y, locale))
-              .filter((y): y is SelectOption => y !== null)
-          );
-        }
-        if (opts.terms) {
-          setTermsOptions(
-            opts.terms
-              .map((t) => mapGenericOption(t, locale))
-              .filter((t): t is SelectOption => t !== null)
-          );
-        }
         if (opts.students) {
           setStudentsOptions(
             opts.students
@@ -258,7 +239,7 @@ export default function RewardsOverviewPage() {
     return () => {
       active = false;
     };
-  }, [canView, locale, values.academicYearId, values.termId]);
+  }, [academicYearId, canView, locale, termId]);
 
   const fetchData = useCallback(async () => {
     if (!canView) return;
@@ -277,15 +258,25 @@ export default function RewardsOverviewPage() {
     try {
       const [overviewData, summaryData] = await Promise.all([
         getRewardsOverview({
-          academicYearId: values.academicYearId || undefined,
-          termId: values.termId || undefined,
+          academicYearId: academicYearId || undefined,
+          termId: termId || undefined,
           studentId: values.studentId || undefined,
+          status: values.status as RedemptionStatus | undefined,
+          type: values.type as RewardItemType | undefined,
+          includeArchived: values.includeArchived === "true",
           dateFrom: values.dateFrom || undefined,
           dateTo: values.dateTo || undefined,
         }),
         getRewardCatalogSummary({
-          academicYearId: values.academicYearId || undefined,
-          termId: values.termId || undefined,
+          academicYearId: academicYearId || undefined,
+          termId: termId || undefined,
+          status: values.catalogStatus as RewardCatalogStatus | undefined,
+          type: values.type as RewardItemType | undefined,
+          includeArchived: values.includeArchived === "true",
+          includeDeleted: values.includeDeleted === "true",
+          onlyAvailable: values.onlyAvailable === "true",
+          dateFrom: values.dateFrom || undefined,
+          dateTo: values.dateTo || undefined,
         }),
       ]);
       setOverview(overviewData);
@@ -298,9 +289,15 @@ export default function RewardsOverviewPage() {
   }, [
     canView,
     t,
-    values.academicYearId,
-    values.termId,
+    academicYearId,
+    termId,
     values.studentId,
+    values.status,
+    values.catalogStatus,
+    values.type,
+    values.includeArchived,
+    values.includeDeleted,
+    values.onlyAvailable,
     values.dateFrom,
     values.dateTo,
   ]);
@@ -311,6 +308,12 @@ export default function RewardsOverviewPage() {
 
   const handleClearFilters = () => {
     setValue("studentId", "");
+    setValue("status", "");
+    setValue("catalogStatus", "");
+    setValue("type", "");
+    setValue("includeArchived", "");
+    setValue("includeDeleted", "");
+    setValue("onlyAvailable", "");
     setValue("dateFrom", "");
     setValue("dateTo", "");
   };
@@ -388,40 +391,53 @@ export default function RewardsOverviewPage() {
             
             <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-5 items-end">
               <Select
-                label={t("rewardsModule.catalog.form.academicYear") || "Academic Year"}
-                value={values.academicYearId || ""}
-                onChange={(val) => {
-                  setValue("academicYearId", val);
-                  setValue("termId", "");
-                  setValue("studentId", "");
-                }}
-                options={yearsOptions}
-                searchable
-                placeholder={t("rewardsModule.overview.selectYear") || "Select Year"}
-                disabled={optionsLoading}
-              />
-              
-              <Select
-                label={t("rewardsModule.catalog.form.term") || "Term"}
-                value={values.termId || ""}
-                onChange={(val) => {
-                  setValue("termId", val);
-                  setValue("studentId", "");
-                }}
-                options={termsOptions}
-                searchable
-                placeholder={t("rewardsModule.overview.selectTerm") || "Select Term"}
-                disabled={optionsLoading || !values.academicYearId}
-              />
-
-              <Select
                 label={t("rewardsModule.redemptions.create.student") || "Student"}
                 value={values.studentId || ""}
                 onChange={(val) => setValue("studentId", val)}
                 options={studentsOptions}
                 searchable
                 placeholder={t("rewardsModule.overview.allStudents") || "All Students"}
-                disabled={optionsLoading}
+                disabled={optionsLoading || academicContextLoading || !termId}
+              />
+
+              <Select
+                label={t("rewardsModule.redemptions.table.status") || "Status"}
+                value={values.status || ""}
+                onChange={(val) => setValue("status", val)}
+                options={[
+                  { value: "requested", label: t("rewardsModule.status.requested") },
+                  { value: "approved", label: t("rewardsModule.status.approved") },
+                  { value: "rejected", label: t("rewardsModule.status.rejected") },
+                  { value: "fulfilled", label: t("rewardsModule.status.fulfilled") },
+                  { value: "cancelled", label: t("rewardsModule.status.cancelled") },
+                ]}
+                placeholder={t("rewardsModule.overview.allStatuses") || "All statuses"}
+              />
+
+              <Select
+                label={t("rewardsModule.catalog.table.type") || "Type"}
+                value={values.type || ""}
+                onChange={(val) => setValue("type", val)}
+                options={[
+                  { value: "physical", label: t("rewardsModule.type.physical") },
+                  { value: "digital", label: t("rewardsModule.type.digital") },
+                  { value: "privilege", label: t("rewardsModule.type.privilege") },
+                  { value: "certificate", label: t("rewardsModule.type.certificate") },
+                  { value: "other", label: t("rewardsModule.type.other") },
+                ]}
+                placeholder={t("rewardsModule.overview.allTypes") || "All types"}
+              />
+
+              <Select
+                label={t("rewardsModule.catalog.table.status") || "Catalog status"}
+                value={values.catalogStatus || ""}
+                onChange={(val) => setValue("catalogStatus", val)}
+                options={[
+                  { value: "draft", label: t("rewardsModule.status.draft") },
+                  { value: "published", label: t("rewardsModule.status.published") },
+                  { value: "archived", label: t("rewardsModule.status.archived") },
+                ]}
+                placeholder={t("rewardsModule.overview.allCatalogStatuses") || "All catalog statuses"}
               />
 
               <Input
@@ -437,9 +453,51 @@ export default function RewardsOverviewPage() {
                 value={values.dateTo || ""}
                 onChange={(e) => setValue("dateTo", e.target.value)}
               />
+
+              <label className="flex min-h-[70px] items-center gap-3 rounded-lg border border-gray-200 px-3 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={values.includeArchived === "true"}
+                  onChange={(event) =>
+                    setValue("includeArchived", event.target.checked ? "true" : "")
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <span>
+                  {t("rewardsModule.overview.includeArchived") || "Include archived"}
+                </span>
+              </label>
+
+              <label className="flex min-h-[70px] items-center gap-3 rounded-lg border border-gray-200 px-3 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={values.includeDeleted === "true"}
+                  onChange={(event) =>
+                    setValue("includeDeleted", event.target.checked ? "true" : "")
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <span>
+                  {t("rewardsModule.overview.includeDeleted") || "Include deleted"}
+                </span>
+              </label>
+
+              <label className="flex min-h-[70px] items-center gap-3 rounded-lg border border-gray-200 px-3 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={values.onlyAvailable === "true"}
+                  onChange={(event) =>
+                    setValue("onlyAvailable", event.target.checked ? "true" : "")
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <span>
+                  {t("rewardsModule.overview.onlyAvailable") || "Only available"}
+                </span>
+              </label>
             </div>
 
-            {(values.studentId || values.dateFrom || values.dateTo) ? (
+            {(values.studentId || values.status || values.catalogStatus || values.type || values.includeArchived || values.includeDeleted || values.onlyAvailable || values.dateFrom || values.dateTo) ? (
               <div className="flex justify-end">
                 <Button variant="secondary" onClick={handleClearFilters}>
                   {t("rewardsModule.overview.clearFilters") || "Clear Filters"}

@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/toast/Toast";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import ReinforcementAcademicContextFilter, {
   type ReinforcementAcademicContextSelection,
   type ReinforcementAcademicContextValue,
@@ -127,21 +128,22 @@ export default function ReinforcementXpPoliciesPage() {
   const { showSuccess, showError } = useToast();
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
+  const { academicYearId, termId } = useAcademicYearTermLayoutContext();
 
   // ─── URL-synced filters ──────────────────────────────────────────────────
   const {
     values,
     setValue,
   } = useReinforcementUrlFilters({
-    paramKeys: ["academicYearId", "termId", "stageId", "gradeId", "sectionId", "classroomId", "studentId", "enrollmentId"],
+    paramKeys: ["stageId", "gradeId", "sectionId", "classroomId", "studentId", "enrollmentId"],
     defaults: {},
   });
 
-  // ─── Academic context derived from URL params ────────────────────────────
+  // Academic year and term come from the shared layout context.
   const context: ReinforcementAcademicContextValue = useMemo(
     () => ({
-      academicYearId: values.academicYearId || undefined,
-      termId: values.termId || undefined,
+      academicYearId,
+      termId,
       stageId: values.stageId || undefined,
       gradeId: values.gradeId || undefined,
       sectionId: values.sectionId || undefined,
@@ -149,7 +151,7 @@ export default function ReinforcementXpPoliciesPage() {
       studentId: values.studentId || undefined,
       enrollmentId: values.enrollmentId || undefined,
     }),
-    [values.academicYearId, values.termId, values.stageId, values.gradeId, values.sectionId, values.classroomId, values.studentId, values.enrollmentId],
+    [academicYearId, termId, values.stageId, values.gradeId, values.sectionId, values.classroomId, values.studentId, values.enrollmentId],
   );
 
   const [policyTargets, setPolicyTargets] = useState<
@@ -160,6 +162,9 @@ export default function ReinforcementXpPoliciesPage() {
   );
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [policies, setPolicies] = useState<XpPolicy[]>([]);
+  const [policyTargetOptions, setPolicyTargetOptions] = useState<
+    ReinforcementFilterOptions["scopeTargets"]
+  >({});
   const [effectivePolicy, setEffectivePolicy] = useState<XpPolicy | null>(null);
   const [effectivePolicyStudentLabel, setEffectivePolicyStudentLabel] =
     useState<string | null>(null);
@@ -236,9 +241,33 @@ export default function ReinforcementXpPoliciesPage() {
     }
   }, [canView, params, showError, t]);
 
+  const loadPolicyTargetOptions = useCallback(async () => {
+    if (!context.academicYearId || !context.termId) {
+      setPolicyTargetOptions({});
+      return;
+    }
+
+    try {
+      const options = await getReinforcementFilterOptions({
+        academicYearId: context.academicYearId,
+        termId: context.termId,
+      });
+      setPolicyTargetOptions(options.scopeTargets || {});
+    } catch (nextError) {
+      setPolicyTargetOptions({});
+      setError(
+        nextError instanceof Error ? nextError.message : t("common.error"),
+      );
+    }
+  }, [context.academicYearId, context.termId, t]);
+
   useEffect(() => {
     void Promise.resolve().then(refreshPolicies);
   }, [refreshPolicies]);
+
+  useEffect(() => {
+    void loadPolicyTargetOptions();
+  }, [loadPolicyTargetOptions]);
 
   const handleCreate = async (payload: CreateXpPolicyPayload) => {
     try {
@@ -379,12 +408,11 @@ export default function ReinforcementXpPoliciesPage() {
         <div className="mt-4">
           <ReinforcementAcademicContextFilter
             value={context}
+            showAcademicYearTerm={false}
             showSubject={false}
             showStudent={false}
             showStructure={false}
             onChange={(selection: ReinforcementAcademicContextSelection) => {
-              setValue("academicYearId", selection.academicYearId || "");
-              setValue("termId", selection.termId || "");
               setValue("stageId", selection.stageId || "");
               setValue("gradeId", selection.gradeId || "");
               setValue("sectionId", selection.sectionId || "");
@@ -490,6 +518,7 @@ export default function ReinforcementXpPoliciesPage() {
 
       <XpPolicyTable
         policies={displayedPolicies}
+        scopeOptions={policyTargetOptions}
         loading={effectivePolicy ? false : loading}
         canManage={effectivePolicy ? false : canManage}
         onEdit={setEditingPolicy}
@@ -503,6 +532,8 @@ export default function ReinforcementXpPoliciesPage() {
         size="xl"
       >
         <XpPolicyForm
+          academicYearId={academicYearId}
+          termId={termId}
           onSubmit={handleCreate}
           onCancel={() => setIsCreateOpen(false)}
         />
@@ -517,6 +548,8 @@ export default function ReinforcementXpPoliciesPage() {
         {editingPolicy ? (
           <XpPolicyForm
             key={editingPolicy.id}
+            academicYearId={academicYearId}
+            termId={termId}
             mode="edit"
             initialPolicy={editingPolicy}
             onSubmit={handleEdit}

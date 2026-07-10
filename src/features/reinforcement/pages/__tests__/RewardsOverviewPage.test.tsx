@@ -28,6 +28,14 @@ vi.mock("@/hooks/usePermissions", () => ({
   }),
 }));
 
+vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({
+  useAcademicYearTermLayoutContext: () => ({
+    academicYearId: "year-1",
+    termId: "term-1",
+    isInitializing: false,
+  }),
+}));
+
 vi.mock(
   "@/features/reinforcement/services/rewardDashboardService",
   () => dashboardMocks,
@@ -95,9 +103,6 @@ describe("RewardsOverviewPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    // Select academic year first, then term, then student
-    await selectOption(user, "rewardsModule.catalog.form.academicYear", "Year 1");
-    await selectOption(user, "rewardsModule.catalog.form.term", "Term 1");
     await selectOption(user, "rewardsModule.redemptions.create.student", "Student 123");
 
     await waitFor(() => {
@@ -111,13 +116,65 @@ describe("RewardsOverviewPage", () => {
     });
   });
 
+  it("passes status, reward type, and archived flag to both dashboard endpoints", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await selectOption(
+      user,
+      "rewardsModule.redemptions.table.status",
+      "rewardsModule.status.approved",
+    );
+    await selectOption(
+      user,
+      "rewardsModule.catalog.table.type",
+      "rewardsModule.type.digital",
+    );
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: "rewardsModule.overview.includeArchived",
+      }),
+    );
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: "rewardsModule.overview.includeDeleted",
+      }),
+    );
+    await user.click(
+      screen.getByRole("checkbox", {
+        name: "rewardsModule.overview.onlyAvailable",
+      }),
+    );
+    await selectOption(
+      user,
+      "rewardsModule.catalog.table.status",
+      "rewardsModule.status.published",
+    );
+
+    await waitFor(() => {
+      expect(dashboardMocks.getRewardsOverview).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: "approved",
+          type: "digital",
+          includeArchived: true,
+        }),
+      );
+      expect(dashboardMocks.getRewardCatalogSummary).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          type: "digital",
+          includeArchived: true,
+          includeDeleted: true,
+          onlyAvailable: true,
+          status: "published",
+        }),
+      );
+    });
+  });
+
   it("clears local filters but preserves academic context when Clear Filters is clicked", async () => {
     const user = userEvent.setup();
     renderPage();
 
-    // Select academic year, term, then student
-    await selectOption(user, "rewardsModule.catalog.form.academicYear", "Year 1");
-    await selectOption(user, "rewardsModule.catalog.form.term", "Term 1");
     await selectOption(user, "rewardsModule.redemptions.create.student", "Student 123");
 
     // Verify it was called with academic context + student

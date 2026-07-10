@@ -53,4 +53,13 @@ describe("subjectsForStage", () => {
       ),
     ).toHaveLength(1);
   });
+
+  it("can narrow subjects to the selected grade", () => {
+    expect(subjectsForStage(allocations, grades, "stage-a", "grade-a")).toEqual([
+      expect.objectContaining({ id: "subject-a" }),
+    ]);
+    expect(subjectsForStage(allocations, grades, "stage-a", "grade-b")).toEqual(
+      [],
+    );
+  });
 });

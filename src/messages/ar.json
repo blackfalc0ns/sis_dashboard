@@ -9999,10 +9999,12 @@
       "no": "لا",
       "retry": "إعادة المحاولة",
       "close": "إغلاق",
+      "cancel": "إلغاء",
       "search": "بحث..."
     },
     "validation": {
       "required": "هذا الحقل مطلوب.",
+      "atLeastOneTitle": "يجب إدخال عنوان واحد على الأقل بالعربية أو الإنجليزية.",
       "titleRequired": "أدخل عنواناً واحداً على الأقل للمهمة.",
       "stageRequired": "أضف مرحلة واحدة على الأقل.",
       "targetRequired": "اختر هدفاً واحداً على الأقل.",
@@ -10175,6 +10177,11 @@
       "dueDate": "تاريخ الاستحقاق",
       "allStudents": "كل الطلاب",
       "allClasses": "كل الصفوف",
+      "allStages": "كل المراحل",
+      "allGrades": "كل الصفوف الدراسية",
+      "allSections": "كل الشعب",
+      "allClassrooms": "كل الفصول",
+      "allTasks": "كل المهام",
       "allSources": "كل المصادر",
       "allStatuses": "كل الحالات",
       "allRewardTypes": "كل أنواع المكافآت",
@@ -10382,6 +10389,10 @@
         "student": "الطالب",
         "task": "المهمة",
         "stage": "المرحلة",
+        "grade": "الصف",
+        "section": "الشعبة",
+        "classroom": "الفصل",
+        "source": "المصدر",
         "status": "الحالة",
         "submittedAt": "تاريخ الإرسال",
         "actions": "الإجراءات"
@@ -10463,6 +10474,12 @@
         "selectYear": "اختر العام الدراسي",
         "selectTerm": "اختر الفصل الدراسي",
         "allStudents": "جميع الطلاب",
+        "allStatuses": "كل الحالات",
+        "allTypes": "كل الأنواع",
+        "allCatalogStatuses": "كل حالات الكتالوج",
+        "includeArchived": "تضمين المؤرشفة",
+        "includeDeleted": "تضمين المحذوفة",
+        "onlyAvailable": "المتاحة فقط",
         "filtersTitle": "الفلاتر",
         "dateFrom": "تاريخ البدء",
         "dateTo": "تاريخ الانتهاء",
@@ -10478,7 +10495,10 @@
           "unlimited": "غير محدود"
         },
         "form": {
+          "titlePlaceholderAr": "أدخل عنوان المكافأة بالعربية",
+          "descriptionPlaceholderAr": "أدخل وصف المكافأة بالعربية (اختياري)",
           "stockRemaining": "المخزون المتبقي",
+          "stockRemainingRequired": "المخزون المتبقي مطلوب للمكافآت محدودة الكمية.",
           "stockRemainingHelp": "الكمية المتاحة حاليًا. اتركها فارغة ليستخدم الخادم كمية المخزون.",
           "academicScope": "النطاق الأكاديمي",
           "academicYear": "العام الأكاديمي",
@@ -10504,6 +10524,10 @@
           "description": "أرشف هذه المكافأة حتى لا تظهر كخيار نشط في الكتالوج. ستظل السجلات التاريخية متاحة.",
           "reason": "سبب الأرشفة",
           "reasonPlaceholder": "سبب اختياري لأرشفة هذه المكافأة"
+        },
+        "publish": {
+          "title": "نشر المكافأة",
+          "description": "هل أنت متأكد من نشر هذه المكافأة؟ لن يمكن تعديل المكافآت المنشورة."
         },
         "availability": {
           "available": "متاح",
@@ -11680,6 +11704,42 @@
   "password_changed_successfully": "تم تغيير كلمة المرور بنجاح!",
   "mute_notifications": "كتم الإشعارات",
   "unmute_notifications": "تفعيل الإشعارات",
+  "top_nav_profile": {
+    "title": "الملف الشخصي",
+    "description": "تفاصيل الحساب الحالية من جلسة المستخدم المصادق عليها.",
+    "not_provided": "غير متوفر",
+    "yes": "نعم",
+    "no": "لا",
+    "permissions": "الصلاحيات",
+    "no_permissions": "لا توجد صلاحيات متاحة للعضوية النشطة.",
+    "fields": {
+      "user_id": "معرّف المستخدم",
+      "username": "اسم المستخدم",
+      "login_email": "بريد تسجيل الدخول",
+      "contact_email": "بريد التواصل",
+      "password_change_required": "تغيير كلمة المرور مطلوب",
+      "active_role": "الدور النشط",
+      "organization_id": "معرّف المؤسسة",
+      "school_id": "معرّف المدرسة"
+    },
+    "statuses": {
+      "ACTIVE": "نشط",
+      "INVITED": "مدعو",
+      "SUSPENDED": "معلّق",
+      "DISABLED": "معطّل"
+    },
+    "user_types": {
+      "PLATFORM_USER": "مستخدم المنصة",
+      "ORGANIZATION_USER": "مستخدم المؤسسة",
+      "SCHOOL_USER": "مستخدم المدرسة",
+      "TEACHER": "معلم",
+      "PARENT": "ولي أمر",
+      "STUDENT": "طالب",
+      "APPLICANT": "متقدم",
+      "PICKUP_DELEGATE": "مفوّض استلام",
+      "SERVICE_ACCOUNT": "حساب خدمة"
+    }
+  },
   "top_nav_notifications": {
     "title": "الإشعارات",
     "unread_count": "{count, plural, =0 {لا توجد تحديثات غير مقروءة} =1 {تحديث واحد غير مقروء} other {# تحديثات غير مقروءة}}",

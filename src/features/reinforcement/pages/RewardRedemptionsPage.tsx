@@ -550,6 +550,8 @@ export default function RewardRedemptionsPage() {
         <DataTable<RewardRedemption>
           columns={columns}
           data={items}
+          isLoading={loading}
+          skeletonRows={pageSize}
           searchQuery={values.search}
           serverPagination={{
             enabled: true,

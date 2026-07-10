@@ -23,7 +23,16 @@ describe("XP policy components", () => {
     render(
       <XpPolicyTable
         canManage
-        onPatchCaps={vi.fn()}
+        scopeOptions={{
+          section: [
+            {
+              value: "section-1",
+              scopeType: "section",
+              nameEn: "Section 1",
+              nameAr: "الشعبة الأولى",
+            },
+          ],
+        }}
         policies={[{
           id: null,
           academicYearId: "year-1",
@@ -44,7 +53,7 @@ describe("XP policy components", () => {
       />,
     );
 
-    expect(screen.getByText(/section-1/)).toBeInTheDocument();
+    expect(screen.getByText(/Section 1/)).toBeInTheDocument();
     expect(screen.getByText("xp.defaultPolicy")).toBeInTheDocument();
     expect(screen.getAllByText(/xp.notSet/)).toHaveLength(2);
     expect(screen.queryByRole("button", { name: "xp.patchCaps" })).not.toBeInTheDocument();
