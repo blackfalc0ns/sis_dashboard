@@ -16,6 +16,14 @@ export interface AcademicCascadeRecord {
   gradeId?: string;
   sectionId?: string;
   classroomId?: string;
+  studentId?: string;
+  student_id?: string;
+  enrollmentId?: string;
+  enrollment_id?: string;
+  code?: string;
+  admissionNo?: string;
+  admission_no?: string;
+  searchText?: string;
   [key: string]: unknown;
 }
 
