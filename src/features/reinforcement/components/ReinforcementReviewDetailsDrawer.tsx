@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import type { ReactNode } from "react";
 import Button from "@/components/ui/button/Button";
 import type { ReinforcementReviewItem, ReinforcementReviewStatus } from "../types";
+import { getReinforcementProofDownloadUrl } from "../utils/reinforcementFileUrl";
 
 interface ReinforcementReviewDetailsDrawerProps {
   isOpen: boolean;
@@ -228,7 +229,7 @@ export default function ReinforcementReviewDetailsDrawer({
                       {t("reviews.detail.proofFile") || "Proof File"}
                     </div>
                     <a
-                      href={`/api/files/${proof.proofFileId}`}
+                      href={getReinforcementProofDownloadUrl(proof.proofFileId)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"

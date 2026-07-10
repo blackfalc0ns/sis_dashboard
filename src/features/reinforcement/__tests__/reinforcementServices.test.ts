@@ -54,8 +54,8 @@ describe("Sprint 5A reinforcement service endpoint contracts", () => {
 
     const templates = await listReinforcementTemplates({
       search: "helper",
-      rewardType: "xp",
-      page: 1,
+      source: "teacher",
+      includeDeleted: true,
     });
     const created = await createReinforcementTemplate({
       nameEn: "Leader",
@@ -76,13 +76,13 @@ describe("Sprint 5A reinforcement service endpoint contracts", () => {
     expect(templates.total).toBe(1);
     expect(created.id).toBe("tpl-2");
     expect(apiMocks.apiGet).toHaveBeenCalledWith(
-      "/reinforcement/templates?search=helper&rewardType=xp&page=1",
+      "/reinforcement/templates?search=helper&source=teacher&includeDeleted=true",
     );
     expect(apiMocks.apiPost).toHaveBeenCalledWith(
       "/reinforcement/templates",
       expect.objectContaining({
         nameEn: "Leader",
-        reward: { type: "badge" },
+        rewardType: "badge",
         stages: [
           {
             sortOrder: 1,
@@ -130,11 +130,9 @@ describe("Sprint 5A reinforcement service endpoint contracts", () => {
       nameEn: "Reading challenge",
       nameAr: "تحدي القراءة",
       source: "teacher",
-      reward: {
-        type: "xp",
-        value: 20,
-        labelEn: "20 XP",
-      },
+      rewardType: "xp",
+      rewardValue: 20,
+      rewardLabelEn: "20 XP",
       stages: [
         {
           sortOrder: 1,
@@ -145,6 +143,7 @@ describe("Sprint 5A reinforcement service endpoint contracts", () => {
         },
       ],
     });
+    expect(serialized).not.toHaveProperty("reward");
     expect(serialized).not.toHaveProperty("proofType");
     expect(serialized).not.toHaveProperty("requiresApproval");
     expect(JSON.stringify(serialized)).not.toContain("undefined");

@@ -36,6 +36,13 @@ export interface ReinforcementLocalizedFields {
 }
 
 export interface ReinforcementReward {
+  type: ReinforcementRewardType | null;
+  value?: number | string | null;
+  labelEn?: string | null;
+  labelAr?: string | null;
+}
+
+export interface CreateReinforcementReward {
   type: ReinforcementRewardType;
   value?: number | string;
   labelEn?: string;
@@ -63,24 +70,34 @@ export interface ReinforcementStage extends ReinforcementStagePayload {
 
 export interface ReinforcementTemplate {
   id: string;
-  nameEn: string;
-  nameAr: string;
-  descriptionEn?: string;
-  descriptionAr?: string;
+  nameEn: string | null;
+  nameAr: string | null;
+  descriptionEn?: string | null;
+  descriptionAr?: string | null;
   source: ReinforcementSource;
   reward: ReinforcementReward;
-  stages: ReinforcementStage[];
+  stages: ReinforcementTemplateStage[];
   createdAt?: string;
   updatedAt?: string;
+  [key: string]: unknown;
+}
+
+export interface ReinforcementTemplateStage {
+  id?: string;
+  sortOrder: number;
+  titleEn?: string | null;
+  titleAr?: string | null;
+  descriptionEn?: string | null;
+  descriptionAr?: string | null;
+  proofType: ReinforcementProofType | string;
+  requiresApproval: boolean;
   [key: string]: unknown;
 }
 
 export interface ListReinforcementTemplatesParams {
   search?: string;
   source?: ReinforcementSource;
-  rewardType?: ReinforcementRewardType;
-  page?: number;
-  limit?: number;
+  includeDeleted?: boolean;
   [key: string]: string | number | boolean | undefined;
 }
 
@@ -90,7 +107,20 @@ export interface CreateReinforcementTemplatePayload {
   descriptionEn?: string;
   descriptionAr?: string;
   source: ReinforcementSource;
-  reward: ReinforcementReward;
+  reward: CreateReinforcementReward;
+  stages: ReinforcementStagePayload[];
+}
+
+export interface CreateReinforcementTemplateRequest {
+  nameEn: string;
+  nameAr: string;
+  descriptionEn?: string;
+  descriptionAr?: string;
+  source: ReinforcementSource;
+  rewardType?: ReinforcementRewardType;
+  rewardValue?: number;
+  rewardLabelEn?: string;
+  rewardLabelAr?: string;
   stages: ReinforcementStagePayload[];
 }
 

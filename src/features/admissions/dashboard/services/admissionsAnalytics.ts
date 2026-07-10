@@ -1,7 +1,7 @@
 // FILE: src/api/admissionsAnalytics.ts
 
-import { mockApplications } from "@/data/mockAdmissions";
-import { getLeads } from "@/features/admissions/leads/services/mockLeadsApi";
+import type { Application } from "@/features/admissions/types/admissions";
+import type { Lead } from "@/features/admissions/leads/types/lead";
 
 export interface FunnelData {
   leads: number;
@@ -27,8 +27,8 @@ export interface AdmissionsAnalyticsData {
 }
 
 interface AdmissionsAnalyticsOptions {
-  applications?: typeof mockApplications;
-  leads?: ReturnType<typeof getLeads>;
+  applications?: Application[];
+  leads?: Lead[];
 }
 
 /**
@@ -63,8 +63,8 @@ export function getAdmissionsAnalytics(
   const now = new Date();
 
   // Get all leads
-  const allLeads = options.leads ?? getLeads();
-  const applications = options.applications ?? mockApplications;
+  const allLeads = options.leads ?? [];
+  const applications = options.applications ?? [];
 
   // 1. FUNNEL DATA (use daysBack parameter)
   const funnelCutoff = new Date(now);
@@ -89,9 +89,11 @@ export function getAdmissionsAnalytics(
     return submittedDate >= funnelCutoff && app.status === "accepted";
   }).length;
 
-  // Count enrolled (accepted applications - in real system would check enrollment table)
-  // For now, assume all accepted are enrolled
-  const enrolledCount = acceptedCount;
+  const enrolledCount = applications.filter(
+    (application) =>
+      new Date(application.submittedDate) >= funnelCutoff &&
+      application.registrationState?.registered === true,
+  ).length;
 
   // 2. WEEKLY INQUIRIES DATA (use daysBack for weeks calculation)
   const weeksToShow = Math.ceil(daysBack / 7);

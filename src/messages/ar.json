@@ -9817,7 +9817,10 @@
       "createTitle": "إنشاء قالب",
       "listTitle": "مكتبة القوالب",
       "search": "بحث في القوالب",
-      "searchPlaceholder": "ابحث باسم القالب أو الوصف أو المصدر أو المكافأة",
+      "searchPlaceholder": "ابحث باسم القالب أو الوصف",
+      "sourceFilter": "المصدر",
+      "allSources": "كل المصادر",
+      "includeDeleted": "تضمين القوالب المحذوفة",
       "noSearchResults": "جرّب تغيير كلمات البحث أو مسح عامل التصفية.",
       "stageCount": "{count} مراحل",
       "table": {
@@ -9825,7 +9828,10 @@
         "source": "المصدر",
         "reward": "المكافأة",
         "stages": "المراحل",
-        "createdAt": "تاريخ الإنشاء"
+        "createdAt": "تاريخ الإنشاء",
+        "updatedAt": "تاريخ التحديث",
+        "approvalRequired": "تتطلب موافقة",
+        "noApprovalRequired": "لا تتطلب موافقة"
       },
       "messages": {
         "created": "تم إنشاء القالب بنجاح."
@@ -9857,7 +9863,11 @@
         "stageDescriptionEn": "وصف المرحلة (إنجليزي)",
         "stageDescriptionAr": "وصف المرحلة (عربي)",
         "proofType": "نوع الإثبات",
-        "requiresApproval": "تتطلب موافقة"
+        "requiresApproval": "تتطلب موافقة",
+        "discardTitle": "تجاهل تغييرات القالب؟",
+        "discardDescription": "لديك تغييرات غير محفوظة في القالب. هل تريد تجاهلها؟",
+        "keepEditing": "متابعة التعديل",
+        "discard": "تجاهل التغييرات"
       }
     },
     "xp": {

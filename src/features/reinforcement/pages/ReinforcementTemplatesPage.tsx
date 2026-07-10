@@ -10,7 +10,9 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
+import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import Input from "@/components/ui/input/Input";
+import Select from "@/components/ui/input/Select";
 import Modal from "@/components/ui/modal/Modal";
 import { useToast } from "@/components/ui/toast/Toast";
 import MainLoader from "@/components/ui/loaders/MainLoader";
@@ -25,6 +27,7 @@ import {
 } from "../services/reinforcementTemplatesService";
 import type {
   CreateReinforcementTemplatePayload,
+  ReinforcementSource,
   ReinforcementTemplate,
 } from "../types";
 
@@ -55,9 +58,15 @@ export default function ReinforcementTemplatesPage() {
   const { hasPermission } = usePermissions();
   const [templates, setTemplates] = useState<ReinforcementTemplate[]>([]);
   const [search, setSearch] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<"all" | ReinforcementSource>(
+    "all",
+  );
+  const [includeDeleted, setIncludeDeleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreateDirty, setIsCreateDirty] = useState(false);
+  const [isDiscardConfirmOpen, setIsDiscardConfirmOpen] = useState(false);
 
   const canView = hasPermission("reinforcement.templates.view");
   const canManage = hasPermission("reinforcement.templates.manage");
@@ -65,9 +74,20 @@ export default function ReinforcementTemplatesPage() {
   const queryParams = useMemo(
     () => ({
       search: search.trim() || undefined,
-      // limit: 50,
+      source: sourceFilter === "all" ? undefined : sourceFilter,
+      includeDeleted: includeDeleted || undefined,
     }),
-    [search],
+    [includeDeleted, search, sourceFilter],
+  );
+
+  const sourceOptions = useMemo(
+    () => [
+      { value: "all", label: t("templates.allSources") },
+      { value: "teacher", label: t("source.teacher") },
+      { value: "parent", label: t("source.parent") },
+      { value: "system", label: t("source.system") },
+    ],
+    [t],
   );
 
   const refreshTemplates = useCallback(async () => {
@@ -92,11 +112,26 @@ export default function ReinforcementTemplatesPage() {
     void Promise.resolve().then(refreshTemplates);
   }, [refreshTemplates]);
 
+  const closeCreateModal = useCallback(() => {
+    setIsCreateOpen(false);
+    setIsCreateDirty(false);
+    setIsDiscardConfirmOpen(false);
+  }, []);
+
+  const requestCloseCreateModal = useCallback(() => {
+    if (isCreateDirty) {
+      setIsDiscardConfirmOpen(true);
+      return;
+    }
+
+    closeCreateModal();
+  }, [closeCreateModal, isCreateDirty]);
+
   const handleCreate = async (payload: CreateReinforcementTemplatePayload) => {
     try {
       await createReinforcementTemplate(payload);
       showSuccess(t("templates.messages.created"));
-      setIsCreateOpen(false);
+      closeCreateModal();
       await refreshTemplates();
     } catch (nextError) {
       const message =
@@ -128,7 +163,10 @@ export default function ReinforcementTemplatesPage() {
               <Button
                 variant="primary"
                 leftIcon={<Plus className="h-4 w-4" />}
-                onClick={() => setIsCreateOpen(true)}
+                onClick={() => {
+                  setIsCreateDirty(false);
+                  setIsCreateOpen(true);
+                }}
               >
                 {t("templates.form.create")}
               </Button>
@@ -138,7 +176,7 @@ export default function ReinforcementTemplatesPage() {
       />
 
       <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
-        <div className="max-w-xl">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px_220px] lg:items-end">
           <Input
             label={t("templates.search")}
             placeholder={t("templates.searchPlaceholder")}
@@ -146,6 +184,23 @@ export default function ReinforcementTemplatesPage() {
             leftIcon={<Search className="h-4 w-4" />}
             onChange={(event) => setSearch(event.target.value)}
           />
+          <Select
+            label={t("templates.sourceFilter")}
+            value={sourceFilter}
+            onChange={(value) =>
+              setSourceFilter(value as "all" | ReinforcementSource)
+            }
+            options={sourceOptions}
+          />
+          <label className="flex min-h-[44px] items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700">
+            <input
+              type="checkbox"
+              checked={includeDeleted}
+              onChange={(event) => setIncludeDeleted(event.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+            />
+            <span>{t("templates.includeDeleted")}</span>
+          </label>
         </div>
       </section>
 
@@ -171,16 +226,28 @@ export default function ReinforcementTemplatesPage() {
 
       <Modal
         isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
+        onClose={requestCloseCreateModal}
         title={t("templates.form.createTitle")}
         description={t("templates.form.createDescription")}
         size="xl"
       >
         <ReinforcementTemplateForm
           onSubmit={handleCreate}
-          onCancel={() => setIsCreateOpen(false)}
+          onCancel={requestCloseCreateModal}
+          onDirtyChange={setIsCreateDirty}
         />
       </Modal>
+
+      <ConfirmDialog
+        isOpen={isDiscardConfirmOpen}
+        onClose={() => setIsDiscardConfirmOpen(false)}
+        onConfirm={closeCreateModal}
+        title={t("templates.form.discardTitle")}
+        description={t("templates.form.discardDescription")}
+        cancelLabel={t("templates.form.keepEditing")}
+        confirmLabel={t("templates.form.discard")}
+        severity="warning"
+      />
     </div>
   );
 }

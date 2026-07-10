@@ -1,6 +1,7 @@
 import { apiGet, apiPost } from "@/lib/api";
 import type {
   CreateReinforcementTemplatePayload,
+  CreateReinforcementTemplateRequest,
   ListReinforcementTemplatesParams,
   ListReinforcementTemplatesResponse,
   ReinforcementTemplate,
@@ -18,16 +19,19 @@ const optionalText = (value?: string): string | undefined => {
   return trimmed || undefined;
 };
 
-const optionalRewardValue = (
-  value?: string | number,
-): string | number | undefined => {
+const optionalRewardValue = (value?: string | number): number | undefined => {
   if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
-  return optionalText(value);
+
+  const trimmed = optionalText(value);
+  if (!trimmed) return undefined;
+
+  const numberValue = Number(trimmed);
+  return Number.isFinite(numberValue) ? numberValue : undefined;
 };
 
 export function serializeCreateReinforcementTemplatePayload(
   payload: CreateReinforcementTemplatePayload,
-): CreateReinforcementTemplatePayload {
+): CreateReinforcementTemplateRequest {
   const descriptionEn = optionalText(payload.descriptionEn);
   const descriptionAr = optionalText(payload.descriptionAr);
   
@@ -41,12 +45,10 @@ export function serializeCreateReinforcementTemplatePayload(
     ...(descriptionEn ? { descriptionEn } : {}),
     ...(descriptionAr ? { descriptionAr } : {}),
     source: payload.source,
-    reward: {
-      type: payload.reward.type,
-      ...(rewardValue !== undefined ? { value: rewardValue } : {}),
-      ...(rewardLabelEn ? { labelEn: rewardLabelEn } : {}),
-      ...(rewardLabelAr ? { labelAr: rewardLabelAr } : {}),
-    },
+    rewardType: payload.reward.type,
+    ...(rewardValue !== undefined ? { rewardValue } : {}),
+    ...(rewardLabelEn ? { rewardLabelEn } : {}),
+    ...(rewardLabelAr ? { rewardLabelAr } : {}),
     stages: payload.stages.map((stage) => {
       const stageDescriptionEn = optionalText(stage.descriptionEn);
       const stageDescriptionAr = optionalText(stage.descriptionAr);

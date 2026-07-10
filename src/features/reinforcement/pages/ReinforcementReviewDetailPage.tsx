@@ -27,6 +27,7 @@ import {
   rejectReinforcementSubmission,
 } from "../services/reinforcementReviewsService";
 import { grantXpForReinforcementReview } from "../services/reinforcementXpService";
+import { getReinforcementProofDownloadUrl } from "../utils/reinforcementFileUrl";
 import type {
   GrantXpForReviewPayload,
   ReinforcementReviewItem,
@@ -362,7 +363,9 @@ export default function ReinforcementReviewDetailPage({
                     {t("reviews.detail.proofFile")}
                   </div>
                   <a
-                    href={`/api/files/${review.proof.proofFileId as string}`}
+                    href={getReinforcementProofDownloadUrl(
+                      review.proof.proofFileId as string,
+                    )}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"

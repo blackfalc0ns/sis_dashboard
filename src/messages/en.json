@@ -9848,7 +9848,10 @@
       "createTitle": "Create template",
       "listTitle": "Template library",
       "search": "Search templates",
-      "searchPlaceholder": "Search by template name, description, source, or reward",
+      "searchPlaceholder": "Search by template name or description",
+      "sourceFilter": "Source",
+      "allSources": "All sources",
+      "includeDeleted": "Include deleted templates",
       "noSearchResults": "Try changing the search terms or clearing the filter.",
       "stageCount": "{count} stages",
       "table": {
@@ -9856,7 +9859,10 @@
         "source": "Source",
         "reward": "Reward",
         "stages": "Stages",
-        "createdAt": "Created at"
+        "createdAt": "Created at",
+        "updatedAt": "Updated at",
+        "approvalRequired": "Approval required",
+        "noApprovalRequired": "No approval required"
       },
       "messages": {
         "created": "Template created successfully."
@@ -9888,7 +9894,11 @@
         "stageDescriptionEn": "Stage description (English)",
         "stageDescriptionAr": "Stage description (Arabic)",
         "proofType": "Proof type",
-        "requiresApproval": "Requires approval"
+        "requiresApproval": "Requires approval",
+        "discardTitle": "Discard unsaved template?",
+        "discardDescription": "You have unsaved template changes. Discard them?",
+        "keepEditing": "Keep editing",
+        "discard": "Discard changes"
       }
     },
     "xp": {

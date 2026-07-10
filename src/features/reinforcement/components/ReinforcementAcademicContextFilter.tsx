@@ -15,8 +15,9 @@ import {
   type AcademicStructureTree,
 } from "@/features/academics/services/academicStructureApiService";
 import {
-  fetchSubjects,
+  fetchSubjectAllocations,
   type Subject,
+  type SubjectAllocation,
 } from "@/features/academics/subjects/services/subjectsService";
 import {
   fetchStudentsWithEnrollmentForContext,
@@ -163,6 +164,34 @@ const toOption = (record: unknown, locale: Locale): SelectOption | null => {
 const compactOptions = (options: Array<SelectOption | null>): SelectOption[] =>
   options.filter((option): option is SelectOption => Boolean(option));
 
+export const subjectsForStage = (
+  allocations: SubjectAllocation[],
+  grades: AcademicStructureGrade[],
+  stageId?: string,
+): Subject[] => {
+  const stageGradeIds = new Set(
+    grades
+      .filter((grade) => !stageId || grade.stageId === stageId)
+      .map((grade) => grade.id),
+  );
+  const subjectsById = new Map<string, Subject>();
+
+  allocations.forEach((allocation) => {
+    if (!stageGradeIds.has(allocation.gradeId) || !allocation.subject) return;
+    subjectsById.set(allocation.subject.id, {
+      id: allocation.subject.id,
+      name: allocation.subject.nameEn || allocation.subject.nameAr,
+      nameAr: allocation.subject.nameAr,
+      nameEn: allocation.subject.nameEn,
+      code: allocation.subject.code ?? undefined,
+      color: allocation.subject.color ?? undefined,
+      isActive: true,
+    });
+  });
+
+  return Array.from(subjectsById.values());
+};
+
 const studentIdFor = (student: StudentWithEnrollmentContext): string =>
   student.id || student.student_id || "";
 
@@ -296,7 +325,9 @@ export default function ReinforcementAcademicContextFilter({
     loading: false,
     error: null,
   });
-  const [subjects, setSubjects] = useState<LoadState<Subject[]>>({
+  const [subjectAllocations, setSubjectAllocations] = useState<
+    LoadState<SubjectAllocation[]>
+  >({
     data: [],
     loading: false,
     error: null,
@@ -330,11 +361,21 @@ export default function ReinforcementAcademicContextFilter({
         classroom: tree.data.classrooms.find(
           (item) => item.id === next.classroomId,
         ),
-        subject: subjects.data.find((item) => item.id === next.subjectId),
+        subject: subjectsForStage(
+          subjectAllocations.data,
+          tree.data.grades,
+          next.stageId,
+        ).find((item) => item.id === next.subjectId),
         student: nextStudent,
       };
     },
-    [students.data, subjects.data, terms.data, tree.data, years.data],
+    [
+      subjectAllocations.data,
+      students.data,
+      terms.data,
+      tree.data,
+      years.data,
+    ],
   );
 
   const emit = useCallback(
@@ -420,13 +461,17 @@ export default function ReinforcementAcademicContextFilter({
   useEffect(() => {
     if (!value.academicYearId || !value.termId) {
       setTree({ data: emptyTree, loading: false, error: null });
-      setSubjects({ data: [], loading: false, error: null });
+      setSubjectAllocations({ data: [], loading: false, error: null });
       setStudents({ data: [], loading: false, error: null });
       return;
     }
     let cancelled = false;
     setTree((current) => ({ ...current, loading: showStructure, error: null }));
-    setSubjects((current) => ({ ...current, loading: showSubject, error: null }));
+    setSubjectAllocations((current) => ({
+      ...current,
+      loading: showSubject,
+      error: null,
+    }));
     setStudents((current) => ({ ...current, loading: showStudent, error: null }));
 
     if (showStructure) {
@@ -450,20 +495,22 @@ export default function ReinforcementAcademicContextFilter({
     }
 
     if (showSubject) {
-      void fetchSubjects()
+      void fetchSubjectAllocations(value.termId)
         .then((items) => {
-          if (!cancelled) setSubjects({ data: items, loading: false, error: null });
+          if (!cancelled) {
+            setSubjectAllocations({ data: items, loading: false, error: null });
+          }
         })
         .catch((error) => {
           if (!cancelled)
-            setSubjects({
+            setSubjectAllocations({
               data: [],
               loading: false,
               error: error instanceof Error ? error.message : copy.error,
             });
         });
     } else {
-      setSubjects({ data: [], loading: false, error: null });
+      setSubjectAllocations({ data: [], loading: false, error: null });
     }
 
     if (showStudent) {
@@ -487,7 +534,37 @@ export default function ReinforcementAcademicContextFilter({
     }
 
     return () => { cancelled = true; };
-  }, [copy.error, showStructure, showStudent, showSubject, value.academicYearId, value.termId]);
+  }, [
+    copy.error,
+    showStructure,
+    showStudent,
+    showSubject,
+    value.academicYearId,
+    value.termId,
+  ]);
+
+  const filteredSubjects = useMemo(
+    () =>
+      subjectsForStage(
+        subjectAllocations.data,
+        tree.data.grades,
+        value.stageId,
+      ),
+    [subjectAllocations.data, tree.data.grades, value.stageId],
+  );
+
+  useEffect(() => {
+    if (
+      tree.loading ||
+      subjectAllocations.loading ||
+      !value.subjectId ||
+      filteredSubjects.some((subject) => subject.id === value.subjectId)
+    ) {
+      return;
+    }
+
+    emit({ subjectId: undefined });
+  }, [emit, filteredSubjects, subjectAllocations.loading, value.subjectId]);
 
   /* ─── Auto-select when only one option (terms) ─── */
   useEffect(() => {
@@ -621,13 +698,13 @@ export default function ReinforcementAcademicContextFilter({
     years.loading ||
     terms.loading ||
     tree.loading ||
-    subjects.loading ||
+    subjectAllocations.loading ||
     students.loading;
   const error =
     years.error ||
     terms.error ||
     tree.error ||
-    subjects.error ||
+    subjectAllocations.error ||
     students.error;
   const isEmpty = !loading && !error && years.data.length === 0;
 
@@ -897,15 +974,15 @@ export default function ReinforcementAcademicContextFilter({
 
           {/* Subject + Student (after Term selected, if props allow) */}
           {showSubject &&
-            (subjects.loading ? (
+            (subjectAllocations.loading ? (
               <SelectSkeleton label={copy.subject} />
             ) : (
               <Select
                 label={copy.subject}
                 value={value.subjectId || ""}
-                disabled={disabled || subjects.loading}
+                disabled={disabled || subjectAllocations.loading}
                 options={compactOptions(
-                  subjects.data.map((item) => toOption(item, locale)),
+                  filteredSubjects.map((item) => toOption(item, locale)),
                 )}
                 placeholder={`${copy.select} ${copy.subject}`}
                 searchable

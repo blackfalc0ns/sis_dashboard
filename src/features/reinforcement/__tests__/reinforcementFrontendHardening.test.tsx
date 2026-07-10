@@ -226,10 +226,68 @@ describe("Sprint 5A reinforcement frontend hardening", () => {
     );
     expect(screen.getAllByText("Helper")).not.toHaveLength(0);
     expect(screen.getAllByText("source.parent")).not.toHaveLength(0);
-    expect(screen.getAllByText("rewardType.badge")).not.toHaveLength(0);
+    expect(screen.getAllByText("rewardType.badge / -")).not.toHaveLength(0);
 
     rerender(<ReinforcementTemplateTable templates={[]} />);
     expect(screen.getByText("emptyStates.templates")).toBeInTheDocument();
+  });
+
+  it("renders rich template response fields without unsupported edit or delete actions", () => {
+    const template: ReinforcementTemplate = {
+      id: "e5aac1a9-c458-4a1f-af73-1c5971e3dbde",
+      nameEn: "Template One",
+      nameAr: "القالب الاول",
+      descriptionEn: "Template One Description",
+      descriptionAr: "وصف القالب الاول",
+      source: "system",
+      reward: {
+        type: "xp",
+        value: 10,
+        labelEn: "Reward",
+        labelAr: "مكافأة",
+      },
+      stages: [
+        {
+          id: "6e00ff10-421c-4459-9536-e7a1f381fced",
+          sortOrder: 1,
+          titleEn: "Stage One",
+          titleAr: "المرحلة الاولي",
+          descriptionEn: "Stage One Description",
+          descriptionAr: "وصف المرحلة الاولي",
+          proofType: "image",
+          requiresApproval: true,
+        },
+        {
+          id: "13c62d2e-9ea6-41a9-91d1-b2d1ef989af8",
+          sortOrder: 2,
+          titleEn: "Stage Two",
+          titleAr: "المرحلة الثانية",
+          descriptionEn: "Stage Two Description",
+          descriptionAr: "وصف المرحلة الثانية",
+          proofType: "video",
+          requiresApproval: true,
+        },
+      ],
+      createdAt: "2026-07-10T14:13:37.297Z",
+      updatedAt: "2026-07-10T14:13:37.297Z",
+    };
+
+    render(<ReinforcementTemplateTable templates={[template]} canManage />);
+
+    expect(screen.getAllByText("Template One").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Template One Description").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Reward").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("rewardType.xp / 10").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Stage One").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Stage Two").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("proofType.image").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("proofType.video").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("templates.table.approvalRequired").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("templates.table.updatedAt").length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId("template-stage-summary").length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId("template-metadata").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "actions.edit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "actions.delete" })).not.toBeInTheDocument();
   });
 
   it("generates manual XP dedupe keys client-side", () => {

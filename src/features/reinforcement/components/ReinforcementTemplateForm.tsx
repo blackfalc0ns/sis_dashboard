@@ -18,6 +18,7 @@ import type {
 interface ReinforcementTemplateFormProps {
   onSubmit: (payload: CreateReinforcementTemplatePayload) => Promise<void>;
   onCancel: () => void;
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 interface DraftStage {
@@ -71,6 +72,32 @@ const optionalString = (value: string): string | undefined => {
   return trimmed || undefined;
 };
 
+const isStageDirty = (stage: DraftStage): boolean =>
+  stage.titleEn.trim().length > 0 ||
+  stage.titleAr.trim().length > 0 ||
+  stage.descriptionEn.trim().length > 0 ||
+  stage.descriptionAr.trim().length > 0 ||
+  stage.proofType !== "none" ||
+  stage.requiresApproval;
+
+export function isReinforcementTemplateDraftDirty(
+  draft: TemplateDraft,
+): boolean {
+  return (
+    draft.nameEn.trim().length > 0 ||
+    draft.nameAr.trim().length > 0 ||
+    draft.descriptionEn.trim().length > 0 ||
+    draft.descriptionAr.trim().length > 0 ||
+    draft.source !== "teacher" ||
+    draft.rewardType !== "xp" ||
+    draft.rewardValue.trim().length > 0 ||
+    draft.rewardLabelEn.trim().length > 0 ||
+    draft.rewardLabelAr.trim().length > 0 ||
+    draft.stages.length !== 1 ||
+    draft.stages.some(isStageDirty)
+  );
+}
+
 export function buildReinforcementTemplatePayload(
   draft: TemplateDraft,
 ): CreateReinforcementTemplatePayload {
@@ -114,6 +141,7 @@ export function buildReinforcementTemplatePayload(
 export default function ReinforcementTemplateForm({
   onSubmit,
   onCancel,
+  onDirtyChange,
 }: ReinforcementTemplateFormProps) {
   const t = useTranslations("reinforcement");
   const [draft, setDraft] = useState<TemplateDraft>(createInitialDraft);
@@ -125,8 +153,13 @@ export default function ReinforcementTemplateForm({
       setDraft(createInitialDraft());
       setErrors({});
       setIsSaving(false);
+      onDirtyChange?.(false);
     });
-  }, []);
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    onDirtyChange?.(isReinforcementTemplateDraftDirty(draft));
+  }, [draft, onDirtyChange]);
 
   const validate = (): boolean => {
     const nextErrors: FormErrors = {};
@@ -159,6 +192,7 @@ export default function ReinforcementTemplateForm({
     setIsSaving(true);
     try {
       await onSubmit(buildReinforcementTemplatePayload(draft));
+      onDirtyChange?.(false);
     } finally {
       setIsSaving(false);
     }
@@ -183,14 +217,6 @@ export default function ReinforcementTemplateForm({
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <Input
-            label={t("templates.form.nameEn")}
-            value={draft.nameEn}
-            error={errors.name}
-            onChange={(event) =>
-              setDraft({ ...draft, nameEn: event.target.value })
-            }
-          />
-          <Input
             label={t("templates.form.nameAr")}
             value={draft.nameAr}
             error={errors.name}
@@ -199,19 +225,30 @@ export default function ReinforcementTemplateForm({
               setDraft({ ...draft, nameAr: event.target.value })
             }
           />
-          <TextArea
-            label={t("templates.form.descriptionEn")}
-            value={draft.descriptionEn}
+
+          <Input
+            label={t("templates.form.nameEn")}
+            value={draft.nameEn}
+            error={errors.name}
             onChange={(event) =>
-              setDraft({ ...draft, descriptionEn: event.target.value })
+              setDraft({ ...draft, nameEn: event.target.value })
             }
           />
+
           <TextArea
             label={t("templates.form.descriptionAr")}
             value={draft.descriptionAr}
             dir="rtl"
             onChange={(event) =>
               setDraft({ ...draft, descriptionAr: event.target.value })
+            }
+          />
+
+          <TextArea
+            label={t("templates.form.descriptionEn")}
+            value={draft.descriptionEn}
+            onChange={(event) =>
+              setDraft({ ...draft, descriptionEn: event.target.value })
             }
           />
         </div>
@@ -262,19 +299,21 @@ export default function ReinforcementTemplateForm({
               setDraft({ ...draft, rewardValue: event.target.value })
             }
           />
-          <Input
-            label={t("templates.form.rewardLabelEn")}
-            value={draft.rewardLabelEn}
-            onChange={(event) =>
-              setDraft({ ...draft, rewardLabelEn: event.target.value })
-            }
-          />
+
           <Input
             label={t("templates.form.rewardLabelAr")}
             value={draft.rewardLabelAr}
             dir="rtl"
             onChange={(event) =>
               setDraft({ ...draft, rewardLabelAr: event.target.value })
+            }
+          />
+
+          <Input
+            label={t("templates.form.rewardLabelEn")}
+            value={draft.rewardLabelEn}
+            onChange={(event) =>
+              setDraft({ ...draft, rewardLabelEn: event.target.value })
             }
           />
         </div>
@@ -339,14 +378,6 @@ export default function ReinforcementTemplateForm({
 
               <div className="grid gap-4 md:grid-cols-2">
                 <Input
-                  label={t("templates.form.stageTitleEn")}
-                  value={stage.titleEn}
-                  error={errors[`stage-${index}`]}
-                  onChange={(event) =>
-                    updateStage(index, { titleEn: event.target.value })
-                  }
-                />
-                <Input
                   label={t("templates.form.stageTitleAr")}
                   value={stage.titleAr}
                   error={errors[`stage-${index}`]}
@@ -355,19 +386,30 @@ export default function ReinforcementTemplateForm({
                     updateStage(index, { titleAr: event.target.value })
                   }
                 />
-                <TextArea
-                  label={t("templates.form.stageDescriptionEn")}
-                  value={stage.descriptionEn}
+
+                <Input
+                  label={t("templates.form.stageTitleEn")}
+                  value={stage.titleEn}
+                  error={errors[`stage-${index}`]}
                   onChange={(event) =>
-                    updateStage(index, { descriptionEn: event.target.value })
+                    updateStage(index, { titleEn: event.target.value })
                   }
                 />
+
                 <TextArea
                   label={t("templates.form.stageDescriptionAr")}
                   value={stage.descriptionAr}
                   dir="rtl"
                   onChange={(event) =>
                     updateStage(index, { descriptionAr: event.target.value })
+                  }
+                />
+
+                <TextArea
+                  label={t("templates.form.stageDescriptionEn")}
+                  value={stage.descriptionEn}
+                  onChange={(event) =>
+                    updateStage(index, { descriptionEn: event.target.value })
                   }
                 />
               </div>
