@@ -157,6 +157,25 @@ function mapRewardOption(
   };
 }
 
+function matchesStudentSelection(
+  student: StudentRedemptionOption,
+  selection: {
+    studentId?: string;
+    stageId?: string;
+    gradeId?: string;
+    sectionId?: string;
+    classroomId?: string;
+  },
+): boolean {
+  return (
+    student.studentId === selection.studentId &&
+    student.stageId === selection.stageId &&
+    student.gradeId === selection.gradeId &&
+    student.sectionId === selection.sectionId &&
+    student.classroomId === selection.classroomId
+  );
+}
+
 export default function RewardRedemptionCreateModal({
   isOpen,
   academicYearId,
@@ -280,8 +299,8 @@ export default function RewardRedemptionCreateModal({
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    const selectedStudent = students.find(
-      (student) => student.studentId === form.studentId,
+    const selectedStudent = students.find((student) =>
+      matchesStudentSelection(student, form),
     );
     const requestNoteEn = form.requestNoteEn.trim();
     const requestNoteAr = form.requestNoteAr.trim();
@@ -362,8 +381,8 @@ export default function RewardRedemptionCreateModal({
           loading={loading || lookupsLoading}
           labels={{ student: t("rewardsModule.redemptions.create.student") }}
           onChange={(selection) => {
-            const selected = students.find(
-              (student) => student.studentId === selection.studentId,
+            const selected = students.find((student) =>
+              matchesStudentSelection(student, selection),
             );
             setForm((current) => ({
               ...current,
