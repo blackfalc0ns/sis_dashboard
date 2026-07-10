@@ -87,7 +87,7 @@ const defaultLabels: Record<"ar" | "en", Required<AcademicStudentCascadeLabels>>
 };
 
 const recordId = (record: AcademicCascadeRecord): string =>
-  String(record.id || record.value || "");
+  String(record.id || record.value || record.studentId || record.student_id || "");
 
 const recordLabel = (
   record: AcademicCascadeRecord,
