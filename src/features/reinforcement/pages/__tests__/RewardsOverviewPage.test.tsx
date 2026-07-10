@@ -86,7 +86,19 @@ describe("RewardsOverviewPage", () => {
     filterOptionMocks.getReinforcementFilterOptions.mockResolvedValue({
       academicYears: [{ id: "year-1", nameEn: "Year 1", nameAr: "Year 1" }],
       terms: [{ id: "term-1", nameEn: "Term 1", nameAr: "Term 1" }],
-      students: [{ studentId: "student-123", nameEn: "Student 123", nameAr: "Student 123" }],
+      stages: [{ id: "stage-1", nameEn: "Stage 1", nameAr: "Stage 1" }],
+      grades: [{ id: "grade-1", stageId: "stage-1", nameEn: "Grade 1", nameAr: "Grade 1" }],
+      sections: [{ id: "section-1", gradeId: "grade-1", nameEn: "Section 1", nameAr: "Section 1" }],
+      classrooms: [{ id: "classroom-1", sectionId: "section-1", nameEn: "Classroom 1", nameAr: "Classroom 1" }],
+      students: [{
+        studentId: "student-123",
+        stageId: "stage-1",
+        gradeId: "grade-1",
+        sectionId: "section-1",
+        classroomId: "classroom-1",
+        nameEn: "Student 123",
+        nameAr: "Student 123",
+      }],
     });
   });
 
@@ -99,10 +111,14 @@ describe("RewardsOverviewPage", () => {
     });
   });
 
-  it("refetches overview with selected student when student is selected", async () => {
+  it("refetches overview with selected student after ordered academic cascade selection", async () => {
     const user = userEvent.setup();
     renderPage();
 
+    await selectOption(user, "Stage", "Stage 1");
+    await selectOption(user, "Grade", "Grade 1");
+    await selectOption(user, "Section", "Section 1");
+    await selectOption(user, "Classroom", "Classroom 1");
     await selectOption(user, "rewardsModule.redemptions.create.student", "Student 123");
 
     await waitFor(() => {
@@ -175,6 +191,10 @@ describe("RewardsOverviewPage", () => {
     const user = userEvent.setup();
     renderPage();
 
+    await selectOption(user, "Stage", "Stage 1");
+    await selectOption(user, "Grade", "Grade 1");
+    await selectOption(user, "Section", "Section 1");
+    await selectOption(user, "Classroom", "Classroom 1");
     await selectOption(user, "rewardsModule.redemptions.create.student", "Student 123");
 
     // Verify it was called with academic context + student

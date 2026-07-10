@@ -14,10 +14,15 @@ import {
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
-import Select, { type SelectOption } from "@/components/ui/input/Select";
+import Select from "@/components/ui/input/Select";
 import Input from "@/components/ui/input/Input";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import AcademicStudentCascade, {
+  type AcademicCascadeRecord,
+  type AcademicStudentCascadeOptions,
+  type AcademicStudentCascadeValue,
+} from "@/components/ui/academic/AcademicStudentCascade";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
@@ -103,24 +108,106 @@ const toRecord = (value: unknown): Record<string, unknown> | null =>
     ? (value as Record<string, unknown>)
     : null;
 
-function mapStudentOption(
-  record: unknown,
-  locale: string,
-): SelectOption | null {
-  const rec = toRecord(record);
-  if (!rec) return null;
+const recordId = (record: Record<string, unknown>): string | undefined =>
+  getLocalizedValue(record, ["id", "value"]);
 
-  const id = getLocalizedValue(rec, ["studentId", "id", "student_id"]);
+const nestedRecordId = (
+  record: Record<string, unknown>,
+  key: string,
+): string | undefined => {
+  const nested = toRecord(record[key]);
+  return nested ? recordId(nested) : undefined;
+};
+
+const normalizeAcademicRecord = (
+  value: unknown,
+  parentKey?: "stage" | "grade" | "section",
+): AcademicCascadeRecord | null => {
+  const record = toRecord(value);
+  if (!record) return null;
+
+  const id = recordId(record);
   if (!id) return null;
 
-  const nameEn = getLocalizedValue(rec, ["nameEn", "fullNameEn", "full_name_en", "name"]) ?? id;
-  const nameAr = getLocalizedValue(rec, ["nameAr", "fullNameAr", "full_name_ar", "name"]) ?? nameEn;
-  return {
-    value: id,
-    label: locale === "ar" ? nameAr : nameEn,
-    searchText: `${nameEn} ${nameAr} ${id}`,
+  const normalized: AcademicCascadeRecord = {
+    ...record,
+    id,
   };
-}
+  if (parentKey) {
+    const parentId =
+      getLocalizedValue(record, [
+        `${parentKey}Id`,
+        `${parentKey}_id`,
+      ]) ?? nestedRecordId(record, parentKey);
+    if (parentId) {
+      normalized[`${parentKey}Id`] = parentId;
+    }
+  }
+  return normalized;
+};
+
+const normalizeStudentRecord = (value: unknown): AcademicCascadeRecord | null => {
+  const record = toRecord(value);
+  if (!record) return null;
+
+  const studentId = getLocalizedValue(record, ["studentId", "id", "student_id"]);
+  if (!studentId) return null;
+
+  const classroom = toRecord(record.classroom);
+  const section = toRecord(classroom?.section);
+  const grade = toRecord(section?.grade);
+  const stage = toRecord(grade?.stage);
+  const nameEn =
+    getLocalizedValue(record, ["nameEn", "fullNameEn", "full_name_en", "name"]) ??
+    ([record.firstName, record.lastName]
+      .filter((part) => typeof part === "string")
+      .join(" ") || studentId);
+  const nameAr =
+    getLocalizedValue(record, ["nameAr", "fullNameAr", "full_name_ar", "name"]) ?? nameEn;
+
+  return {
+    ...record,
+    id: studentId,
+    nameEn,
+    nameAr,
+    stageId:
+      getLocalizedValue(record, ["stageId", "stage_id"]) ??
+      getLocalizedValue(grade || {}, ["stageId", "stage_id"]) ??
+      nestedRecordId(grade || {}, "stage") ??
+      recordId(stage || {}),
+    gradeId:
+      getLocalizedValue(record, ["gradeId", "grade_id"]) ??
+      getLocalizedValue(section || {}, ["gradeId", "grade_id"]) ??
+      recordId(grade || {}),
+    sectionId:
+      getLocalizedValue(record, ["sectionId", "section_id"]) ??
+      getLocalizedValue(classroom || {}, ["sectionId", "section_id"]) ??
+      recordId(section || {}),
+    classroomId:
+      getLocalizedValue(record, ["classroomId", "classroom_id"]) ??
+      recordId(classroom || {}),
+  };
+};
+
+const normalizeAcademicOptions = (
+  options: Awaited<ReturnType<typeof getReinforcementFilterOptions>>,
+): AcademicStudentCascadeOptions => ({
+  stages: (options.stages || [])
+    .map((item) => normalizeAcademicRecord(item))
+    .filter((item): item is AcademicCascadeRecord => Boolean(item)),
+  grades: (options.grades || [])
+    .map((item) => normalizeAcademicRecord(item, "stage"))
+    .filter((item): item is AcademicCascadeRecord => Boolean(item)),
+  sections: (options.sections || [])
+    .map((item) => normalizeAcademicRecord(item, "grade"))
+    .filter((item): item is AcademicCascadeRecord => Boolean(item)),
+  classrooms: (options.classrooms || [])
+    .map((item) => normalizeAcademicRecord(item, "section"))
+    .filter((item): item is AcademicCascadeRecord => Boolean(item)),
+  students: (options.students || [])
+    .map(normalizeStudentRecord)
+    .filter((item): item is AcademicCascadeRecord => Boolean(item)),
+});
 
 function MiniMetric({
   label,
@@ -199,7 +286,10 @@ export default function RewardsOverviewPage() {
   const [dateValidationError, setDateValidationError] = useState<string | null>(null);
 
   // Dropdown options states
-  const [studentsOptions, setStudentsOptions] = useState<SelectOption[]>([]);
+  const [academicOptions, setAcademicOptions] =
+    useState<AcademicStudentCascadeOptions>({});
+  const [cascadeValue, setCascadeValue] =
+    useState<AcademicStudentCascadeValue>({});
   const [optionsLoading, setOptionsLoading] = useState(false);
 
   const canView = hasPermission("reinforcement.rewards.view");
@@ -221,13 +311,7 @@ export default function RewardsOverviewPage() {
         });
         if (!active) return;
         
-        if (opts.students) {
-          setStudentsOptions(
-            opts.students
-              .map((s) => mapStudentOption(s, locale))
-              .filter((s): s is SelectOption => s !== null)
-          );
-        }
+        setAcademicOptions(normalizeAcademicOptions(opts));
       } catch (err) {
         console.error("Failed to load filter options", err);
       } finally {
@@ -307,6 +391,7 @@ export default function RewardsOverviewPage() {
   }, [fetchData]);
 
   const handleClearFilters = () => {
+    setCascadeValue({});
     setValue("studentId", "");
     setValue("status", "");
     setValue("catalogStatus", "");
@@ -389,17 +474,22 @@ export default function RewardsOverviewPage() {
               {t("rewardsModule.overview.filtersTitle") || "Filters"}
             </h2>
             
-            <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-5 items-end">
-              <Select
-                label={t("rewardsModule.redemptions.create.student") || "Student"}
-                value={values.studentId || ""}
-                onChange={(val) => setValue("studentId", val)}
-                options={studentsOptions}
-                searchable
-                placeholder={t("rewardsModule.overview.allStudents") || "All Students"}
-                disabled={optionsLoading || academicContextLoading || !termId}
-              />
+            <AcademicStudentCascade
+              value={cascadeValue}
+              options={academicOptions}
+              loading={optionsLoading || academicContextLoading}
+              disabled={!termId}
+              labels={{
+                student:
+                  t("rewardsModule.redemptions.create.student") || "Student",
+              }}
+              onChange={(selection) => {
+                setCascadeValue(selection);
+                setValue("studentId", selection.studentId || "");
+              }}
+            />
 
+            <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-5 items-end">
               <Select
                 label={t("rewardsModule.redemptions.table.status") || "Status"}
                 value={values.status || ""}
