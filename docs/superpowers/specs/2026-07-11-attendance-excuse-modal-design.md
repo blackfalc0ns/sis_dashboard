@@ -48,6 +48,20 @@ The cascade follows these rules:
 
 The final request context includes the selected target scope type plus the complete ancestor chain. Readiness is determined by that target type, not inferred from whichever partial ID was selected most recently.
 
+### Timetable Hierarchy Resolution
+
+The backend timetable-config endpoint performs an exact scope lookup; it does not automatically inherit from parent scopes. The modal therefore resolves timetable configuration from the most specific applicable scope to the term default and stops after the first successful configuration:
+
+- `CLASSROOM`: classroom, then section, then grade, then term
+- `SECTION`: section, then grade, then term
+- `GRADE`: grade, then term
+- `STAGE`: term, because timetable configuration has no stage scope
+- `SCHOOL`: term
+
+Every candidate includes `academicYearId` and `termId`. Section candidates include both `gradeId` and `sectionId`; classroom candidates include `gradeId`, `sectionId`, and `classroomId`. Although the backend can derive ancestors, sending the selected ancestor IDs lets it reject an inconsistent hierarchy instead of silently accepting a mismatched descendant.
+
+Candidate requests are sequential and stop at the first match, avoiding parent requests when a specific configuration exists. Each exact candidate is cached independently. A backend `404` means “try the next parent”; other errors stop resolution and are shown to the user.
+
 ## Request Lifecycle
 
 Academic policies are loaded once per academic year and term while the modal is open. Effective-policy selection and reason, attachment, date-range, and scope validation are derived locally from that cached policy set. Typing a reason or changing attachments must not trigger network requests.
@@ -98,6 +112,9 @@ Focused tests will cover:
 - Correct descendant clearing and parent-based option filtering at every hierarchy level
 - No dependent request from an incomplete hierarchy
 - No timetable request for absence requests
+- Correct most-specific-to-term timetable fallback for every supported attendance scope
+- Complete ancestor IDs in section and classroom timetable queries
+- No parent timetable request after a more specific configuration succeeds
 - Timetable caching and stale-response handling
 - Differential attachment linking in edit mode
 - Create/edit rendering, validation, loading, error, keyboard, and accessible-name behavior

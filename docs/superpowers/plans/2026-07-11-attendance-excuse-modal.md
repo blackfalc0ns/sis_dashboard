@@ -257,7 +257,7 @@ git commit -m "perf(attendance): reuse excuse policy snapshot"
 
 **Interfaces:**
 - Consumes: ready explicit scope, request type, edit/create mode, and cached `fetchTimetableConfig`.
-- Produces: request effects that ignore stale results and execute only for required dependencies.
+- Produces: `getExcuseTimetableCandidates(academicYearId, termId, scopeType, scopeIds): FetchTimetableConfigParams[]`, `resolveCachedExcuseTimetable(candidates): Promise<TimetableConfig | null>`, and request effects that ignore stale results.
 
 - [ ] **Step 1: Add failing request-boundary tests**
 
@@ -271,9 +271,20 @@ expect(fetchRoster).not.toHaveBeenCalled(); // edit render
 
 renderModal({ type: "ABSENCE" });
 expect(fetchTimetableConfig).not.toHaveBeenCalled();
+
+expect(getExcuseTimetableCandidates("year-1", "term-1", "CLASSROOM", {
+  gradeId: "grade-1",
+  sectionId: "section-1",
+  classroomId: "classroom-1",
+})).toEqual([
+  { academicYearId: "year-1", termId: "term-1", scopeType: "CLASSROOM", gradeId: "grade-1", sectionId: "section-1", classroomId: "classroom-1" },
+  { academicYearId: "year-1", termId: "term-1", scopeType: "SECTION", gradeId: "grade-1", sectionId: "section-1" },
+  { academicYearId: "year-1", termId: "term-1", scopeType: "GRADE", gradeId: "grade-1" },
+  { academicYearId: "year-1", termId: "term-1", scopeType: "TERM" },
+]);
 ```
 
-Add a deferred-promise test where scope A resolves after scope B and assert only B appears in roster/period options.
+Add tests proving `STAGE` resolves directly to `TERM`, a found classroom config prevents section/grade/term calls, a classroom 404 falls through in order, and non-404 errors stop resolution. Add a deferred-promise test where scope A resolves after scope B and assert only B appears in roster/period options.
 
 - [ ] **Step 2: Run modal and cache tests to verify failure**
 
@@ -282,6 +293,8 @@ Run: `npm test -- --run src/features/attendance/excuses/components/__tests__/Exc
 Expected: FAIL on initial create roster loading, edit roster loading, or stale response behavior.
 
 - [ ] **Step 3: Implement guarded effects**
+
+Replace the single exact-scope helper with a candidate builder ordered `CLASSROOM > SECTION > GRADE > TERM`. Include all selected ancestor IDs supported by the backend DTO so its hierarchy consistency checks run. Resolve candidates sequentially through the existing exact-config cache and stop at the first non-null config.
 
 Use a monotonically increasing request token in each asynchronous effect:
 
@@ -292,7 +305,7 @@ const students = await fetchRoster(...);
 if (requestId === rosterRequestId.current) setRoster(students);
 ```
 
-Roster dependencies must exclude reason, attachments, minutes, and request type. Timetable dependencies must include type and effective timetable scope, use the existing promise cache, and clear irrelevant periods when switching to `ABSENCE`. In edit mode, retain current period keys without a roster call; request context only when a new timetable selection is required and unavailable.
+Roster dependencies must exclude reason, attachments, minutes, and request type. Timetable dependencies must include type and effective hierarchy, use the exact-candidate promise cache, and clear irrelevant periods when switching to `ABSENCE`. In edit mode, retain current period keys without a roster call; request context only when a new timetable selection is required and unavailable.
 
 - [ ] **Step 4: Run request-boundary tests**
 
