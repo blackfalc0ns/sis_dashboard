@@ -301,6 +301,8 @@ export interface BackendGradesOverviewResponse {
 }
 
 // Submission flow types
+export type BackendSubmissionStatus = "in_progress" | "submitted" | "corrected";
+
 export interface BackendSubmissionResolveResponse {
   id: string;
   assessmentId: string;
@@ -314,19 +316,24 @@ export interface BackendSubmissionResolveResponse {
 export interface BackendSubmissionAnswerResponse {
   id: string;
   questionId: string;
-  type?: string;
-  answerText?: string | null;
-  answerJson?: unknown;
+  type: string;
+  answerText: string | null;
+  answerJson: unknown;
   awardedPoints: number | null;
-  maxPoints?: number | null;
+  maxPoints: number | null;
   correctionStatus: string;
-  reviewerComment?: string | null;
-  selectedOptions?: Array<{ optionId: string }>;
-  reviewerCommentAr?: string | null;
-  reviewedAt?: string | null;
-  reviewedById?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
+  reviewerComment: string | null;
+  selectedOptions: Array<{
+    optionId: string;
+    label: string;
+    labelAr: string | null;
+    value: string | null;
+  }>;
+  reviewerCommentAr: string | null;
+  reviewedAt: string | null;
+  reviewedById: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface BackendSubmissionProgressResponse {
@@ -362,7 +369,7 @@ export interface BackendSubmissionListRowResponse {
   assessmentId: string;
   studentId: string;
   enrollmentId: string;
-  status: string;
+  status: BackendSubmissionStatus;
   startedAt: string;
   submittedAt: string | null;
   student: BackendSubmissionStudentResponse | null;
@@ -374,27 +381,45 @@ export interface BackendSubmissionsListResponse {
   items: BackendSubmissionListRowResponse[];
 }
 
+export interface BackendSubmissionAssessmentResponse {
+  id: string;
+  titleEn: string | null;
+  titleAr: string | null;
+  deliveryMode: AssessmentDeliveryMode | "question_based";
+  approvalStatus: BackendApprovalStatus;
+  maxScore: number | null;
+}
+
+export interface BackendSubmissionQuestionResponse {
+  id: string;
+  type: string;
+  prompt: string;
+  promptAr: string | null;
+  points: number;
+  sortOrder: number;
+  required: boolean;
+  answer: BackendSubmissionAnswerResponse | null;
+}
+
 export interface BackendSubmissionDetailResponse {
   id: string;
-  termId?: string;
+  termId: string;
   assessmentId: string;
   studentId: string;
   enrollmentId: string;
-  status: string;
+  status: BackendSubmissionStatus;
   startedAt: string;
   submittedAt: string | null;
   correctedAt: string | null;
   reviewedById: string | null;
   totalScore: number | null;
-  maxScore: number;
-  assessment?: BackendAssessmentResponse;
+  maxScore: number | null;
+  assessment: BackendSubmissionAssessmentResponse | null;
   student: BackendSubmissionStudentResponse | null;
   enrollment: BackendSubmissionEnrollmentResponse | null;
   progress: BackendSubmissionProgressResponse;
   answers: BackendSubmissionAnswerResponse[];
-  questions?: Array<BackendAssessmentQuestionResponse & {
-    answer: BackendSubmissionAnswerResponse | null;
-  }>;
+  questions: BackendSubmissionQuestionResponse[];
 }
 
 export interface BackendSubmissionGradeItemSyncResponse {

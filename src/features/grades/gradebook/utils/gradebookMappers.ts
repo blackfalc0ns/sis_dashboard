@@ -409,10 +409,10 @@ export function mapSubmissionDetailToReview(
   return {
     submission: {
       id: detail.id,
-      termId: detail.termId ?? assessment.termId,
+      termId: detail.termId,
       assessmentId: detail.assessmentId,
       studentId: detail.studentId,
-      status: (detail.status as AssessmentSubmissionReview["submission"]["status"]) ?? "not_started",
+      status: detail.status as AssessmentSubmissionReview["submission"]["status"],
       submittedAt: detail.submittedAt ?? undefined,
       totalScore: detail.totalScore,
       maxScore: detail.maxScore ?? assessment.maxScore,
@@ -422,42 +422,17 @@ export function mapSubmissionDetailToReview(
       detail.student?.nameEn ??
       [detail.student?.firstName, detail.student?.lastName].filter(Boolean).join(" "),
     studentNameAr: detail.student?.nameAr ?? detail.student?.nameEn ?? "",
-    questions: (detail.questions ?? []).map((q) => {
-      const metadata = q.metadata ?? {};
-      return {
+    questions: detail.questions.map((q) => ({
       question: {
         id: q.id,
-        assessmentId: q.assessmentId,
+        assessmentId: detail.assessmentId,
         assignmentId: "",
         questionTextAr: q.promptAr ?? "",
-        questionTextEn: q.prompt ?? "",
+        questionTextEn: q.prompt,
         questionType: fromBackendQuestionType(q.type),
-        points: q.points ?? 0,
-        order: q.sortOrder ?? 0,
-        options: q.options?.map((o) => ({
-          id: o.id,
-          textAr: o.labelAr ?? "",
-          textEn: o.label ?? "",
-          isCorrect: o.isCorrect ?? false,
-          order: o.sortOrder ?? 0,
-        })),
-        correctAnswer: typeof q.answerKey === "boolean" ? q.answerKey : undefined,
-        sampleAnswerAr: typeof metadata.sampleAnswerAr === "string" ? metadata.sampleAnswerAr : undefined,
-        sampleAnswerEn: typeof metadata.sampleAnswerEn === "string" ? metadata.sampleAnswerEn : undefined,
-        acceptedAnswersAr: Array.isArray(metadata.acceptedAnswersAr)
-          ? metadata.acceptedAnswersAr.filter((answer): answer is string => typeof answer === "string")
-          : undefined,
-        acceptedAnswersEn: Array.isArray(metadata.acceptedAnswersEn)
-          ? metadata.acceptedAnswersEn.filter((answer): answer is string => typeof answer === "string")
-          : undefined,
-        matchingPairs: Array.isArray(metadata.matchingPairs) ? metadata.matchingPairs as AssessmentSubmissionReview["questions"][number]["question"]["matchingPairs"] : undefined,
-        mediaMode: metadata.mediaMode === "FILE" || metadata.mediaMode === "LINK" ? metadata.mediaMode : undefined,
-        mediaTitle: typeof metadata.mediaTitle === "string" ? metadata.mediaTitle : undefined,
-        mediaUrl: typeof metadata.mediaUrl === "string" ? metadata.mediaUrl : undefined,
-        mediaFileName: typeof metadata.mediaFileName === "string" ? metadata.mediaFileName : undefined,
-        mediaMimeType: typeof metadata.mediaMimeType === "string" ? metadata.mediaMimeType : undefined,
-        mediaSize: typeof metadata.mediaSize === "number" ? metadata.mediaSize : undefined,
-        createdAt: q.createdAt ?? "",
+        points: q.points,
+        order: q.sortOrder,
+        createdAt: "",
       },
       answer: q.answer
         ? {
@@ -473,7 +448,6 @@ export function mapSubmissionDetailToReview(
             teacherComment: q.answer.reviewerComment ?? undefined,
           }
         : null,
-    };
-    }),
+      })),
   };
 }

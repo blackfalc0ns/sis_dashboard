@@ -81,7 +81,12 @@ export async function fetchAssessmentSubmissionReview(
 
   // Step 3: Map the embedded assessment and build the review object
   const assessment = detail.assessment
-    ? mapBackendAssessmentToAssessment(detail.assessment)
+    ? mapBackendAssessmentToAssessment({
+        ...detail.assessment,
+        titleEn: detail.assessment.titleEn ?? undefined,
+        titleAr: detail.assessment.titleAr ?? undefined,
+        maxScore: detail.assessment.maxScore ?? undefined,
+      })
     : mapBackendAssessmentToAssessment({
         id: assessmentId,
         titleEn: "",

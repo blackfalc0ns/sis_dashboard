@@ -2,9 +2,10 @@ import type {
   BackendSubmissionAnswerResponse,
   BackendSubmissionDetailResponse,
   BackendSubmissionListRowResponse,
+  BackendSubmissionStatus,
 } from "../gradebook/types/api.types";
 
-export type SubmissionStatus = "IN_PROGRESS" | "SUBMITTED" | "CORRECTED";
+export type SubmissionStatus = BackendSubmissionStatus;
 
 export interface SubmissionListFilters {
   status?: SubmissionStatus;

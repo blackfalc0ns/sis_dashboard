@@ -8,6 +8,7 @@ import Button from "@/components/ui/button/Button";
 import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
 import { listAssessmentSubmissions } from "../services/gradesSubmissionsService";
 import type { GradeSubmissionRow, SubmissionStatus } from "../types";
+import { submissionStatusMessageKey } from "../utils/submissionStatus";
 
 export default function AssessmentSubmissionsPage({ assessmentId }: { assessmentId: string }) {
   const t = useTranslations("academics.grades.submissions");
@@ -55,7 +56,7 @@ export default function AssessmentSubmissionsPage({ assessmentId }: { assessment
         </label>
         <select className="h-10 border border-[var(--border-color)] bg-[var(--surface-color)] px-3 text-sm" value={status} onChange={(event) => setStatus(event.target.value as SubmissionStatus | "")}>
           <option value="">{t("allStatuses")}</option>
-          {(["IN_PROGRESS", "SUBMITTED", "CORRECTED"] as const).map((value) => <option key={value} value={value}>{t(`statuses.${value}`)}</option>)}
+          {(["in_progress", "submitted", "corrected"] as const).map((value) => <option key={value} value={value}>{t(`statuses.${submissionStatusMessageKey(value)}`)}</option>)}
         </select>
       </div>
       {isLoading ? <div className="py-12 text-center text-sm text-[var(--text-secondary)]">{t("loading")}</div> : null}
@@ -65,7 +66,7 @@ export default function AssessmentSubmissionsPage({ assessmentId }: { assessment
         <div className="overflow-x-auto border border-[var(--border-color)]">
           <table className="w-full min-w-[760px] text-sm">
             <thead className="bg-[var(--surface-secondary)] text-start text-[var(--text-secondary)]"><tr><th className="p-3 text-start">{t("student")}</th><th className="p-3 text-start">{t("class")}</th><th className="p-3 text-start">{t("status")}</th><th className="p-3 text-start">{t("progress")}</th><th className="p-3 text-start">{t("pending")}</th><th className="p-3" /></tr></thead>
-            <tbody>{rows.map((row) => <tr key={row.id} className="border-t border-[var(--border-color)]"><td className="p-3 font-medium">{locale === "ar" ? row.student?.nameAr || row.student?.nameEn : row.student?.nameEn}</td><td className="p-3">{row.enrollment?.classroomName || "-"}</td><td className="p-3">{t(`statuses.${row.status}`)}</td><td className="p-3">{row.progress.answeredCount}/{row.progress.totalQuestions}</td><td className="p-3">{row.progress.pendingCorrectionCount}</td><td className="p-3 text-end"><Button size="sm" variant="secondary" onClick={() => router.push(`/${locale}/grades/submissions/${row.id}`)}>{t("open")}</Button></td></tr>)}</tbody>
+            <tbody>{rows.map((row) => <tr key={row.id} className="border-t border-[var(--border-color)]"><td className="p-3 font-medium">{locale === "ar" ? row.student?.nameAr || row.student?.nameEn : row.student?.nameEn}</td><td className="p-3">{row.enrollment?.classroomName || "-"}</td><td className="p-3">{t(`statuses.${submissionStatusMessageKey(row.status)}`)}</td><td className="p-3">{row.progress.answeredCount}/{row.progress.totalQuestions}</td><td className="p-3">{row.progress.pendingCorrectionCount}</td><td className="p-3 text-end"><Button size="sm" variant="secondary" onClick={() => router.push(`/${locale}/grades/submissions/${row.id}`)}>{t("open")}</Button></td></tr>)}</tbody>
           </table>
         </div>
       ) : null}

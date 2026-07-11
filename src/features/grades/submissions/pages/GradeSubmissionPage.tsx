@@ -17,6 +17,11 @@ import {
   syncSubmissionGradeItem,
 } from "../services/gradesSubmissionsService";
 import type { GradeSubmissionDetail } from "../types";
+import {
+  MAX_ANSWER_TEXT_LENGTH,
+  MAX_REVIEWER_COMMENT_LENGTH,
+} from "../utils/submissionContract";
+import { submissionStatusMessageKey } from "../utils/submissionStatus";
 
 interface DraftAnswer {
   answerText: string;
@@ -67,8 +72,8 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
     finally { setActiveAction(null); }
   };
 
-  const canEnter = hasPermission("grades.submissions.submit") && submission?.status === "IN_PROGRESS";
-  const canReview = hasPermission("grades.submissions.review") && submission?.status === "SUBMITTED";
+  const canEnter = hasPermission("grades.submissions.submit") && submission?.status === "in_progress";
+  const canReview = hasPermission("grades.submissions.review") && submission?.status === "submitted";
   const canFinalize = canReview && submission.progress.pendingCorrectionCount === 0;
   const canSubmit = canEnter && submission.progress.requiredAnsweredCount === submission.progress.requiredQuestionCount;
   const sortedQuestions = useMemo(() => [...(submission?.questions ?? [])].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)), [submission]);
@@ -79,12 +84,12 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-6">
       <div className="flex flex-col justify-between gap-3 border-b border-[var(--border-color)] pb-4 md:flex-row md:items-end">
-        <div><h1 className="text-xl font-semibold text-[var(--text-primary)]">{submission.assessment?.titleEn || t("detailTitle")}</h1><p className="text-sm text-[var(--text-secondary)]">{submission.student?.nameEn} · {t(`statuses.${submission.status}`)} · {submission.progress.answeredCount}/{submission.progress.totalQuestions}</p></div>
+        <div><h1 className="text-xl font-semibold text-[var(--text-primary)]">{submission.assessment?.titleEn || t("detailTitle")}</h1><p className="text-sm text-[var(--text-secondary)]">{submission.student?.nameEn} · {t(`statuses.${submissionStatusMessageKey(submission.status)}`)} · {submission.progress.answeredCount}/{submission.progress.totalQuestions}</p></div>
         <div className="flex flex-wrap gap-2">
           {canEnter ? <Button variant="secondary" loading={activeAction === "save-all"} onClick={() => void runAction("save-all", () => saveSubmissionAnswers(submission.id, sortedQuestions.map((question) => ({ questionId: question.id, answerText: drafts[question.id]?.answerText || null, selectedOptionIds: drafts[question.id]?.selectedOptionIds ?? [] }))))}>{t("saveAll")}</Button> : null}
           {canSubmit ? <Button loading={activeAction === "submit"} onClick={() => window.confirm(t("submitConfirm")) && void runAction("submit", () => submitGradeSubmission(submission.id))}>{t("submit")}</Button> : null}
           {canFinalize ? <Button loading={activeAction === "finalize"} onClick={() => void runAction("finalize", () => finalizeSubmissionReview(submission.id))}>{t("finalize")}</Button> : null}
-          {hasPermission("grades.submissions.review") && submission.status === "CORRECTED" ? <Button loading={activeAction === "sync"} onClick={() => void runAction("sync", () => syncSubmissionGradeItem(submission.id))}>{t("sync")}</Button> : null}
+          {hasPermission("grades.submissions.review") && submission.status === "corrected" ? <Button loading={activeAction === "sync"} onClick={() => void runAction("sync", () => syncSubmissionGradeItem(submission.id))}>{t("sync")}</Button> : null}
         </div>
       </div>
       {error ? <div className="border border-[var(--error-border)] bg-[var(--error-bg)] p-4 text-sm text-[var(--error-text)]">{error}</div> : null}
@@ -97,9 +102,9 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
           {isChoiceQuestion ? <div className="space-y-2">{definition.options?.map((option) => {
             const checked = draft.selectedOptionIds.includes(option.id);
             return <label key={option.id} className="flex items-center gap-3 border border-[var(--border-color)] p-3 text-sm"><input type={definition.questionType === "MCQ_MULTI" ? "checkbox" : "radio"} name={`question-${question.id}`} checked={checked} disabled={!canEnter} onChange={() => setDrafts((current) => ({ ...current, [question.id]: { ...draft, selectedOptionIds: definition.questionType === "MCQ_MULTI" ? (checked ? draft.selectedOptionIds.filter((id) => id !== option.id) : [...draft.selectedOptionIds, option.id]) : [option.id] } }))} /><span>{option.textEn || option.textAr}</span></label>;
-          })}</div> : <textarea className="min-h-24 w-full border border-[var(--border-color)] bg-transparent p-3 text-sm" value={draft.answerText} disabled={!canEnter} onChange={(event) => setDrafts((current) => ({ ...current, [question.id]: { ...draft, answerText: event.target.value } }))} placeholder={t("answerPlaceholder")} />}
+          })}</div> : <textarea maxLength={MAX_ANSWER_TEXT_LENGTH} className="min-h-24 w-full border border-[var(--border-color)] bg-transparent p-3 text-sm" value={draft.answerText} disabled={!canEnter} onChange={(event) => setDrafts((current) => ({ ...current, [question.id]: { ...draft, answerText: event.target.value } }))} placeholder={t("answerPlaceholder")} />}
           {canEnter ? <div className="mt-2 text-end"><Button size="sm" variant="secondary" loading={activeAction === `answer-${question.id}`} onClick={() => void runAction(`answer-${question.id}`, () => saveSubmissionAnswer(submission.id, question.id, { answerText: isChoiceQuestion ? null : draft.answerText || null, selectedOptionIds: isChoiceQuestion ? draft.selectedOptionIds : null }))}>{t("saveAnswer")}</Button></div> : null}
-          {hasPermission("grades.submissions.review") && question.answer ? <div className="mt-4 grid gap-3 border-t border-[var(--border-color)] pt-4 md:grid-cols-[140px_1fr_auto]"><label className="text-sm">{t("awardedPoints")}<input type="number" min={0} max={question.points ?? 0} className="mt-1 h-10 w-full border border-[var(--border-color)] bg-transparent px-3" value={draft.awardedPoints} disabled={!canReview} onChange={(event) => setDrafts((current) => ({ ...current, [question.id]: { ...draft, awardedPoints: event.target.value } }))} /></label><label className="text-sm">{t("reviewComment")}<input className="mt-1 h-10 w-full border border-[var(--border-color)] bg-transparent px-3" value={draft.reviewerComment} disabled={!canReview} onChange={(event) => setDrafts((current) => ({ ...current, [question.id]: { ...draft, reviewerComment: event.target.value } }))} /></label>{canReview ? <Button size="sm" variant="secondary" className="self-end" loading={activeAction === `review-${question.id}`} disabled={draft.awardedPoints === "" || Number(draft.awardedPoints) > (question.points ?? 0)} onClick={() => void runAction(`review-${question.id}`, () => reviewSubmissionAnswer(submission.id, question.answer!.id, { awardedPoints: Number(draft.awardedPoints), reviewerComment: draft.reviewerComment || null }))}>{t("saveReview")}</Button> : null}</div> : null}
+          {hasPermission("grades.submissions.review") && question.answer ? <div className="mt-4 grid gap-3 border-t border-[var(--border-color)] pt-4 md:grid-cols-[140px_1fr_auto]"><label className="text-sm">{t("awardedPoints")}<input type="number" min={0} max={question.points ?? 0} className="mt-1 h-10 w-full border border-[var(--border-color)] bg-transparent px-3" value={draft.awardedPoints} disabled={!canReview} onChange={(event) => setDrafts((current) => ({ ...current, [question.id]: { ...draft, awardedPoints: event.target.value } }))} /></label><label className="text-sm">{t("reviewComment")}<input maxLength={MAX_REVIEWER_COMMENT_LENGTH} className="mt-1 h-10 w-full border border-[var(--border-color)] bg-transparent px-3" value={draft.reviewerComment} disabled={!canReview} onChange={(event) => setDrafts((current) => ({ ...current, [question.id]: { ...draft, reviewerComment: event.target.value } }))} /></label>{canReview ? <Button size="sm" variant="secondary" className="self-end" loading={activeAction === `review-${question.id}`} disabled={draft.awardedPoints === "" || !Number.isFinite(Number(draft.awardedPoints)) || Number(draft.awardedPoints) < 0 || Number(draft.awardedPoints) > (question.points ?? 0)} onClick={() => void runAction(`review-${question.id}`, () => reviewSubmissionAnswer(submission.id, question.answer!.id, { awardedPoints: Number(draft.awardedPoints), reviewerComment: draft.reviewerComment || null }))}>{t("saveReview")}</Button> : null}</div> : null}
         </section>;
       })}</div>
     </div>
