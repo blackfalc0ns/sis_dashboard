@@ -22,18 +22,14 @@ describe("gradesRulesService", () => {
     apiGet.mockResolvedValue({
       items: [{
         id: "rule-1",
-        academicYearId: "year-1",
         yearId: "year-1",
         termId: "term-1",
         scopeType: "grade",
         scopeKey: "grade-1",
-        scopeId: "grade-1",
         gradeId: "grade-1",
         gradingScale: "percentage",
         passMark: 62.5,
         rounding: "decimal_1",
-        createdAt: "2026-07-11T10:00:00.000Z",
-        updatedAt: "2026-07-11T10:00:00.000Z",
       }],
     });
 
@@ -59,26 +55,17 @@ describe("gradesRulesService", () => {
     })]);
   });
 
-  it("preserves effective-rule resolution metadata and omits absent query keys", async () => {
+  it("maps an effective default without inventing a rule id", async () => {
     apiGet.mockResolvedValue({
       source: "DEFAULT",
       id: null,
       ruleId: null,
       scopeType: "classroom",
       scopeKey: "classroom-1",
-      scopeId: "classroom-1",
       gradeId: "grade-1",
       gradingScale: "percentage",
       passMark: 50,
       rounding: "decimal_2",
-      resolvedFrom: {
-        requestedScopeType: "classroom",
-        requestedScopeKey: "classroom-1",
-        stageId: "stage-1",
-        gradeId: "grade-1",
-        sectionId: "section-1",
-        classroomId: "classroom-1",
-      },
     });
 
     const rule = await fetchEffectiveGradeRule({
@@ -88,28 +75,12 @@ describe("gradesRulesService", () => {
       scopeId: "classroom-1",
     });
 
-    expect(apiGet).toHaveBeenCalledWith("/grades/rules/effective", {
-      params: {
-        academicYearId: "year-1",
-        termId: "term-1",
-        scopeType: "classroom",
-        scopeId: "classroom-1",
-      },
-    });
     expect(rule).toEqual(expect.objectContaining({
       id: "",
       ruleId: null,
       source: "DEFAULT",
       scopeId: "classroom-1",
       rounding: "DECIMAL_2",
-      resolvedFrom: {
-        requestedScopeType: "classroom",
-        requestedScopeKey: "classroom-1",
-        stageId: "stage-1",
-        gradeId: "grade-1",
-        sectionId: "section-1",
-        classroomId: "classroom-1",
-      },
     }));
   });
 

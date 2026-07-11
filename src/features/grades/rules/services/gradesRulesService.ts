@@ -1,46 +1,26 @@
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
+import type { BackendGradeRuleResponse, BackendGradeRulesListResponse } from "../../gradebook/types/api.types";
 import type { ExamScopeType } from "../../shared/types";
-import type { BackendEffectiveGradeRuleResponse, BackendGradeRuleResponse, BackendGradeRulesListResponse, EffectiveGradeRule, EffectiveGradeRuleRequest, GradeRoundingMode, GradeRuleRecord, SaveGradeRulePayload, UpdateGradeRulePayload } from "../types";
+import type { EffectiveGradeRule, EffectiveGradeRuleRequest, GradeRoundingMode, GradeRuleRecord, SaveGradeRulePayload, UpdateGradeRulePayload } from "../types";
 
-const gradeRoundingByBackend: Record<BackendGradeRuleResponse["rounding"], GradeRoundingMode> = {
-  none: "NONE",
-  decimal_0: "DECIMAL_0",
-  decimal_1: "DECIMAL_1",
-  decimal_2: "DECIMAL_2",
-};
-
-function mapGradeRounding(rounding: BackendGradeRuleResponse["rounding"]): GradeRoundingMode {
-  return gradeRoundingByBackend[rounding];
+function rounding(value?: string): GradeRoundingMode {
+  const normalized = value?.toUpperCase();
+  return normalized === "NONE" || normalized === "DECIMAL_0" || normalized === "DECIMAL_1" || normalized === "DECIMAL_2" ? normalized : "DECIMAL_2";
 }
 
 function mapRule(value: BackendGradeRuleResponse): GradeRuleRecord {
   return {
-    id: value.id,
-    academicYearId: value.academicYearId,
-    termId: value.termId,
-    scopeType: value.scopeType,
-    scopeId: value.scopeKey,
-    gradeId: value.gradeId,
+    id: value.id ?? value.ruleId ?? "",
+    academicYearId: value.academicYearId ?? value.yearId ?? "",
+    termId: value.termId ?? "",
+    scopeType: (value.scopeType ?? "school") as ExamScopeType,
+    scopeId: value.scopeKey ?? value.scopeId ?? "",
+    gradeId: value.gradeId ?? null,
     gradingScale: "PERCENTAGE",
-    passMark: value.passMark,
-    rounding: mapGradeRounding(value.rounding),
+    passMark: value.passMark ?? 50,
+    rounding: rounding(value.rounding),
     createdAt: value.createdAt,
     updatedAt: value.updatedAt,
-  };
-}
-
-function mapEffectiveRule(value: BackendEffectiveGradeRuleResponse): EffectiveGradeRule {
-  return {
-    id: value.id ?? "",
-    ruleId: value.ruleId,
-    source: value.source,
-    scopeType: value.scopeType,
-    scopeId: value.scopeKey,
-    gradeId: value.gradeId,
-    gradingScale: "PERCENTAGE",
-    passMark: value.passMark,
-    rounding: mapGradeRounding(value.rounding),
-    resolvedFrom: value.resolvedFrom,
   };
 }
 
@@ -50,10 +30,8 @@ export async function fetchGradeRules(academicYearId: string, termId: string, fi
 }
 
 export async function fetchEffectiveGradeRule(payload: EffectiveGradeRuleRequest): Promise<EffectiveGradeRule> {
-  const response = await apiGet<BackendEffectiveGradeRuleResponse>("/grades/rules/effective", {
-    params: Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined && value !== "")),
-  });
-  return mapEffectiveRule(response);
+  const response = await apiGet<BackendGradeRuleResponse>("/grades/rules/effective", { params: { ...payload, scopeId: payload.scopeId || undefined, gradeId: payload.gradeId || undefined } });
+  return { ...mapRule(response), ruleId: response.ruleId ?? response.id ?? null, source: response.source ?? "DEFAULT" };
 }
 
 export async function saveGradeRule(payload: SaveGradeRulePayload): Promise<GradeRuleRecord> {
