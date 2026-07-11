@@ -288,6 +288,15 @@ export const fetchPolicies = async (
   });
   const policies = unwrapArray(response).map((item) => mapPolicy(item, { yearId, termId }));
 
+  // Period IDs returned by the backend are already stable UUIDs in the current
+  // contract. Only resolve timetable configs when an older numeric ID actually
+  // needs migration; normal attendance page loads must not fan out into four
+  // timetable requests.
+  const hasLegacyPeriodIds = policies.some((policy) =>
+    policy.selectedPeriodIds?.some((id) => /^period-\d+$/.test(id)),
+  );
+  if (!hasLegacyPeriodIds) return policies;
+
   // Auto-migrate period IDs if needed
   try {
     const configs = await fetchTimetableConfigs({

@@ -1,15 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, Plus, RefreshCw, ShieldAlert } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronDown,
+  Filter,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  ShieldAlert,
+} from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
+import { useDebounce } from "use-debounce";
 import Button from "@/components/ui/button/Button";
+import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import { useToast } from "@/components/ui/toast/Toast";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import ReinforcementAcademicContextFilter, {
   type ReinforcementAcademicContextSelection,
   type ReinforcementAcademicContextValue,
@@ -30,6 +41,7 @@ import type {
   DuplicateReinforcementTaskPayload,
   ReinforcementTask,
   ReinforcementTaskStatus,
+  ReinforcementFilterOptions,
 } from "../types";
 
 function AccessNotice() {
@@ -57,21 +69,22 @@ export default function ReinforcementTasksPage() {
   const { showSuccess, showError } = useToast();
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
+  const { academicYearId, termId } = useAcademicYearTermLayoutContext();
 
   // ─── URL-synced filters ──────────────────────────────────────────────────
   const {
     values,
     setValue,
   } = useReinforcementUrlFilters({
-    paramKeys: ["academicYearId", "termId", "stageId", "gradeId", "sectionId", "classroomId", "subjectId", "studentId", "enrollmentId"],
+    paramKeys: ["stageId", "gradeId", "sectionId", "classroomId", "subjectId", "studentId", "enrollmentId"],
     defaults: {},
   });
 
   // ─── Academic context derived from URL params ────────────────────────────
   const context: ReinforcementAcademicContextValue = useMemo(
     () => ({
-      academicYearId: values.academicYearId || undefined,
-      termId: values.termId || undefined,
+      academicYearId,
+      termId,
       stageId: values.stageId || undefined,
       gradeId: values.gradeId || undefined,
       sectionId: values.sectionId || undefined,
@@ -80,11 +93,21 @@ export default function ReinforcementTasksPage() {
       studentId: values.studentId || undefined,
       enrollmentId: values.enrollmentId || undefined,
     }),
-    [values.academicYearId, values.termId, values.stageId, values.gradeId, values.sectionId, values.classroomId, values.subjectId, values.studentId, values.enrollmentId],
+    [academicYearId, termId, values.stageId, values.gradeId, values.sectionId, values.classroomId, values.subjectId, values.studentId, values.enrollmentId],
   );
 
   const [status, setStatus] = useState<ReinforcementTaskStatus | "">("");
   const [includeCancelled, setIncludeCancelled] = useState(false);
+  const [source, setSource] = useState("");
+  const [search, setSearch] = useState("");
+  const [dueFrom, setDueFrom] = useState("");
+  const [dueTo, setDueTo] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [offset, setOffset] = useState(0);
+  const [total, setTotal] = useState<number | undefined>();
+  const [filterOptions, setFilterOptions] = useState<ReinforcementFilterOptions>({});
+  const [filterOptionsLoaded, setFilterOptionsLoaded] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [tasks, setTasks] = useState<ReinforcementTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,18 +118,76 @@ export default function ReinforcementTasksPage() {
 
   const canView = hasPermission("reinforcement.tasks.view");
   const canManage = hasPermission("reinforcement.tasks.manage");
+  const [debouncedSearch] = useDebounce(search.trim(), 400);
+
+  const resetFilters = () => {
+    ["stageId", "gradeId", "sectionId", "classroomId", "subjectId", "studentId", "enrollmentId"]
+      .forEach((key) => setValue(key, ""));
+    setStatus("");
+    setIncludeCancelled(false);
+    setSource("");
+    setSearch("");
+    setDueFrom("");
+    setDueTo("");
+    setDueDate("");
+    setOffset(0);
+  };
 
   const params = useMemo(
     () => ({
       academicYearId: context.academicYearId,
       termId: context.termId,
-      // includeCancelled,
-      // limit: 50,
+      subjectId: context.subjectId,
+      studentId: context.studentId,
+      classroomId: context.classroomId,
+      sectionId: context.sectionId,
+      gradeId: context.gradeId,
+      stageId: context.stageId,
+      status: status || undefined,
+      source: source || undefined,
+      dueFrom: dueFrom || undefined,
+      dueTo: dueTo || undefined,
+      dueDate: dueDate || undefined,
+      search: debouncedSearch || undefined,
+      includeCancelled: includeCancelled || undefined,
+      limit: 25,
+      offset,
     }),
     [
       context.academicYearId,
       context.termId,
+      context.subjectId,
+      context.studentId,
+      context.classroomId,
+      context.sectionId,
+      context.gradeId,
+      context.stageId,
+      status,
+      source,
+      dueFrom,
+      dueTo,
+      dueDate,
+      debouncedSearch,
+      includeCancelled,
+      offset,
     ],
+  );
+
+  const sourceOptions = useMemo(
+    () => (Array.isArray(filterOptions.sources) ? filterOptions.sources : [])
+      .map((item) => {
+        if (!item || typeof item !== "object") return null;
+        const record = item as Record<string, unknown>;
+        const value = String(record.value || record.id || record.code || "");
+        const label = String(
+          locale === "ar"
+            ? record.nameAr || record.nameEn || record.name || value
+            : record.nameEn || record.nameAr || record.name || value,
+        );
+        return value ? { value, label } : null;
+      })
+      .filter((item): item is { value: string; label: string } => Boolean(item)),
+    [filterOptions.sources, locale],
   );
 
   const refreshTasks = useCallback(async () => {
@@ -114,9 +195,15 @@ export default function ReinforcementTasksPage() {
     setLoading(true);
     setError(null);
     try {
-      await getReinforcementFilterOptions(params);
+      const optionsResponse = await getReinforcementFilterOptions({
+        academicYearId: context.academicYearId,
+        termId: context.termId,
+      });
       const response = await listReinforcementTasks(params);
+      setFilterOptions(optionsResponse);
+      setFilterOptionsLoaded(true);
       setTasks(response.items);
+      setTotal(response.total);
     } catch (nextError) {
       const message =
         nextError instanceof Error ? nextError.message : t("common.error");
@@ -126,11 +213,15 @@ export default function ReinforcementTasksPage() {
     } finally {
       setLoading(false);
     }
-  }, [canView, params, showError, t]);
+  }, [canView, context.academicYearId, context.termId, params, showError, t]);
 
   useEffect(() => {
     void Promise.resolve().then(refreshTasks);
   }, [refreshTasks]);
+
+  useEffect(() => {
+    setFilterOptionsLoaded(false);
+  }, [context.academicYearId, context.termId]);
 
   const handleDuplicate = async (
     payload: DuplicateReinforcementTaskPayload,
@@ -196,18 +287,41 @@ export default function ReinforcementTasksPage() {
         }
       />
 
-      <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">
-          {t("tasks.filters")}
-        </h2>
-        <div className="mt-4">
+      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <span className="rounded-lg bg-primary/10 p-2 text-primary">
+              <Filter className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">{t("tasks.filters")}</h2>
+              <p className="mt-0.5 text-xs text-gray-500">{t("tasks.filtersDescription")}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="inline-flex items-center gap-1.5 self-start rounded-md px-2.5 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 sm:self-auto"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            {t("tasks.clearFilters")}
+          </button>
+        </div>
+
+        <div className="border-b border-gray-100 bg-gray-50/60 px-4 py-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-800">{t("tasks.academicContext")}</h3>
+            <span className="rounded-full bg-white px-2.5 py-1 text-xs text-gray-500 shadow-sm">
+              {academicYearId && termId ? t("tasks.currentContext") : t("tasks.contextNotSelected")}
+            </span>
+          </div>
           <ReinforcementAcademicContextFilter
             value={context}
+            filterOptions={filterOptionsLoaded ? filterOptions : undefined}
+            showAcademicYearTerm={false}
             showSubject
             showStudent
             onChange={(selection: ReinforcementAcademicContextSelection) => {
-              setValue("academicYearId", selection.academicYearId || "");
-              setValue("termId", selection.termId || "");
               setValue("stageId", selection.stageId || "");
               setValue("gradeId", selection.gradeId || "");
               setValue("sectionId", selection.sectionId || "");
@@ -215,10 +329,17 @@ export default function ReinforcementTasksPage() {
               setValue("subjectId", selection.subjectId || "");
               setValue("studentId", selection.studentId || "");
               setValue("enrollmentId", selection.enrollmentId || "");
+              setOffset(0);
             }}
           />
         </div>
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+
+        <div className="grid gap-3 px-4 py-4 md:grid-cols-2 xl:grid-cols-3">
+          <Input
+            label={t("tasks.search")}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
           <Select
             label={t("tasks.table.status")}
             value={status}
@@ -233,6 +354,49 @@ export default function ReinforcementTasksPage() {
               { value: "cancelled", label: t("status.cancelled") },
             ]}
           />
+          <Select
+            label={t("tasks.source")}
+            value={source}
+            onChange={setSource}
+            options={[
+              { value: "", label: t("filters.allSources") },
+              ...sourceOptions,
+            ]}
+            searchable
+          />
+        </div>
+
+        <div className="border-t border-gray-100 px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setShowAdvancedFilters((current) => !current)}
+            className="flex w-full items-center justify-between text-sm font-medium text-gray-700 transition-colors hover:text-primary"
+          >
+            <span>{showAdvancedFilters ? t("tasks.hideAdvancedFilters") : t("tasks.showAdvancedFilters")}</span>
+            <ChevronDown className={`h-4 w-4 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`} />
+          </button>
+        </div>
+
+        {showAdvancedFilters ? (
+          <div className="grid gap-3 border-t border-gray-100 bg-gray-50/40 px-4 py-4 md:grid-cols-2 xl:grid-cols-3">
+          <Input
+            type="date"
+            label={t("tasks.dueFrom")}
+            value={dueFrom}
+            onChange={(event) => setDueFrom(event.target.value)}
+          />
+          <Input
+            type="date"
+            label={t("tasks.dueTo")}
+            value={dueTo}
+            onChange={(event) => setDueTo(event.target.value)}
+          />
+          <Input
+            type="date"
+            label={t("tasks.dueDate")}
+            value={dueDate}
+            onChange={(event) => setDueDate(event.target.value)}
+          />
           <label className="flex min-h-[70px] items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
             <input
               type="checkbox"
@@ -242,7 +406,8 @@ export default function ReinforcementTasksPage() {
             />
             <span>{t("tasks.includeCancelled")}</span>
           </label>
-        </div>
+          </div>
+        ) : null}
       </section>
 
       {error ? (
@@ -260,6 +425,10 @@ export default function ReinforcementTasksPage() {
         canManage={canManage}
         onDuplicate={setDuplicateTask}
         onCancel={setCancelTask}
+        total={total}
+        currentPage={Math.floor(offset / 25) + 1}
+        pageSize={25}
+        onPageChange={(page) => setOffset((page - 1) * 25)}
       />
 
       <ReinforcementTaskDuplicateModal

@@ -24,6 +24,7 @@ import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import ReinforcementAcademicContextFilter, {
   type ReinforcementAcademicContextSelection,
   type ReinforcementAcademicContextValue,
@@ -258,27 +259,28 @@ export default function ReinforcementOverviewPage() {
   const t = useTranslations("reinforcement");
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
+  const { academicYearId, termId } = useAcademicYearTermLayoutContext();
 
   // ─── URL-synced filters ──────────────────────────────────────────────────
   const {
     values,
     setValue,
   } = useReinforcementUrlFilters({
-    paramKeys: ["academicYearId", "termId", "stageId", "gradeId", "sectionId", "classroomId"],
+    paramKeys: ["stageId", "gradeId", "sectionId", "classroomId"],
     defaults: {},
   });
 
   // ─── Academic context derived from URL params ────────────────────────────
   const context: ReinforcementAcademicContextValue = useMemo(
     () => ({
-      academicYearId: values.academicYearId || undefined,
-      termId: values.termId || undefined,
+      academicYearId,
+      termId,
       stageId: values.stageId || undefined,
       gradeId: values.gradeId || undefined,
       sectionId: values.sectionId || undefined,
       classroomId: values.classroomId || undefined,
     }),
-    [values.academicYearId, values.termId, values.stageId, values.gradeId, values.sectionId, values.classroomId],
+    [academicYearId, termId, values.stageId, values.gradeId, values.sectionId, values.classroomId],
   );
 
   const [overview, setOverview] = useState<ReinforcementOverviewResponse | null>(
@@ -443,11 +445,10 @@ export default function ReinforcementOverviewPage() {
         </div>
         <ReinforcementAcademicContextFilter
           value={context}
+          showAcademicYearTerm={false}
           showSubject={false}
           showStudent={false}
           onChange={(selection: ReinforcementAcademicContextSelection) => {
-            setValue("academicYearId", selection.academicYearId || "");
-            setValue("termId", selection.termId || "");
             setValue("stageId", selection.stageId || "");
             setValue("gradeId", selection.gradeId || "");
             setValue("sectionId", selection.sectionId || "");

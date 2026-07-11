@@ -101,6 +101,7 @@ describe("attendanceReportsService", () => {
         dateTo: "2026-02-28",
         scopeType: "CLASSROOM",
         scopeKey: "classroom:classroom-1",
+        classroomId: "classroom-1",
       },
     });
     expect(mockedApiGet).toHaveBeenNthCalledWith(2, "/attendance/reports/daily-trend", {
@@ -111,6 +112,7 @@ describe("attendanceReportsService", () => {
         dateTo: "2026-02-28",
         scopeType: "CLASSROOM",
         scopeKey: "classroom:classroom-1",
+        classroomId: "classroom-1",
       },
     });
     expect(mockedApiGet).toHaveBeenNthCalledWith(3, "/attendance/reports/scope-breakdown", {
@@ -122,6 +124,7 @@ describe("attendanceReportsService", () => {
         scopeType: "CLASSROOM",
         scopeKey: "classroom:classroom-1",
         groupBy: "classroom",
+        classroomId: "classroom-1",
       },
     });
     expect(mockedApiGet).toHaveBeenCalledTimes(3);
@@ -185,6 +188,7 @@ describe("attendanceReportsService", () => {
         dateTo: "2026-02-28",
         scopeType: "CLASSROOM",
         scopeKey: "classroom:classroom-1",
+        classroomId: "classroom-1",
       },
     });
   });

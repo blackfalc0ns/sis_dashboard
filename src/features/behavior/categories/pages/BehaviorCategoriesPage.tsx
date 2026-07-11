@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Plus } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import Input from "@/components/ui/input/Input";
+import Select from "@/components/ui/input/Select";
 import DataTable from "@/components/ui/data-table/DataTable";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useBehaviorYearTermContext } from "@/features/behavior/shared/hooks/useBehaviorYearTermContext";
@@ -17,7 +19,13 @@ import BehaviorActionModals, {
   type BehaviorModalMode,
   type BehaviorModalTarget,
 } from "@/features/behavior/shared/components/BehaviorActionModals";
-import type { BehaviorCategory, BehaviorCategoryListFilters } from "@/features/behavior/types";
+import type {
+  BehaviorCategory,
+  BehaviorCategoryListFilters,
+  BehaviorSeverity,
+  BehaviorType,
+} from "@/features/behavior/types";
+import { useDebounce } from "@/hooks/useDebounce";
 
 function StatePanel({ title }: { title: string }) {
   return (
@@ -29,12 +37,16 @@ function StatePanel({ title }: { title: string }) {
 
 export default function BehaviorCategoriesPage() {
   const t = useTranslations("behavior");
+  const locale = useLocale();
   const { isReadOnly } = useBehaviorYearTermContext();
   const { showSuccess, showError } = useToast();
 
   const [categories, setCategories] = useState<BehaviorCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<BehaviorCategoryListFilters>({});
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebounce(searchInput, 350);
 
   const [modalMode, setModalMode] = useState<BehaviorModalMode | null>(null);
   const [modalTarget, setModalTarget] = useState<BehaviorModalTarget>({});
@@ -43,11 +55,13 @@ export default function BehaviorCategoriesPage() {
   const [deleting, setDeleting] = useState(false);
 
   const loadCategories = useCallback(async () => {
-    const filters: BehaviorCategoryListFilters = {};
     setLoading(true);
     setError(null);
     try {
-      const res = await listBehaviorCategories(filters);
+      const res = await listBehaviorCategories({
+        ...filters,
+        search: debouncedSearch || undefined,
+      });
       setCategories(res.items);
     } catch (error) {
       const msg = behaviorUiError(error, t("messages.loadError"), t).message;
@@ -56,7 +70,7 @@ export default function BehaviorCategoriesPage() {
     } finally {
       setLoading(false);
     }
-  }, [showError, t]);
+  }, [debouncedSearch, filters, showError, t]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -91,7 +105,6 @@ export default function BehaviorCategoriesPage() {
     void loadCategories();
   }, [loadCategories]);
 
-  if (loading) return <StatePanel title={t("states.loading.title")} />;
   if (error) return <StatePanel title={error} />;
 
   const columns = [
@@ -106,20 +119,16 @@ export default function BehaviorCategoriesPage() {
       ),
     },
     {
-      key: "nameEn",
-      label: t("category.nameEn"),
+      key: "name",
+      label: locale === "ar" ? t("category.nameAr") : t("category.nameEn"),
       searchable: true,
       render: (_: unknown, row: BehaviorCategory) => (
-        <span style={{ color: "var(--text-primary)" }}>{row.nameEn}</span>
-      ),
-    },
-    {
-      key: "nameAr",
-      label: t("category.nameAr"),
-      searchable: true,
-      render: (_: unknown, row: BehaviorCategory) => (
-        <div dir="rtl" className="text-right" style={{ color: "var(--text-primary)" }}>
-          {row.nameAr}
+        <div
+          dir={locale === "ar" ? "rtl" : "ltr"}
+          className={locale === "ar" ? "text-right" : "text-left"}
+          style={{ color: "var(--text-primary)" }}
+        >
+          {locale === "ar" ? row.nameAr : row.nameEn}
         </div>
       ),
     },
@@ -204,6 +213,62 @@ export default function BehaviorCategoriesPage() {
 
   return (
     <div className="p-4 space-y-4">
+      <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: "var(--border-color)" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+          <Input
+            label={t("filters.search")}
+            placeholder={t("filters.searchPlaceholder")}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            inputSize="sm"
+          />
+          <Select
+            label={t("filters.type")}
+            value={filters.type ?? ""}
+            onChange={(value) => setFilters((prev) => ({ ...prev, type: (value as BehaviorType) || undefined }))}
+            options={[
+              { value: "", label: t("filters.allTypes") },
+              { value: "positive", label: t("filters.positive") },
+              { value: "negative", label: t("filters.negative") },
+            ]}
+            selectSize="sm"
+          />
+          <Select
+            label={t("advancedFilters.severity")}
+            value={filters.severity ?? ""}
+            onChange={(value) => setFilters((prev) => ({ ...prev, severity: (value as BehaviorSeverity) || undefined }))}
+            options={[
+              { value: "", label: t("advancedFilters.allSeverities") },
+              { value: "low", label: t("category.low") },
+              { value: "medium", label: t("category.medium") },
+              { value: "high", label: t("category.high") },
+              { value: "critical", label: t("overview.critical") },
+            ]}
+            selectSize="sm"
+          />
+          <Select
+            label={t("category.active")}
+            value={filters.isActive === undefined ? "" : String(filters.isActive)}
+            onChange={(value) => setFilters((prev) => ({ ...prev, isActive: value === "" ? undefined : value === "true" }))}
+            options={[
+              { value: "", label: t("advancedFilters.allActivity") },
+              { value: "true", label: t("category.active") },
+              { value: "false", label: t("overview.inactiveCategories") },
+            ]}
+            selectSize="sm"
+          />
+          <Select
+            label={t("advancedFilters.includeDeleted")}
+            value={filters.includeDeleted ? "true" : "false"}
+            onChange={(value) => setFilters((prev) => ({ ...prev, includeDeleted: value === "true" ? true : undefined }))}
+            options={[
+              { value: "false", label: t("advancedFilters.allActivity") },
+              { value: "true", label: t("advancedFilters.includeDeleted") },
+            ]}
+            selectSize="sm"
+          />
+        </div>
+      </div>
       {/* Header + new button */}
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
@@ -225,27 +290,24 @@ export default function BehaviorCategoriesPage() {
       </div>
 
       {/* Table */}
-      {!categories.length ? (
-        <StatePanel title={t("states.empty.title")} />
-      ) : (
-        <DataTable
-          columns={
-            columns as unknown as {
-              key: string;
-              label: string;
-              sortable?: boolean;
-              searchable?: boolean;
-              render?: (
-                value: unknown,
-                row: Record<string, unknown>,
-              ) => React.ReactNode;
-            }[]
-          }
-          data={categories as unknown as Record<string, unknown>[]}
-          showPagination={true}
-          itemsPerPage={15}
-        />
-      )}
+      <DataTable
+        columns={
+          columns as unknown as {
+            key: string;
+            label: string;
+            sortable?: boolean;
+            searchable?: boolean;
+            render?: (
+              value: unknown,
+              row: Record<string, unknown>,
+            ) => React.ReactNode;
+          }[]
+        }
+        data={categories as unknown as Record<string, unknown>[]}
+        isLoading={loading}
+        showPagination={true}
+        itemsPerPage={15}
+      />
 
       {/* Action modals */}
       <BehaviorActionModals

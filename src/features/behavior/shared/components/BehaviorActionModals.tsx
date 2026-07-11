@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
@@ -270,6 +270,7 @@ function RecordModal({
   onSuccess: () => void;
 }) {
   const t = useTranslations("behavior");
+  const locale = useLocale();
   const { showSuccess, showError } = useToast();
   const isEdit = !!record;
 
@@ -311,14 +312,14 @@ function RecordModal({
       setCategoryOptions(
         categoriesRes.items.map((c) => ({
           value: c.id,
-          label: `${c.code} - ${c.nameEn}`,
+          label: `${c.code} - ${locale === "ar" ? c.nameAr : c.nameEn}`,
           searchText: `${c.code} ${c.nameEn} ${c.nameAr}`,
         }))
       );
       setCategories(categoriesRes.items);
     }).catch(console.error);
     return () => { active = false; };
-  }, []);
+  }, [locale]);
 
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm((p) => ({ ...p, [k]: v }));

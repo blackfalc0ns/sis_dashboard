@@ -110,14 +110,18 @@ function resolveReportScopeKey(scopeType: AttendanceReportsFilters["scopeType"],
 }
 
 function buildReportQueryParams(params: AttendanceReportsFilters & { yearId: string; termId: string }) {
-  return {
+  return Object.fromEntries(Object.entries({
     academicYearId: params.yearId,
     termId: params.termId,
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
     scopeType: params.scopeType,
     scopeKey: resolveReportScopeKey(params.scopeType, params.scopeIds),
-  };
+    stageId: params.scopeIds?.stageId,
+    gradeId: params.scopeIds?.gradeId,
+    sectionId: params.scopeIds?.sectionId,
+    classroomId: params.scopeIds?.classroomId,
+  }).filter(([, value]) => value !== undefined));
 }
 
 function toPercentRate(value: unknown): number {

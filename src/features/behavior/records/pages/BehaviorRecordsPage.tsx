@@ -23,6 +23,7 @@ import type {
   BehaviorRecordListFilters,
   BehaviorRecordSummary,
 } from "@/features/behavior/types";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const DEFAULT_FILTERS: BehaviorFilters = {
   scopeType: "SCHOOL",
@@ -40,6 +41,7 @@ export default function BehaviorRecordsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uiFilters, setUiFilters] = useState<BehaviorFilters>(DEFAULT_FILTERS);
+  const debouncedSearch = useDebounce(uiFilters.search ?? "", 350);
 
   // Drawer
   const [selectedRecord, setSelectedRecord] = useState<BehaviorRecord | null>(null);
@@ -62,6 +64,7 @@ export default function BehaviorRecordsPage() {
       type: uiFilters.type,
       occurredFrom: uiFilters.dateFrom,
       occurredTo: uiFilters.dateTo,
+      search: debouncedSearch || undefined,
     };
     setLoading(true);
     setError(null);
@@ -83,6 +86,7 @@ export default function BehaviorRecordsPage() {
     uiFilters.type,
     uiFilters.dateFrom,
     uiFilters.dateTo,
+    debouncedSearch,
     showError,
     t,
   ]);

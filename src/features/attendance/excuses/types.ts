@@ -4,6 +4,7 @@ export type ExcuseScopeType = "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSR
 
 export interface AttachmentMeta {
   id: string;
+  attachmentId?: string;
   name: string;
   size: number;
   type: string;
@@ -25,6 +26,7 @@ export interface ExcuseRequest {
     sectionId?: string;
     classroomId?: string;
   };
+  hasScopeContext?: boolean;
   type: ExcuseType;
   dateFrom: string;
   dateTo: string;
@@ -35,10 +37,13 @@ export interface ExcuseRequest {
   reasonAr: string;
   reasonEn: string;
   attachments: AttachmentMeta[];
+  attachmentCount?: number;
   status: ExcuseStatus;
   decisionNote?: string;
   decidedAt?: string;
   decidedBy?: string;
+  createdById?: string;
+  decidedById?: string;
   createdAt: string;
   updatedAt: string;
   linkedSessionIds?: string[];

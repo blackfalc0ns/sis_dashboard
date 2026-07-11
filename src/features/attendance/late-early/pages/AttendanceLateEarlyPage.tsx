@@ -138,6 +138,11 @@ export default function AttendanceLateEarlyPage() {
   const reloadIncidents = useCallback(async () => {
     if (!termContext.yearId || !termContext.termId) return;
 
+    if (!isScopeSelectionComplete(filters.scopeType, filters.scopeIds)) {
+      setIncidents([]);
+      return;
+    }
+
     setLoading(true);
     try {
       const list = await fetchIncidents({ yearId: termContext.yearId, termId: termContext.termId, ...filters });

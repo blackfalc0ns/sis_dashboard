@@ -87,6 +87,10 @@ function buildAbsenceQueryParams(
     dateTo: params.dateTo,
     scopeType: params.scopeType,
     scopeKey: params.scopeType ? resolveScopeKey(params.scopeType, params.scopeIds) : undefined,
+    stageId: params.scopeIds?.stageId,
+    gradeId: params.scopeIds?.gradeId,
+    sectionId: params.scopeIds?.sectionId,
+    classroomId: params.scopeIds?.classroomId,
     status: params.status && params.status !== "ALL" ? params.status : undefined,
   });
 }

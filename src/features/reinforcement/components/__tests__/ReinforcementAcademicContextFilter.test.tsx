@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { subjectsForStage } from "../ReinforcementAcademicContextFilter";
+import {
+  isStudentSelectorDisabled,
+  subjectsForStage,
+} from "../ReinforcementAcademicContextFilter";
 
 const grades = [
   { id: "grade-a", stageId: "stage-a", name: "Grade A" },
@@ -61,5 +64,17 @@ describe("subjectsForStage", () => {
     expect(subjectsForStage(allocations, grades, "stage-a", "grade-b")).toEqual(
       [],
     );
+  });
+});
+
+describe("isStudentSelectorDisabled", () => {
+  it("keeps the student selector open after classroom selection without a subject", () => {
+    expect(
+      isStudentSelectorDisabled({
+        disabled: false,
+        loading: false,
+        classroomId: "classroom-a",
+      }),
+    ).toBe(false);
   });
 });

@@ -35,6 +35,7 @@ import ReportsDrilldownDrawer, {
 } from "../components/ReportsDrilldownDrawer";
 import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
 import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
+import { isScopeSelectionComplete } from "@/features/attendance/shared/attendanceScope";
 import { fetchAttendanceReportSummary } from "../services/attendanceReportsService";
 import { exportAttendanceReports } from "../utils/exportReports";
 import { buildAttendanceReportsExportPayload } from "../utils/exportReports";
@@ -183,6 +184,11 @@ export default function AttendanceReportsPage() {
       !filters.dateTo
     )
       return;
+
+    if (!isScopeSelectionComplete(filters.scopeType, filters.scopeIds)) {
+      setReport(null);
+      return;
+    }
 
     setLoading(true);
     try {

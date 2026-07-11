@@ -13,6 +13,7 @@ import type {
   ExcuseStatus,
 } from "../types";
 import type { AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
+import { getNewAttachmentFileIds } from "../utils/excuseAttachmentDiff";
 
 type BackendRecord = Record<string, unknown>;
 
@@ -26,6 +27,15 @@ function omitUndefined<T extends Record<string, unknown>>(payload: T): Partial<T
   return Object.fromEntries(
     Object.entries(payload).filter(([, value]) => value !== undefined)
   ) as Partial<T>;
+}
+
+function normalizeReason(value: string | undefined): string | null {
+  const normalized = value?.trim();
+  return normalized ? normalized : null;
+}
+
+function normalizePatchedReason(value: string | undefined): string | null | undefined {
+  return value === undefined ? undefined : normalizeReason(value);
 }
 
 function unwrapArray(response: unknown): unknown[] {
@@ -99,8 +109,9 @@ function mapAttachments(value: unknown): ExcuseRequest["attachments"] {
   return value.map((item) => {
     const object = asRecord(item);
     return {
-      id: getString(object, ["id", "fileId", "attachmentId"]),
-      name: getString(object, ["name", "filename", "title"]),
+      id: getString(object, ["fileId", "id", "attachmentId"]),
+      attachmentId: getOptionalString(object, ["id", "attachmentId"]),
+      name: getString(object, ["originalName", "name", "filename", "title"]),
       size: getNumber(object, ["size", "sizeBytes"]) || 0,
       type: getString(object, ["type", "mimeType"], "application/octet-stream"),
       url: getOptionalString(object, ["url", "downloadUrl"]),
@@ -110,34 +121,59 @@ function mapAttachments(value: unknown): ExcuseRequest["attachments"] {
 
 function mapRequest(item: unknown, fallback?: { yearId?: string; termId?: string }): ExcuseRequest {
   const object = unwrapObject(item);
+  const student = asRecord(object.student);
   const scopeType = String(object.scopeType || "SCHOOL").toUpperCase() as ExcuseScopeType;
   const { dateFrom, dateTo } = normalizeDateRange(object);
   const reason = getString(object, ["reason", "reasonEn", "reasonAr"]);
+  const studentNameEn = getString(
+    object,
+    ["studentNameEn", "studentName", "nameEn", "displayNameEn"],
+    getString(student, ["fullNameEn", "name", "firstName"]),
+  );
+  const studentNameAr = getString(
+    object,
+    ["studentNameAr", "nameAr", "displayNameAr"],
+    getString(student, ["fullNameAr", "name"], studentNameEn),
+  );
+  const attachments = mapAttachments(object.attachments);
+  const selectedPeriodIds = Array.isArray(object.selectedPeriodIds)
+    ? (object.selectedPeriodIds as string[])
+    : Array.isArray(object.selectedPeriodKeys)
+      ? (object.selectedPeriodKeys as string[])
+      : undefined;
 
   return {
     id: getString(object, ["id", "requestId", "excuseRequestId"]),
     yearId: getString(object, ["yearId", "academicYearId"], fallback?.yearId || ""),
     termId: getString(object, ["termId"], fallback?.termId || ""),
     studentId: getString(object, ["studentId"]),
-    studentNameAr: getString(object, ["studentNameAr", "nameAr", "displayNameAr", "studentNameEn"]),
-    studentNameEn: getString(object, ["studentNameEn", "nameEn", "displayNameEn", "studentNameAr"]),
-    studentNumber: getOptionalString(object, ["studentNumber", "admissionNo", "studentCode"]),
+    studentNameAr,
+    studentNameEn,
+    studentNumber:
+      getOptionalString(object, ["studentNumber", "admissionNo", "studentCode"]) ||
+      getOptionalString(student, ["studentNumber"]),
     scopeType,
     scopeIds: resolveScopeIds(scopeType, object),
+    hasScopeContext:
+      typeof object.scopeType === "string" ||
+      (!!object.scopeIds && typeof object.scopeIds === "object"),
     type: String(object.type || "ABSENCE").toUpperCase() as ExcuseRequest["type"],
     dateFrom,
     dateTo,
-    selectedPeriodIds: Array.isArray(object.selectedPeriodIds) ? (object.selectedPeriodIds as string[]) : undefined,
+    selectedPeriodIds,
     periodIndexes: Array.isArray(object.periodIndexes) ? (object.periodIndexes as number[]) : undefined,
     minutesLate: getNumber(object, ["minutesLate", "lateMinutes"]),
     minutesEarlyLeave: getNumber(object, ["minutesEarlyLeave", "earlyLeaveMinutes"]),
     reasonAr: getString(object, ["reasonAr", "reason"], reason),
     reasonEn: getString(object, ["reasonEn", "reason"], reason),
-    attachments: mapAttachments(object.attachments),
+    attachments,
+    attachmentCount: getNumber(object, ["attachmentCount"]) ?? attachments.length,
     status: normalizeStatus(object.status),
     decisionNote: getOptionalString(object, ["decisionNote", "reviewNote"]),
     decidedAt: getOptionalString(object, ["decidedAt", "reviewedAt"]),
     decidedBy: getOptionalString(object, ["decidedBy", "reviewedBy"]),
+    createdById: getOptionalString(object, ["createdById"]),
+    decidedById: getOptionalString(object, ["decidedById"]),
     createdAt: getString(object, ["createdAt"], new Date().toISOString()),
     updatedAt: getString(object, ["updatedAt"], new Date().toISOString()),
     linkedSessionIds: Array.isArray(object.linkedSessionIds) ? (object.linkedSessionIds as string[]) : undefined,
@@ -152,12 +188,11 @@ function buildRequestPayload(payload: Partial<ExcuseRequest>) {
     type: payload.type,
     dateFrom: payload.dateFrom,
     dateTo: payload.dateTo,
-    selectedPeriodIds: payload.selectedPeriodIds,
     selectedPeriodKeys: payload.selectedPeriodIds,
     lateMinutes: payload.minutesLate,
     earlyLeaveMinutes: payload.minutesEarlyLeave,
-    reasonAr: payload.reasonAr,
-    reasonEn: payload.reasonEn,
+    reasonAr: normalizeReason(payload.reasonAr),
+    reasonEn: normalizeReason(payload.reasonEn),
   });
 }
 
@@ -166,19 +201,31 @@ function buildUpdatePayload(payload: Partial<ExcuseRequest>) {
     type: payload.type,
     dateFrom: payload.dateFrom,
     dateTo: payload.dateTo,
-    selectedPeriodIds: payload.selectedPeriodIds,
     selectedPeriodKeys: payload.selectedPeriodIds,
     lateMinutes: payload.minutesLate,
     earlyLeaveMinutes: payload.minutesEarlyLeave,
-    reasonAr: payload.reasonAr,
-    reasonEn: payload.reasonEn,
+    reasonAr: normalizePatchedReason(payload.reasonAr),
+    reasonEn: normalizePatchedReason(payload.reasonEn),
   });
 }
 
-async function linkAttachments(requestId: string, attachments?: ExcuseRequest["attachments"]) {
-  const fileIds = attachments?.map((attachment) => attachment.id).filter(Boolean) || [];
+export async function linkExcuseRequestAttachments(
+  requestId: string,
+  fileIds: string[],
+) {
   if (fileIds.length === 0) return;
   await apiPost(`${BASE}/${requestId}/attachments`, { fileIds });
+}
+
+export class ExcuseAttachmentLinkError extends Error {
+  constructor(
+    public readonly request: ExcuseRequest,
+    public readonly fileIds: string[],
+    options?: ErrorOptions,
+  ) {
+    super("Excuse request was saved, but its attachments could not be linked", options);
+    this.name = "ExcuseAttachmentLinkError";
+  }
 }
 
 export async function fetchExcuseRequests(
@@ -199,10 +246,27 @@ export async function fetchExcuseRequests(
   return unwrapArray(response)
     .map((item) => mapRequest(item, params))
     .filter((request) => {
-      if (params.hasAttachment === "YES") return (request.attachments?.length || 0) > 0;
-      if (params.hasAttachment === "NO") return (request.attachments?.length || 0) === 0;
+      const attachmentCount = request.attachmentCount ?? request.attachments.length;
+      if (params.hasAttachment === "YES") return attachmentCount > 0;
+      if (params.hasAttachment === "NO") return attachmentCount === 0;
       return true;
     });
+}
+
+export async function fetchExcuseRequestDetails(
+  id: string,
+): Promise<ExcuseRequest> {
+  const response = await apiGet<unknown>(`${BASE}/${id}`);
+  const request = mapRequest(response);
+  if ((request.attachmentCount || 0) <= request.attachments.length) return request;
+
+  const attachmentsResponse = await apiGet<unknown>(`${BASE}/${id}/attachments`);
+  const attachments = mapAttachments(unwrapArray(attachmentsResponse));
+  return {
+    ...request,
+    attachments,
+    attachmentCount: Math.max(request.attachmentCount || 0, attachments.length),
+  };
 }
 
 export async function createExcuseRequest(
@@ -213,17 +277,45 @@ export async function createExcuseRequest(
 ): Promise<ExcuseRequest> {
   const response = await apiPost<unknown>(BASE, buildRequestPayload(payload));
   const request = mapRequest(response, { yearId: payload.yearId, termId: payload.termId });
-  await linkAttachments(request.id, payload.attachments);
+  const fileIds = getNewAttachmentFileIds(payload.attachments, []);
+  try {
+    await linkExcuseRequestAttachments(request.id, fileIds);
+  } catch (error) {
+    throw new ExcuseAttachmentLinkError(request, fileIds, { cause: error });
+  }
   return request;
 }
 
 export async function updateExcuseRequest(
   id: string,
-  payload: Partial<Omit<ExcuseRequest, "id" | "yearId" | "termId" | "createdAt" | "status" | "decidedAt" | "decidedBy">>
+  payload: Partial<Omit<ExcuseRequest, "id" | "yearId" | "termId" | "createdAt" | "status" | "decidedAt" | "decidedBy">>,
+  initialAttachments: ExcuseRequest["attachments"] = [],
 ): Promise<ExcuseRequest> {
   const response = await apiPatch<unknown>(`${BASE}/${id}`, buildUpdatePayload(payload));
-  await linkAttachments(id, payload.attachments);
-  return mapRequest(response);
+  const request = mapRequest(response);
+  const fileIds = getNewAttachmentFileIds(
+    payload.attachments || [],
+    initialAttachments,
+  );
+  const currentFileIds = new Set(
+    (payload.attachments || []).map((attachment) => attachment.id),
+  );
+  const removedAttachmentIds = initialAttachments.flatMap((attachment) =>
+    attachment.attachmentId && !currentFileIds.has(attachment.id)
+      ? [attachment.attachmentId]
+      : [],
+  );
+  await Promise.all(
+    removedAttachmentIds.map((attachmentId) =>
+      apiDelete(`${BASE}/${id}/attachments/${attachmentId}`),
+    ),
+  );
+  try {
+    await linkExcuseRequestAttachments(id, fileIds);
+  } catch (error) {
+    throw new ExcuseAttachmentLinkError(request, fileIds, { cause: error });
+  }
+  return request;
 }
 
 export async function deleteExcuseRequest(id: string): Promise<void> {
