@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Save, ShieldCheck } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
 import MainLoader from "@/components/ui/loaders/MainLoader";
@@ -23,7 +23,7 @@ import type {
   GradeRoundingMode,
   GradeRuleRecord,
 } from "../types";
-import { findRuleForEditor } from "../utils/rulesRoute";
+import { buildRulesLocation, findRuleForEditor } from "../utils/rulesRoute";
 
 const EMPTY_SCOPES: Record<ExamScopeType, ScopeEntityOption[]> = {
   school: [],
@@ -69,6 +69,7 @@ export default function GradesRulesPage({ mode = "create", ruleId }: GradesRules
   const tCommon = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { showError, showSuccess } = useToast();
   const { academicYearId, termId, termStatus, isInitializing } =
@@ -166,8 +167,8 @@ export default function GradesRulesPage({ mode = "create", ruleId }: GradesRules
     const nextQuery = nextParams.toString();
     const currentQuery = searchParams.toString();
     if (nextQuery === currentQuery) return;
-    router.replace(nextQuery ? `/${locale}/grades/rules?${nextQuery}` : `/${locale}/grades/rules`, { scroll: false });
-  }, [locale, router, searchParams]);
+    router.replace(buildRulesLocation(pathname, nextQuery), { scroll: false });
+  }, [pathname, router, searchParams]);
 
   useEffect(() => {
     if (!academicYearId || !termId) return;
