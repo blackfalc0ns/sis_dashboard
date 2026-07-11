@@ -16,6 +16,25 @@ import { useGradesYearTermLayoutContext } from "@/features/grades/hooks/GradesYe
 
 const defaultDeliveryMode: AssessmentDeliveryMode = "SCORE_ONLY";
 
+function scopePath(
+  entities: Record<ExamScopeType, ScopeEntityOption[]>,
+  scopeType: ExamScopeType,
+  scopeId: string,
+): Partial<Record<ExamScopeType, string>> {
+  const path: Partial<Record<ExamScopeType, string>> = {};
+  let type: ExamScopeType | undefined = scopeType;
+  let id = scopeId;
+  while (type && type !== "school" && id) {
+    path[type] = id;
+    const parentType: ExamScopeType | undefined = type === "classroom" ? "section" : type === "section" ? "grade" : type === "grade" ? "stage" : undefined;
+    const parentId = parentType ? entities[type]?.find((item) => item.id === id)?.parentId : undefined;
+    if (!parentType || !parentId) break;
+    type = parentType;
+    id = parentId;
+  }
+  return path;
+}
+
 export default function CreateAssessmentPage() {
   const t = useTranslations("academics.grades");
   const tDialog = useTranslations("academics.grades.dialogs.createAssessment");
@@ -46,6 +65,11 @@ export default function CreateAssessmentPage() {
 
   const availableScopeEntities = useMemo(
     () => (draft ? scopeEntitiesByType[draft.scopeType] || [] : []),
+    [draft, scopeEntitiesByType],
+  );
+
+  const selectedScopeIds = useMemo(
+    () => (draft ? scopePath(scopeEntitiesByType, draft.scopeType, draft.scopeId) : {}),
     [draft, scopeEntitiesByType],
   );
 
@@ -150,6 +174,13 @@ export default function CreateAssessmentPage() {
     setDraft((current) => (current ? { ...current, scopeType: nextScopeType, scopeId: nextScopeId } : current));
   };
 
+  const handleHierarchyChange = (type: ExamScopeType, scopeId: string) => {
+    setDraft((current) => {
+      if (!current) return current;
+      return { ...current, scopeType: type, scopeId };
+    });
+  };
+
   const handleSubmit = async () => {
     if (!draft) return;
     try {
@@ -203,6 +234,27 @@ export default function CreateAssessmentPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {(["stage", "grade", "section", "classroom"] as ExamScopeType[]).map((type) => {
+              const parentType: ExamScopeType | undefined = type === "grade" ? "stage" : type === "section" ? "grade" : type === "classroom" ? "section" : undefined;
+              const parentId = parentType ? selectedScopeIds[parentType] : undefined;
+              const options = parentType && !parentId
+                ? []
+                : (scopeEntitiesByType[type] || []).filter((entity) => !parentId || entity.parentId === parentId);
+              return (
+                <Select
+                  key={type}
+                  label={tDialog(`types.scopeTypes.${type}`)}
+                  value={selectedScopeIds[type] || ""}
+                  onChange={(value) => handleHierarchyChange(type, value)}
+                  options={options.map((entity) => ({
+                    value: entity.id,
+                    label: locale === "ar" ? entity.nameAr : entity.nameEn,
+                  }))}
+                  placeholder={tDialog("scope")}
+                  disabled={Boolean(parentType && !parentId) || isSubmitting}
+                />
+              );
+            })}
             <Select
               label={tDialog("scopeType")}
               value={draft.scopeType}
