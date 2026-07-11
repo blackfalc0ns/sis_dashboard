@@ -55,12 +55,22 @@ The backend timetable-config endpoint performs an exact scope lookup; it does no
 - `CLASSROOM`: classroom, then section, then grade, then term
 - `SECTION`: section, then grade, then term
 - `GRADE`: grade, then term
-- `STAGE`: term, because timetable configuration has no stage scope
-- `SCHOOL`: term
+
+`STAGE` and `SCHOOL` are not valid timetable-selection contexts. They may contain grades, sections, or classrooms with different overrides, so falling directly to the term configuration could show incorrect periods.
+
+Request type drives context requirements:
+
+- `ABSENCE` allows school, stage, grade, section, or classroom because it does not require period selection.
+- `LATE` and `EARLY_LEAVE` require grade, section, or classroom context before the roster or timetable is loaded.
+- The request type is presented before attendance context so users see only valid scope choices.
+- Switching an in-progress create request from absence at school/stage scope to late/early leave preserves reason, dates, and attachments but clears the incompatible scope and student, focuses the context section, and explains why a grade-or-deeper selection is needed.
+- Switching back to absence retains an already valid grade-or-deeper scope and student.
 
 Every candidate includes `academicYearId` and `termId`. Section candidates include both `gradeId` and `sectionId`; classroom candidates include `gradeId`, `sectionId`, and `classroomId`. Although the backend can derive ancestors, sending the selected ancestor IDs lets it reject an inconsistent hierarchy instead of silently accepting a mismatched descendant.
 
 Candidate requests are sequential and stop at the first match, avoiding parent requests when a specific configuration exists. Each exact candidate is cached independently. A backend `404` means “try the next parent”; other errors stop resolution and are shown to the user.
+
+In edit mode, an existing late/early request retains its saved period keys and does not require hierarchy selection merely to edit reasons, dates, minutes, or attachments. Attendance context is requested only when the user changes the incident type to one requiring periods or explicitly changes period selection. That context must be grade-or-deeper and must verify that the immutable student belongs to its roster.
 
 ## Request Lifecycle
 
@@ -113,6 +123,9 @@ Focused tests will cover:
 - No dependent request from an incomplete hierarchy
 - No timetable request for absence requests
 - Correct most-specific-to-term timetable fallback for every supported attendance scope
+- No stage-to-term or school-to-term shortcut for period-based requests
+- Grade-or-deeper guidance for create-time late and early-leave requests
+- No forced context reselection for an edit that can preserve saved period keys
 - Complete ancestor IDs in section and classroom timetable queries
 - No parent timetable request after a more specific configuration succeeds
 - Timetable caching and stale-response handling

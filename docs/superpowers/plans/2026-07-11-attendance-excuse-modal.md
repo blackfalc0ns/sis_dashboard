@@ -15,6 +15,7 @@
 - Do not send duplicate `selectedPeriodIds` and `selectedPeriodKeys`; mutations use canonical `selectedPeriodKeys`.
 - Do not request a roster before an explicit complete create scope, or at all in ordinary edit mode.
 - Do not request timetable configuration for `ABSENCE`.
+- Require grade, section, or classroom context for create-time `LATE` and `EARLY_LEAVE`; never resolve school or stage directly to term.
 - Do not request policies because reason text or attachment state changed.
 - Treat the edit-mode student as immutable because the backend PATCH DTO does not accept `studentId`.
 - Link only newly uploaded attachment file IDs in edit mode.
@@ -34,7 +35,7 @@
 
 **Interfaces:**
 - Consumes: `AttendanceScopeType`, `AttendanceScopeIds`, and `isScopeSelectionComplete`.
-- Produces: `updateExcuseHierarchy(scopeType, currentIds, level, value): AttendanceScopeIds` and `getReadyExcuseScope(scopeType, scopeIds, explicitSelection): { scopeType; scopeIds } | null`.
+- Produces: `updateExcuseHierarchy(scopeType, currentIds, level, value): AttendanceScopeIds` and `getReadyExcuseScope(scopeType, scopeIds, explicitSelection, requestType = "ABSENCE"): { scopeType; scopeIds } | null`.
 
 - [ ] **Step 1: Write failing cascade and readiness tests**
 
@@ -54,6 +55,11 @@ it("clears descendants when an ancestor changes", () => {
 it("does not treat the initial SCHOOL value as an explicit ready scope", () => {
   expect(getReadyExcuseScope("SCHOOL", {}, false)).toBeNull();
   expect(getReadyExcuseScope("SCHOOL", {}, true)).toEqual({ scopeType: "SCHOOL", scopeIds: {} });
+});
+
+it("rejects broad scopes for a period-based request", () => {
+  expect(getReadyExcuseScope("STAGE", { stageId: "stage-1" }, true, "LATE")).toBeNull();
+  expect(getReadyExcuseScope("GRADE", { stageId: "stage-1", gradeId: "grade-1" }, true, "LATE")).not.toBeNull();
 });
 ```
 
@@ -83,7 +89,7 @@ export function updateExcuseHierarchy(
 }
 ```
 
-Update readiness to return `null` until `explicitSelection` is true, then apply `isScopeSelectionComplete`. In the modal, remove `inferExcuseScopeType`; preserve the user's selected target type and clear the student whenever hierarchy IDs change.
+Update readiness to return `null` until `explicitSelection` is true, then apply `isScopeSelectionComplete`. For `LATE` and `EARLY_LEAVE`, also reject `SCHOOL` and `STAGE`. In the modal, present request type before context, remove `inferExcuseScopeType`, preserve the user's selected target type, and clear the student whenever hierarchy IDs change. When switching from a broad-scope absence to a period-based type, preserve reason/date/attachment fields but clear incompatible scope/student state and focus the context guidance.
 
 - [ ] **Step 4: Run hierarchy tests**
 
@@ -282,9 +288,13 @@ expect(getExcuseTimetableCandidates("year-1", "term-1", "CLASSROOM", {
   { academicYearId: "year-1", termId: "term-1", scopeType: "GRADE", gradeId: "grade-1" },
   { academicYearId: "year-1", termId: "term-1", scopeType: "TERM" },
 ]);
+
+expect(getExcuseTimetableCandidates("year-1", "term-1", "STAGE", {
+  stageId: "stage-1",
+})).toEqual([]);
 ```
 
-Add tests proving `STAGE` resolves directly to `TERM`, a found classroom config prevents section/grade/term calls, a classroom 404 falls through in order, and non-404 errors stop resolution. Add a deferred-promise test where scope A resolves after scope B and assert only B appears in roster/period options.
+Add tests proving `SCHOOL` and `STAGE` produce no timetable candidates, a found classroom config prevents section/grade/term calls, a classroom 404 falls through in order, and non-404 errors stop resolution. Add a deferred-promise test where scope A resolves after scope B and assert only B appears in roster/period options.
 
 - [ ] **Step 2: Run modal and cache tests to verify failure**
 
@@ -294,7 +304,7 @@ Expected: FAIL on initial create roster loading, edit roster loading, or stale r
 
 - [ ] **Step 3: Implement guarded effects**
 
-Replace the single exact-scope helper with a candidate builder ordered `CLASSROOM > SECTION > GRADE > TERM`. Include all selected ancestor IDs supported by the backend DTO so its hierarchy consistency checks run. Resolve candidates sequentially through the existing exact-config cache and stop at the first non-null config.
+Replace the single exact-scope helper with a candidate builder ordered `CLASSROOM > SECTION > GRADE > TERM`. Return no candidates for `SCHOOL` or `STAGE`. Include all selected ancestor IDs supported by the backend DTO so its hierarchy consistency checks run. Resolve candidates sequentially through the existing exact-config cache and stop at the first non-null config.
 
 Use a monotonically increasing request token in each asynchronous effect:
 
@@ -353,7 +363,7 @@ expect(screen.getByRole("button", { name: /remove old\.pdf/i })).toBeVisible();
 expect(screen.getByRole("button", { name: /retry loading students/i })).toBeVisible();
 ```
 
-Test tab-accessible actions, field-error association, type-specific field clearing, create/edit headings, equivalent Arabic copy keys, and an `ExcuseAttachmentLinkError` state that says the request was saved while evidence still needs retrying.
+Test tab-accessible actions, field-error association, type-specific field clearing, create/edit headings, equivalent Arabic copy keys, broad-scope guidance for period-based types, preservation of saved edit period keys, and an `ExcuseAttachmentLinkError` state that says the request was saved while evidence still needs retrying.
 
 - [ ] **Step 3: Run modal and translation tests to verify failure**
 
