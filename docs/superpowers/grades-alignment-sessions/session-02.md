@@ -17,7 +17,7 @@ Align the shared Grades contract foundation, with endpoint ownership limited to 
 - Bootstrap enum arrays use the stable backend assessment types, delivery modes, lower-case approval statuses, and supported scope types.
 - Bootstrap accepts optional `academicYearId`/`yearId` and `termId`; the frontend service now omits absent selector keys.
 - Overview totals and performance counts are required. Assessment rows include subject, type, delivery mode, approval status, weight, max score, and item counts.
-- Overview percentage fields, subject/title fields, rule, and empty state retain backend nullability; scope, rounding, source, status, and empty-reason values use stable unions.
+- Overview percentage fields, subject/title fields, rule, and empty state retain backend nullability; scope, rounding, source, status, and empty-reason values use stable unions. Overview assessment delivery modes preserve the backend-presented `question_based` spelling at the API boundary.
 - All 21 custom Grades domain codes present at the pinned revision were compared with the frontend map. They were already localized; an exhaustive English/Arabic regression assertion was added so raw server text is never used for those codes.
 
 ## Files changed
@@ -28,13 +28,14 @@ Align the shared Grades contract foundation, with endpoint ownership limited to 
 - `src/features/grades/gradebook/types/__tests__/dashboardApiContract.test.ts`
 - `src/features/grades/gradebook/services/__tests__/gradesGradebookService.test.ts`
 - `src/features/grades/gradebook/utils/__tests__/gradesApiErrors.test.ts`
+- `src/features/grades/overview/services/__tests__/gradesOverviewService.test.ts`
 - `docs/superpowers/grades-contract-matrix.md` (rows 37-38 only)
 - `docs/superpowers/grades-alignment-sessions/session-02.md`
 
 ## Verification
 
 - TDD RED: the bootstrap service regression failed because absent selectors were serialized as keys with `undefined` values.
-- Focused dashboard, mapper, overview, and error tests: passed (recorded during final verification).
+- Focused dashboard, mapper, overview, and error tests: passed (recorded during final verification). The follow-up overview service and dashboard-contract tests also passed after the delivery-mode correction.
 - `npm run typecheck`: passed (recorded during final verification).
 
 ## UI states manually verified

@@ -37,7 +37,7 @@ describe("grades dashboard API contracts", () => {
       subjectId: string;
       subjectName: string | null;
       type: "QUIZ" | "MONTH_EXAM" | "MIDTERM" | "TERM_EXAM" | "ASSIGNMENT" | "FINAL" | "PRACTICAL";
-      deliveryMode: "SCORE_ONLY" | "QUESTION_BASED";
+      deliveryMode: "SCORE_ONLY" | "question_based";
       approvalStatus: "draft" | "published" | "approved";
       weight: number;
       maxScore: number;
