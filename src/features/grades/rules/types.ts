@@ -39,3 +39,15 @@ export interface UpdateGradeRulePayload {
   gradingScale: GradeRuleScale;
   rounding: GradeRoundingMode;
 }
+
+export interface EffectiveGradeRuleRequest {
+  academicYearId: string;
+  termId: string;
+  scopeType: ExamScopeType;
+  scopeId?: string;
+  stageId?: string;
+  gradeId?: string;
+  sectionId?: string;
+  classroomId?: string;
+  subjectId?: string;
+}

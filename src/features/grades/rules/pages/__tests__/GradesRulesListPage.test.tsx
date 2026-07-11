@@ -34,6 +34,16 @@ vi.mock("../../services/gradesRulesService", () => ({
   fetchGradeRules: vi.fn(),
 }));
 
+vi.mock("@/features/grades/gradebook/services/gradesGradebookService", () => ({
+  fetchGradesFiltersData: vi.fn().mockResolvedValue({
+    scopeEntities: { school: [], stage: [], grade: [], section: [], classroom: [] },
+  }),
+}));
+
+vi.mock("../../components/EffectiveGradeRuleInspector", () => ({
+  default: () => <div data-testid="effective-rule-inspector" />,
+}));
+
 vi.mock("@/components/ui/data-table", () => ({
   DataTable: ({ data, onRowClick }: { data: Array<{ id: string; passMark: number }>; onRowClick: (row: { id: string; passMark: number }) => void }) => (
     <table>

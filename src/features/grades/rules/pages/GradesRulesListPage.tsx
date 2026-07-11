@@ -5,14 +5,19 @@ import { Plus, SlidersHorizontal } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { Button, DataTable, EmptyState, type Column } from "@/components/ui";
+import Select from "@/components/ui/input/Select";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useGradesYearTermLayoutContext } from "../../hooks/GradesYearTermLayoutContext";
 import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
+import { fetchGradesFiltersData } from "../../gradebook/services/gradesGradebookService";
+import type { ExamScopeType, ScopeEntityOption } from "../../shared/types";
 import { fetchGradeRules } from "../services/gradesRulesService";
 import type { GradeRuleRecord } from "../types";
+import EffectiveGradeRuleInspector from "../components/EffectiveGradeRuleInspector";
 
 type GradeRuleTableRow = GradeRuleRecord & Record<string, unknown>;
+const EMPTY_SCOPES: Record<ExamScopeType, ScopeEntityOption[]> = { school: [], stage: [], grade: [], section: [], classroom: [] };
 
 export default function GradesRulesListPage() {
   const t = useTranslations("academics.grades.rules");
@@ -22,28 +27,44 @@ export default function GradesRulesListPage() {
   const { showError } = useToast();
   const { academicYearId, termId, isInitializing } = useGradesYearTermLayoutContext();
   const [rules, setRules] = useState<GradeRuleRecord[]>([]);
+  const [scopeEntities, setScopeEntities] = useState<Record<ExamScopeType, ScopeEntityOption[]>>(EMPTY_SCOPES);
+  const [listScopeType, setListScopeType] = useState<"" | "school" | "grade">("");
+  const [listScopeId, setListScopeId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const loadedContextRef = useRef<string | null>(null);
 
+  const listFilters = useMemo(() => {
+    if (listScopeType === "school") return { scopeType: "school" as const };
+    if (listScopeType === "grade" && listScopeId) return { scopeType: "grade" as const, scopeId: listScopeId, gradeId: listScopeId };
+    return {};
+  }, [listScopeId, listScopeType]);
+
   const loadRules = useCallback(async () => {
     if (!academicYearId || !termId) return;
-    const contextKey = `${academicYearId}:${termId}`;
+    const contextKey = `${academicYearId}:${termId}:${JSON.stringify(listFilters)}`;
     if (loadedContextRef.current === contextKey) return;
     loadedContextRef.current = contextKey;
     setIsLoading(true);
     try {
-      setRules(await fetchGradeRules(academicYearId, termId));
+      setRules(await fetchGradeRules(academicYearId, termId, listFilters));
     } catch (error) {
       loadedContextRef.current = null;
       showError(tGrades(`errors.${mapGradesApiError(error)}`));
     } finally {
       setIsLoading(false);
     }
-  }, [academicYearId, showError, tGrades, termId]);
+  }, [academicYearId, listFilters, showError, tGrades, termId]);
 
   useEffect(() => {
     void loadRules();
   }, [loadRules]);
+
+  useEffect(() => {
+    if (!academicYearId || !termId) return;
+    void fetchGradesFiltersData(academicYearId, termId)
+      .then((data) => setScopeEntities(data.scopeEntities))
+      .catch((error) => showError(tGrades(`errors.${mapGradesApiError(error)}`)));
+  }, [academicYearId, showError, tGrades, termId]);
 
   const navigateWithContext = useCallback((path: string) => {
     const params = new URLSearchParams({ year: academicYearId, term: termId });
@@ -91,6 +112,32 @@ export default function GradesRulesListPage() {
         </Button>
       </div>
 
+      <section className="rounded-lg border p-4" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Select
+            label={tGrades("filters.scopeType")}
+            value={listScopeType}
+            onChange={(value) => {
+              const scopeType = value as "" | "school" | "grade";
+              setListScopeType(scopeType);
+              setListScopeId(scopeType === "grade" ? scopeEntities.grade[0]?.id || "" : "");
+            }}
+            options={[
+              { value: "", label: tGrades("filters.selectScopeType") },
+              { value: "school", label: tGrades("filters.scopeTypes.school") },
+              { value: "grade", label: tGrades("filters.scopeTypes.grade") },
+            ]}
+          />
+          {listScopeType === "grade" ? <Select
+            label={tGrades("filters.scope")}
+            value={listScopeId}
+            onChange={setListScopeId}
+            options={scopeEntities.grade.map((grade) => ({ value: grade.id, label: locale === "ar" ? grade.nameAr : grade.nameEn }))}
+            placeholder={tGrades("filters.selectScope")}
+          /> : null}
+        </div>
+      </section>
+
       <section className="rounded-lg border" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}>
         {isLoading ? <div className="flex min-h-60 items-center justify-center"><MainLoader /></div> : rules.length === 0 ? (
           <EmptyState
@@ -108,6 +155,8 @@ export default function GradesRulesListPage() {
           />
         )}
       </section>
+
+      <EffectiveGradeRuleInspector academicYearId={academicYearId} termId={termId} scopeEntities={scopeEntities} />
     </div>
   );
 }

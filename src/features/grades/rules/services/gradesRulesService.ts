@@ -5,11 +5,13 @@ import type {
 } from "../../gradebook/types/api.types";
 import type {
   EffectiveGradeRule,
+  EffectiveGradeRuleRequest,
   GradeRoundingMode,
   GradeRuleRecord,
   SaveGradeRulePayload,
   UpdateGradeRulePayload,
 } from "../types";
+import type { ExamScopeType } from "../../shared/types";
 
 function toGradeRoundingMode(value: string | undefined): GradeRoundingMode {
   const normalized = value?.toUpperCase();
@@ -43,15 +45,16 @@ function mapGradeRule(response: BackendGradeRuleResponse): GradeRuleRecord {
 export async function fetchGradeRules(
   academicYearId: string,
   termId: string,
+  filters: { scopeType?: ExamScopeType; scopeId?: string; gradeId?: string } = {},
 ): Promise<GradeRuleRecord[]> {
   const response = await apiGet<BackendGradeRulesListResponse>("/grades/rules", {
-    params: { academicYearId, termId },
+    params: { academicYearId, termId, ...filters },
   });
   return response.items.map(mapGradeRule);
 }
 
 export async function fetchEffectiveGradeRule(
-  payload: Omit<SaveGradeRulePayload, "passMark" | "gradingScale" | "rounding">,
+  payload: EffectiveGradeRuleRequest,
 ): Promise<EffectiveGradeRule> {
   const response = await apiGet<BackendGradeRuleResponse>("/grades/rules/effective", {
     params: {
