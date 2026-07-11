@@ -8,12 +8,13 @@ import { Button, DataTable, type Column } from "@/components/ui";
 import Select from "@/components/ui/input/Select";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
 import { fetchGradesFiltersData } from "../../gradebook/services/gradesGradebookService";
 import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
 import { useGradesYearTermLayoutContext } from "../../hooks/GradesYearTermLayoutContext";
 import type { ScopeEntityOption } from "../../shared/types";
-import { fetchGradeRules } from "../services/gradesRulesService";
-import type { GradeRuleRecord } from "../types";
+import { fetchEffectiveGradeRule, fetchGradeRules } from "../services/gradesRulesService";
+import type { EffectiveGradeRule, GradeRuleRecord } from "../types";
 
 type RuleRow = GradeRuleRecord & Record<string, unknown>;
 
@@ -23,12 +24,16 @@ export default function GradesRulesListPage() {
   const locale = useLocale();
   const router = useRouter();
   const { showError } = useToast();
+  const { hasPermission } = usePermissions();
   const { academicYearId, termId, isInitializing } = useGradesYearTermLayoutContext();
   const [rules, setRules] = useState<GradeRuleRecord[]>([]);
   const [grades, setGrades] = useState<ScopeEntityOption[]>([]);
   const [scopeType, setScopeType] = useState<"" | "school" | "grade">("");
   const [scopeId, setScopeId] = useState("");
   const [loadingRules, setLoadingRules] = useState(true);
+  const [rulesError, setRulesError] = useState(false);
+  const [effectiveRule, setEffectiveRule] = useState<EffectiveGradeRule | null>(null);
+  const canManageRules = hasPermission("grades.rules.manage");
 
   const filters = useMemo(() => {
     if (scopeType === "school") return { scopeType };
@@ -37,6 +42,16 @@ export default function GradesRulesListPage() {
     }
     return {};
   }, [scopeId, scopeType]);
+
+  const effectiveRuleRequest = useMemo(() => {
+    if (scopeType === "school") {
+      return { academicYearId, termId, scopeType } as const;
+    }
+    if (scopeType === "grade" && scopeId) {
+      return { academicYearId, termId, scopeType, scopeId, gradeId: scopeId } as const;
+    }
+    return null;
+  }, [academicYearId, scopeId, scopeType, termId]);
 
   const navigate = useCallback((suffix: string) => {
     const query = new URLSearchParams({ year: academicYearId, term: termId });
@@ -52,15 +67,24 @@ export default function GradesRulesListPage() {
     return () => { active = false; };
   }, [academicYearId, showError, tGrades, termId]);
 
-  useEffect(() => {
+  const loadRules = useCallback(async () => {
     if (!academicYearId || !termId) return;
-    let active = true;
-    void fetchGradeRules({ academicYearId, termId, ...filters })
-      .then((items) => { if (active) setRules(items); })
-      .catch((error) => { if (active) showError(tGrades(`errors.${mapGradesApiError(error)}`)); })
-      .finally(() => { if (active) setLoadingRules(false); });
-    return () => { active = false; };
-  }, [academicYearId, filters, showError, tGrades, termId]);
+    setLoadingRules(true);
+    setRulesError(false);
+    try {
+      const loadedRules = await fetchGradeRules({ academicYearId, termId, ...filters });
+      setRules(loadedRules);
+      setEffectiveRule(effectiveRuleRequest ? await fetchEffectiveGradeRule(effectiveRuleRequest) : null);
+    } catch {
+      setRulesError(true);
+    } finally {
+      setLoadingRules(false);
+    }
+  }, [academicYearId, effectiveRuleRequest, filters, termId]);
+
+  useEffect(() => {
+    void loadRules();
+  }, [loadRules]);
 
   const columns = useMemo<Column<RuleRow>[]>(() => [
     { key: "scopeType", label: tGrades("filters.scopeType"), render: (_value, rule) => tGrades(`filters.scopeTypes.${rule.scopeType}`) },
@@ -74,7 +98,7 @@ export default function GradesRulesListPage() {
   return <main className="space-y-6 p-4 sm:p-6">
     <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div><h1 className="text-xl font-semibold text-gray-900">{t("title")}</h1><p className="mt-1 text-sm text-gray-600">{t("subtitle")}</p></div>
-      <Button leftIcon={<Plus className="h-4 w-4" />} onClick={() => navigate("/new")}>{t("form.createTitle")}</Button>
+      {canManageRules ? <Button leftIcon={<Plus className="h-4 w-4" />} onClick={() => navigate("/new")}>{t("form.createTitle")}</Button> : null}
     </header>
 
     <section className="rounded-xl border border-gray-200 bg-white p-4">
@@ -84,6 +108,16 @@ export default function GradesRulesListPage() {
       </div>
     </section>
 
-    <DataTable columns={columns} data={rules as RuleRow[]} isLoading={loadingRules} onRowClick={(rule) => navigate(`/${rule.id}`)} emptyTitle={t("title")} emptyDescription={t("empty")} showPagination />
+    {effectiveRule ? <section aria-live="polite" className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-gray-700">
+      <span className="font-semibold text-gray-900">{t("effective.source")}:</span> {t(`sources.${effectiveRule.source}`)}
+    </section> : null}
+
+    {rulesError ? <section role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+      <p>{t("loadError")}</p>
+      <Button className="mt-3" variant="secondary" onClick={() => void loadRules()}>{t("retry")}</Button>
+    </section> : <section aria-busy={loadingRules} aria-label={t("listLabel")}>
+      {loadingRules ? <span role="status" aria-label={t("loading")} className="sr-only">{t("loading")}</span> : null}
+      <DataTable columns={columns} data={rules as RuleRow[]} isLoading={loadingRules} onRowClick={canManageRules ? (rule) => navigate(`/${rule.id}`) : undefined} emptyTitle={t("emptyTitle")} emptyDescription={t("emptyDescription")} showPagination />
+    </section>}
   </main>;
 }
