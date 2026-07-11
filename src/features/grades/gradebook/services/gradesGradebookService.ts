@@ -26,16 +26,12 @@ import {
 // ── Filters / bootstrap ──────────────────────────────────────────────
 
 export async function fetchGradesFiltersData(
-  academicYearId?: string,
-  termId?: string,
+  academicYearId: string,
+  termId: string,
 ): Promise<GradesFiltersData> {
-  const params = {
-    ...(academicYearId ? { academicYearId } : {}),
-    ...(termId ? { termId } : {}),
-  };
   const response = await apiGet<BackendGradesBootstrapResponse>(
     "/grades/bootstrap",
-    { params },
+    { params: { academicYearId, termId } },
   );
   return mapBootstrapToFiltersData(response);
 }

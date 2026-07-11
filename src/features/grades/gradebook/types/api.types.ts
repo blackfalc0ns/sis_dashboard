@@ -1,60 +1,48 @@
 import type {
   AssessmentDeliveryMode,
-  AssessmentApprovalStatus,
   AssessmentType,
   ExamScopeType,
-  GradeRoundingMode,
-  GradeRuleSource,
-  GradesOverviewEmptyReason,
   LegacyAssessmentType,
 } from "../../shared/types";
 
 export type BackendGradeItemStatus = "entered" | "missing" | "absent";
 export type BackendGradeItemStatusPayload = "ENTERED" | "MISSING" | "ABSENT";
 
-export type BackendApprovalStatus = AssessmentApprovalStatus;
+export type BackendApprovalStatus = "draft" | "published" | "approved";
 export type BackendApprovalStatusPayload = "DRAFT" | "PUBLISHED" | "APPROVED";
 
 export type BackendAssessmentType = AssessmentType | LegacyAssessmentType;
 
 export interface BackendNamedEntity {
   id: string;
-  name?: string | null;
-  nameAr?: string | null;
-  nameEn?: string | null;
-  title?: string | null;
-  titleAr?: string | null;
-  titleEn?: string | null;
+  name?: string;
+  nameAr?: string;
+  nameEn?: string;
+  title?: string;
+  titleAr?: string;
+  titleEn?: string;
   parentId?: string | null;
   stageId?: string | null;
   gradeId?: string | null;
   sectionId?: string | null;
 }
 
-export interface BackendBootstrapAcademicYear { id: string; nameAr: string | null; nameEn: string | null; isActive: boolean }
-export interface BackendBootstrapTerm { id: string; academicYearId: string; nameAr: string | null; nameEn: string | null; startDate: string | null; endDate: string | null; isActive: boolean }
-export interface BackendBootstrapStage { id: string; nameAr: string | null; nameEn: string | null; sortOrder: number | null }
-export interface BackendBootstrapGrade extends BackendBootstrapStage { stageId: string }
-export interface BackendBootstrapSection extends BackendBootstrapStage { gradeId: string }
-export interface BackendBootstrapClassroom { id: string; sectionId: string; gradeId: string | null; nameAr: string | null; nameEn: string | null; isActive: boolean }
-export interface BackendBootstrapSubject { id: string; nameAr: string | null; nameEn: string | null; code: string | null; isActive: boolean }
-
 export interface BackendGradesBootstrapResponse {
-  academicYears: BackendBootstrapAcademicYear[];
-  terms: BackendBootstrapTerm[];
-  stages: BackendBootstrapStage[];
-  grades: BackendBootstrapGrade[];
-  sections: BackendBootstrapSection[];
-  classrooms: BackendBootstrapClassroom[];
-  subjects: BackendBootstrapSubject[];
-  defaults: {
-    academicYearId: string | null;
-    termId: string | null;
+  academicYears?: BackendNamedEntity[];
+  terms?: BackendNamedEntity[];
+  stages?: BackendNamedEntity[];
+  grades?: BackendNamedEntity[];
+  sections?: BackendNamedEntity[];
+  classrooms?: BackendNamedEntity[];
+  subjects?: BackendNamedEntity[];
+  defaults?: {
+    academicYearId?: string | null;
+    termId?: string | null;
   };
-  supportedScopes: ExamScopeType[];
-  assessmentTypes: BackendAssessmentType[];
-  deliveryModes: AssessmentDeliveryMode[];
-  approvalStatuses: BackendApprovalStatus[];
+  supportedScopes?: ExamScopeType[];
+  assessmentTypes?: BackendAssessmentType[];
+  deliveryModes?: Array<AssessmentDeliveryMode | "question_based">;
+  approvalStatuses?: BackendApprovalStatus[];
 }
 
 //Gradebook query types
@@ -279,22 +267,22 @@ export interface BackendGradesOverviewResponse {
   yearId: string;
   termId: string;
   subjectId: string | null;
-  scope: { scopeType: ExamScopeType; scopeId: string; label: string };
+  scope: { scopeType: string; scopeId: string; label: string };
   totals: {
     studentCount: number;
     assessmentCount: number;
-    completedAssessmentCount: number;
-    publishedAssessmentCount: number;
-    approvedAssessmentCount: number;
-    lockedAssessmentCount: number;
+    completedAssessmentCount?: number;
+    publishedAssessmentCount?: number;
+    approvedAssessmentCount?: number;
+    lockedAssessmentCount?: number;
   };
   performance: {
     averagePercent: number | null;
     highestPercent: number | null;
     lowestPercent: number | null;
-    passingCount: number;
-    failingCount: number;
-    incompleteCount: number;
+    passingCount?: number;
+    failingCount?: number;
+    incompleteCount?: number;
   };
   completion: {
     enteredCount: number;
@@ -305,21 +293,11 @@ export interface BackendGradesOverviewResponse {
   assessments: Array<{
     assessmentId: string;
     title: string | null;
-    subjectId: string;
-    subjectName: string | null;
-    type: BackendAssessmentType;
-    deliveryMode: AssessmentDeliveryMode;
-    approvalStatus: BackendApprovalStatus;
     averagePercent: number | null;
     date: string;
-    weight: number;
-    maxScore: number;
-    enteredCount: number;
-    missingCount: number;
-    absentCount: number;
   }>;
-  rule: { source: GradeRuleSource; passMark: number; rounding: GradeRoundingMode } | null;
-  emptyState: { reason: GradesOverviewEmptyReason; message: string } | null;
+  rule: { source: string; passMark: number; rounding: string } | null;
+  emptyState: { reason: string; message: string } | null;
 }
 
 // Submission flow types

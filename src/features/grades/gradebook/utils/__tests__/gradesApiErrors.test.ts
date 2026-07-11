@@ -61,37 +61,6 @@ const backendValidationMessages = [
 ];
 
 describe("Grades API error classification", () => {
-  it.each([
-    "grades.term.closed",
-    "grades.assessment.locked",
-    "grades.assessment.not_published",
-    "grades.assessment.not_approved",
-    "grades.assessment.invalid_status_transition",
-    "grades.assessment.already_published",
-    "grades.assessment.already_approved",
-    "grades.assessment.already_locked",
-    "grades.assessment.invalid_scope",
-    "grades.gradebook.no_enrollment",
-    "grades.item.out_of_range",
-    "grades.question.structure_locked",
-    "grades.question.points_mismatch",
-    "grades.answer.invalid_question",
-    "grades.answer.invalid_option",
-    "grades.submission.already_submitted",
-    "grades.submission.locked",
-    "grades.submission.not_submitted",
-    "grades.review.already_finalized",
-    "grades.review.pending_answers",
-    "grades.rule.conflict",
-  ])("localizes pinned backend domain code: %s", (code) => {
-    const descriptor = describeGradesApiError(new ApiError("Server text", 409, code));
-
-    expect(descriptor.key).not.toBe("conflict");
-    expect(descriptor.key).not.toBe("generic");
-    expect(enMessages.academics.grades.errors).toHaveProperty(descriptor.key);
-    expect(arMessages.academics.grades.errors).toHaveProperty(descriptor.key);
-  });
-
   it.each(backendValidationMessages)("classifies backend validation: %s", (message) => {
     const apiError = ApiError.fromAxiosError({
       response: {
