@@ -55,7 +55,7 @@ export default function GradesRulesListPage() {
   useEffect(() => {
     if (!academicYearId || !termId) return;
     let active = true;
-    void fetchGradeRules(academicYearId, termId, filters)
+    void fetchGradeRules({ academicYearId, termId, ...filters })
       .then((items) => { if (active) setRules(items); })
       .catch((error) => { if (active) showError(tGrades(`errors.${mapGradesApiError(error)}`)); })
       .finally(() => { if (active) setLoadingRules(false); });

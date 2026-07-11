@@ -16,7 +16,8 @@ Align matrix rows 1 (`GET /grades/rules`) and 2 (`GET /grades/rules/effective`) 
 - The list accepts optional `academicYearId`/`yearId`, `termId`, `scopeType`, `scopeId`, and `gradeId`, and returns a required `{ items }` wrapper. Each item supplies both year/scope aliases, lower-case API enums, timestamps, and nullable `gradeId`.
 - Effective resolution requires `termId` and `scopeType`; an academic-year ID must be supplied through `academicYearId` or `yearId` by the use case. Non-school scopes require either `scopeId` or their matching specific ID; optional ancestry IDs are validated when supplied.
 - Effective responses are not list-rule responses: they contain nullable `id`/`ruleId`, upper-case `source`, lower-case rule enums, and required `resolvedFrom` request/resolution metadata without academic-year or timestamp fields.
-- The rules service now uses endpoint-specific API DTOs, preserves `resolvedFrom` in the page-facing effective model, and removes unset effective query keys rather than serializing them as `undefined`.
+- The rules service now uses endpoint-specific API DTOs, exposes every optional list-query key instead of positional required year and term arguments, and removes unset effective query keys rather than serializing them as `undefined`.
+- The page-facing effective model preserves nullable default-response `id` and `ruleId`; the effective request accepts either `academicYearId` or `yearId` while requiring one at the TypeScript boundary.
 
 ## Files changed
 
@@ -28,7 +29,7 @@ Align matrix rows 1 (`GET /grades/rules`) and 2 (`GET /grades/rules/effective`) 
 
 ## Verification
 
-- TDD RED: the effective-rule test failed because `resolvedFrom` was discarded by the frontend mapper.
+- TDD RED: the reviewed focused tests failed because the list boundary treated its query as positional required arguments and the effective mapper changed a default `id: null` to `""`.
 - `npm run test:run -- src/features/grades/rules/services/__tests__/gradesRulesService.test.ts`: passed, 4 tests.
 - `npm run typecheck`: passed.
 
