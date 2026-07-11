@@ -8,6 +8,7 @@ import Button from "@/components/ui/button/Button";
 import { DatePicker, Input, Select } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast/Toast";
 import { fetchGradesFiltersData } from "../../gradebook/services/gradesGradebookService";
+import { fetchSubjectAllocations, type SubjectAllocation } from "@/features/academics/subjects/services/subjectsService";
 import { createAssessment } from "../services/gradesAssessmentsService";
 import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
 import type { AssessmentDeliveryMode, AssessmentType, CreateAssessmentPayload, ExamScopeType, ScopeEntityOption } from "../../shared/types";
@@ -39,13 +40,41 @@ export default function CreateAssessmentPage() {
     section: [],
     classroom: [],
   });
-  const [subjects, setSubjects] = useState<Array<{ id: string; nameAr: string; nameEn: string }>>([]);
+  const [allSubjects, setAllSubjects] = useState<Array<{ id: string; nameAr: string; nameEn: string }>>([]);
+  const [subjectAllocations, setSubjectAllocations] = useState<SubjectAllocation[]>([]);
   const [draft, setDraft] = useState<CreateAssessmentPayload | null>(null);
 
   const availableScopeEntities = useMemo(
     () => (draft ? scopeEntitiesByType[draft.scopeType] || [] : []),
     [draft, scopeEntitiesByType],
   );
+
+  const subjects = useMemo(() => {
+    if (!draft) return [];
+    const selectedEntity = scopeEntitiesByType[draft.scopeType]?.find((entity) => entity.id === draft.scopeId);
+    const gradeId = draft.scopeType === "grade"
+      ? draft.scopeId
+      : draft.scopeType === "section"
+        ? selectedEntity?.parentId
+        : draft.scopeType === "classroom"
+          ? (() => {
+            const sectionId = selectedEntity?.parentId;
+            return scopeEntitiesByType.section?.find((section) => section.id === sectionId)?.parentId;
+          })()
+          : "";
+    const stageId = draft.scopeType === "stage" ? draft.scopeId : "";
+    const gradeIds = gradeId
+      ? new Set([gradeId])
+      : stageId
+        ? new Set(scopeEntitiesByType.grade.filter((grade) => grade.parentId === stageId).map((grade) => grade.id))
+        : null;
+    const allocatedSubjectIds = new Set(
+      subjectAllocations
+        .filter((allocation) => !gradeIds || gradeIds.has(allocation.gradeId))
+        .map((allocation) => allocation.subjectId),
+    );
+    return allSubjects.filter((subject) => allocatedSubjectIds.has(subject.id));
+  }, [allSubjects, draft, scopeEntitiesByType, subjectAllocations]);
 
   useEffect(() => {
     if (isInitializing) {
@@ -60,10 +89,14 @@ export default function CreateAssessmentPage() {
     const loadFilters = async () => {
       setIsLoading(true);
       try {
-        const data = await fetchGradesFiltersData(academicYearId, termId);
+        const [data, allocations] = await Promise.all([
+          fetchGradesFiltersData(academicYearId, termId),
+          fetchSubjectAllocations(termId),
+        ]);
         setScopeTypes(data.scopeTypes);
         setScopeEntitiesByType(data.scopeEntities);
-        setSubjects(data.subjects);
+        setAllSubjects(data.subjects);
+        setSubjectAllocations(allocations);
 
         const requestedScopeType = (searchParams.get("scopeType") as ExamScopeType) || data.scopeTypes[0] || "school";
         const scopeType = data.scopeTypes.includes(requestedScopeType) ? requestedScopeType : data.scopeTypes[0] || "school";
@@ -95,6 +128,11 @@ export default function CreateAssessmentPage() {
 
     void loadFilters();
   }, [academicYearId, isInitializing, searchParams, showError, tCommon, termId]);
+
+  useEffect(() => {
+    if (!draft || subjects.some((subject) => subject.id === draft.subjectId)) return;
+    setDraft((current) => (current ? { ...current, subjectId: subjects[0]?.id || "" } : current));
+  }, [draft, subjects]);
 
   const handleBack = () => {
     const params = new URLSearchParams();
