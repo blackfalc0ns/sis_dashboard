@@ -6296,12 +6296,6 @@
         "messages": {
           "saved": "Grade rule saved successfully"
         },
-        "listLabel": "Grade rules list",
-        "loading": "Loading grade rules",
-        "loadError": "Grade rules could not be loaded. Check your connection and try again.",
-        "retry": "Retry",
-        "emptyTitle": "No grade rules found",
-        "emptyDescription": "No explicit grade rules match the selected academic context.",
         "validation": {
           "passMark": "Pass mark must be between 0 and 100."
         },
