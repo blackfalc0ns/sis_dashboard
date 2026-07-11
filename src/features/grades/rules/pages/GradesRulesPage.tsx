@@ -33,6 +33,25 @@ const EMPTY_SCOPES: Record<ExamScopeType, ScopeEntityOption[]> = {
 };
 const RULE_WRITE_SCOPE_TYPES: ExamScopeType[] = ["school", "grade"];
 
+function getScopePath(
+  scopes: Record<ExamScopeType, ScopeEntityOption[]>,
+  scopeType: ExamScopeType,
+  scopeId: string,
+): Partial<Record<ExamScopeType, string>> {
+  const path: Partial<Record<ExamScopeType, string>> = {};
+  let type: ExamScopeType | undefined = scopeType;
+  let id = scopeId;
+  while (type && type !== "school" && id) {
+    path[type] = id;
+    const parentType: ExamScopeType | undefined = type === "classroom" ? "section" : type === "section" ? "grade" : type === "grade" ? "stage" : undefined;
+    const parentId = parentType ? scopes[type]?.find((item) => item.id === id)?.parentId : undefined;
+    if (!parentType || !parentId) break;
+    type = parentType;
+    id = parentId;
+  }
+  return path;
+}
+
 function isSelectedRuleScope(rule: GradeRuleRecord, scopeType: ExamScopeType, scopeId: string): boolean {
   if (scopeType === "school") return rule.scopeType === "school";
   return rule.scopeType === scopeType && rule.scopeId === scopeId;
@@ -51,6 +70,7 @@ export default function GradesRulesPage() {
   const [scopes, setScopes] = useState(EMPTY_SCOPES);
   const [selectedScopeType, setSelectedScopeType] = useState<ExamScopeType>("school");
   const [selectedScopeId, setSelectedScopeId] = useState("");
+  const [selectedScopeIds, setSelectedScopeIds] = useState<Partial<Record<ExamScopeType, string>>>({});
   const [rules, setRules] = useState<GradeRuleRecord[]>([]);
   const [effectiveRule, setEffectiveRule] = useState<EffectiveGradeRule | null>(null);
   const [passMark, setPassMark] = useState("50");
@@ -133,6 +153,7 @@ export default function GradesRulesPage() {
         setScopes(filters.scopeEntities);
         setSelectedScopeType(initialType);
         setSelectedScopeId(initialScopeId);
+        setSelectedScopeIds(getScopePath(filters.scopeEntities, initialType, initialScopeId));
         filtersHydratedRef.current = true;
       } catch (error) {
         showError(tGrades(`errors.${mapGradesApiError(error)}`));
@@ -205,6 +226,42 @@ export default function GradesRulesPage() {
 
       <section className="rounded-lg border p-4" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}>
         <div className="grid gap-4 md:grid-cols-2">
+          {(["stage", "grade", "section", "classroom"] as ExamScopeType[]).map((type) => {
+            const parentType: ExamScopeType | undefined = type === "grade" ? "stage" : type === "section" ? "grade" : type === "classroom" ? "section" : undefined;
+            const parentId = parentType ? selectedScopeIds[parentType] : undefined;
+            const options = parentType && !parentId
+              ? []
+              : scopes[type].filter((scope) => !parentId || scope.parentId === parentId);
+            return (
+              <Select
+                key={type}
+                label={tGrades(`filters.scopeTypes.${type}`)}
+                value={selectedScopeIds[type] || ""}
+                options={options.map((scope) => ({ value: scope.id, label: locale === "ar" ? scope.nameAr : scope.nameEn }))}
+                onChange={(value) => {
+                  const next = { ...selectedScopeIds, [type]: value };
+                  if (type === "stage") { next.grade = ""; next.section = ""; next.classroom = ""; }
+                  if (type === "grade") { next.section = ""; next.classroom = ""; }
+                  if (type === "section") next.classroom = "";
+                  setSelectedScopeIds(next);
+                  const gradeId = type === "grade"
+                    ? value
+                    : type === "section"
+                      ? scopes.section.find((item) => item.id === value)?.parentId || ""
+                      : type === "classroom"
+                        ? scopes.grade.find((grade) => grade.id === scopes.section.find((section) => section.id === scopes.classroom.find((room) => room.id === value)?.parentId)?.parentId)?.id || ""
+                        : "";
+                  if (gradeId) {
+                    setSelectedScopeType("grade");
+                    setSelectedScopeId(gradeId);
+                  } else if (type === "stage") {
+                    setSelectedScopeId("");
+                  }
+                }}
+                disabled={Boolean(parentType && !parentId)}
+              />
+            );
+          })}
           <Select
             label={tGrades("filters.scopeType")}
             value={selectedScopeType}
@@ -215,7 +272,9 @@ export default function GradesRulesPage() {
             onChange={(value) => {
               const scopeType = value as ExamScopeType;
               setSelectedScopeType(scopeType);
-              setSelectedScopeId(scopes[scopeType][0]?.id ?? "");
+              const scopeId = scopes[scopeType][0]?.id ?? "";
+              setSelectedScopeId(scopeId);
+              setSelectedScopeIds(getScopePath(scopes, scopeType, scopeId));
             }}
           />
           <Select
@@ -225,7 +284,10 @@ export default function GradesRulesPage() {
               value: scope.id,
               label: locale === "ar" ? scope.nameAr : scope.nameEn,
             }))}
-            onChange={setSelectedScopeId}
+            onChange={(scopeId) => {
+              setSelectedScopeId(scopeId);
+              setSelectedScopeIds(getScopePath(scopes, selectedScopeType, scopeId));
+            }}
           />
         </div>
       </section>
