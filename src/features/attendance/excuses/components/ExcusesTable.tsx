@@ -5,6 +5,10 @@ import { Tooltip } from "@mui/material";
 import { Eye, Check, X, PencilLine, Trash2 } from "lucide-react";
 import DataTable from "@/components/ui/data-table/DataTable";
 import type { ExcuseRequest } from "../types";
+import {
+  formatExcuseDateRange,
+  getSecondaryStudentName,
+} from "../utils/excusePresentation";
 
 interface ExcusesTableProps {
   requests: ExcuseRequest[];
@@ -38,13 +42,20 @@ export default function ExcusesTable({ requests, isReadOnly, onView, onApprove, 
       key: "student",
       label: t("student"),
       searchable: true,
-      render: (_: unknown, row: ExcuseRequest) => (
+      render: (_: unknown, row: ExcuseRequest) => {
+        const primaryName = locale === "ar" ? row.studentNameAr : row.studentNameEn;
+        const secondaryName = getSecondaryStudentName(
+          primaryName,
+          locale === "ar" ? row.studentNameEn : row.studentNameAr,
+        );
+        return (
         <div className="min-w-0">
-          <div className="truncate" style={{ color: "var(--text-primary)", fontWeight: 600 }}>{locale === "ar" ? row.studentNameAr : row.studentNameEn}</div>
-          <div className="truncate text-xs" style={{ color: "var(--text-secondary)" }}>{locale === "ar" ? row.studentNameEn : row.studentNameAr}</div>
+          <div className="truncate" style={{ color: "var(--text-primary)", fontWeight: 600 }}>{primaryName}</div>
+          {secondaryName && <div className="truncate text-xs" style={{ color: "var(--text-secondary)" }}>{secondaryName}</div>}
           <div className="truncate text-xs" style={{ color: "var(--text-secondary)" }}>{row.studentNumber || "-"}</div>
         </div>
-      ),
+        );
+      },
     },
     {
       key: "type",
@@ -60,10 +71,10 @@ export default function ExcusesTable({ requests, isReadOnly, onView, onApprove, 
       label: t("range"),
       render: (_: unknown, row: ExcuseRequest) => (
         <div>
-          <div>{row.dateFrom} → {row.dateTo}</div>
+          <div>{formatExcuseDateRange(row.dateFrom, row.dateTo, locale)}</div>
           <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
             {row.selectedPeriodIds && row.selectedPeriodIds.length > 0
-              ? row.selectedPeriodIds.join(", ")
+              ? t("selectedPeriods", { count: row.selectedPeriodIds.length })
               : row.periodIndexes && row.periodIndexes.length > 0
               ? row.periodIndexes.map((p) => `P${p}`).join(", ")
               : t("allPolicyPeriods")}
@@ -81,7 +92,7 @@ export default function ExcusesTable({ requests, isReadOnly, onView, onApprove, 
         </div>
       ),
     },
-    { key: "attachments", label: t("attachments"), render: (_: unknown, row: ExcuseRequest) => <span>{row.attachments.length}</span> },
+    { key: "attachments", label: t("attachments"), render: (_: unknown, row: ExcuseRequest) => <span>{row.attachmentCount ?? row.attachments.length}</span> },
     {
       key: "status",
       label: t("status"),

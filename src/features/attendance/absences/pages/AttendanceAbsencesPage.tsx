@@ -111,6 +111,11 @@ export default function AttendanceAbsencesPage() {
   const reloadRecords = useCallback(async () => {
     if (!termContext.yearId || !termContext.termId) return;
 
+    if (!isScopeSelectionComplete(filters.scopeType, filters.scopeIds)) {
+      setRecords([]);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const data = await fetchAbsenceRecords({

@@ -43,6 +43,10 @@ import {
 } from "../hooks/useRollCallSessionWorkspace";
 import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
 import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
+import {
+  createExcuseRequest,
+  updateExcuseRequest,
+} from "@/features/attendance/excuses/services/attendanceExcusesService";
 import { exportAttendanceSession } from "../utils/attendanceExport";
 import { computeAttendanceKpis } from "../utils/attendanceKpis";
 import AttendanceGlobalExportModal from "@/features/attendance/shared/components/AttendanceGlobalExportModal";
@@ -101,6 +105,9 @@ export default function AttendanceRollCallPage() {
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSessionDrawer, setShowSessionDrawer] = useState(false);
+  const formalExcuseRequests = useRef(
+    new Map<string, { id: string; attachments: import("@/features/attendance/roll-call/types").AttachmentMeta[] }>(),
+  );
 
   // Filter state
   const [showFilters, setShowFilters] = useState(false);
@@ -401,40 +408,44 @@ export default function AttendanceRollCallPage() {
 
         // Fetch timetable config if PERIOD mode
         if (effectivePolicy?.mode === "PERIOD") {
-          const termConfig = await fetchTimetableConfig({
-            academicYearId: termContext.yearId!,
-            termId: termContext.termId!,
-            scopeType: "TERM",
-          });
-          const gradeConfig = scopeIds.gradeId
-            ? await fetchTimetableConfig({
-                academicYearId: termContext.yearId!,
-                termId: termContext.termId!,
-                scopeType: "GRADE",
-                gradeId: scopeIds.gradeId,
-              })
-            : null;
-          const sectionConfig = scopeIds.sectionId
-            ? await fetchTimetableConfig({
-                academicYearId: termContext.yearId!,
-                termId: termContext.termId!,
-                scopeType: "SECTION",
-                sectionId: scopeIds.sectionId,
-              })
-            : null;
+          const [gradeConfig, sectionConfig, classroomConfig] = await Promise.all([
+            scopeIds.gradeId
+              ? fetchTimetableConfig({
+                  academicYearId: termContext.yearId!,
+                  termId: termContext.termId!,
+                  scopeType: "GRADE",
+                  gradeId: scopeIds.gradeId,
+                })
+              : Promise.resolve(null),
+            scopeIds.sectionId
+              ? fetchTimetableConfig({
+                  academicYearId: termContext.yearId!,
+                  termId: termContext.termId!,
+                  scopeType: "SECTION",
+                  sectionId: scopeIds.sectionId,
+                })
+              : Promise.resolve(null),
+            scopeIds.classroomId
+              ? fetchTimetableConfig({
+                  academicYearId: termContext.yearId!,
+                  termId: termContext.termId!,
+                  scopeType: "CLASSROOM",
+                  classroomId: scopeIds.classroomId,
+                })
+              : Promise.resolve(null),
+          ]);
 
           const resolved = resolveTimetableConfig(
-            termConfig,
+            null,
             gradeConfig,
             sectionConfig,
+            classroomConfig,
           );
           if (cancelled) return;
           setPeriods(resolved.periods);
 
           // Auto-select first period if none selected
-          if (!selectedPeriodId && resolved.periods.length > 0) {
-            setSelectedPeriodId(resolved.periods[0].id);
-          }
+          setSelectedPeriodId((current) => current ?? resolved.periods[0]?.id ?? null);
         } else {
           setPeriods([]);
           setSelectedPeriodId(null);
@@ -461,7 +472,6 @@ export default function AttendanceRollCallPage() {
     scopeType,
     scopeIds,
     date,
-    selectedPeriodId,
   ]);
 
   // Handle entry change
@@ -510,6 +520,49 @@ export default function AttendanceRollCallPage() {
       showError(tCommon("error_saving"));
     }
   }, [session, saveDraft, t, tCommon, showSuccess, showError]);
+
+  const handleCreateExcuseRequest = useCallback(
+    async (studentId: string, reason: string, attachments: import("@/features/attendance/roll-call/types").AttachmentMeta[]) => {
+      if (!session || !termContext.yearId || !termContext.termId) {
+        throw new Error("Attendance session context is incomplete");
+      }
+
+      const student = roster.find((item) => item.id === studentId);
+      if (!student) throw new Error("Student was not found in the current roster");
+
+      const requestKey = `${session.id}:${studentId}`;
+      const existing = formalExcuseRequests.current.get(requestKey);
+      if (existing) {
+        await updateExcuseRequest(
+          existing.id,
+          { reasonAr: reason, reasonEn: reason, attachments },
+          existing.attachments,
+        );
+        formalExcuseRequests.current.set(requestKey, { ...existing, attachments });
+        return;
+      }
+
+      const request = await createExcuseRequest({
+        yearId: termContext.yearId,
+        termId: termContext.termId,
+        studentId,
+        studentNameAr: student.nameAr,
+        studentNameEn: student.nameEn,
+        studentNumber: student.studentNumber,
+        scopeType: session.scopeType,
+        scopeIds: session.scopeIds,
+        type: "ABSENCE",
+        dateFrom: session.date,
+        dateTo: session.date,
+        selectedPeriodIds: session.mode === "PERIOD" && session.periodId ? [session.periodId] : undefined,
+        reasonAr: reason,
+        reasonEn: reason,
+        attachments,
+      });
+      formalExcuseRequests.current.set(requestKey, { id: request.id, attachments });
+    },
+    [session, termContext.yearId, termContext.termId, roster],
+  );
 
   // Submit
   const handleSubmit = useCallback(async () => {
@@ -1108,6 +1161,7 @@ export default function AttendanceRollCallPage() {
         entries={entries}
         policy={policy}
         onEntryChange={handleEntryChange}
+        onCreateExcuseRequest={handleCreateExcuseRequest}
         isReadOnly={isReadOnly || isSubmitted}
         searchQuery={filters.search}
       />

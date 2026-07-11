@@ -145,6 +145,18 @@ describe("BehaviorRecordsPage", () => {
     });
   });
 
+  it("keeps the table visible when there are no records", async () => {
+    vi.mocked(listBehaviorRecords).mockResolvedValue({ items: [], total: 0 });
+
+    render(<BehaviorRecordsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("common.no_data_available")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("behavior.table.occurredAt")).toBeInTheDocument();
+  });
+
   it("filters bar date selection triggers loading with occurredFrom and occurredTo", async () => {
     render(<BehaviorRecordsPage />);
 

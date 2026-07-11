@@ -20,7 +20,7 @@ vi.mock("@/lib/api", () => ({
 }));
 
 vi.mock("@/features/academics/timetable/services/timetableConfigService", () => ({
-  fetchTimetableConfigs: vi.fn().mockResolvedValue([]),
+  fetchTimetableConfig: vi.fn().mockResolvedValue(null),
 }));
 
 const mockedApiGet = vi.mocked(apiGet);

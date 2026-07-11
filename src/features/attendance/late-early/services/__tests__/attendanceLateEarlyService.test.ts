@@ -113,4 +113,29 @@ describe("attendanceLateEarlyService", () => {
       },
     );
   });
+
+  it("sends the selected hierarchy id required by the absences endpoint", async () => {
+    mockedApiGet.mockResolvedValueOnce({ items: [] });
+
+    await fetchIncidents({
+      yearId: "year-1",
+      termId: "term-1",
+      scopeType: "CLASSROOM",
+      scopeIds: {
+        stageId: "stage-1",
+        gradeId: "grade-1",
+        sectionId: "section-1",
+        classroomId: "classroom-1",
+      },
+      type: "ALL",
+    });
+
+    expect(mockedApiGet).toHaveBeenCalledWith("/attendance/absences", {
+      params: expect.objectContaining({
+        scopeType: "CLASSROOM",
+        scopeKey: "classroom:classroom-1",
+        classroomId: "classroom-1",
+      }),
+    });
+  });
 });

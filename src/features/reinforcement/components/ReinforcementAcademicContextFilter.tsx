@@ -5,9 +5,6 @@ import { AlertCircle, ChevronRight, X } from "lucide-react";
 import { useLocale } from "next-intl";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
 import {
-  fetchAcademicStructureTree,
-  fetchAcademicYears,
-  fetchTerms,
   type AcademicStructureClassroom,
   type AcademicStructureGrade,
   type AcademicStructureSection,
@@ -15,14 +12,12 @@ import {
   type AcademicStructureTree,
 } from "@/features/academics/services/academicStructureApiService";
 import {
-  fetchSubjectAllocations,
   type Subject,
   type SubjectAllocation,
 } from "@/features/academics/subjects/services/subjectsService";
-import {
-  fetchStudentsWithEnrollmentForContext,
-  type StudentWithEnrollmentContext,
-} from "@/features/students-guardians/students/services/studentsService";
+import type { StudentWithEnrollmentContext } from "@/features/students-guardians/students/services/studentsService";
+import type { ReinforcementFilterOptions } from "../types";
+import { getReinforcementFilterOptions } from "../services/reinforcementFilterOptionsService";
 
 type Locale = "ar" | "en";
 
@@ -75,6 +70,7 @@ export interface ReinforcementAcademicContextFilterProps {
   showSection?: boolean;
   showClassroom?: boolean;
   subjectDependsOnGrade?: boolean;
+  filterOptions?: ReinforcementFilterOptions;
 }
 
 interface LoadState<T> {
@@ -232,6 +228,33 @@ const studentOption = (
   };
 };
 
+const studentMatchesContext = (
+  student: StudentWithEnrollmentContext,
+  value: ReinforcementAcademicContextValue,
+): boolean => {
+  const record = student as StudentWithEnrollmentContext & Record<string, unknown>;
+  const enrollment = (student.enrollment || {}) as Record<string, unknown>;
+  const relationId = (key: string) =>
+    String(record[key] || enrollment[key] || "");
+
+  return (
+    (!value.stageId || relationId("stageId") === value.stageId) &&
+    (!value.gradeId || relationId("gradeId") === value.gradeId) &&
+    (!value.sectionId || relationId("sectionId") === value.sectionId) &&
+    (!value.classroomId || relationId("classroomId") === value.classroomId)
+  );
+};
+
+export const isStudentSelectorDisabled = ({
+  disabled,
+  loading,
+  classroomId,
+}: {
+  disabled: boolean;
+  loading: boolean;
+  classroomId?: string;
+}) => disabled || loading || !classroomId;
+
 /* ─── Skeleton placeholder ─── */
 function SelectSkeleton({ label }: { label: string }) {
   return (
@@ -321,6 +344,7 @@ export default function ReinforcementAcademicContextFilter({
   showSection = true,
   showClassroom = true,
   subjectDependsOnGrade = false,
+  filterOptions,
 }: ReinforcementAcademicContextFilterProps) {
   const locale = (useLocale() === "ar" ? "ar" : "en") as Locale;
   const copy = labels[locale];
@@ -356,6 +380,14 @@ export default function ReinforcementAcademicContextFilter({
     loading: false,
     error: null,
   });
+  const [providedSubjects, setProvidedSubjects] = useState<Subject[]>([]);
+  const [loadedFilterOptions, setLoadedFilterOptions] =
+    useState<ReinforcementFilterOptions | null>(null);
+  const resolvedFilterOptions = filterOptions || loadedFilterOptions;
+
+  useEffect(() => {
+    if (!filterOptions) setLoadedFilterOptions(null);
+  }, [filterOptions, value.academicYearId, value.termId]);
 
   /* ─── Build the selection object ─── */
   const buildSelection = useCallback(
@@ -433,136 +465,102 @@ export default function ReinforcementAcademicContextFilter({
 
   /* ─── Fetch academic years ─── */
   useEffect(() => {
-    let cancelled = false;
-    setYears((current) => ({ ...current, loading: true, error: null }));
-    void fetchAcademicYears()
-      .then((items) => {
-        if (!cancelled) {
-          setYears({ data: items as NamedRecord[], loading: false, error: null });
-        }
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          setYears({
-            data: [],
-            loading: false,
-            error: error instanceof Error ? error.message : copy.error,
-          });
-        }
+    if (resolvedFilterOptions) {
+      setYears({
+        data: (resolvedFilterOptions.academicYears || []) as NamedRecord[],
+        loading: false,
+        error: null,
       });
-    return () => { cancelled = true; };
-  }, [copy.error, showAcademicYearTerm]);
+      return;
+    }
+    setYears((current) => ({ ...current, loading: true, error: null }));
+  }, [copy.error, resolvedFilterOptions, showAcademicYearTerm]);
 
   /* ─── Fetch terms ─── */
   useEffect(() => {
-    if (!showAcademicYearTerm) {
+    if (resolvedFilterOptions) {
+      setTerms({
+        data: (resolvedFilterOptions.terms || []) as NamedRecord[],
+        loading: false,
+        error: null,
+      });
+      return;
+    }
+
+    if (!value.academicYearId || !value.termId) {
       setTerms({ data: [], loading: false, error: null });
       return;
     }
 
-    if (!value.academicYearId) {
-      setTerms({ data: [], loading: false, error: null });
-      return;
-    }
-    let cancelled = false;
     setTerms((current) => ({ ...current, loading: true, error: null }));
-    void fetchTerms(value.academicYearId)
-      .then((items) => {
-        if (!cancelled) {
-          setTerms({ data: items as NamedRecord[], loading: false, error: null });
-        }
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          setTerms({
-            data: [],
-            loading: false,
-            error: error instanceof Error ? error.message : copy.error,
-          });
-        }
-      });
-    return () => { cancelled = true; };
-  }, [copy.error, showAcademicYearTerm, value.academicYearId]);
+    return;
+  }, [copy.error, resolvedFilterOptions, showAcademicYearTerm, value.academicYearId]);
 
   /* ─── Fetch tree, subjects, students ─── */
   useEffect(() => {
+    if (resolvedFilterOptions) {
+      setYears({
+        data: (resolvedFilterOptions.academicYears || []) as NamedRecord[],
+        loading: false,
+        error: null,
+      });
+      setTerms({
+        data: (resolvedFilterOptions.terms || []) as NamedRecord[],
+        loading: false,
+        error: null,
+      });
+      setTree({
+        data: {
+          stages: (resolvedFilterOptions.stages || []) as AcademicStructureStage[],
+          grades: (resolvedFilterOptions.grades || []) as AcademicStructureGrade[],
+          sections: (resolvedFilterOptions.sections || []) as AcademicStructureSection[],
+          classrooms: (resolvedFilterOptions.classrooms || []) as AcademicStructureClassroom[],
+        },
+        loading: false,
+        error: null,
+      });
+      setStudents({
+        data: (resolvedFilterOptions.students || []) as StudentWithEnrollmentContext[],
+        loading: false,
+        error: null,
+      });
+      setProvidedSubjects((resolvedFilterOptions.subjects || []) as Subject[]);
+      setSubjectAllocations({ data: [], loading: false, error: null });
+      return;
+    }
+
     if (!value.academicYearId || !value.termId) {
       setTree({ data: emptyTree, loading: false, error: null });
       setSubjectAllocations({ data: [], loading: false, error: null });
       setStudents({ data: [], loading: false, error: null });
       return;
     }
+    if (resolvedFilterOptions) return;
+
     let cancelled = false;
-    setTree((current) => ({ ...current, loading: showStructure, error: null }));
-    setSubjectAllocations((current) => ({
-      ...current,
-      loading: showSubject,
-      error: null,
-    }));
-    setStudents((current) => ({ ...current, loading: showStudent, error: null }));
-
-    if (showStructure) {
-      void fetchAcademicStructureTree({
-        yearId: value.academicYearId,
-        termId: value.termId,
+    setTree((current) => ({ ...current, loading: true, error: null }));
+    setSubjectAllocations((current) => ({ ...current, loading: true, error: null }));
+    setStudents((current) => ({ ...current, loading: true, error: null }));
+    getReinforcementFilterOptions({
+      academicYearId: value.academicYearId,
+      termId: value.termId,
+    })
+      .then((options) => {
+        if (!cancelled) setLoadedFilterOptions(options);
       })
-        .then((nextTree) => {
-          if (!cancelled) setTree({ data: nextTree, loading: false, error: null });
-        })
-        .catch((error) => {
-          if (!cancelled)
-            setTree({
-              data: emptyTree,
-              loading: false,
-              error: error instanceof Error ? error.message : copy.error,
-            });
-        });
-    } else {
-      setTree({ data: emptyTree, loading: false, error: null });
-    }
-
-    if (showSubject) {
-      void fetchSubjectAllocations(value.termId)
-        .then((items) => {
-          if (!cancelled) {
-            setSubjectAllocations({ data: items, loading: false, error: null });
-          }
-        })
-        .catch((error) => {
-          if (!cancelled)
-            setSubjectAllocations({
-              data: [],
-              loading: false,
-              error: error instanceof Error ? error.message : copy.error,
-            });
-        });
-    } else {
-      setSubjectAllocations({ data: [], loading: false, error: null });
-    }
-
-    if (showStudent) {
-      void fetchStudentsWithEnrollmentForContext(
-        value.academicYearId,
-        value.termId,
-      )
-        .then((items) => {
-          if (!cancelled) setStudents({ data: items, loading: false, error: null });
-        })
-        .catch((error) => {
-          if (!cancelled)
-            setStudents({
-              data: [],
-              loading: false,
-              error: error instanceof Error ? error.message : copy.error,
-            });
-        });
-    } else {
-      setStudents({ data: [], loading: false, error: null });
-    }
+      .catch((error) => {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : copy.error;
+          setTree({ data: emptyTree, loading: false, error: message });
+          setSubjectAllocations({ data: [], loading: false, error: message });
+          setStudents({ data: [], loading: false, error: message });
+        }
+      });
 
     return () => { cancelled = true; };
   }, [
     copy.error,
+    resolvedFilterOptions,
     showStructure,
     showStudent,
     showSubject,
@@ -571,15 +569,28 @@ export default function ReinforcementAcademicContextFilter({
   ]);
 
   const filteredSubjects = useMemo(
-    () =>
-      subjectsForStage(
-        subjectAllocations.data,
-        tree.data.grades,
-        value.stageId,
-        subjectDependsOnGrade ? value.gradeId : undefined,
-      ),
+    () => {
+      if (!resolvedFilterOptions) {
+        return subjectsForStage(
+          subjectAllocations.data,
+          tree.data.grades,
+          value.stageId,
+          subjectDependsOnGrade ? value.gradeId : undefined,
+        );
+      }
+
+      return providedSubjects.filter((subject) => {
+        const record = subject as Subject & Record<string, unknown>;
+        const stageId = typeof record.stageId === "string" ? record.stageId : undefined;
+        const gradeId = typeof record.gradeId === "string" ? record.gradeId : undefined;
+        return (!stageId || !value.stageId || stageId === value.stageId) &&
+          (!gradeId || !value.gradeId || gradeId === value.gradeId);
+      });
+    },
     [
+      resolvedFilterOptions,
       subjectAllocations.data,
+      providedSubjects,
       subjectDependsOnGrade,
       tree.data.grades,
       value.gradeId,
@@ -692,6 +703,26 @@ export default function ReinforcementAcademicContextFilter({
   const filteredClassrooms = tree.data.classrooms.filter(
     (classroom) => !value.sectionId || classroom.sectionId === value.sectionId,
   );
+
+  const filteredStudents = useMemo(
+    () =>
+      students.data.filter((student) =>
+        studentMatchesContext(student, {
+          stageId: value.stageId,
+          gradeId: value.gradeId,
+          sectionId: value.sectionId,
+          classroomId: value.classroomId,
+        }),
+      ),
+    [students.data, value.classroomId, value.gradeId, value.sectionId, value.stageId],
+  );
+
+  useEffect(() => {
+    if (!value.studentId || filteredStudents.some((student) => studentIdFor(student) === value.studentId)) {
+      return;
+    }
+    emit({ studentId: undefined, enrollmentId: undefined });
+  }, [emit, filteredStudents, value.studentId]);
   useEffect(() => {
     if (
       !tree.loading &&
@@ -953,7 +984,7 @@ export default function ReinforcementAcademicContextFilter({
               {showGrade && <Select
                 label={copy.grade}
                 value={value.gradeId || ""}
-                disabled={disabled || tree.loading}
+                disabled={disabled || tree.loading || !value.stageId}
                 options={compactOptions(
                   filteredGrades.map((item) => toOption(item, locale)),
                 )}
@@ -975,7 +1006,7 @@ export default function ReinforcementAcademicContextFilter({
               {showSection && <Select
                 label={copy.section}
                 value={value.sectionId || ""}
-                disabled={disabled || tree.loading}
+                disabled={disabled || tree.loading || !value.gradeId}
                 options={compactOptions(
                   filteredSections.map((item) => toOption(item, locale)),
                 )}
@@ -995,7 +1026,7 @@ export default function ReinforcementAcademicContextFilter({
               {showClassroom && <Select
                 label={copy.classroom}
                 value={value.classroomId || ""}
-                disabled={disabled || tree.loading}
+                disabled={disabled || tree.loading || !value.sectionId}
                 options={compactOptions(
                   filteredClassrooms.map((item) => toOption(item, locale)),
                 )}
@@ -1016,11 +1047,7 @@ export default function ReinforcementAcademicContextFilter({
               <Select
                 label={copy.subject}
                 value={value.subjectId || ""}
-                disabled={
-                  disabled ||
-                  subjectAllocations.loading ||
-                  (subjectDependsOnGrade && !value.gradeId)
-                }
+                disabled={disabled || subjectAllocations.loading || !value.classroomId}
                 options={compactOptions(
                   filteredSubjects.map((item) => toOption(item, locale)),
                 )}
@@ -1038,16 +1065,20 @@ export default function ReinforcementAcademicContextFilter({
               <Select
                 label={copy.student}
                 value={selected.studentId || ""}
-                disabled={disabled || students.loading}
+                disabled={isStudentSelectorDisabled({
+                  disabled,
+                  loading: students.loading,
+                  classroomId: value.classroomId,
+                })}
                 options={compactOptions(
-                  students.data.map((item) => studentOption(item, locale)),
+                  filteredStudents.map((item) => studentOption(item, locale)),
                 )}
                 placeholder={`${copy.select} ${copy.student}`}
                 searchable
                 searchPlaceholder={copy.search}
                 noOptionsText={copy.noOptions}
                 onChange={(studentId) => {
-                  const student = students.data.find(
+                  const student = filteredStudents.find(
                     (item) => studentIdFor(item) === studentId,
                   );
                   emit({ studentId, enrollmentId: enrollmentIdFor(student) });

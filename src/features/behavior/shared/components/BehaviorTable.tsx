@@ -83,9 +83,7 @@ export default function BehaviorTable({
   const locale = useLocale();
   const isRTL = locale === "ar";
 
-  if (loading) return <StatePanel title={t("states.loading.title")} compact />;
   if (error) return <StatePanel title={error} compact />;
-  if (!records.length) return <StatePanel title={t("states.empty.title")} compact />;
 
   const fmt = (iso?: string) =>
     iso ? new Date(iso).toLocaleDateString(locale === "ar" ? "ar-SA" : "en-SA") : "—";
@@ -256,6 +254,7 @@ export default function BehaviorTable({
         }[]
       }
       data={records as unknown as { [key: string]: unknown }[]}
+      isLoading={loading}
       onRowClick={(row) => onRowClick?.(row as unknown as BehaviorRecord)}
       searchQuery=""
       itemsPerPage={20}

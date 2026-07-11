@@ -26,6 +26,7 @@ interface ScopePickerProps {
   classrooms: Classroom[];
   onScopeTypeChange: (scopeType: AttendanceScopeType) => void;
   onScopeIdsChange: (scopeIds: AttendanceScopeIds) => void;
+  allowedScopeTypes?: AttendanceScopeType[];
   disabled?: boolean;
   errors?: {
     scopeType?: string;
@@ -45,6 +46,7 @@ export default function ScopePicker({
   classrooms,
   onScopeTypeChange,
   onScopeIdsChange,
+  allowedScopeTypes,
   disabled = false,
   errors = {},
 }: ScopePickerProps) {
@@ -59,7 +61,11 @@ export default function ScopePicker({
     { value: "GRADE", label: tScope("grade") },
     { value: "SECTION", label: tScope("section") },
     { value: "CLASSROOM", label: tScope("classroom") },
-  ];
+  ].filter(
+    (option) =>
+      !allowedScopeTypes ||
+      allowedScopeTypes.includes(option.value as AttendanceScopeType),
+  );
 
   const handleScopeTypeChange = (value: string) => {
     onScopeTypeChange(value as AttendanceScopeType);

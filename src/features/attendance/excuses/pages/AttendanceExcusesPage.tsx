@@ -29,14 +29,12 @@ import {
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   fetchExcuseRequests,
+  fetchExcuseRequestDetails,
   createExcuseRequest,
   updateExcuseRequest,
   deleteExcuseRequest,
   approveExcuseRequest,
   rejectExcuseRequest,
-  validateExcuseRequest,
-  resolveRequestPolicy,
-  validateExcusePolicyRange,
 } from "../services/attendanceExcusesService";
 import { ExcusePolicyValidationError, type ExcusePolicyIssue } from "../utils/excusePolicyValidation";
 import {
@@ -68,7 +66,9 @@ function computeKpis(requests: ExcuseRequest[]): ExcusesKpis {
     pending: requests.filter((request) => request.status === "PENDING").length,
     approved: requests.filter((request) => request.status === "APPROVED").length,
     rejected: requests.filter((request) => request.status === "REJECTED").length,
-    withAttachments: requests.filter((request) => request.attachments.length > 0).length,
+    withAttachments: requests.filter(
+      (request) => (request.attachmentCount ?? request.attachments.length) > 0,
+    ).length,
   };
 }
 
@@ -157,7 +157,12 @@ export default function AttendanceExcusesPage() {
   }, [reloadRequests]);
 
   useEffect(() => {
-    if (!selectedRequest || !termContext.yearId || !termContext.termId) {
+    if (
+      !selectedRequest ||
+      !selectedRequest.hasScopeContext ||
+      !termContext.yearId ||
+      !termContext.termId
+    ) {
       setSelectedRequestPolicy(null);
       return;
     }
@@ -324,41 +329,12 @@ export default function AttendanceExcusesPage() {
   const handleSaveRequest = async (payload: Omit<ExcuseRequest, "id" | "status" | "createdAt" | "updatedAt" | "decidedAt" | "decidedBy" | "decisionNote" | "linkedSessionIds" | "yearId" | "termId">) => {
     if (!term) return;
 
-    const policyIssue = await validateExcusePolicyRange({
-      ...payload,
-      yearId: termContext.yearId!,
-      termId: termContext.termId!,
-    });
-    if (policyIssue) {
-      showError(getPolicyIssueMessage(policyIssue));
-      throw new Error("Validation failed");
-    }
-
-    const effectivePolicy = await resolveRequestPolicy(
-      termContext.yearId!,
-      termContext.termId!,
-      payload.scopeType,
-      payload.scopeIds,
-      payload.dateFrom
-    );
-
-    const errors = await validateExcuseRequest(
-      {
-        ...payload,
-        yearId: termContext.yearId!,
-        termId: termContext.termId!,
-      },
-      effectivePolicy,
-      { startDate: term.startDate, endDate: term.endDate }
-    );
-
-    if (Object.keys(errors).length > 0) {
-      showError(Object.values(errors)[0]);
-      throw new Error("Validation failed");
-    }
-
     if (editingRequest) {
-      await updateExcuseRequest(editingRequest.id, payload);
+      await updateExcuseRequest(
+        editingRequest.id,
+        payload,
+        editingRequest.attachments,
+      );
       showSuccess(t("updated"));
     } else {
       await createExcuseRequest({
@@ -425,9 +401,25 @@ export default function AttendanceExcusesPage() {
 
   const handleEditRequest = async (request: ExcuseRequest) => {
     if (isReadOnly) return;
+    try {
+      const detailedRequest = await fetchExcuseRequestDetails(request.id);
+      setEditingRequest(detailedRequest);
+      setShowRequestModal(true);
+    } catch (error) {
+      console.error("Failed to load excuse request details", error);
+      showError(tCommon("error_loading"));
+    }
+  };
 
-    setEditingRequest(request);
-    setShowRequestModal(true);
+  const handleViewRequest = async (request: ExcuseRequest) => {
+    try {
+      const detailedRequest = await fetchExcuseRequestDetails(request.id);
+      setSelectedRequest(detailedRequest);
+      if (isMobile) setShowDetailsDrawer(true);
+    } catch (error) {
+      console.error("Failed to load excuse request details", error);
+      showError(tCommon("error_loading"));
+    }
   };
 
   const resetFilters = () => {
@@ -467,12 +459,7 @@ export default function AttendanceExcusesPage() {
     <ExcusesTable
       requests={requests}
       isReadOnly={isReadOnly}
-      onView={(request) => {
-        setSelectedRequest(request);
-        if (isMobile) {
-          setShowDetailsDrawer(true);
-        }
-      }}
+      onView={handleViewRequest}
       onApprove={(request) => openDecision(request, "APPROVE")}
       onReject={(request) => openDecision(request, "REJECT")}
       onEdit={handleEditRequest}
@@ -582,10 +569,7 @@ export default function AttendanceExcusesPage() {
           onClose={() => setShowDetailsDrawer(false)}
           onApprove={(request) => openDecision(request, "APPROVE")}
           onReject={(request) => openDecision(request, "REJECT")}
-          onEdit={(request) => {
-            setEditingRequest(request);
-            setShowRequestModal(true);
-          }}
+          onEdit={handleEditRequest}
         />
       </AttendanceBottomDrawer>
 
@@ -604,6 +588,7 @@ export default function AttendanceExcusesPage() {
           setShowRequestModal(false);
           setEditingRequest(null);
         }}
+        onRefresh={reloadRequests}
         onSave={handleSaveRequest}
       />
 

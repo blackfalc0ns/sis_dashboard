@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import {
   ClipboardList,
@@ -37,6 +37,7 @@ import { useBehaviorYearTermContext } from "@/features/behavior/shared/hooks/use
 import { getBehaviorOverview } from "@/features/behavior/services/behaviorApiService";
 import { behaviorUiError } from "@/features/behavior/services/behaviorErrors";
 import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
+import type { StructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import { fetchAllStudents, getStudentsByClassroomId } from "@/features/students-guardians/students/services/studentsService";
 import { validateDateRange } from "@/features/behavior/shared/utils/behaviorUiRules";
 import type {
@@ -136,8 +137,14 @@ export default function BehaviorOverviewPage() {
     occurredTo: undefined,
   });
 
+  const [scopeSelection, setScopeSelection] = useState({
+    stageId: "",
+    gradeId: "",
+    sectionId: "",
+  });
+
   // Dropdown options state
-  const [classrooms, setClassrooms] = useState<SelectOption[]>([]);
+  const [structure, setStructure] = useState<StructureTree | null>(null);
   const [allStudents, setAllStudents] = useState<SelectOption[]>([]);
   const [studentOptions, setStudentOptions] = useState<SelectOption[]>([]);
   const [fetchingOptions, setFetchingOptions] = useState(false);
@@ -158,12 +165,7 @@ export default function BehaviorOverviewPage() {
 
         if (cancelled) return;
 
-        // Flatten/extract classroom nodes from structure tree
-        const classOpts: SelectOption[] = (tree.classrooms || []).map((c) => ({
-          value: c.id,
-          label: isRTL ? (c.nameAr || c.name) : (c.nameEn || c.name),
-        }));
-        setClassrooms(classOpts);
+        setStructure(tree);
 
         // Map all loaded students
         const studOpts: SelectOption[] = studentsRes.map((s) => ({
@@ -175,10 +177,7 @@ export default function BehaviorOverviewPage() {
         }));
         setAllStudents(studOpts);
 
-        // If no classroom is currently selected, display all students
-        if (!filters.classroomId) {
-          setStudentOptions(studOpts);
-        }
+        setStudentOptions(studOpts);
       } catch (err) {
         console.error("Failed to load behavior overview dropdown options:", err);
         showError(tBehavior("messages.loadError") || "Failed to load options");
@@ -192,7 +191,33 @@ export default function BehaviorOverviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [yearId, termId, isRTL, showError, tBehavior, filters.classroomId]);
+  }, [yearId, termId, isRTL, showError, tBehavior]);
+
+  const stageOptions = useMemo<SelectOption[]>(
+    () => (structure?.stages ?? []).map((stage) => ({
+      value: stage.id,
+      label: isRTL ? (stage.nameAr || stage.name) : (stage.nameEn || stage.name),
+    })),
+    [structure, isRTL],
+  );
+  const gradeOptions = useMemo<SelectOption[]>(
+    () => (structure?.grades ?? [])
+      .filter((grade) => !scopeSelection.stageId || grade.stageId === scopeSelection.stageId)
+      .map((grade) => ({ value: grade.id, label: isRTL ? (grade.nameAr || grade.name) : (grade.nameEn || grade.name) })),
+    [scopeSelection.stageId, structure, isRTL],
+  );
+  const sectionOptions = useMemo<SelectOption[]>(
+    () => (structure?.sections ?? [])
+      .filter((section) => !scopeSelection.gradeId || section.gradeId === scopeSelection.gradeId)
+      .map((section) => ({ value: section.id, label: isRTL ? (section.nameAr || section.name) : (section.nameEn || section.name) })),
+    [scopeSelection.gradeId, structure, isRTL],
+  );
+  const classroomOptions = useMemo<SelectOption[]>(
+    () => (structure?.classrooms ?? [])
+      .filter((classroom) => !scopeSelection.sectionId || classroom.sectionId === scopeSelection.sectionId)
+      .map((classroom) => ({ value: classroom.id, label: isRTL ? (classroom.nameAr || classroom.name) : (classroom.nameEn || classroom.name) })),
+    [scopeSelection.sectionId, structure, isRTL],
+  );
 
   // Update student options when classroomId changes
   useEffect(() => {
@@ -281,6 +306,7 @@ export default function BehaviorOverviewPage() {
 
   // Reset only filters, preserving academicYearId and termId
   const handleReset = () => {
+    setScopeSelection({ stageId: "", gradeId: "", sectionId: "" });
     setFilters({
       classroomId: undefined,
       studentId: undefined,
@@ -290,6 +316,21 @@ export default function BehaviorOverviewPage() {
       occurredFrom: undefined,
       occurredTo: undefined,
     });
+  };
+
+  const handleStageChange = (stageId: string) => {
+    setScopeSelection({ stageId, gradeId: "", sectionId: "" });
+    setFilters((prev) => ({ ...prev, classroomId: undefined, studentId: undefined }));
+  };
+
+  const handleGradeChange = (gradeId: string) => {
+    setScopeSelection((prev) => ({ ...prev, gradeId, sectionId: "" }));
+    setFilters((prev) => ({ ...prev, classroomId: undefined, studentId: undefined }));
+  };
+
+  const handleSectionChange = (sectionId: string) => {
+    setScopeSelection((prev) => ({ ...prev, sectionId }));
+    setFilters((prev) => ({ ...prev, classroomId: undefined, studentId: undefined }));
   };
 
   const handleClassroomChange = (val: string) => {
@@ -408,7 +449,10 @@ export default function BehaviorOverviewPage() {
           <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
             {t("filters.title") || "Filters"}
           </div>
-          {(filters.classroomId ||
+          {(scopeSelection.stageId ||
+            scopeSelection.gradeId ||
+            scopeSelection.sectionId ||
+            filters.classroomId ||
             filters.studentId ||
             filters.type ||
             filters.severity ||
@@ -426,7 +470,11 @@ export default function BehaviorOverviewPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+          {/* Academic hierarchy */}
+          <Select label={isRTL ? "المرحلة" : "Stage"} placeholder={isRTL ? "كل المراحل" : "All stages"} value={scopeSelection.stageId} onChange={handleStageChange} options={[{ value: "", label: isRTL ? "كل المراحل" : "All stages" }, ...stageOptions]} searchable selectSize="sm" />
+          <Select label={isRTL ? "الصف" : "Grade"} placeholder={isRTL ? "كل الصفوف" : "All grades"} value={scopeSelection.gradeId} onChange={handleGradeChange} options={[{ value: "", label: isRTL ? "كل الصفوف" : "All grades" }, ...gradeOptions]} disabled={!scopeSelection.stageId} searchable selectSize="sm" />
+          <Select label={isRTL ? "الشعبة" : "Section"} placeholder={isRTL ? "كل الشعب" : "All sections"} value={scopeSelection.sectionId} onChange={handleSectionChange} options={[{ value: "", label: isRTL ? "كل الشعب" : "All sections" }, ...sectionOptions]} disabled={!scopeSelection.gradeId} searchable selectSize="sm" />
           {/* Classroom */}
           <Select
             label={t("filters.classroom") || "Classroom"}
@@ -435,8 +483,9 @@ export default function BehaviorOverviewPage() {
             onChange={handleClassroomChange}
             options={[
               { value: "", label: t("filters.allClassrooms") || (isRTL ? "جميع الفصول" : "All Classrooms") },
-              ...classrooms,
+              ...classroomOptions,
             ]}
+            disabled={!scopeSelection.sectionId}
             searchable
             selectSize="sm"
           />

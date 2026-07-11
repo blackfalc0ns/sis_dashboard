@@ -73,6 +73,7 @@ describe("attendanceAbsencesService", () => {
         dateTo: "2026-02-28",
         scopeType: "CLASSROOM",
         scopeKey: "classroom:classroom-1",
+        classroomId: "classroom-1",
       },
     });
   });

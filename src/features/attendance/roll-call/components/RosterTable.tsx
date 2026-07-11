@@ -19,6 +19,7 @@ interface RosterTableProps {
   entries: AttendanceEntry[];
   policy: AttendancePolicy | null;
   onEntryChange: (studentId: string, updates: Partial<AttendanceEntry>) => void;
+  onCreateExcuseRequest?: (studentId: string, reason: string, attachments: AttachmentMeta[]) => void | Promise<void>;
   isReadOnly: boolean;
   searchQuery?: string;
 }
@@ -28,6 +29,7 @@ export default function RosterTable({
   entries,
   policy,
   onEntryChange,
+  onCreateExcuseRequest,
   isReadOnly,
   searchQuery = "",
 }: RosterTableProps) {
@@ -67,8 +69,11 @@ export default function RosterTable({
     setExcuseModalOpen(true);
   };
 
-  const handleSaveExcuse = (reason: string, attachments: AttachmentMeta[]) => {
+  const handleSaveExcuse = async (reason: string, attachments: AttachmentMeta[]) => {
     if (selectedStudentId) {
+      if (onCreateExcuseRequest) {
+        await onCreateExcuseRequest(selectedStudentId, reason, attachments);
+      }
       onEntryChange(selectedStudentId, {
         excuseReason: reason,
         excuseAttachments: attachments,

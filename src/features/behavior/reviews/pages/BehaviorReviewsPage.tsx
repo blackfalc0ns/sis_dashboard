@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import DataTable from "@/components/ui/data-table/DataTable";
+import Input from "@/components/ui/input/Input";
+import Select from "@/components/ui/input/Select";
+import DatePicker from "@/components/ui/input/DatePicker";
+import Button from "@/components/ui/button/Button";
+import { X } from "lucide-react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useBehaviorYearTermContext } from "@/features/behavior/shared/hooks/useBehaviorYearTermContext";
 import { listBehaviorReviewQueue } from "@/features/behavior/services/behaviorApiService";
 import { behaviorUiError } from "@/features/behavior/services/behaviorErrors";
@@ -10,6 +16,10 @@ import BehaviorActionModals, {
   type BehaviorModalMode,
   type BehaviorModalTarget,
 } from "@/features/behavior/shared/components/BehaviorActionModals";
+import {
+  BehaviorCategorySearchSelect,
+  BehaviorCreatedBySearchSelect,
+} from "@/features/behavior/shared/components/BehaviorSearchSelects";
 import type {
   BehaviorRecord,
   BehaviorReviewQueueFilters,
@@ -31,24 +41,32 @@ export default function BehaviorReviewsPage() {
   const [reviewItems, setReviewItems] = useState<BehaviorReviewQueueItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<BehaviorReviewQueueFilters>({});
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebounce(searchInput, 350);
 
   const [modalMode, setModalMode] = useState<BehaviorModalMode | null>(null);
   const [modalTarget, setModalTarget] = useState<BehaviorModalTarget>({});
 
   const loadReviewQueue = useCallback(async () => {
     if (!yearId || !termId) return;
-    const filters: BehaviorReviewQueueFilters = { academicYearId: yearId, termId };
+    const requestFilters: BehaviorReviewQueueFilters = {
+      ...filters,
+      academicYearId: yearId,
+      termId,
+      search: debouncedSearch || undefined,
+    };
     setLoading(true);
     setError(null);
     try {
-      const res = await listBehaviorReviewQueue(filters);
+      const res = await listBehaviorReviewQueue(requestFilters);
       setReviewItems(res.items);
     } catch (error) {
       setError(behaviorUiError(error, t("messages.loadError"), t).message);
     } finally {
       setLoading(false);
     }
-  }, [yearId, termId, t]);
+  }, [debouncedSearch, filters, yearId, termId, t]);
 
   useEffect(() => {
     void loadReviewQueue();
@@ -81,10 +99,16 @@ export default function BehaviorReviewsPage() {
     setModalMode("reject-record");
   };
 
-  if (loading) return <StatePanel title={t("states.loading.title")} />;
   if (error) return <StatePanel title={error} />;
 
   const fmt = (iso?: string) => (iso ? new Date(iso).toLocaleDateString() : "—");
+
+  const updateFilter = <K extends keyof BehaviorReviewQueueFilters>(
+    key: K,
+    value: BehaviorReviewQueueFilters[K] | undefined,
+  ) => {
+    setFilters((previous) => ({ ...previous, [key]: value }));
+  };
 
   const columns = [
     {
@@ -158,6 +182,72 @@ export default function BehaviorReviewsPage() {
 
   return (
     <div className="p-4 space-y-4">
+      <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: "var(--border-color)" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Input
+            label={t("filters.search")}
+            placeholder={t("advancedFilters.searchReviewPlaceholder")}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            inputSize="sm"
+          />
+          <BehaviorCategorySearchSelect
+            label={t("advancedFilters.categoryId")}
+            value={filters.categoryId}
+            onChange={(value) => updateFilter("categoryId", value || undefined)}
+          />
+          <BehaviorCreatedBySearchSelect
+            label={t("advancedFilters.createdById")}
+            value={filters.createdById}
+            onChange={(value) => updateFilter("createdById", value || undefined)}
+          />
+          <Select
+            label={t("filters.type")}
+            value={filters.type ?? ""}
+            onChange={(value) => updateFilter("type", value ? (value as "positive" | "negative") : undefined)}
+            options={[{ value: "", label: t("filters.allTypes") }, { value: "positive", label: t("filters.positive") }, { value: "negative", label: t("filters.negative") }]}
+            selectSize="sm"
+          />
+          <Select
+            label={t("advancedFilters.severity")}
+            value={filters.severity ?? ""}
+            onChange={(value) => updateFilter("severity", value ? (value as "low" | "medium" | "high" | "critical") : undefined)}
+            options={[{ value: "", label: t("advancedFilters.allSeverities") }, { value: "low", label: t("category.low") }, { value: "medium", label: t("category.medium") }, { value: "high", label: t("category.high") }, { value: "critical", label: t("overview.critical") }]}
+            selectSize="sm"
+          />
+          <Select
+            label={t("filters.status")}
+            value={filters.status ?? ""}
+            onChange={(value) => updateFilter("status", value ? (value as "submitted" | "approved" | "rejected" | "cancelled") : undefined)}
+            options={[{ value: "", label: t("filters.allStatuses") }, { value: "submitted", label: t("filters.submitted") }, { value: "approved", label: t("filters.approved") }, { value: "rejected", label: t("filters.rejected") }, { value: "cancelled", label: t("status.cancelled") }]}
+            selectSize="sm"
+          />
+          <DatePicker label={t("filters.dateFrom")} value={filters.occurredFrom ? new Date(filters.occurredFrom) : undefined} onChange={(date) => updateFilter("occurredFrom", date?.toISOString())} />
+          <DatePicker label={t("filters.dateTo")} value={filters.occurredTo ? new Date(filters.occurredTo) : undefined} onChange={(date) => updateFilter("occurredTo", date?.toISOString())} />
+          <DatePicker label={t("advancedFilters.submittedFrom")} value={filters.submittedFrom ? new Date(filters.submittedFrom) : undefined} onChange={(date) => updateFilter("submittedFrom", date?.toISOString())} />
+          <DatePicker label={t("advancedFilters.submittedTo")} value={filters.submittedTo ? new Date(filters.submittedTo) : undefined} onChange={(date) => updateFilter("submittedTo", date?.toISOString())} />
+          <Select
+            label={t("advancedFilters.includeReviewed")}
+            value={filters.includeReviewed ? "true" : "false"}
+            onChange={(value) => updateFilter("includeReviewed", value === "true" ? true : undefined)}
+            options={[{ value: "false", label: t("filters.submitted") }, { value: "true", label: t("advancedFilters.includeReviewed") }]}
+            selectSize="sm"
+          />
+        </div>
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            leftIcon={<X className="w-4 h-4" />}
+            onClick={() => {
+              setSearchInput("");
+              setFilters({});
+            }}
+          >
+            {t("filters.reset")}
+          </Button>
+        </div>
+      </div>
       <DataTable
         columns={
           columns as unknown as {
@@ -172,6 +262,7 @@ export default function BehaviorReviewsPage() {
           }[]
         }
         data={reviewItems as unknown as Record<string, unknown>[]}
+        isLoading={loading}
         showPagination={true}
         itemsPerPage={15}
       />

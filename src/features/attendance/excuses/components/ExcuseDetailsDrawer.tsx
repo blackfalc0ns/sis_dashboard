@@ -11,6 +11,7 @@ import { getThresholdState } from "@/features/attendance/shared/policyThresholds
 import { formatAttendanceDateTime } from "@/features/attendance/utils/dateFormatting";
 import { formatFileSize } from "@/utils/upload/validateFile";
 import type { AttachmentMeta, ExcuseRequest } from "../types";
+import { formatExcuseDateRange } from "../utils/excusePresentation";
 
 interface ExcuseDetailsDrawerProps {
   request: ExcuseRequest | null;
@@ -100,11 +101,11 @@ export default function ExcuseDetailsDrawer({ request, effectivePolicy, isReadOn
             </div>
             <div className="text-sm space-y-1" style={{ color: "var(--text-primary)" }}>
               <div>{t("type")}: {getTypeLabel(request.type)}</div>
-              <div>{t("range")}: {request.dateFrom} → {request.dateTo}</div>
+              <div>{t("range")}: {formatExcuseDateRange(request.dateFrom, request.dateTo, locale)}</div>
               <div>
                 {t("periods")}: {
                   request.selectedPeriodIds && request.selectedPeriodIds.length > 0
-                    ? request.selectedPeriodIds.join(", ")
+                    ? tTable("selectedPeriods", { count: request.selectedPeriodIds.length })
                     : request.periodIndexes && request.periodIndexes.length > 0
                       ? request.periodIndexes.map((p) => `P${p}`).join(", ")
                       : t("allPolicyPeriods")

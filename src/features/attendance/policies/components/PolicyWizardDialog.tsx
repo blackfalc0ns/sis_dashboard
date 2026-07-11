@@ -12,9 +12,11 @@ import {
   isAttendancePolicyConflict,
   type PolicyNameValidationResult,
 } from "../services/attendancePolicyService";
-import { getScopeSelectionMissingFields } from "@/features/attendance/shared/attendanceScope";
-import { fetchTimetableConfigs } from "@/features/academics/timetable/services/timetableConfigService";
-import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
+import {
+  getScopeSelectionMissingFields,
+  isScopeSelectionComplete,
+} from "@/features/attendance/shared/attendanceScope";
+import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
 import Step1BasicInfo from "./wizard/Step1BasicInfo";
 import Step2Scope from "./wizard/Step2Scope";
 import Step3ModeComputation from "./wizard/Step3ModeComputation";
@@ -128,8 +130,8 @@ export default function PolicyWizardDialog({
         notesEn: policy.notesEn || "",
         scopeType: policy.scopeType,
         scopeIds: policy.scopeIds || {},
-        mode: "PERIOD", // Force PERIOD mode
-        dailyComputationStrategy: undefined, // Not used anymore
+        mode: policy.mode,
+        dailyComputationStrategy: policy.dailyComputationStrategy || "MANUAL",
         selectedPeriodIds: policy.selectedPeriodIds || [],
         lateThresholdMinutes: policy.lateThresholdMinutes,
         earlyLeaveThresholdMinutes: policy.earlyLeaveThresholdMinutes,
@@ -165,8 +167,8 @@ export default function PolicyWizardDialog({
         notesEn: "",
         scopeType: "SCHOOL",
         scopeIds: {},
-        mode: "PERIOD", // Force PERIOD mode
-        dailyComputationStrategy: undefined, // Not used anymore
+        mode: "DAILY",
+        dailyComputationStrategy: "MANUAL",
         selectedPeriodIds: [],
         lateThresholdMinutes: 15,
         earlyLeaveThresholdMinutes: 15,
@@ -194,7 +196,7 @@ export default function PolicyWizardDialog({
   }, [isOpen, policy, term]);
 
   useEffect(() => {
-    if (!isOpen || availablePeriods.length === 0) return;
+    if (!isOpen || formData.mode !== "PERIOD" || availablePeriods.length === 0) return;
 
     setFormData((prev) => {
       const selectedPeriodIds = prev.selectedPeriodIds || [];
@@ -222,76 +224,61 @@ export default function PolicyWizardDialog({
         absentIfMissedPeriodsCount: prev.absentIfMissedPeriodsCount || nextPeriodIds.length || 1,
       };
     });
-  }, [isOpen, policy, availablePeriods]);
+  }, [isOpen, policy, availablePeriods, formData.mode]);
 
   // Load periods when dialog opens or scope changes (always needed now)
   useEffect(() => {
-    if (!isOpen || !term) return;
+    if (!isOpen || !term || formData.mode !== "PERIOD") {
+      setAvailablePeriods([]);
+      return;
+    }
 
     loadAvailablePeriods();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, formData.scopeType, formData.scopeIds, term]);
+  }, [isOpen, formData.mode, formData.scopeType, formData.scopeIds, term]);
 
   const loadAvailablePeriods = async () => {
     if (!term) return;
 
+    // Do not query timetable data while the hierarchy target is incomplete.
+    // The request should start only after the selected policy scope is valid.
+    if (!isScopeSelectionComplete(formData.scopeType, formData.scopeIds)) {
+      setAvailablePeriods([]);
+      setIsLoadingPeriods(false);
+      return;
+    }
+
     setIsLoadingPeriods(true);
     try {
-      const gradeId =
-        formData.scopeType === "GRADE" ||
-        formData.scopeType === "SECTION" ||
-        formData.scopeType === "CLASSROOM"
-          ? formData.scopeIds?.gradeId
-          : undefined;
-      const sectionId =
-        formData.scopeType === "SECTION" || formData.scopeType === "CLASSROOM"
+      const targetId = formData.scopeType === "GRADE"
+        ? formData.scopeIds?.gradeId
+        : formData.scopeType === "SECTION"
           ? formData.scopeIds?.sectionId
-          : undefined;
-      const classroomId =
-        formData.scopeType === "CLASSROOM"
-          ? formData.scopeIds?.classroomId
-          : undefined;
+          : formData.scopeType === "CLASSROOM"
+            ? formData.scopeIds?.classroomId
+            : undefined;
 
-      const configs = await fetchTimetableConfigs({
+      // Load only the selected policy target. TERM/STAGE/SCHOOL configs are
+      // not valid timetable lookup targets on the current backend contract.
+      if (!targetId || !["GRADE", "SECTION", "CLASSROOM"].includes(formData.scopeType)) {
+        setAvailablePeriods([]);
+        return;
+      }
+
+      const targetScopeType = formData.scopeType as "GRADE" | "SECTION" | "CLASSROOM";
+
+      const targetConfig = await fetchTimetableConfig({
         academicYearId: formData.yearId || term.yearId,
         termId: term.id,
-        gradeId,
-        sectionId,
-        classroomId,
+        scopeType: targetScopeType,
+        ...(targetScopeType === "GRADE" ? { gradeId: targetId } : {}),
+        ...(targetScopeType === "SECTION" ? { sectionId: targetId } : {}),
+        ...(targetScopeType === "CLASSROOM" ? { classroomId: targetId } : {}),
       });
 
-      // Resolve config based on scope
-      const termConfig = configs.find((c) => c.scopeType === "TERM") || null;
-      let gradeConfig = null;
-      let sectionConfig = null;
-      let classroomConfig = null;
-
-      if (formData.scopeType === "CLASSROOM" && classroomId) {
-        classroomConfig =
-          configs.find(
-            (c) => c.scopeType === "CLASSROOM" && c.scopeId === classroomId
-          ) || null;
-      }
-
-      if ((formData.scopeType === "SECTION" || formData.scopeType === "CLASSROOM") && sectionId) {
-        sectionConfig =
-          configs.find(
-            (c) =>
-              c.scopeType === "SECTION" && c.scopeId === sectionId
-          ) || null;
-        gradeConfig =
-          configs.find(
-            (c) => c.scopeType === "GRADE" && c.scopeId === gradeId
-          ) || null;
-      } else if (formData.scopeType === "GRADE" && gradeId) {
-        gradeConfig =
-          configs.find(
-            (c) => c.scopeType === "GRADE" && c.scopeId === gradeId
-          ) || null;
-      }
-
-      const resolved = resolveTimetableConfig(termConfig, gradeConfig, sectionConfig, classroomConfig);
-      setAvailablePeriods(resolved.periods);
+      // A missing target config must remain empty; do not silently fall back
+      // to synthetic default periods for a real policy scope.
+      setAvailablePeriods(targetConfig?.periods || []);
     } catch (error) {
       console.error("Failed to load periods:", error);
       setAvailablePeriods([]);
@@ -394,7 +381,7 @@ export default function PolicyWizardDialog({
       for (const field of getScopeSelectionMissingFields(formData.scopeType, formData.scopeIds)) {
         newErrors[field] = tValidation("required");
       }
-    } else if (step === 2) {
+    } else if (step === 2 && formData.mode === "PERIOD") {
       // Step 3: Period Selection (always required now)
       if (!formData.selectedPeriodIds || formData.selectedPeriodIds.length === 0) {
         newErrors.selectedPeriodIds = tValidation("periodsRequired");
@@ -409,12 +396,14 @@ export default function PolicyWizardDialog({
       }
       
       // Validate absentIfMissedPeriodsCount (required now)
-      if (
+      if (formData.mode === "PERIOD" && (
         formData.absentIfMissedPeriodsCount === undefined ||
         formData.absentIfMissedPeriodsCount < 1
-      ) {
+      )) {
         newErrors.absentIfMissedPeriodsCount = tValidation("thresholdRequired");
       } else if (
+        formData.mode === "PERIOD" &&
+        formData.absentIfMissedPeriodsCount !== undefined &&
         formData.selectedPeriodIds &&
         formData.absentIfMissedPeriodsCount > formData.selectedPeriodIds.length
       ) {

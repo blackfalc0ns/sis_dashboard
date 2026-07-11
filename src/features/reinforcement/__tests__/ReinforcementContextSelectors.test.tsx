@@ -11,7 +11,7 @@ const academicMocks = vi.hoisted(() => ({
 }));
 
 const subjectMocks = vi.hoisted(() => ({
-  fetchSubjects: vi.fn(),
+  fetchSubjectAllocations: vi.fn(),
 }));
 
 const studentMocks = vi.hoisted(() => ({
@@ -29,7 +29,7 @@ vi.mock("@/features/academics/services/academicStructureApiService", () => ({
 }));
 
 vi.mock("@/features/academics/subjects/services/subjectsService", () => ({
-  fetchSubjects: subjectMocks.fetchSubjects,
+  fetchSubjectAllocations: subjectMocks.fetchSubjectAllocations,
 }));
 
 vi.mock("@/features/students-guardians/students/services/studentsService", () => ({
@@ -122,7 +122,7 @@ describe("Reinforcement context selector components", () => {
     academicMocks.fetchAcademicStructureTree.mockReset().mockResolvedValue(
       structureTree,
     );
-    subjectMocks.fetchSubjects.mockReset().mockResolvedValue([
+    subjectMocks.fetchSubjectAllocations.mockReset().mockResolvedValue([
       { id: "subject-1", termId: "term-1", nameEn: "Math", nameAr: "رياضيات" },
     ]);
     studentMocks.fetchStudentsWithEnrollmentForContext
@@ -163,19 +163,16 @@ describe("Reinforcement context selector components", () => {
     expect(screen.getByText("Section")).toBeInTheDocument();
     expect(screen.getByText("Classroom")).toBeInTheDocument();
     expect(screen.getByText("Subject")).toBeInTheDocument();
-    expect(screen.getByText("Student")).toBeInTheDocument();
+    expect(screen.getAllByText("Student").length).toBeGreaterThan(0);
 
     await waitFor(() => {
-      expect(academicMocks.fetchAcademicStructureTree).toHaveBeenCalledWith({
-        yearId: "year-1",
+      expect(filterOptionMocks.getReinforcementFilterOptions).toHaveBeenCalledWith({
+        academicYearId: "year-1",
         termId: "term-1",
       });
-      expect(subjectMocks.fetchSubjects).toHaveBeenCalledWith("term-1");
-      expect(studentMocks.fetchStudentsWithEnrollmentForContext).toHaveBeenCalledWith(
-        "year-1",
-        "term-1",
-      );
-      expect(filterOptionMocks.getReinforcementFilterOptions).not.toHaveBeenCalled();
+      expect(academicMocks.fetchAcademicStructureTree).not.toHaveBeenCalled();
+      expect(subjectMocks.fetchSubjectAllocations).not.toHaveBeenCalled();
+      expect(studentMocks.fetchStudentsWithEnrollmentForContext).not.toHaveBeenCalled();
     });
   });
 
@@ -190,8 +187,8 @@ describe("Reinforcement context selector components", () => {
     );
 
     expect(await screen.findByText("Target scope")).toBeInTheDocument();
-    expect(screen.getByText("Target")).toBeInTheDocument();
-    expect(screen.getByText("Student")).toBeInTheDocument();
+    expect(screen.getByText("Stage")).toBeInTheDocument();
+    expect(screen.getAllByText("Student").length).toBeGreaterThan(0);
     expect(screen.getByText("No targets selected yet.")).toBeInTheDocument();
 
     await waitFor(() => {
@@ -227,12 +224,18 @@ describe("Reinforcement context selector components", () => {
       expect(filterOptionMocks.getReinforcementFilterOptions).toHaveBeenCalled();
     });
 
-    await user.click(
-      screen.getByRole("button", { name: "Target" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Stage" }));
+    await user.click(await screen.findByText("Primary"));
+    await user.click(screen.getByRole("button", { name: "Grade" }));
+    await user.click(await screen.findByText("Grade 1"));
+    await user.click(screen.getByRole("button", { name: "Section" }));
+    await user.click(await screen.findByText("Section A"));
+    await user.click(screen.getByRole("button", { name: "Classroom" }));
+    await user.click(await screen.findByText("Classroom 101"));
+    await user.click(screen.getByRole("button", { name: "Student" }));
     await user.click(await screen.findByText("Ahmed Hassan"));
     await user.click(screen.getByRole("button", { name: /Add target/i }));
 
-    expect(await screen.findByText("This target is already selected.")).toBeInTheDocument();
+    expect((await screen.findAllByText("This target is already selected.")).length).toBeGreaterThan(0);
   });
 });

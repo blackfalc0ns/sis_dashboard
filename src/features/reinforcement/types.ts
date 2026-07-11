@@ -181,14 +181,26 @@ export interface ReinforcementTask {
 
 export interface ListReinforcementTasksParams {
   academicYearId?: string;
+  yearId?: string;
   termId?: string;
   subjectId?: string;
   studentId?: string;
   classroomId?: string;
+  sectionId?: string;
+  gradeId?: string;
+  stageId?: string;
   status?: ReinforcementTaskStatus | string;
+  source?: string;
+  targetScope?: ReinforcementTargetScope | string;
+  scope?: ReinforcementTargetScope | string;
+  targetId?: string;
+  dueFrom?: string;
+  dueTo?: string;
+  dueDate?: string;
   includeCancelled?: boolean;
   search?: string;
   page?: number;
+  offset?: number;
   limit?: number;
   [key: string]: string | number | boolean | undefined;
 }

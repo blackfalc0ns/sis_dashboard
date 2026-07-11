@@ -87,8 +87,12 @@ export interface BehaviorCategoryUpdateResponse {
 
 export interface BehaviorCategoryListFilters {
   type?: BehaviorType;
+  severity?: BehaviorSeverity;
   isActive?: boolean;
   search?: string;
+  includeDeleted?: boolean;
+  limit?: number;
+  offset?: number;
 }
 
 /** GET /behavior/categories → items shape */
@@ -347,6 +351,8 @@ export interface BehaviorReviewQueueFilters {
   occurredTo?: string;
   submittedFrom?: string;
   submittedTo?: string;
+  createdById?: string;
+  includeReviewed?: boolean;
   search?: string;
   limit?: number;
   offset?: number;

@@ -15,6 +15,12 @@ vi.mock("next-intl", () => ({
   useTranslations: () => mockT,
 }));
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/behavior/categories",
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 // Mock behavior year context
 const mockContext = {
   isReadOnly: false,
@@ -99,6 +105,21 @@ describe("BehaviorCategoriesPage - Category Deletion", () => {
       items: mockCategories,
       total: 2,
     } as unknown as BehaviorCategoryListResponse);
+  });
+
+  it("keeps the table visible when there are no categories", async () => {
+    vi.mocked(listBehaviorCategories).mockResolvedValue({
+      items: [],
+      total: 0,
+    } as unknown as BehaviorCategoryListResponse);
+
+    render(<BehaviorCategoriesPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("no_data_available")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("category.code")).toBeInTheDocument();
   });
 
   it("renders delete buttons for active categories if not read-only", async () => {

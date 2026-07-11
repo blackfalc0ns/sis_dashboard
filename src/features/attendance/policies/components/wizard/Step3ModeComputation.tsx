@@ -3,6 +3,7 @@
 import { useTranslations, useLocale } from "next-intl";
 import { Info } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import Select from "@/components/ui/input/Select";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import type { PolicyFormData } from "../../types";
 import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
@@ -33,6 +34,22 @@ export default function Step3ModeComputation({
 
   return (
     <div className="space-y-6">
+      <Select
+        label={t("fields.mode")}
+        value={formData.mode}
+        onChange={(value) => {
+          const mode = value as PolicyFormData["mode"];
+          onFieldChange("mode", mode);
+          if (mode === "DAILY") {
+            onFieldChange("selectedPeriodIds", []);
+            onFieldChange("dailyComputationStrategy", "MANUAL");
+          }
+        }}
+        disabled={isReadOnly}
+        options={[{ value: "DAILY", label: t("mode.daily") }, { value: "PERIOD", label: t("mode.period") }]}
+      />
+
+      {formData.mode === "PERIOD" && <>
       {/* Info Box */}
       <div
         className="rounded-lg border p-4 flex items-start gap-3"
@@ -186,6 +203,7 @@ export default function Step3ModeComputation({
           </>
         )}
       </div>
+      </>}
     </div>
   );
 }

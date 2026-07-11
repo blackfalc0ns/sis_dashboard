@@ -72,6 +72,21 @@ function resolveScopeKey(scopeType: LateEarlyFilters["scopeType"], scopeIds?: At
   return "school";
 }
 
+function resolveScopeParams(scopeIds?: AttendanceScopeIds) {
+  return {
+    stageId: scopeIds?.stageId,
+    gradeId: scopeIds?.gradeId,
+    sectionId: scopeIds?.sectionId,
+    classroomId: scopeIds?.classroomId,
+  };
+}
+
+function omitUndefined<T extends Record<string, unknown>>(value: T) {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined),
+  );
+}
+
 function mapIncident(item: unknown, fallback: { yearId: string; termId: string }): Incident {
   const object = asRecord(item);
   const status = String(object.status || object.type || "LATE").toUpperCase();
@@ -133,15 +148,16 @@ function applyClientFilters(incidents: Incident[], filters: Partial<LateEarlyFil
 export async function fetchIncidents(params: FetchIncidentsParams): Promise<Incident[]> {
   const requestedStatus = params.type && params.type !== "ALL" ? params.type : undefined;
   const response = await apiGet<unknown>("/attendance/absences", {
-    params: {
+    params: omitUndefined({
       academicYearId: params.yearId,
       termId: params.termId,
       dateFrom: params.dateFrom,
       dateTo: params.dateTo,
       scopeType: params.scopeType,
       scopeKey: params.scopeType ? resolveScopeKey(params.scopeType, params.scopeIds) : undefined,
+      ...resolveScopeParams(params.scopeIds),
       status: requestedStatus,
-    },
+    }),
   });
 
   return applyClientFilters(
