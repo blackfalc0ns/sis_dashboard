@@ -17,7 +17,6 @@ type GradeRuleTableRow = GradeRuleRecord & Record<string, unknown>;
 export default function GradesRulesListPage() {
   const t = useTranslations("academics.grades.rules");
   const tGrades = useTranslations("academics.grades");
-  const tCommon = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
   const { showError } = useToast();
@@ -69,12 +68,12 @@ export default function GradesRulesListPage() {
     },
     {
       key: "updatedAt",
-      label: tCommon("last_updated"),
+      label: t("title"),
       render: (_value, rule) => rule.updatedAt
         ? new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(rule.updatedAt))
         : "—",
     },
-  ], [locale, t, tCommon, tGrades]);
+  ], [locale, t, tGrades]);
 
   if (isInitializing) {
     return <div className="flex min-h-[320px] items-center justify-center"><MainLoader /></div>;
@@ -88,7 +87,7 @@ export default function GradesRulesListPage() {
           <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>{t("subtitle")}</p>
         </div>
         <Button leftIcon={<Plus className="h-4 w-4" />} onClick={() => navigateWithContext("/new")}>
-          {tCommon("create")}
+          {t("form.createTitle")}
         </Button>
       </div>
 
@@ -97,8 +96,8 @@ export default function GradesRulesListPage() {
           <EmptyState
             icon={<SlidersHorizontal className="h-10 w-10" />}
             title={t("title")}
-            message={tCommon("no_data_available")}
-            action={<Button size="sm" onClick={() => navigateWithContext("/new")}>{tCommon("create")}</Button>}
+            message={t("empty")}
+            action={<Button size="sm" onClick={() => navigateWithContext("/new")}>{t("form.createTitle")}</Button>}
           />
         ) : (
           <DataTable

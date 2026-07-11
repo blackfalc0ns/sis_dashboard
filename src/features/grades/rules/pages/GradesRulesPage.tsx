@@ -23,6 +23,7 @@ import type {
   GradeRoundingMode,
   GradeRuleRecord,
 } from "../types";
+import { findRuleForEditor } from "../utils/rulesRoute";
 
 const EMPTY_SCOPES: Record<ExamScopeType, ScopeEntityOption[]> = {
   school: [],
@@ -57,9 +58,15 @@ function isSelectedRuleScope(rule: GradeRuleRecord, scopeType: ExamScopeType, sc
   return rule.scopeType === scopeType && rule.scopeId === scopeId;
 }
 
-export default function GradesRulesPage() {
+interface GradesRulesPageProps {
+  mode?: "create" | "edit";
+  ruleId?: string;
+}
+
+export default function GradesRulesPage({ mode = "create", ruleId }: GradesRulesPageProps) {
   const t = useTranslations("academics.grades.rules");
   const tGrades = useTranslations("academics.grades");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -72,6 +79,7 @@ export default function GradesRulesPage() {
   const [selectedScopeId, setSelectedScopeId] = useState("");
   const [selectedScopeIds, setSelectedScopeIds] = useState<Partial<Record<ExamScopeType, string>>>({});
   const [rules, setRules] = useState<GradeRuleRecord[]>([]);
+  const [routeRule, setRouteRule] = useState<GradeRuleRecord | null>(null);
   const [effectiveRule, setEffectiveRule] = useState<EffectiveGradeRule | null>(null);
   const [passMark, setPassMark] = useState("50");
   const [rounding, setRounding] = useState<GradeRoundingMode>("DECIMAL_2");
@@ -79,6 +87,7 @@ export default function GradesRulesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const filtersHydratedRef = useRef(false);
   const filtersContextRef = useRef<string | null>(null);
+  const editHydratedRef = useRef(false);
 
   const availableScopes = scopes[selectedScopeType];
   const ruleScopeTypes = scopeTypes.filter((scopeType) =>
@@ -92,22 +101,41 @@ export default function GradesRulesPage() {
       ) ?? null,
     [rules, selectedScopeId, selectedScopeType],
   );
+  const selectedRule = mode === "edit" ? routeRule : explicitRule;
+
+  const returnToList = useCallback(() => {
+    router.push(`/${locale}/grades/rules?year=${academicYearId}&term=${termId}`);
+  }, [academicYearId, locale, router, termId]);
 
   const loadRules = useCallback(async () => {
-    if (!academicYearId || !termId || (selectedScopeType !== "school" && !selectedScopeId)) return;
+    if (!filtersHydratedRef.current || !academicYearId || !termId || (selectedScopeType !== "school" && !selectedScopeId)) return;
     setIsLoading(true);
     try {
-      const [ruleList, effective] = await Promise.all([
-        fetchGradeRules(academicYearId, termId),
-        fetchEffectiveGradeRule({
-          academicYearId,
-          termId,
-          scopeType: selectedScopeType,
-          scopeId: selectedScopeId,
-          gradeId: selectedScopeType === "grade" ? selectedScopeId : undefined,
-        }),
-      ]);
+      const ruleList = await fetchGradeRules(academicYearId, termId);
       setRules(ruleList);
+      if (mode === "edit" && !editHydratedRef.current) {
+        const rule = findRuleForEditor(ruleList, ruleId);
+        if (!rule) {
+          showError(tCommon("error_loading"));
+          returnToList();
+          return;
+        }
+        editHydratedRef.current = true;
+        setRouteRule(rule);
+        setSelectedScopeType(rule.scopeType);
+        setSelectedScopeId(rule.scopeId);
+        setSelectedScopeIds(getScopePath(scopes, rule.scopeType, rule.scopeId));
+        setPassMark(String(rule.passMark));
+        setRounding(rule.rounding);
+        return;
+      }
+      const effective = await fetchEffectiveGradeRule({
+        academicYearId,
+        termId,
+        scopeType: selectedScopeType,
+        scopeId: selectedScopeId,
+        gradeId: selectedScopeType === "grade" ? selectedScopeId : undefined,
+      });
       setEffectiveRule(effective);
       const selectedRule =
         ruleList.find(
@@ -122,10 +150,15 @@ export default function GradesRulesPage() {
     }
   }, [
     academicYearId,
+    mode,
+    returnToList,
+    ruleId,
+    scopes,
     selectedScopeId,
     selectedScopeType,
     showError,
     tGrades,
+    tCommon,
     termId,
   ]);
 
@@ -194,8 +227,8 @@ export default function GradesRulesPage() {
     }
     try {
       setIsSaving(true);
-      if (explicitRule) {
-        await updateGradeRule(explicitRule.id, {
+      if (mode === "edit" && routeRule) {
+        await updateGradeRule(routeRule.id, {
           passMark: numericPassMark,
           gradingScale: "PERCENTAGE",
           rounding,
@@ -212,8 +245,8 @@ export default function GradesRulesPage() {
           rounding,
         });
       }
-      await loadRules();
       showSuccess(t("messages.saved"));
+      returnToList();
     } catch (error) {
       showError(tGrades(`errors.${mapGradesApiError(error)}`));
     } finally {
@@ -225,9 +258,12 @@ export default function GradesRulesPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div>
+      <div className="flex items-start justify-between gap-4">
+        <div>
         <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>{t("title")}</h1>
         <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>{t("subtitle")}</p>
+        </div>
+        <Button variant="secondary" onClick={returnToList}>{tCommon("cancel")}</Button>
       </div>
 
       <section className="rounded-lg border p-4" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface-color)" }}>
@@ -307,7 +343,7 @@ export default function GradesRulesPage() {
             <div className="mb-5 flex items-center gap-3">
               <ShieldCheck className="h-5 w-5 text-primary" />
               <div>
-                <h2 className="font-semibold" style={{ color: "var(--text-primary)" }}>{explicitRule ? t("form.editTitle") : t("form.createTitle")}</h2>
+                <h2 className="font-semibold" style={{ color: "var(--text-primary)" }}>{selectedRule ? t("form.editTitle") : t("form.createTitle")}</h2>
                 <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{t("form.description")}</p>
               </div>
             </div>

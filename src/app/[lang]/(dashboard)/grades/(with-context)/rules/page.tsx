@@ -1,5 +1,5 @@
-import GradesRulesPage from "@/features/grades/rules/pages/GradesRulesPage";
+import GradesRulesListPage from "@/features/grades/rules/pages/GradesRulesListPage";
 
 export default function Page() {
-  return <GradesRulesPage />;
+  return <GradesRulesListPage />;
 }
