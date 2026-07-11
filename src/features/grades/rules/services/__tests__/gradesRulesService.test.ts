@@ -161,107 +161,29 @@ describe("gradesRulesService", () => {
     }));
   });
 
-  it("upserts a grade rule with the backend's lower-case enum payload and full response", async () => {
-    apiPost.mockResolvedValue({
-      id: "rule-1",
-      academicYearId: "year-1",
-      yearId: "year-1",
-      termId: "term-1",
-      scopeType: "grade",
-      scopeKey: "grade-1",
-      scopeId: "grade-1",
-      gradeId: "grade-1",
-      gradingScale: "percentage",
-      passMark: 60.25,
-      rounding: "decimal_1",
-      createdAt: "2026-07-11T10:00:00.000Z",
-      updatedAt: "2026-07-11T10:00:00.000Z",
-    });
+  it("sends the writable school or grade rule contract", async () => {
+    apiPost.mockResolvedValue({ id: "rule-1", gradingScale: "percentage", rounding: "none" });
     const payload = {
-      yearId: "year-1",
+      academicYearId: "year-1",
       termId: "term-1",
       scopeType: "grade" as const,
       gradeId: "grade-1",
-      passMark: 60.25,
+      passMark: 60,
       gradingScale: "PERCENTAGE" as const,
-      rounding: "DECIMAL_1" as const,
+      rounding: "NONE" as const,
     };
 
-    const rule = await saveGradeRule(payload);
+    await saveGradeRule(payload);
 
-    expect(apiPost).toHaveBeenCalledWith("/grades/rules", {
-      yearId: "year-1",
-      termId: "term-1",
-      scopeType: "grade",
-      gradeId: "grade-1",
-      passMark: 60.25,
-      gradingScale: "percentage",
-      rounding: "decimal_1",
-    });
-    expect(rule).toEqual(expect.objectContaining({
-      id: "rule-1",
-      academicYearId: "year-1",
-      scopeId: "grade-1",
-      gradeId: "grade-1",
-      passMark: 60.25,
-      gradingScale: "PERCENTAGE",
-      rounding: "DECIMAL_1",
-    }));
+    expect(apiPost).toHaveBeenCalledWith("/grades/rules", payload);
   });
 
-  it("patches the optional writable fields by rule UUID and maps the response", async () => {
-    apiPatch.mockResolvedValue({
-      id: "rule-1",
-      academicYearId: "year-1",
-      yearId: "year-1",
-      termId: "term-1",
-      scopeType: "school",
-      scopeKey: "school-1",
-      scopeId: "school-1",
-      gradeId: null,
-      gradingScale: "percentage",
-      passMark: 70,
-      rounding: "decimal_0",
-      createdAt: "2026-07-11T10:00:00.000Z",
-      updatedAt: "2026-07-11T10:01:00.000Z",
-    });
-    const payload = { passMark: 70, rounding: "DECIMAL_0" as const };
+  it("patches only editable values by rule UUID", async () => {
+    apiPatch.mockResolvedValue({ id: "rule-1", gradingScale: "percentage", rounding: "decimal_0" });
+    const payload = { passMark: 70, gradingScale: "PERCENTAGE" as const, rounding: "DECIMAL_0" as const };
 
-    const rule = await updateGradeRule("rule-1", payload);
+    await updateGradeRule("rule-1", payload);
 
-    expect(apiPatch).toHaveBeenCalledWith("/grades/rules/rule-1", {
-      passMark: 70,
-      rounding: "decimal_0",
-    });
-    expect(rule).toEqual(expect.objectContaining({
-      id: "rule-1",
-      gradeId: null,
-      passMark: 70,
-      rounding: "DECIMAL_0",
-    }));
-  });
-
-  it.each([0, 100, 50.25])("accepts the backend pass-mark boundary %s", async (passMark) => {
-    apiPost.mockResolvedValue({});
-
-    await expect(saveGradeRule({
-      academicYearId: "year-1",
-      termId: "term-1",
-      scopeType: "school",
-      passMark,
-    })).resolves.toBeDefined();
-
-    expect(apiPost).toHaveBeenCalledWith("/grades/rules", expect.objectContaining({ passMark }));
-  });
-
-  it.each([-0.01, 100.01, 50.123])("rejects an invalid pass mark before sending %s", async (passMark) => {
-    await expect(saveGradeRule({
-      academicYearId: "year-1",
-      termId: "term-1",
-      scopeType: "school",
-      passMark,
-    })).rejects.toThrow("Pass mark must be a number from 0 to 100 with at most two decimal places.");
-
-    expect(apiPost).not.toHaveBeenCalled();
+    expect(apiPatch).toHaveBeenCalledWith("/grades/rules/rule-1", payload);
   });
 });

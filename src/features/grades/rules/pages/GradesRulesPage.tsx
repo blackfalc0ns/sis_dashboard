@@ -97,19 +97,13 @@ export default function GradesRulesPage({
         rounding,
       };
       if (editing) await updateGradeRule(editing.id, values);
-      else if (scopeType === "grade")
-        await saveGradeRule({
-          academicYearId,
-          termId,
-          scopeType,
-          gradeId,
-          ...values,
-        });
       else
         await saveGradeRule({
           academicYearId,
           termId,
           scopeType,
+          gradeId: scopeType === "grade" ? gradeId : undefined,
+          scopeId: scopeType === "grade" ? gradeId : undefined,
           ...values,
         });
       showSuccess(t("messages.saved"));
