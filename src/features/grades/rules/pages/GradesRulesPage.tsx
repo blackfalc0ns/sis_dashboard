@@ -78,6 +78,7 @@ export default function GradesRulesPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const filtersHydratedRef = useRef(false);
+  const filtersContextRef = useRef<string | null>(null);
 
   const availableScopes = scopes[selectedScopeType];
   const ruleScopeTypes = scopeTypes.filter((scopeType) =>
@@ -138,9 +139,12 @@ export default function GradesRulesPage() {
   useEffect(() => {
     if (!academicYearId || !termId) return;
     const loadFilters = async () => {
+      const contextKey = `${academicYearId}:${termId}`;
+      if (filtersContextRef.current === contextKey) return;
       setIsLoading(true);
       try {
         const filters = await fetchGradesFiltersData(academicYearId, termId);
+        filtersContextRef.current = contextKey;
         const availableRuleScopeTypes = filters.scopeTypes.filter((scopeType) =>
           RULE_WRITE_SCOPE_TYPES.includes(scopeType),
         );
