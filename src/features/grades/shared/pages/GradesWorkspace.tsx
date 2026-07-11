@@ -54,6 +54,7 @@ import {
 } from "../utils/gradesExport";
 import { useGradesYearTermLayoutContext } from "@/features/grades/hooks/GradesYearTermLayoutContext";
 import { usePermissions } from "@/hooks/usePermissions";
+import { fetchSubjectAllocations, type SubjectAllocation } from "@/features/academics/subjects/services/subjectsService";
 
 interface GradesWorkspaceProps {
   view: "overview" | "assessments" | "gradebook";
@@ -121,7 +122,8 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     section: [],
     classroom: [],
   });
-  const [subjects, setSubjects] = useState<Array<{ id: string; name: string; nameAr: string; nameEn: string }>>([]);
+  const [allSubjects, setAllSubjects] = useState<Array<{ id: string; name: string; nameAr: string; nameEn: string }>>([]);
+  const [subjectAllocations, setSubjectAllocations] = useState<SubjectAllocation[]>([]);
   const [selectedScopeType, setSelectedScopeType] = useState<ExamScopeType>("school");
   const [selectedScopeId, setSelectedScopeId] = useState("");
   const [selectedScopeIds, setSelectedScopeIds] = useState<Partial<Record<ExamScopeType, string>>>({});
@@ -191,6 +193,26 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     [scopeEntitiesByType, selectedScopeType],
   );
 
+  const subjects = useMemo(() => {
+    const gradeId = selectedScopeIds.grade || (selectedScopeType === "grade" ? selectedScopeId : "");
+    const stageId = selectedScopeIds.stage || (selectedScopeType === "stage" ? selectedScopeId : "");
+    const gradeIds = gradeId
+      ? new Set([gradeId])
+      : stageId
+        ? new Set(
+          (scopeEntitiesByType.grade || [])
+            .filter((grade) => grade.parentId === stageId)
+            .map((grade) => grade.id),
+        )
+        : null;
+    const allocatedSubjectIds = new Set(
+      subjectAllocations
+        .filter((allocation) => !gradeIds || gradeIds.has(allocation.gradeId))
+        .map((allocation) => allocation.subjectId),
+    );
+    return allSubjects.filter((subject) => allocatedSubjectIds.has(subject.id));
+  }, [allSubjects, scopeEntitiesByType.grade, selectedScopeId, selectedScopeIds.grade, selectedScopeIds.stage, selectedScopeType, subjectAllocations]);
+
   useEffect(() => {
     const loadFilters = async () => {
       if (!academicYearId || !termId) return;
@@ -198,11 +220,15 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
       if (filtersContextRef.current === contextKey) return;
       setIsDataLoading(true);
       try {
-        const data = await fetchGradesFiltersData(academicYearId, termId);
+        const [data, allocations] = await Promise.all([
+          fetchGradesFiltersData(academicYearId, termId),
+          fetchSubjectAllocations(termId),
+        ]);
         filtersContextRef.current = contextKey;
         setScopeTypes(data.scopeTypes);
         setScopeEntitiesByType(data.scopeEntities);
-        setSubjects(data.subjects);
+        setAllSubjects(data.subjects);
+        setSubjectAllocations(allocations);
 
         const urlScopeType = (searchParams.get("scopeType") as ExamScopeType) || data.scopeTypes[0] || "school";
         const nextScopeType = data.scopeTypes.includes(urlScopeType) ? urlScopeType : data.scopeTypes[0] || "school";
@@ -236,6 +262,12 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
 
     void loadFilters();
   }, [academicYearId, searchParams, showError, tCommon, termId]);
+
+  useEffect(() => {
+    if (!subjects.some((subject) => subject.id === selectedSubjectId)) {
+      setSelectedSubjectId(subjects[0]?.id || "");
+    }
+  }, [selectedSubjectId, subjects]);
 
   useEffect(() => {
     if (!filtersHydratedRef.current || !academicYearId || !termId) return;
