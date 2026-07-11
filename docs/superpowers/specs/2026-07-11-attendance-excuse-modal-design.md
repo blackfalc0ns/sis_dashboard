@@ -30,6 +30,24 @@ In edit mode, the backend response does not provide the student's enrollment hie
 
 If an edit changes to a type that requires timetable periods and the required hierarchy cannot be derived, the UI asks for attendance context specifically for policy/timetable resolution. That context does not make the student editable. If roster verification is necessary, it occurs only after explicit context selection and confirms that the existing student belongs to the chosen scope.
 
+### Hierarchy Cascade
+
+The selected target scope type remains stable while its hierarchy is completed. For example, choosing `CLASSROOM` and then selecting a stage must not change the target type to `STAGE` or hide the remaining grade, section, and classroom controls.
+
+The cascade follows these rules:
+
+- Changing scope type clears every hierarchy ID and the selected student.
+- Changing stage clears grade, section, classroom, and student.
+- Changing grade preserves stage and clears section, classroom, and student.
+- Changing section preserves stage and grade and clears classroom and student.
+- Changing classroom preserves all ancestors and clears the previous student.
+- Grade options are restricted to the selected stage.
+- Section options are restricted to the selected grade.
+- Classroom options are restricted to the selected section.
+- No roster, policy-resolution, or timetable request runs until every ID required by the selected target scope type is present.
+
+The final request context includes the selected target scope type plus the complete ancestor chain. Readiness is determined by that target type, not inferred from whichever partial ID was selected most recently.
+
 ## Request Lifecycle
 
 Academic policies are loaded once per academic year and term while the modal is open. Effective-policy selection and reason, attachment, date-range, and scope validation are derived locally from that cached policy set. Typing a reason or changing attachments must not trigger network requests.
@@ -76,6 +94,9 @@ Focused tests will cover:
 - No policy requests while typing or modifying attachments
 - No roster request before explicit complete create scope selection
 - No roster request in edit mode
+- Stable target scope type throughout stage, grade, section, and classroom selection
+- Correct descendant clearing and parent-based option filtering at every hierarchy level
+- No dependent request from an incomplete hierarchy
 - No timetable request for absence requests
 - Timetable caching and stale-response handling
 - Differential attachment linking in edit mode
