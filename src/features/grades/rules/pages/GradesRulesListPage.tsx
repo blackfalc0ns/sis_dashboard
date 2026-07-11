@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -33,7 +33,13 @@ export default function GradesRulesListPage() {
   const [loadingRules, setLoadingRules] = useState(true);
   const [rulesError, setRulesError] = useState(false);
   const [effectiveRule, setEffectiveRule] = useState<EffectiveGradeRule | null>(null);
+  const effectiveRuleRequestVersion = useRef(0);
   const canManageRules = hasPermission("grades.rules.manage");
+
+  const invalidateEffectiveRule = useCallback(() => {
+    effectiveRuleRequestVersion.current += 1;
+    setEffectiveRule(null);
+  }, []);
 
   const filters = useMemo(() => {
     if (scopeType === "school") return { scopeType };
@@ -69,18 +75,24 @@ export default function GradesRulesListPage() {
 
   const loadRules = useCallback(async () => {
     if (!academicYearId || !termId) return;
+    invalidateEffectiveRule();
+    const requestVersion = effectiveRuleRequestVersion.current;
     setLoadingRules(true);
     setRulesError(false);
     try {
       const loadedRules = await fetchGradeRules({ academicYearId, termId, ...filters });
+      if (requestVersion !== effectiveRuleRequestVersion.current) return;
       setRules(loadedRules);
-      setEffectiveRule(effectiveRuleRequest ? await fetchEffectiveGradeRule(effectiveRuleRequest) : null);
+      const resolvedEffectiveRule = effectiveRuleRequest ? await fetchEffectiveGradeRule(effectiveRuleRequest) : null;
+      if (requestVersion !== effectiveRuleRequestVersion.current) return;
+      setEffectiveRule(resolvedEffectiveRule);
     } catch {
+      if (requestVersion !== effectiveRuleRequestVersion.current) return;
       setRulesError(true);
     } finally {
-      setLoadingRules(false);
+      if (requestVersion === effectiveRuleRequestVersion.current) setLoadingRules(false);
     }
-  }, [academicYearId, effectiveRuleRequest, filters, termId]);
+  }, [academicYearId, effectiveRuleRequest, filters, invalidateEffectiveRule, termId]);
 
   useEffect(() => {
     void loadRules();
@@ -103,8 +115,8 @@ export default function GradesRulesListPage() {
 
     <section className="rounded-xl border border-gray-200 bg-white p-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Select label={tGrades("filters.scopeType")} value={scopeType} options={[{ value: "", label: tGrades("filters.selectScopeType") }, { value: "school", label: tGrades("filters.scopeTypes.school") }, { value: "grade", label: tGrades("filters.scopeTypes.grade") }]} onChange={(value) => { setScopeType(value as "" | "school" | "grade"); setScopeId(""); }} />
-        {scopeType === "grade" ? <Select label={tGrades("filters.scope")} value={scopeId} placeholder={tGrades("filters.selectScope")} options={grades.map((grade) => ({ value: grade.id, label: locale === "ar" ? grade.nameAr : grade.nameEn }))} onChange={setScopeId} /> : null}
+        <Select label={tGrades("filters.scopeType")} value={scopeType} options={[{ value: "", label: tGrades("filters.selectScopeType") }, { value: "school", label: tGrades("filters.scopeTypes.school") }, { value: "grade", label: tGrades("filters.scopeTypes.grade") }]} onChange={(value) => { invalidateEffectiveRule(); setScopeType(value as "" | "school" | "grade"); setScopeId(""); }} />
+        {scopeType === "grade" ? <Select label={tGrades("filters.scope")} value={scopeId} placeholder={tGrades("filters.selectScope")} options={grades.map((grade) => ({ value: grade.id, label: locale === "ar" ? grade.nameAr : grade.nameEn }))} onChange={(value) => { invalidateEffectiveRule(); setScopeId(value); }} /> : null}
       </div>
     </section>
 

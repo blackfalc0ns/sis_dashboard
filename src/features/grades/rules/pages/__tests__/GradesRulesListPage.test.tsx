@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,9 +8,10 @@ const mocks = vi.hoisted(() => ({
   fetchGradesFiltersData: vi.fn(),
   push: vi.fn(),
   hasPermission: vi.fn(),
+  locale: "en",
 }));
 
-vi.mock("next-intl", () => ({ useLocale: () => "en", useTranslations: () => (key: string) => key }));
+vi.mock("next-intl", () => ({ useLocale: () => mocks.locale, useTranslations: () => (key: string) => key }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mocks.push, replace: vi.fn() }),
   usePathname: () => "/en/grades/rules",
@@ -31,16 +32,33 @@ vi.mock("@/features/grades/gradebook/services/gradesGradebookService", () => ({
 
 import GradesRulesListPage from "../GradesRulesListPage";
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+  return { promise, resolve };
+}
+
+const scopeEntities = {
+  school: [],
+  stage: [],
+  grade: [],
+  section: [],
+  classroom: [],
+};
+
 describe("GradesRulesListPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.locale = "en";
     mocks.hasPermission.mockReturnValue(true);
     mocks.fetchEffectiveGradeRule.mockResolvedValue({ source: "GRADE" });
   });
 
   it("shows backend rules in the shared table and opens the selected editor with year and term context", async () => {
     mocks.fetchGradeRules.mockResolvedValue([{ id: "rule-1", scopeType: "grade", passMark: 70, rounding: "DECIMAL_2" }]);
-    mocks.fetchGradesFiltersData.mockResolvedValue({ scopeEntities: { school: [], stage: [], grade: [], section: [], classroom: [] } });
+    mocks.fetchGradesFiltersData.mockResolvedValue({ scopeEntities });
     render(<GradesRulesListPage />);
 
     await userEvent.click(await screen.findByText("70%"));
@@ -92,7 +110,7 @@ describe("GradesRulesListPage", () => {
 
   it("offers a retry after a rules request fails", async () => {
     mocks.fetchGradeRules.mockRejectedValueOnce(new Error("offline")).mockResolvedValue([]);
-    mocks.fetchGradesFiltersData.mockResolvedValue({ scopeEntities: { school: [], stage: [], grade: [], section: [], classroom: [] } });
+    mocks.fetchGradesFiltersData.mockResolvedValue({ scopeEntities });
     const user = userEvent.setup();
     render(<GradesRulesListPage />);
 
@@ -104,12 +122,95 @@ describe("GradesRulesListPage", () => {
   it("hides management actions and does not open a rule without manage permission", async () => {
     mocks.hasPermission.mockReturnValue(false);
     mocks.fetchGradeRules.mockResolvedValue([{ id: "rule-1", scopeType: "grade", passMark: 70, rounding: "DECIMAL_2" }]);
-    mocks.fetchGradesFiltersData.mockResolvedValue({ scopeEntities: { school: [], stage: [], grade: [], section: [], classroom: [] } });
+    mocks.fetchGradesFiltersData.mockResolvedValue({ scopeEntities });
     render(<GradesRulesListPage />);
 
     expect(await screen.findByText("70%")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "form.createTitle" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByText("70%"));
     expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it("retries when the effective rule request fails", async () => {
+    mocks.fetchGradeRules.mockResolvedValue([]);
+    mocks.fetchEffectiveGradeRule.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce({ source: "SCHOOL" });
+    mocks.fetchGradesFiltersData.mockResolvedValue({ scopeEntities });
+    const user = userEvent.setup();
+    render(<GradesRulesListPage />);
+
+    await user.click(await screen.findByLabelText("filters.scopeType"));
+    await user.click(screen.getByRole("button", { name: "filters.scopeTypes.school" }));
+
+    await user.click(await screen.findByRole("button", { name: "retry" }));
+
+    expect(await screen.findByText("sources.SCHOOL")).toBeInTheDocument();
+    expect(mocks.fetchEffectiveGradeRule).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not render a superseded effective source while the current scope is loading", async () => {
+    const firstEffectiveRule = deferred<{ source: "GRADE" }>();
+    const secondEffectiveRule = deferred<{ source: "SCHOOL" }>();
+    mocks.fetchGradeRules.mockResolvedValue([]);
+    mocks.fetchEffectiveGradeRule
+      .mockImplementationOnce(() => firstEffectiveRule.promise)
+      .mockImplementationOnce(() => secondEffectiveRule.promise);
+    mocks.fetchGradesFiltersData.mockResolvedValue({
+      scopeEntities: {
+        ...scopeEntities,
+        grade: [
+          { id: "grade-1", nameEn: "Grade 1", nameAr: "الصف الأول", scopeType: "grade" },
+          { id: "grade-2", nameEn: "Grade 2", nameAr: "الصف الثاني", scopeType: "grade" },
+        ],
+      },
+    });
+    const user = userEvent.setup();
+    render(<GradesRulesListPage />);
+
+    await user.click(await screen.findByLabelText("filters.scopeType"));
+    await user.click(screen.getByRole("button", { name: "filters.scopeTypes.grade" }));
+    await user.click(await screen.findByLabelText("filters.scope"));
+    await user.click(screen.getByRole("button", { name: "Grade 1" }));
+    await user.click(await screen.findByLabelText("filters.scope"));
+    await user.click(screen.getByRole("button", { name: "Grade 2" }));
+
+    await act(async () => {
+      firstEffectiveRule.resolve({ source: "GRADE" });
+      await firstEffectiveRule.promise;
+    });
+    expect(screen.queryByText("sources.GRADE")).not.toBeInTheDocument();
+
+    secondEffectiveRule.resolve({ source: "SCHOOL" });
+    expect(await screen.findByText("sources.SCHOOL")).toBeInTheDocument();
+  });
+
+  it("uses Arabic scope names and renders the select menu right-to-left", async () => {
+    mocks.locale = "ar";
+    mocks.fetchGradeRules.mockResolvedValue([]);
+    mocks.fetchGradesFiltersData.mockResolvedValue({
+      scopeEntities: { ...scopeEntities, grade: [{ id: "grade-1", nameEn: "Grade 1", nameAr: "الصف الأول", scopeType: "grade" }] },
+    });
+    const user = userEvent.setup();
+    render(<GradesRulesListPage />);
+
+    await user.click(await screen.findByLabelText("filters.scopeType"));
+    expect(screen.getByRole("button", { name: "filters.scopeTypes.grade" }).closest("div[dir]")).toHaveAttribute("dir", "rtl");
+    await user.click(screen.getByRole("button", { name: "filters.scopeTypes.grade" }));
+    await user.click(await screen.findByLabelText("filters.scope"));
+
+    expect(screen.getByRole("button", { name: "الصف الأول" })).toBeInTheDocument();
+  });
+
+  it("opens an authorized rule from the focused table row with Enter", async () => {
+    mocks.fetchGradeRules.mockResolvedValue([{ id: "rule-1", scopeType: "grade", passMark: 70, rounding: "DECIMAL_2" }]);
+    mocks.fetchGradesFiltersData.mockResolvedValue({ scopeEntities });
+    const user = userEvent.setup();
+    render(<GradesRulesListPage />);
+
+    const row = (await screen.findByText("70%")).closest("tr");
+    expect(row).toHaveAttribute("tabindex", "0");
+    row?.focus();
+    await user.keyboard("{Enter}");
+
+    expect(mocks.push).toHaveBeenCalledWith("/en/grades/rules/rule-1?year=year-1&term=term-1");
   });
 });

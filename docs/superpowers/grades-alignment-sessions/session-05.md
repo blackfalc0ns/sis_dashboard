@@ -14,6 +14,7 @@ Improve the grade-rules list UX only. Matrix rows 1-2 remain `fixed`; this sessi
 
 - Added an announced loading state, localized empty state, and an in-page retry action for list or effective-rule loading failures.
 - Fetch and display the backend-resolved effective-rule source when a school or grade scope is selected.
+- Clear and version effective-rule state on scope changes, so cancelled or out-of-order responses cannot render a source for the current scope.
 - Hide create and row-opening management actions without `grades.rules.manage`; retain the shared table's semantic, keyboard-focusable row behavior for authorized users.
 - Added English and Arabic messages for all new list states.
 
@@ -27,18 +28,18 @@ Improve the grade-rules list UX only. Matrix rows 1-2 remain `fixed`; this sessi
 
 ## Verification
 
-- TDD RED: the focused component test failed for the missing effective-source, loading, empty, retry, and permission-aware states.
-- `npm run test:run -- src/features/grades/rules/pages/__tests__/GradesRulesListPage.test.tsx`: passed, 6 tests.
+- TDD RED: the focused component test failed when an out-of-order effective-rule response rendered after the scope changed.
+- `npm run test:run -- src/features/grades/rules/pages/__tests__/GradesRulesListPage.test.tsx`: passed, 10 tests.
 - `npm run typecheck`: passed.
 
 ## UI verification
 
-- Component tests verify loading, empty, retry, effective source, management permission, and rule opening states.
-- The in-app browser connector was not available to this session, so manual English/Arabic RTL, theme, keyboard, and 375/768/1024/1440 viewport checks were not performed. The page preserves the existing responsive `DataTable`, focusable-row, and design-system patterns; Session 30 should include this manual check.
+- Component tests verify loading, empty, effective-rule failure/retry, stale-response suppression, management permission, Arabic scope labels/RTL select menu, and Enter-key row navigation.
+- The in-app browser connector was not available to this session, so manual English/Arabic RTL, theme, and 375/768/1024/1440 viewport checks were not performed. The page preserves the existing responsive `DataTable`, focusable-row, and design-system patterns; Session 30 should include this manual check.
 
 ## Remaining risks
 
-- A failure resolving the effective rule uses the same retry state as a list failure, because both responses are required to render a trustworthy scoped result.
+- A failure resolving the effective rule uses the same retry state as a list failure, because both responses are required to render a trustworthy scoped result; the source is cleared until the retry resolves.
 - Session 6 owns rule-editor loading, validation, save, and server-error UX.
 
 ## Prompt for Session 06
