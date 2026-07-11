@@ -83,6 +83,7 @@ export default function GradesRulesPage() {
   const ruleScopeTypes = scopeTypes.filter((scopeType) =>
     RULE_WRITE_SCOPE_TYPES.includes(scopeType),
   );
+  const canWriteSelectedScope = RULE_WRITE_SCOPE_TYPES.includes(selectedScopeType);
   const explicitRule = useMemo(
     () =>
       rules.find(
@@ -181,6 +182,7 @@ export default function GradesRulesPage() {
   }, [loadRules]);
 
   const handleSave = async () => {
+    if (!canWriteSelectedScope) return;
     const numericPassMark = Number(passMark);
     if (!Number.isFinite(numericPassMark) || numericPassMark < 0 || numericPassMark > 100) {
       showError(t("validation.passMark"));
@@ -251,11 +253,12 @@ export default function GradesRulesPage() {
                       : type === "classroom"
                         ? scopes.grade.find((grade) => grade.id === scopes.section.find((section) => section.id === scopes.classroom.find((room) => room.id === value)?.parentId)?.parentId)?.id || ""
                         : "";
-                  if (gradeId) {
-                    setSelectedScopeType("grade");
-                    setSelectedScopeId(gradeId);
-                  } else if (type === "stage") {
-                    setSelectedScopeId("");
+                  // Effective rules can be resolved at every hierarchy level.
+                  // The backend only permits writes at SCHOOL and GRADE.
+                  setSelectedScopeType(type);
+                  setSelectedScopeId(value);
+                  if (gradeId && type === "grade") {
+                    setSelectedScopeIds((current) => ({ ...current, grade: gradeId }));
                   }
                 }}
                 disabled={Boolean(parentType && !parentId)}
@@ -333,7 +336,7 @@ export default function GradesRulesPage() {
               <Button
                 onClick={() => void handleSave()}
                 loading={isSaving}
-                disabled={termStatus === "closed"}
+                disabled={termStatus === "closed" || !canWriteSelectedScope}
                 leftIcon={<Save className="h-4 w-4" />}
               >
                 {t("actions.save")}
