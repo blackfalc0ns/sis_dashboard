@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { EffectiveGradeRuleRequest } from "../../types";
 
 const { apiGet, apiPost, apiPatch } = vi.hoisted(() => ({
   apiGet: vi.fn(),
@@ -18,49 +17,6 @@ import {
 
 describe("gradesRulesService", () => {
   beforeEach(() => vi.clearAllMocks());
-
-  it("requires scope-specific context while allowing a school request without an ID", () => {
-    const requests: EffectiveGradeRuleRequest[] = [
-      { academicYearId: "year-1", termId: "term-1", scopeType: "school" },
-      { yearId: "year-1", termId: "term-1", scopeType: "stage", stageId: "stage-1" },
-      { academicYearId: "year-1", termId: "term-1", scopeType: "grade", gradeId: "grade-1" },
-      { academicYearId: "year-1", termId: "term-1", scopeType: "section", sectionId: "section-1" },
-      { academicYearId: "year-1", termId: "term-1", scopeType: "classroom", classroomId: "classroom-1" },
-    ];
-
-    // @ts-expect-error Non-school scopes need either scopeId or their matching context ID.
-    const missingStageContext: EffectiveGradeRuleRequest = {
-      academicYearId: "year-1",
-      termId: "term-1",
-      scopeType: "stage",
-    };
-    // @ts-expect-error Non-school scopes need either scopeId or their matching context ID.
-    const missingGradeContext: EffectiveGradeRuleRequest = {
-      academicYearId: "year-1",
-      termId: "term-1",
-      scopeType: "grade",
-    };
-    // @ts-expect-error Non-school scopes need either scopeId or their matching context ID.
-    const missingSectionContext: EffectiveGradeRuleRequest = {
-      academicYearId: "year-1",
-      termId: "term-1",
-      scopeType: "section",
-    };
-    // @ts-expect-error Non-school scopes need either scopeId or their matching context ID.
-    const missingClassroomContext: EffectiveGradeRuleRequest = {
-      academicYearId: "year-1",
-      termId: "term-1",
-      scopeType: "classroom",
-    };
-
-    expect(requests).toHaveLength(5);
-    expect([
-      missingStageContext,
-      missingGradeContext,
-      missingSectionContext,
-      missingClassroomContext,
-    ]).toHaveLength(4);
-  });
 
   it("maps the backend list contract and preserves optional query aliases and filters", async () => {
     apiGet.mockResolvedValue({

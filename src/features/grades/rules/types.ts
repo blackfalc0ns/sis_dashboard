@@ -89,33 +89,16 @@ export interface GradeRulesListRequest {
 
 interface EffectiveGradeRuleRequestBase {
   termId: string;
+  scopeType: ExamScopeType;
+  scopeId?: string;
+  stageId?: string;
+  gradeId?: string;
+  sectionId?: string;
+  classroomId?: string;
   subjectId?: string;
 }
 
-type EffectiveGradeRuleAcademicYear =
+export type EffectiveGradeRuleRequest = EffectiveGradeRuleRequestBase & (
   | { academicYearId: string; yearId?: string }
-  | { academicYearId?: string; yearId: string };
-
-type RequiredScopeContext<TContextKey extends "stageId" | "gradeId" | "sectionId" | "classroomId"> =
-  | ({ scopeId: string } & Partial<Record<TContextKey, string>>)
-  | ({ scopeId?: string } & Record<TContextKey, string>);
-
-type EffectiveGradeRuleScope =
-  | { scopeType: "school"; scopeId?: string }
-  | (RequiredScopeContext<"stageId"> & { scopeType: "stage" })
-  | (RequiredScopeContext<"gradeId"> & { scopeType: "grade"; stageId?: string })
-  | (RequiredScopeContext<"sectionId"> & {
-      scopeType: "section";
-      stageId?: string;
-      gradeId?: string;
-    })
-  | (RequiredScopeContext<"classroomId"> & {
-      scopeType: "classroom";
-      stageId?: string;
-      gradeId?: string;
-      sectionId?: string;
-    });
-
-export type EffectiveGradeRuleRequest = EffectiveGradeRuleRequestBase
-  & EffectiveGradeRuleAcademicYear
-  & EffectiveGradeRuleScope;
+  | { academicYearId?: string; yearId: string }
+);

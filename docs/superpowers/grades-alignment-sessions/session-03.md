@@ -17,7 +17,7 @@ Align matrix rows 1 (`GET /grades/rules`) and 2 (`GET /grades/rules/effective`) 
 - Effective resolution requires `termId` and `scopeType`; an academic-year ID must be supplied through `academicYearId` or `yearId` by the use case. Non-school scopes require either `scopeId` or their matching specific ID; optional ancestry IDs are validated when supplied.
 - Effective responses are not list-rule responses: they contain nullable `id`/`ruleId`, upper-case `source`, lower-case rule enums, and required `resolvedFrom` request/resolution metadata without academic-year or timestamp fields.
 - The rules service now uses endpoint-specific API DTOs, exposes every optional list-query key instead of positional required year and term arguments, and removes unset effective query keys rather than serializing them as `undefined`.
-- The page-facing effective model preserves nullable default-response `id` and `ruleId`; the effective request accepts either `academicYearId` or `yearId` while requiring one at the TypeScript boundary. Its scope is a discriminated union: school requests may omit `scopeId`, while stage, grade, section, and classroom requests require `scopeId` or their matching context ID.
+- The page-facing effective model preserves nullable default-response `id` and `ruleId`; the effective request accepts either `academicYearId` or `yearId` while requiring one at the TypeScript boundary.
 
 ## Files changed
 
