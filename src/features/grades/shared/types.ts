@@ -129,8 +129,10 @@ export interface CreateAssessmentPayload {
   subjectId: string;
   scopeType: ExamScopeType;
   scopeId: string;
-  sectionId?: string;
-  classroomId?: string;
+  stageId?: string | null;
+  gradeId?: string | null;
+  sectionId?: string | null;
+  classroomId?: string | null;
   title: string;
   titleAr: string;
   type: AssessmentType;
@@ -175,6 +177,7 @@ export interface QuestionOption {
   id: string;
   textAr: string;
   textEn: string;
+  value?: string;
   isCorrect: boolean;
   order: number;
 }
@@ -218,7 +221,11 @@ export interface AssessmentQuestion extends Record<string, unknown> {
   mediaFileName?: string;
   mediaMimeType?: string;
   mediaSize?: number;
+  explanation?: string;
+  explanationAr?: string;
+  required?: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface AssessmentSubmission {

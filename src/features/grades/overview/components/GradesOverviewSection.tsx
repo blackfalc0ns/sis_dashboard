@@ -11,6 +11,7 @@ import {
   ASSESSMENT_WORKFLOW_STATE_STYLES,
   getAssessmentEntryModeKey,
   getAssessmentWorkflowState,
+  isGradeEntryAvailable,
 } from "../../shared/utils/assessmentWorkflow";
 
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
@@ -224,8 +225,7 @@ export default function GradesOverviewSection({
                       variant="secondary"
                       size="sm"
                       disabled={
-                        assessment.deliveryMode === "QUESTION_BASED" ||
-                        assessment.isLocked ||
+                        !isGradeEntryAvailable(assessment) ||
                         isReadOnly ||
                         isBulkLoading
                       }

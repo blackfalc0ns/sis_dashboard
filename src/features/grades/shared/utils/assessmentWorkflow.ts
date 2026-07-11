@@ -34,6 +34,22 @@ export function getAssessmentWorkflowState(assessment: Assessment): AssessmentWo
   return assessment.approvalStatus;
 }
 
+export function isAssessmentMetadataEditable(
+  assessment: Pick<Assessment, "isLocked">,
+): boolean {
+  return !assessment.isLocked;
+}
+
+export function isGradeEntryAvailable(
+  assessment: Pick<Assessment, "approvalStatus" | "isLocked" | "deliveryMode">,
+): boolean {
+  return (
+    !assessment.isLocked &&
+    assessment.deliveryMode === "SCORE_ONLY" &&
+    (assessment.approvalStatus === "published" || assessment.approvalStatus === "approved")
+  );
+}
+
 export function getAssessmentEntryModeKey(assessment: Assessment): AssessmentEntryModeKey {
   return assessment.deliveryMode === "QUESTION_BASED" ? "questionBased" : "scoreOnly";
 }

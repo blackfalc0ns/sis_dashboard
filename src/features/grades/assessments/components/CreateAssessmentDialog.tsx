@@ -6,12 +6,9 @@ import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import { DatePicker, Input, Select } from "@/components/ui/input";
 import type { Assessment, AssessmentType, CreateAssessmentPayload, ExamScopeType } from "../types";
-
-interface ScopeEntityOption {
-  id: string;
-  nameAr: string;
-  nameEn: string;
-}
+import type { ScopeEntityOption } from "../../shared/types";
+import { isAssessmentMetadataEditable } from "../../shared/utils/assessmentWorkflow";
+import { getHierarchyOptions, getScopeHierarchyPath } from "../utils/assessmentScopeHierarchy";
 
 interface SubjectOption {
   id: string;
@@ -54,12 +51,19 @@ export default function CreateAssessmentDialog({
 }: CreateAssessmentDialogProps) {
   const t = useTranslations(`academics.grades.dialogs.${mode === "edit" ? "editAssessment" : "createAssessment"}`);
   const locale = useLocale();
-  const isMetadataLocked =
-    mode === "edit" &&
-    (initialAssessment?.approvalStatus === "approved" || initialAssessment?.approvalStatus === "published");
+  const isMetadataLocked = mode === "edit" && initialAssessment
+    ? !isAssessmentMetadataEditable(initialAssessment)
+    : false;
 
   const [scopeType, setScopeType] = useState<ExamScopeType>(initialAssessment?.scopeType || selectedScopeType);
   const [scopeId, setScopeId] = useState(initialAssessment?.scopeId || selectedScopeId);
+  const [selectedScopeIds, setSelectedScopeIds] = useState(
+    getScopeHierarchyPath(
+      scopeEntitiesByType,
+      initialAssessment?.scopeType || selectedScopeType,
+      initialAssessment?.scopeId || selectedScopeId,
+    ),
+  );
   const [subjectId, setSubjectId] = useState(initialAssessment?.subjectId || selectedSubjectId);
   const [type, setType] = useState<AssessmentType>((initialAssessment?.type as AssessmentType) || "QUIZ");
   const [title, setTitle] = useState(initialAssessment?.title || "");
@@ -102,6 +106,19 @@ export default function CreateAssessmentDialog({
     setScopeType(nextScopeType);
     const nextScopeId = scopeEntitiesByType[nextScopeType]?.[0]?.id || "";
     setScopeId(nextScopeId);
+    setSelectedScopeIds(getScopeHierarchyPath(scopeEntitiesByType, nextScopeType, nextScopeId));
+  };
+
+  const handleHierarchyChange = (nextScopeType: Exclude<ExamScopeType, "school">, nextScopeId: string) => {
+    setSelectedScopeIds((current) => {
+      const next = { ...current, [nextScopeType]: nextScopeId };
+      if (nextScopeType === "stage") { next.grade = ""; next.section = ""; next.classroom = ""; }
+      if (nextScopeType === "grade") { next.section = ""; next.classroom = ""; }
+      if (nextScopeType === "section") next.classroom = "";
+      return next;
+    });
+    setScopeType(nextScopeType);
+    setScopeId(nextScopeId);
   };
 
   const handleSubmit = async () => {
@@ -110,6 +127,10 @@ export default function CreateAssessmentDialog({
       termId: initialAssessment?.termId || termId,
       scopeType,
       scopeId,
+      stageId: selectedScopeIds.stage || null,
+      gradeId: selectedScopeIds.grade || null,
+      sectionId: selectedScopeIds.section || null,
+      classroomId: selectedScopeIds.classroom || null,
       subjectId,
       type,
       deliveryMode: initialAssessment?.deliveryMode || "SCORE_ONLY",
@@ -140,6 +161,19 @@ export default function CreateAssessmentDialog({
       }
     >
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {(["stage", "grade", "section", "classroom"] as const).map((hierarchyScopeType) => (
+          <Select
+            key={hierarchyScopeType}
+            label={t(`types.scopeTypes.${hierarchyScopeType}`)}
+            value={selectedScopeIds[hierarchyScopeType] || ""}
+            onChange={(value) => handleHierarchyChange(hierarchyScopeType, value)}
+            options={getHierarchyOptions(scopeEntitiesByType, hierarchyScopeType, selectedScopeIds).map((entity) => ({
+              value: entity.id,
+              label: locale === "ar" ? entity.nameAr : entity.nameEn,
+            }))}
+            disabled={isMetadataLocked || (hierarchyScopeType !== "stage" && !selectedScopeIds[hierarchyScopeType === "grade" ? "stage" : hierarchyScopeType === "section" ? "grade" : "section"])}
+          />
+        ))}
         <Select
           label={t("scopeType")}
           value={scopeType}

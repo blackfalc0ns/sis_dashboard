@@ -436,6 +436,7 @@ export interface BackendAssessmentQuestionResponse {
     sortOrder?: number;
   }>;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface BackendAssessmentQuestionsListResponse {

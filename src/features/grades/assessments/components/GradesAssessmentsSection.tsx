@@ -9,6 +9,7 @@ import {
   ASSESSMENT_WORKFLOW_STATE_STYLES,
   getAssessmentEntryModeKey,
   getAssessmentWorkflowState,
+  isGradeEntryAvailable,
 } from "../../shared/utils/assessmentWorkflow";
 
 interface GradesAssessmentsSectionProps {
@@ -181,8 +182,7 @@ export default function GradesAssessmentsSection({
                   variant="secondary"
                   size="sm"
                   disabled={
-                    assessment.deliveryMode === "QUESTION_BASED" ||
-                    assessment.isLocked ||
+                    !isGradeEntryAvailable(assessment) ||
                     isReadOnly ||
                     isBulkLoading
                   }

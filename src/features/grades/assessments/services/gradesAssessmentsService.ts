@@ -51,6 +51,8 @@ function toBackendAssessmentPayload(
     subjectId: payload.subjectId,
     scopeType: payload.scopeType,
     scopeId: payload.scopeId || undefined,
+    stageId: payload.stageId,
+    gradeId: payload.gradeId,
     sectionId: payload.sectionId,
     classroomId: payload.classroomId,
     titleEn: payload.title,
@@ -69,6 +71,8 @@ function toBackendAssessmentUpdatePayload(payload: CreateAssessmentPayload): Rec
     subjectId: payload.subjectId,
     scopeType: payload.scopeType,
     scopeId: payload.scopeId || undefined,
+    stageId: payload.stageId,
+    gradeId: payload.gradeId,
     sectionId: payload.sectionId,
     classroomId: payload.classroomId,
     titleEn: payload.title,
@@ -86,6 +90,7 @@ function toBackendQuestionOptions(options: AssessmentQuestion["options"]): Array
     id: option.id.startsWith("opt-") ? undefined : option.id,
     labelAr: option.textAr,
     label: option.textEn,
+    value: option.value,
     isCorrect: option.isCorrect,
     sortOrder: option.order,
   }));
@@ -110,9 +115,13 @@ function mapBackendQuestionToUi(
       id: o.id,
       textAr: o.labelAr ?? "",
       textEn: o.label ?? "",
+      value: o.value ?? undefined,
       isCorrect: o.isCorrect ?? false,
       order: o.sortOrder ?? 0,
     })),
+    explanation: q.explanation ?? undefined,
+    explanationAr: q.explanationAr ?? undefined,
+    required: q.required,
     correctAnswer:
       typeof q.answerKey === "boolean"
         ? q.answerKey
@@ -135,6 +144,7 @@ function mapBackendQuestionToUi(
     mediaMimeType: typeof metadata.mediaMimeType === "string" ? metadata.mediaMimeType : undefined,
     mediaSize: typeof metadata.mediaSize === "number" ? metadata.mediaSize : undefined,
     createdAt: q.createdAt ?? "",
+    updatedAt: q.updatedAt,
   };
 }
 
@@ -142,9 +152,12 @@ function toBackendQuestionPayload(question: AssessmentQuestion): Record<string, 
   return {
     promptAr: question.questionTextAr,
     prompt: question.questionTextEn,
+    explanationAr: question.explanationAr,
+    explanation: question.explanation,
     type: question.questionType,
     points: question.points,
     sortOrder: question.order,
+    required: question.required,
     options: toBackendQuestionOptions(question.options),
     correctAnswer: question.correctAnswer,
     sampleAnswerAr: question.sampleAnswerAr,
@@ -291,14 +304,29 @@ export async function createAssessmentWithQuestions(
     toBackendAssessmentPayload(academicYearId, payload.assessment),
   );
 
-  for (const question of payload.questions) {
-    await apiPost<BackendAssessmentQuestionResponse>(
-      `/grades/assessments/${result.id}/questions`,
-      toBackendQuestionPayload(question),
-    );
+  for (const [questionIndex, question] of payload.questions.entries()) {
+    try {
+      await apiPost<BackendAssessmentQuestionResponse>(
+        `/grades/assessments/${result.id}/questions`,
+        toBackendQuestionPayload(question),
+      );
+    } catch (cause) {
+      throw new AssessmentQuestionsCreationError(result.id, questionIndex, cause);
+    }
   }
 
   return { id: result.id };
+}
+
+export class AssessmentQuestionsCreationError extends Error {
+  constructor(
+    public readonly assessmentId: string,
+    public readonly failedQuestionIndex: number,
+    cause: unknown,
+  ) {
+    super("Assessment was created, but one or more questions could not be saved", { cause });
+    this.name = "AssessmentQuestionsCreationError";
+  }
 }
 
 // ── 10. Get assessment type label key (pure) ─────────────────────────

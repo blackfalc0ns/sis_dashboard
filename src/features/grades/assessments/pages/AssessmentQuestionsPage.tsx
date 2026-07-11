@@ -16,6 +16,7 @@ import AssessmentQuestionDesktopLayout from "../components/AssessmentQuestionDes
 import AssessmentQuestionMobileLayout from "../components/AssessmentQuestionMobileLayout";
 import {
   bulkUpdateAssessmentQuestionPoints,
+  AssessmentQuestionsCreationError,
   createAssessmentQuestion,
   createAssessmentWithQuestions,
   deleteAssessmentQuestion,
@@ -28,6 +29,7 @@ import {
 import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
 import type { Assessment, AssessmentQuestion, AssessmentType } from "../types";
 import { useGradesRouteYearTerm } from "@/features/grades/hooks/useGradesRouteYearTerm";
+import { canEditAssessmentQuestions } from "../utils/assessmentContract";
 
 interface AssessmentQuestionsPageProps {
   assessmentId?: string;
@@ -54,7 +56,8 @@ function validateAssessmentDraft(
   if (
     assessment.expectedTimeMinutes != null &&
     (!Number.isFinite(assessment.expectedTimeMinutes) ||
-      assessment.expectedTimeMinutes < 0)
+      !Number.isInteger(assessment.expectedTimeMinutes) ||
+      assessment.expectedTimeMinutes < 1)
   ) {
     errors.expectedTimeMinutes = tValidation("invalid_expected_time");
   }
@@ -145,8 +148,10 @@ export default function AssessmentQuestionsPage({
     searchParams.get("date") || new Date().toISOString().slice(0, 10);
   const weightParam = Number(searchParams.get("weight") || "15");
   const maxScoreParam = Number(searchParams.get("maxScore") || "20");
-  const isReadOnly = termStatus === "closed";
   const isCreateMode = mode === "create";
+  const isReadOnly = isCreateMode
+    ? termStatus === "closed"
+    : !canEditAssessmentQuestions(assessment, termStatus);
   const isTemporaryQuestionId = (questionId: string) => questionId.startsWith("temp-question-");
 
   // Question builders are focused flows: they keep year/term in the route
@@ -427,6 +432,11 @@ export default function AssessmentQuestionsPage({
       showError(
         tGrades(`errors.${mapGradesApiError(error)}`),
       );
+      if (error instanceof AssessmentQuestionsCreationError) {
+        const params = searchParams.toString();
+        const path = `/${locale}/grades/assessments/${error.assessmentId}/questions`;
+        router.replace(params ? `${path}?${params}` : path);
+      }
     } finally {
       setIsAssignmentSaving(false);
     }

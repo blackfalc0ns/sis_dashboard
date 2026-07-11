@@ -65,7 +65,7 @@ export function validateAssignment(
 
   if (
     assignment.expectedTimeMinutes != null &&
-    (!Number.isFinite(assignment.expectedTimeMinutes) || assignment.expectedTimeMinutes < 0)
+    (!Number.isInteger(assignment.expectedTimeMinutes) || assignment.expectedTimeMinutes < 1)
   ) {
     errors.expectedTimeMinutes = t("invalid_expected_time");
   }
@@ -100,18 +100,17 @@ export function validateQuestion(
   t: (key: string) => string
 ): QuestionValidationError {
   const errors: QuestionValidationError = {};
-  const isMediaQuestion = question.questionType === "MEDIA";
   const normalizedTextAr = question.questionTextAr?.trim() || "";
   const normalizedTextEn = question.questionTextEn?.trim() || "";
 
-  if (!isMediaQuestion && !normalizedTextAr) {
+  if (!normalizedTextAr) {
     errors.textAr = t("required_ar");
   }
-  if (!isMediaQuestion && !normalizedTextEn) {
+  if (!normalizedTextEn) {
     errors.textEn = t("required_en");
   }
 
-  if (question.points < 0) {
+  if (!Number.isFinite(question.points) || question.points < 0.01) {
     errors.points = t("invalid_points");
   }
 
