@@ -17,6 +17,10 @@ export type ExamScopeType =
   | "classroom";
 
 export type AssessmentDeliveryMode = "SCORE_ONLY" | "QUESTION_BASED";
+export type AssessmentApprovalStatus = "draft" | "published" | "approved";
+export type GradeRoundingMode = "none" | "decimal_0" | "decimal_1" | "decimal_2";
+export type GradeRuleSource = "DEFAULT" | "SCHOOL" | "STAGE" | "GRADE";
+export type GradesOverviewEmptyReason = "no_students" | "no_assessments";
 
 export type GradeItemStatus = "entered" | "missing" | "absent";
 export type AssessmentSubmissionStatus =
@@ -43,7 +47,7 @@ export interface Assessment {
   maxScore: number;
   expectedTimeMinutes?: number;
   isLocked: boolean;
-  approvalStatus: "draft" | "published" | "approved";
+  approvalStatus: AssessmentApprovalStatus;
 }
 
 export interface GradeItem {
@@ -62,7 +66,7 @@ export interface GradeRule {
   scopeId: string;
   gradingScale: "percentage";
   passMark: number;
-  rounding: "none" | "decimal_0" | "decimal_1" | "decimal_2";
+  rounding: GradeRoundingMode;
 }
 
 export interface Rubric {
