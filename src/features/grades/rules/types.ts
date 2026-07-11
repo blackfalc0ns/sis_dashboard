@@ -20,6 +20,48 @@ export interface GradeRuleRecord {
 export interface EffectiveGradeRule extends Omit<GradeRuleRecord, "academicYearId" | "termId"> {
   ruleId: string | null;
   source: "DEFAULT" | "SCHOOL" | "GRADE" | "STAGE";
+  resolvedFrom: {
+    requestedScopeType: ExamScopeType;
+    requestedScopeKey: string;
+    stageId: string | null;
+    gradeId: string | null;
+    sectionId: string | null;
+    classroomId: string | null;
+  };
+}
+
+export interface BackendGradeRuleResponse {
+  id: string;
+  academicYearId: string;
+  yearId: string;
+  termId: string;
+  scopeType: ExamScopeType;
+  scopeKey: string;
+  scopeId: string;
+  gradeId: string | null;
+  gradingScale: "percentage";
+  passMark: number;
+  rounding: "none" | "decimal_0" | "decimal_1" | "decimal_2";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BackendGradeRulesListResponse {
+  items: BackendGradeRuleResponse[];
+}
+
+export interface BackendEffectiveGradeRuleResponse {
+  source: "DEFAULT" | "SCHOOL" | "GRADE" | "STAGE";
+  id: string | null;
+  ruleId: string | null;
+  scopeType: ExamScopeType;
+  scopeKey: string;
+  scopeId: string;
+  gradeId: string | null;
+  gradingScale: "percentage";
+  passMark: number;
+  rounding: "none" | "decimal_0" | "decimal_1" | "decimal_2";
+  resolvedFrom: EffectiveGradeRule["resolvedFrom"];
 }
 
 export interface SaveGradeRulePayload {
