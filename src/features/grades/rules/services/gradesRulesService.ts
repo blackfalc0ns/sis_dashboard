@@ -43,6 +43,35 @@ function mapEffectiveRule(value: BackendEffectiveGradeRuleResponse): EffectiveGr
   };
 }
 
+type BackendRuleWritePayload = {
+  academicYearId?: string;
+  yearId?: string;
+  termId?: string;
+  scopeType?: "school" | "grade";
+  scopeId?: string;
+  gradeId?: string;
+  passMark?: number;
+  gradingScale?: BackendGradeRuleResponse["gradingScale"];
+  rounding?: BackendGradeRuleResponse["rounding"];
+};
+
+function validatePassMark(passMark: number | undefined): void {
+  if (passMark === undefined) return;
+  if (!Number.isFinite(passMark) || passMark < 0 || passMark > 100 || !Number.isInteger(passMark * 100)) {
+    throw new Error("Pass mark must be a number from 0 to 100 with at most two decimal places.");
+  }
+}
+
+function mapRuleWritePayload(payload: SaveGradeRulePayload | UpdateGradeRulePayload): BackendRuleWritePayload {
+  validatePassMark(payload.passMark);
+  const { gradingScale, rounding, ...fields } = payload;
+  return {
+    ...fields,
+    ...(gradingScale ? { gradingScale: gradingScale.toLowerCase() as BackendGradeRuleResponse["gradingScale"] } : {}),
+    ...(rounding ? { rounding: rounding.toLowerCase() as BackendGradeRuleResponse["rounding"] } : {}),
+  };
+}
+
 export async function fetchGradeRules(query: GradeRulesListRequest = {}): Promise<GradeRuleRecord[]> {
   const response = await apiGet<BackendGradeRulesListResponse>("/grades/rules", {
     params: Object.fromEntries(Object.entries(query).filter(([, value]) => value !== undefined && value !== "")),
@@ -58,9 +87,9 @@ export async function fetchEffectiveGradeRule(payload: EffectiveGradeRuleRequest
 }
 
 export async function saveGradeRule(payload: SaveGradeRulePayload): Promise<GradeRuleRecord> {
-  return mapRule(await apiPost<BackendGradeRuleResponse>("/grades/rules", payload));
+  return mapRule(await apiPost<BackendGradeRuleResponse>("/grades/rules", mapRuleWritePayload(payload)));
 }
 
 export async function updateGradeRule(ruleId: string, payload: UpdateGradeRulePayload): Promise<GradeRuleRecord> {
-  return mapRule(await apiPatch<BackendGradeRuleResponse>(`/grades/rules/${ruleId}`, payload));
+  return mapRule(await apiPatch<BackendGradeRuleResponse>(`/grades/rules/${ruleId}`, mapRuleWritePayload(payload)));
 }

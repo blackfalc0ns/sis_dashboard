@@ -65,18 +65,25 @@ export interface BackendEffectiveGradeRuleResponse {
   resolvedFrom: EffectiveGradeRule["resolvedFrom"];
 }
 
-export interface SaveGradeRulePayload {
-  academicYearId: string;
-  termId: string;
-  scopeType: ExamScopeType;
-  scopeId?: string;
-  gradeId?: string;
-  passMark: number;
-  gradingScale: GradeRuleScale;
-  rounding: GradeRoundingMode;
-}
+type GradeRuleWriteAcademicYear =
+  | { academicYearId: string; yearId?: string }
+  | { academicYearId?: string; yearId: string };
 
-export type UpdateGradeRulePayload = Pick<SaveGradeRulePayload, "passMark" | "gradingScale" | "rounding">;
+type GradeRuleWriteScope =
+  | { scopeType: "school"; scopeId?: string; gradeId?: string }
+  | (
+      | { scopeId: string; gradeId?: string }
+      | { scopeId?: string; gradeId: string }
+    ) & { scopeType: "grade" };
+
+export type SaveGradeRulePayload = GradeRuleWriteAcademicYear & GradeRuleWriteScope & {
+  termId: string;
+  passMark: number;
+  gradingScale?: GradeRuleScale;
+  rounding?: GradeRoundingMode;
+};
+
+export type UpdateGradeRulePayload = Partial<Pick<SaveGradeRulePayload, "passMark" | "gradingScale" | "rounding">>;
 
 export interface GradeRulesListRequest {
   academicYearId?: string;
