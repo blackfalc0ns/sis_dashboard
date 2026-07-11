@@ -53,7 +53,7 @@ export default function GradesRulesPage({
     setLoading(true);
     void Promise.all([
       fetchGradesFiltersData(academicYearId, termId),
-      ruleId ? fetchGradeRules({ academicYearId, termId }) : Promise.resolve([]),
+      ruleId ? fetchGradeRules(academicYearId, termId) : Promise.resolve([]),
     ])
       .then(([filters, rules]) => {
         if (!active) return;

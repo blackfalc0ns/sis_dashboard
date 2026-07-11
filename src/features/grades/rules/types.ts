@@ -17,8 +17,7 @@ export interface GradeRuleRecord {
   updatedAt?: string;
 }
 
-export interface EffectiveGradeRule extends Omit<GradeRuleRecord, "id" | "academicYearId" | "termId"> {
-  id: string | null;
+export interface EffectiveGradeRule extends Omit<GradeRuleRecord, "academicYearId" | "termId"> {
   ruleId: string | null;
   source: "DEFAULT" | "SCHOOL" | "GRADE" | "STAGE";
   resolvedFrom: {
@@ -78,16 +77,8 @@ export interface SaveGradeRulePayload {
 
 export type UpdateGradeRulePayload = Pick<SaveGradeRulePayload, "passMark" | "gradingScale" | "rounding">;
 
-export interface GradeRulesListRequest {
-  academicYearId?: string;
-  yearId?: string;
-  termId?: string;
-  scopeType?: ExamScopeType;
-  scopeId?: string;
-  gradeId?: string;
-}
-
-interface EffectiveGradeRuleRequestBase {
+export interface EffectiveGradeRuleRequest {
+  academicYearId: string;
   termId: string;
   scopeType: ExamScopeType;
   scopeId?: string;
@@ -95,10 +86,4 @@ interface EffectiveGradeRuleRequestBase {
   gradeId?: string;
   sectionId?: string;
   classroomId?: string;
-  subjectId?: string;
 }
-
-export type EffectiveGradeRuleRequest = EffectiveGradeRuleRequestBase & (
-  | { academicYearId: string; yearId?: string }
-  | { academicYearId?: string; yearId: string }
-);

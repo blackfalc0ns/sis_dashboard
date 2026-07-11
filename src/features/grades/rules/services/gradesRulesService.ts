@@ -1,5 +1,6 @@
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
-import type { BackendEffectiveGradeRuleResponse, BackendGradeRuleResponse, BackendGradeRulesListResponse, EffectiveGradeRule, EffectiveGradeRuleRequest, GradeRoundingMode, GradeRuleRecord, GradeRulesListRequest, SaveGradeRulePayload, UpdateGradeRulePayload } from "../types";
+import type { ExamScopeType } from "../../shared/types";
+import type { BackendEffectiveGradeRuleResponse, BackendGradeRuleResponse, BackendGradeRulesListResponse, EffectiveGradeRule, EffectiveGradeRuleRequest, GradeRoundingMode, GradeRuleRecord, SaveGradeRulePayload, UpdateGradeRulePayload } from "../types";
 
 const gradeRoundingByBackend: Record<BackendGradeRuleResponse["rounding"], GradeRoundingMode> = {
   none: "NONE",
@@ -30,7 +31,7 @@ function mapRule(value: BackendGradeRuleResponse): GradeRuleRecord {
 
 function mapEffectiveRule(value: BackendEffectiveGradeRuleResponse): EffectiveGradeRule {
   return {
-    id: value.id,
+    id: value.id ?? "",
     ruleId: value.ruleId,
     source: value.source,
     scopeType: value.scopeType,
@@ -43,10 +44,8 @@ function mapEffectiveRule(value: BackendEffectiveGradeRuleResponse): EffectiveGr
   };
 }
 
-export async function fetchGradeRules(query: GradeRulesListRequest = {}): Promise<GradeRuleRecord[]> {
-  const response = await apiGet<BackendGradeRulesListResponse>("/grades/rules", {
-    params: Object.fromEntries(Object.entries(query).filter(([, value]) => value !== undefined && value !== "")),
-  });
+export async function fetchGradeRules(academicYearId: string, termId: string, filters: { scopeType?: ExamScopeType; scopeId?: string; gradeId?: string } = {}): Promise<GradeRuleRecord[]> {
+  const response = await apiGet<BackendGradeRulesListResponse>("/grades/rules", { params: { academicYearId, termId, ...filters } });
   return response.items.map(mapRule);
 }
 

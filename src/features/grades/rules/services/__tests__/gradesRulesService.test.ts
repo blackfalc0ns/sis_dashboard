@@ -18,7 +18,7 @@ import {
 describe("gradesRulesService", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("maps the backend list contract and preserves optional query aliases and filters", async () => {
+  it("maps the backend list contract and preserves list filters", async () => {
     apiGet.mockResolvedValue({
       items: [{
         id: "rule-1",
@@ -37,20 +37,16 @@ describe("gradesRulesService", () => {
       }],
     });
 
-    const rules = await fetchGradeRules({
-      yearId: "year-1",
-      termId: "term-1",
+    const rules = await fetchGradeRules("year-1", "term-1", {
       scopeType: "grade",
-      scopeId: "grade-1",
       gradeId: "grade-1",
     });
 
     expect(apiGet).toHaveBeenCalledWith("/grades/rules", {
       params: {
-        yearId: "year-1",
+        academicYearId: "year-1",
         termId: "term-1",
         scopeType: "grade",
-        scopeId: "grade-1",
         gradeId: "grade-1",
       },
     });
@@ -63,7 +59,7 @@ describe("gradesRulesService", () => {
     })]);
   });
 
-  it("preserves nullable default-rule identifiers, resolution metadata, and omits absent query keys", async () => {
+  it("preserves effective-rule resolution metadata and omits absent query keys", async () => {
     apiGet.mockResolvedValue({
       source: "DEFAULT",
       id: null,
@@ -86,7 +82,7 @@ describe("gradesRulesService", () => {
     });
 
     const rule = await fetchEffectiveGradeRule({
-      yearId: "year-1",
+      academicYearId: "year-1",
       termId: "term-1",
       scopeType: "classroom",
       scopeId: "classroom-1",
@@ -94,14 +90,14 @@ describe("gradesRulesService", () => {
 
     expect(apiGet).toHaveBeenCalledWith("/grades/rules/effective", {
       params: {
-        yearId: "year-1",
+        academicYearId: "year-1",
         termId: "term-1",
         scopeType: "classroom",
         scopeId: "classroom-1",
       },
     });
     expect(rule).toEqual(expect.objectContaining({
-      id: null,
+      id: "",
       ruleId: null,
       source: "DEFAULT",
       scopeId: "classroom-1",
