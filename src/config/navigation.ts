@@ -28,7 +28,6 @@ import {
   ListChecks,
   CheckSquare,
   Gift,
-  Settings2,
   Activity,
   Route,
 } from "lucide-react";
@@ -452,14 +451,6 @@ export const menuItems: MenuItem[] = [
         href_en: "/en/grades/gradebook",
         href_ar: "/ar/grades/gradebook",
         icon: BookOpen,
-      },
-      {
-        key: "grades-rules",
-        label_en: "Grade Rules",
-        label_ar: "قواعد الدرجات",
-        href_en: "/en/grades/rules",
-        href_ar: "/ar/grades/rules",
-        icon: Settings2,
       },
     ],
   },

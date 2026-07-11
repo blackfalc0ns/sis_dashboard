@@ -54,6 +54,7 @@ import {
 } from "../utils/gradesExport";
 import { useGradesYearTermLayoutContext } from "@/features/grades/hooks/GradesYearTermLayoutContext";
 import { usePermissions } from "@/hooks/usePermissions";
+import { fetchSubjectAllocations, type SubjectAllocation } from "@/features/academics/subjects/services/subjectsService";
 
 interface GradesWorkspaceProps {
   view: "overview" | "assessments" | "gradebook";
@@ -66,6 +67,27 @@ type GradesOverviewExportDataset =
   | "analytics_distribution";
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 type AssessmentWorkflowAction = "publish" | "approve" | "lock";
+
+const getScopePath = (
+  entities: Record<ExamScopeType, ScopeEntityOption[]>,
+  scopeType: ExamScopeType,
+  scopeId: string,
+): Partial<Record<ExamScopeType, string>> => {
+  const path: Partial<Record<ExamScopeType, string>> = {};
+  let currentType: ExamScopeType | undefined = scopeType;
+  let currentId = scopeId;
+
+  while (currentType && currentType !== "school" && currentId) {
+    path[currentType] = currentId;
+    const entity = entities[currentType]?.find((item) => item.id === currentId);
+    const parentType: ExamScopeType | undefined = currentType === "classroom" ? "section" : currentType === "section" ? "grade" : currentType === "grade" ? "stage" : undefined;
+    if (!parentType || !entity?.parentId) break;
+    currentType = parentType;
+    currentId = entity.parentId;
+  }
+
+  return path;
+};
 
 export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   const t = useTranslations("academics.grades");
@@ -100,9 +122,11 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     section: [],
     classroom: [],
   });
-  const [subjects, setSubjects] = useState<Array<{ id: string; name: string; nameAr: string; nameEn: string }>>([]);
+  const [allSubjects, setAllSubjects] = useState<Array<{ id: string; name: string; nameAr: string; nameEn: string }>>([]);
+  const [subjectAllocations, setSubjectAllocations] = useState<SubjectAllocation[]>([]);
   const [selectedScopeType, setSelectedScopeType] = useState<ExamScopeType>("school");
   const [selectedScopeId, setSelectedScopeId] = useState("");
+  const [selectedScopeIds, setSelectedScopeIds] = useState<Partial<Record<ExamScopeType, string>>>({});
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [selectedDeliveryMode, setSelectedDeliveryMode] = useState<AssessmentDeliveryMode | "">("");
 
@@ -154,6 +178,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   const canManageQuestions = hasPermission("grades.questions.manage");
   const canViewSubmissions = hasPermission("grades.submissions.view");
   const filtersHydratedRef = useRef(false);
+  const filtersContextRef = useRef<string | null>(null);
   const showSubjectFilter = true;
 
   const replaceQuery = useCallback((nextParams: URLSearchParams) => {
@@ -168,15 +193,42 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
     [scopeEntitiesByType, selectedScopeType],
   );
 
+  const subjects = useMemo(() => {
+    const gradeId = selectedScopeIds.grade || (selectedScopeType === "grade" ? selectedScopeId : "");
+    const stageId = selectedScopeIds.stage || (selectedScopeType === "stage" ? selectedScopeId : "");
+    const gradeIds = gradeId
+      ? new Set([gradeId])
+      : stageId
+        ? new Set(
+          (scopeEntitiesByType.grade || [])
+            .filter((grade) => grade.parentId === stageId)
+            .map((grade) => grade.id),
+        )
+        : null;
+    const allocatedSubjectIds = new Set(
+      subjectAllocations
+        .filter((allocation) => !gradeIds || gradeIds.has(allocation.gradeId))
+        .map((allocation) => allocation.subjectId),
+    );
+    return allSubjects.filter((subject) => allocatedSubjectIds.has(subject.id));
+  }, [allSubjects, scopeEntitiesByType.grade, selectedScopeId, selectedScopeIds.grade, selectedScopeIds.stage, selectedScopeType, subjectAllocations]);
+
   useEffect(() => {
     const loadFilters = async () => {
       if (!academicYearId || !termId) return;
+      const contextKey = `${academicYearId}:${termId}`;
+      if (filtersContextRef.current === contextKey) return;
       setIsDataLoading(true);
       try {
-        const data = await fetchGradesFiltersData(academicYearId, termId);
+        const [data, allocations] = await Promise.all([
+          fetchGradesFiltersData(academicYearId, termId),
+          fetchSubjectAllocations(termId),
+        ]);
+        filtersContextRef.current = contextKey;
         setScopeTypes(data.scopeTypes);
         setScopeEntitiesByType(data.scopeEntities);
-        setSubjects(data.subjects);
+        setAllSubjects(data.subjects);
+        setSubjectAllocations(allocations);
 
         const urlScopeType = (searchParams.get("scopeType") as ExamScopeType) || data.scopeTypes[0] || "school";
         const nextScopeType = data.scopeTypes.includes(urlScopeType) ? urlScopeType : data.scopeTypes[0] || "school";
@@ -197,6 +249,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
 
         setSelectedScopeType(nextScopeType);
         setSelectedScopeId(nextScopeId);
+        setSelectedScopeIds(getScopePath(data.scopeEntities, nextScopeType, nextScopeId));
         setSelectedSubjectId(nextSubjectId);
         setSelectedDeliveryMode(nextDeliveryMode);
         filtersHydratedRef.current = true;
@@ -209,6 +262,12 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
 
     void loadFilters();
   }, [academicYearId, searchParams, showError, tCommon, termId]);
+
+  useEffect(() => {
+    if (!subjects.some((subject) => subject.id === selectedSubjectId)) {
+      setSelectedSubjectId(subjects[0]?.id || "");
+    }
+  }, [selectedSubjectId, subjects]);
 
   useEffect(() => {
     if (!filtersHydratedRef.current || !academicYearId || !termId) return;
@@ -1197,13 +1256,36 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
           subjects={subjects}
           selectedScopeType={selectedScopeType}
           selectedScopeId={selectedScopeId}
+          scopeEntitiesByType={scopeEntitiesByType}
+          selectedScopeIds={selectedScopeIds}
+          onHierarchyChange={(type, id) => {
+            const next: Partial<Record<ExamScopeType, string>> = { ...selectedScopeIds, [type]: id };
+            if (type === "stage") {
+              next.grade = "";
+              next.section = "";
+              next.classroom = "";
+            } else if (type === "grade") {
+              next.section = "";
+              next.classroom = "";
+            } else if (type === "section") {
+              next.classroom = "";
+            }
+            setSelectedScopeIds(next);
+            setSelectedScopeType(type);
+            setSelectedScopeId(id);
+          }}
           selectedSubjectId={selectedSubjectId}
           selectedDeliveryMode={view === "assessments" ? selectedDeliveryMode : undefined}
           onScopeTypeChange={(scopeType) => {
             setSelectedScopeType(scopeType);
-            setSelectedScopeId((scopeEntitiesByType[scopeType] || [])[0]?.id || "");
+            const nextScopeId = (scopeEntitiesByType[scopeType] || [])[0]?.id || "";
+            setSelectedScopeId(nextScopeId);
+            setSelectedScopeIds(getScopePath(scopeEntitiesByType, scopeType, nextScopeId));
           }}
-          onScopeIdChange={setSelectedScopeId}
+          onScopeIdChange={(scopeId) => {
+            setSelectedScopeId(scopeId);
+            setSelectedScopeIds(getScopePath(scopeEntitiesByType, selectedScopeType, scopeId));
+          }}
           onSubjectChange={setSelectedSubjectId}
           onDeliveryModeChange={view === "assessments" ? setSelectedDeliveryMode : undefined}
           selectedContextText={selectedContextText}
