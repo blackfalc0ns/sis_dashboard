@@ -308,7 +308,7 @@ export interface BackendGradesOverviewResponse {
     subjectId: string;
     subjectName: string | null;
     type: BackendAssessmentType;
-    deliveryMode: "SCORE_ONLY" | "question_based";
+    deliveryMode: AssessmentDeliveryMode;
     approvalStatus: BackendApprovalStatus;
     averagePercent: number | null;
     date: string;
