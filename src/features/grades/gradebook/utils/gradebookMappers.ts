@@ -119,7 +119,9 @@ function mapNamedEntitiesToScopeEntities(
       nameAr: names.nameAr,
       nameEn: names.nameEn,
       scopeType,
-      parentId: entity.parentId ?? undefined,
+      parentId: entity.parentId
+        ?? (scopeType === "grade" ? entity.stageId : scopeType === "section" ? entity.gradeId : scopeType === "classroom" ? entity.sectionId : undefined)
+        ?? undefined,
     };
   });
 }

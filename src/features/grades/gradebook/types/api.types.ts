@@ -22,6 +22,9 @@ export interface BackendNamedEntity {
   titleAr?: string;
   titleEn?: string;
   parentId?: string | null;
+  stageId?: string | null;
+  gradeId?: string | null;
+  sectionId?: string | null;
 }
 
 export interface BackendGradesBootstrapResponse {
