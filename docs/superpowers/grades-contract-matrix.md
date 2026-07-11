@@ -1,0 +1,76 @@
+# Grades Contract Matrix
+
+## Pinned backend
+
+- Repository: `https://github.com/Abdallah-Mohamed-Abdallah-AbdulRazzaq/Moazez-Backend`
+- Branch inspected: `main`
+- Commit: `37a6fd93da4713b6a89eb5e928e2c059e66b1c5f`
+- Commit date: `2026-07-11T00:31:03+03:00`
+- API prefix at runtime: `/api/v1`; frontend service paths below are relative to the configured API base.
+
+Do not change the pinned commit during Sessions 2-30. If the backend advances, add a dedicated revision-diff session before changing this matrix.
+
+## Status legend
+
+- `not_checked`: inventoried but contract fields and behavior have not completed their assigned verification session.
+- `matched`: frontend matched the pinned contract and focused verification passed.
+- `fixed`: a mismatch was corrected and focused verification passed.
+- `blocked`: verification cannot finish; the Evidence/Risk cell must contain reproducible details.
+
+## Endpoint inventory
+
+| ID | Method | Backend route | Permission | Backend contract source | Frontend consumer | Session | Status | Evidence / risk |
+|---:|---|---|---|---|---|---:|---|---|
+| 1 | GET | `/grades/rules` | `grades.rules.view` | `rules/controller/grades-rules.controller.ts`; `rules/dto/list-grade-rules-query.dto.ts`; `rules/dto/grade-rule-response.dto.ts` | `rules/services/gradesRulesService.ts`; `rules/pages/GradesRulesListPage.tsx` | 3 | `not_checked` | Route inventoried at pinned commit. |
+| 2 | GET | `/grades/rules/effective` | `grades.rules.view` | `rules/controller/grades-rules.controller.ts`; `rules/dto/get-effective-grade-rule-query.dto.ts`; `rules/dto/grade-rule-response.dto.ts` | `rules/services/gradesRulesService.ts`; `overview/services/gradesOverviewService.ts` | 3 | `not_checked` | Route inventoried at pinned commit. |
+| 3 | POST | `/grades/rules` | `grades.rules.manage` | `rules/controller/grades-rules.controller.ts`; `rules/dto/upsert-grade-rule.dto.ts`; `rules/dto/grade-rule-response.dto.ts` | `rules/services/gradesRulesService.ts`; `rules/pages/GradesRulesPage.tsx` | 4 | `not_checked` | Backend operation is named upsert; payload semantics require verification. |
+| 4 | PATCH | `/grades/rules/:ruleId` | `grades.rules.manage` | `rules/controller/grades-rules.controller.ts`; `rules/dto/update-grade-rule.dto.ts`; `rules/dto/grade-rule-response.dto.ts` | `rules/services/gradesRulesService.ts`; `rules/pages/GradesRulesPage.tsx` | 4 | `not_checked` | Route inventoried at pinned commit. |
+| 5 | GET | `/grades/assessments` | `grades.assessments.view` | `assessments/controller/grades-assessments.controller.ts`; `assessments/dto/grade-assessment.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; `overview/services/gradesOverviewService.ts`; `shared/pages/GradesWorkspace.tsx` | 7 | `not_checked` | Route inventoried at pinned commit. |
+| 6 | GET | `/grades/assessments/:assessmentId` | `grades.assessments.view` | `assessments/controller/grades-assessments.controller.ts`; `assessments/dto/grade-assessment.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; question/create workflows | 7 | `not_checked` | Route inventoried at pinned commit. |
+| 7 | GET | `/grades/assessments/:assessmentId/items` | `grades.items.view` | `assessments/controller/grades-assessments.controller.ts`; `assessments/dto/grade-assessment-items.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; `gradebook/services/gradesGradebookService.ts` | 22 | `not_checked` | Two frontend service entry points must remain consistent. |
+| 8 | POST | `/grades/assessments` | `grades.assessments.manage` | `assessments/controller/grades-assessments.controller.ts`; `assessments/dto/grade-assessment.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; `assessments/pages/CreateAssessmentPage.tsx` | 8 | `not_checked` | Score-only/general create semantics require verification. |
+| 9 | POST | `/grades/assessments/question-based` | `grades.assessments.manage` | `assessments/controller/grades-assessments.controller.ts`; `assessments/dto/grade-assessment-question.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; `assessments/pages/AssessmentQuestionsPage.tsx` | 8 | `not_checked` | Composite question-based create response requires verification. |
+| 10 | POST | `/grades/assessments/:assessmentId/publish` | `grades.assessments.publish` | `assessments/controller/grades-assessments.controller.ts`; `assessments/dto/grade-assessment.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; `shared/pages/GradesWorkspace.tsx` | 9 | `not_checked` | State transition and error contract require verification. |
+| 11 | POST | `/grades/assessments/:assessmentId/approve` | `grades.assessments.approve` | `assessments/controller/grades-assessments.controller.ts`; `assessments/dto/grade-assessment.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; `shared/pages/GradesWorkspace.tsx` | 9 | `not_checked` | State transition and error contract require verification. |
+| 12 | POST | `/grades/assessments/:assessmentId/lock` | `grades.assessments.lock` | `assessments/controller/grades-assessments.controller.ts`; `assessments/dto/grade-assessment.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; `shared/pages/GradesWorkspace.tsx` | 9 | `not_checked` | State transition and error contract require verification. |
+| 13 | PUT | `/grades/assessments/:assessmentId/items/:studentId` | `grades.items.manage` | `assessments/controller/grades-assessments.controller.ts`; `assessments/dto/grade-assessment-items.dto.ts` | `gradebook/services/gradesGradebookService.ts`; `gradebook/components/EditGradeDialog.tsx` | 21 | `not_checked` | Route inventoried at pinned commit. |
+| 14 | PUT | `/grades/assessments/:assessmentId/items` | `grades.items.manage` | `assessments/controller/grades-assessments.controller.ts`; `assessments/dto/grade-assessment-items.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; `gradebook/services/gradesGradebookService.ts`; bulk dialog | 21 | `not_checked` | Duplicate frontend implementations must be reconciled. |
+| 15 | PATCH | `/grades/assessments/:assessmentId` | `grades.assessments.manage` | `assessments/controller/grades-assessments.controller.ts`; `assessments/dto/grade-assessment.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; assessment editor | 8 | `not_checked` | Route inventoried at pinned commit. |
+| 16 | DELETE | `/grades/assessments/:assessmentId` | `grades.assessments.manage` | `assessments/controller/grades-assessments.controller.ts`; `assessments/dto/grade-assessment.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; `shared/pages/GradesWorkspace.tsx` | 8 | `not_checked` | Delete response and allowed state require verification. |
+| 17 | GET | `/grades/assessments/:assessmentId/questions` | `grades.questions.view` | `assessments/controller/grades-assessment-questions.controller.ts`; `assessments/dto/grade-assessment-question.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; question builder; submission detail definitions | 11 | `not_checked` | Full question DTO differs from embedded submission question DTO. |
+| 18 | POST | `/grades/assessments/:assessmentId/questions` | `grades.questions.manage` | `assessments/controller/grades-assessment-questions.controller.ts`; `assessments/dto/grade-assessment-question.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; question builder | 12 | `not_checked` | Route inventoried at pinned commit. |
+| 19 | POST | `/grades/assessments/:assessmentId/questions/reorder` | `grades.questions.manage` | `assessments/controller/grades-assessment-questions.controller.ts`; `assessments/dto/grade-assessment-question.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; question builder | 13 | `not_checked` | Ordering payload and response require verification. |
+| 20 | POST | `/grades/assessments/:assessmentId/questions/points/bulk` | `grades.questions.manage` | `assessments/controller/grades-assessment-questions.controller.ts`; `assessments/dto/grade-assessment-question.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; question builder | 13 | `not_checked` | Bulk limits and total-points behavior require verification. |
+| 21 | PATCH | `/grades/questions/:questionId` | `grades.questions.manage` | `assessments/controller/grades-assessment-questions.controller.ts`; `assessments/dto/grade-assessment-question.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; question builder | 12 | `not_checked` | Route inventoried at pinned commit. |
+| 22 | DELETE | `/grades/questions/:questionId` | `grades.questions.manage` | `assessments/controller/grades-assessment-questions.controller.ts`; `assessments/dto/grade-assessment-question.dto.ts` | `assessments/services/gradesAssessmentsService.ts`; question builder | 13 | `not_checked` | Delete response and points recalculation require verification. |
+| 23 | GET | `/grades/assessments/:assessmentId/submissions` | `grades.submissions.view` | `assessments/controller/grades-submissions.controller.ts`; `assessments/dto/grade-submission.dto.ts` | `submissions/services/gradesSubmissionsService.ts`; `submissions/pages/AssessmentSubmissionsPage.tsx` | 15 | `not_checked` | List filters and row DTO require verification. |
+| 24 | POST | `/grades/assessments/:assessmentId/submissions/resolve` | `grades.submissions.submit` | `assessments/controller/grades-submissions.controller.ts`; `assessments/dto/grade-submission.dto.ts` | `gradebook/services/gradesGradebookService.ts` | 16 | `not_checked` | Frontend review workflow currently calls a submit-permission route; ownership must be verified. |
+| 25 | GET | `/grades/submissions/:submissionId` | `grades.submissions.view` | `assessments/controller/grades-submissions.controller.ts`; `assessments/dto/grade-submission.dto.ts` | `submissions/services/gradesSubmissionsService.ts`; submission page; gradebook review | 15 | `not_checked` | Known type risks: embedded question shape and nullable `maxScore`. |
+| 26 | PUT | `/grades/submissions/:submissionId/answers/:questionId` | `grades.submissions.submit` | `assessments/controller/grades-submissions.controller.ts`; `assessments/dto/grade-submission.dto.ts` | `submissions/services/gradesSubmissionsService.ts`; submission page | 16 | `not_checked` | Route inventoried at pinned commit. |
+| 27 | PUT | `/grades/submissions/:submissionId/answers` | `grades.submissions.submit` | `assessments/controller/grades-submissions.controller.ts`; `assessments/dto/grade-submission.dto.ts` | `submissions/services/gradesSubmissionsService.ts`; submission page | 16 | `not_checked` | Bulk wrapper and maximum size require verification. |
+| 28 | POST | `/grades/submissions/:submissionId/submit` | `grades.submissions.submit` | `assessments/controller/grades-submissions.controller.ts`; `assessments/dto/grade-submission.dto.ts` | `submissions/services/gradesSubmissionsService.ts`; submission page | 16 | `not_checked` | Required-answer and state-transition behavior require verification. |
+| 29 | PATCH | `/grades/submissions/:submissionId/answers/:answerId/review` | `grades.submissions.review` | `assessments/controller/grades-submission-review.controller.ts`; `assessments/dto/grade-submission-review.dto.ts` | `submissions/services/gradesSubmissionsService.ts`; submission page | 18 | `not_checked` | Score bounds and localized comments require verification. |
+| 30 | PUT | `/grades/submissions/:submissionId/answers/review` | `grades.submissions.review` | `assessments/controller/grades-submission-review.controller.ts`; `assessments/dto/grade-submission-review.dto.ts` | `submissions/services/gradesSubmissionsService.ts`; gradebook review | 18 | `not_checked` | Bulk wrapper and maximum size require verification. |
+| 31 | POST | `/grades/submissions/:submissionId/review/finalize` | `grades.submissions.review` | `assessments/controller/grades-submission-review.controller.ts`; `assessments/dto/grade-submission.dto.ts` | `submissions/services/gradesSubmissionsService.ts`; submission page; gradebook review | 19 | `not_checked` | Pending-correction and state-transition behavior require verification. |
+| 32 | POST | `/grades/submissions/:submissionId/sync-grade-item` | `grades.submissions.review` | `assessments/controller/grades-submission-review.controller.ts`; `assessments/dto/grade-submission-grade-item-sync.dto.ts` | `submissions/services/gradesSubmissionsService.ts`; submission page; gradebook review | 19 | `not_checked` | Idempotency and nullable score response require verification. |
+| 33 | GET | `/grades/gradebook` | `grades.gradebook.view` | `gradebook/controller/grades-gradebook.controller.ts`; `gradebook/dto/get-gradebook-query.dto.ts` | `overview/services/gradesOverviewService.ts`; gradebook workspace | 22 | `not_checked` | Virtual/missing row representation requires verification. |
+| 34 | GET | `/grades/students/:studentId/snapshot` | `grades.snapshots.view` | `gradebook/controller/grades-gradebook.controller.ts`; `gradebook/dto/get-student-grade-snapshot-query.dto.ts` | `overview/services/gradesOverviewService.ts`; student grades page | 26 | `not_checked` | Route inventoried at pinned commit. |
+| 35 | GET | `/grades/analytics/summary` | `grades.analytics.view` | `analytics/controller/grades-analytics.controller.ts`; `analytics/dto/grades-analytics-query.dto.ts` | `analytics/services/gradesAnalyticsService.ts`; analytics section | 24 | `not_checked` | Response is presenter/use-case shaped; construction source must be inspected. |
+| 36 | GET | `/grades/analytics/distribution` | `grades.analytics.view` | `analytics/controller/grades-analytics.controller.ts`; `analytics/dto/grades-analytics-query.dto.ts` | `analytics/services/gradesAnalyticsService.ts`; analytics section | 24 | `not_checked` | Bucket semantics and empty results require verification. |
+| 37 | GET | `/grades/bootstrap` | `grades.gradebook.view` | `dashboard/controller/grades-dashboard.controller.ts`; `dashboard/dto/grades-bootstrap.dto.ts` | `gradebook/services/gradesGradebookService.ts`; grades context/workspace | 2 | `not_checked` | Shared selector entities and nullability belong to foundation session. |
+| 38 | GET | `/grades/overview` | `grades.analytics.view` | `dashboard/controller/grades-dashboard.controller.ts`; `dashboard/dto/grades-overview.dto.ts` | `overview/services/gradesOverviewService.ts`; overview section | 2 | `not_checked` | Shared overview response and errors belong to foundation session. |
+
+## Inventory reconciliation
+
+At pinned commit `37a6fd93da4713b6a89eb5e928e2c059e66b1c5f`, the seven grades controllers expose 38 handlers:
+
+- Rules: 4
+- Assessments and grade items: 12
+- Assessment questions: 6
+- Submissions: 6
+- Submission review/sync: 4
+- Gradebook/snapshot: 2
+- Analytics: 2
+- Dashboard/bootstrap: 2
+
+Total: 38 matrix rows. Session 30 must repeat this reconciliation against the same commit.
