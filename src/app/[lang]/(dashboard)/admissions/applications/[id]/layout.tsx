@@ -138,7 +138,7 @@ export default function ApplicationProfileLayout({
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <p className="text-gray-500">Loading application...</p>
+          <p className="text-gray-500">{t("loading")}</p>
         </div>
       </div>
     );
@@ -148,7 +148,7 @@ export default function ApplicationProfileLayout({
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <p className="text-gray-500">Application not found</p>
+          <p className="text-gray-500">{t("not_found")}</p>
           <button
             onClick={() => router.push(buildLocalePath(lang, "admissions", "applications"))}
             className="mt-4 px-4 py-2 bg-[#036b80] text-white rounded-lg"
@@ -279,7 +279,7 @@ export default function ApplicationProfileLayout({
                         await refreshApplication();
                       } catch (err) {
                         console.error("Failed to submit application:", err);
-                        showToast("Failed to submit application.", "error");
+                        showToast(t("submit_error"), "error");
                       }
                     }}
                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
@@ -390,7 +390,7 @@ export default function ApplicationProfileLayout({
           } catch (error) {
             showToast(
               getDecisionFriendlyErrorMessage(error) ||
-                "Failed to create decision. Please try again.",
+                t("decision_error"),
               "error",
             );
           } finally {

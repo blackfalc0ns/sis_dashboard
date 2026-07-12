@@ -137,12 +137,15 @@ const activeRequest = {
 };
 
 const waitingStudent = {
-  ...activeRequest,
   id: "request-2",
   status: "moving",
   arrivalState: "in_transit",
-  child: { ...activeRequest.child, displayName: "Salma Hassan" },
+  requestedAt: activeRequest.requestedAt,
   updatedAt: "2026-07-07T12:05:00.000Z",
+  waitMinutes: activeRequest.waitMinutes,
+  signals: activeRequest.signals,
+  child: { ...activeRequest.child, displayName: "Salma Hassan" },
+  gate: activeRequest.gate,
 };
 
 const historyItem = {
@@ -349,6 +352,143 @@ describe("NedaaOperationsPage", () => {
     );
   });
 
+  it("renders fetched request details in the detail modal", async () => {
+    const user = userEvent.setup();
+    serviceMocks.fetchDismissalRequest.mockResolvedValue({
+      request: {
+        ...activeRequest,
+        timeline: [
+          {
+            type: "request_status_changed",
+            statusFrom: "called",
+            statusTo: "ready",
+            createdAt: "2026-07-07T12:10:00.000Z",
+            note: "Ready at gate",
+          },
+        ],
+      },
+    });
+    render(<NedaaOperationsPage />);
+
+    const row = (await screen.findByText("Omar Ali")).closest("tr");
+    await user.click(
+      within(row as HTMLTableRowElement).getByRole("button", {
+        name: "operations_actions.view",
+      }),
+    );
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Ready at gate")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("operations_history.wait_duration"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("operations_history.requester"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("operations_timeline.status_changed"),
+    ).toBeInTheDocument();
+  });
+
+  it("renders fetched pickup recipients in the recipients modal", async () => {
+    const user = userEvent.setup();
+    serviceMocks.listDismissalPickupRecipients.mockResolvedValue({
+      request: {
+        id: activeRequest.id,
+        status: "ready",
+        child: activeRequest.child,
+        gate: activeRequest.gate,
+      },
+      policy: { delegatePickupAllowed: true, pickupCodeRequired: true },
+      recipients: [
+        {
+          pickupRecipientToken: "recipient-token",
+          displayName: "Hassan Ali",
+          relation: "Father",
+          isRequestingGuardian: true,
+          canPickup: true,
+          maskedPhone: "+966 *** 1234",
+        },
+      ],
+    });
+    render(<NedaaOperationsPage />);
+
+    const row = (await screen.findByText("Omar Ali")).closest("tr");
+    await user.click(
+      within(row as HTMLTableRowElement).getByRole("button", {
+        name: "operations_actions.recipients",
+      }),
+    );
+    expect(await screen.findByText(/Hassan Ali/)).toBeInTheDocument();
+  });
+
+  it("renders fetched history details in the history modal", async () => {
+    const user = userEvent.setup();
+    serviceMocks.fetchDismissalRequestHistoryItem.mockResolvedValue({
+      request: {
+        ...historyItem,
+        timeline: [
+          {
+            type: "request_created",
+            statusFrom: null,
+            statusTo: "requested",
+            createdAt: "2026-07-07T11:00:00.000Z",
+            note: null,
+          },
+          {
+            type: "request_status_changed",
+            statusFrom: "ready",
+            statusTo: "handed_over",
+            createdAt: "2026-07-07T11:20:00.000Z",
+            note: "History loaded",
+          },
+        ],
+      },
+    });
+    render(<NedaaOperationsPage />);
+
+    await user.click(
+      await screen.findByRole("button", { name: "operations_tabs.history" }),
+    );
+    const row = (await screen.findByText("Laila Mostafa")).closest("tr");
+    await user.click(
+      within(row as HTMLTableRowElement).getByRole("button", {
+        name: "operations_actions.view_history",
+      }),
+    );
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getAllByText("operations_status.handed_over")).toHaveLength(2);
+    expect(within(dialog).getByText("operations_history.wait_duration")).toBeInTheDocument();
+    expect(within(dialog).getByText("operations_timeline.request_created")).toBeInTheDocument();
+    expect(within(dialog).getByText("operations_timeline.status_changed")).toBeInTheDocument();
+    expect(within(dialog).getByText("History loaded")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "common.close" })).toBeInTheDocument();
+  });
+
+  it("shows an empty timeline state when history has no events", async () => {
+    const user = userEvent.setup();
+    serviceMocks.fetchDismissalRequestHistoryItem.mockResolvedValue({
+      request: { ...historyItem, timeline: [] },
+    });
+    render(<NedaaOperationsPage />);
+
+    await user.click(
+      await screen.findByRole("button", { name: "operations_tabs.history" }),
+    );
+    const row = (await screen.findByText("Laila Mostafa")).closest("tr");
+    await user.click(
+      within(row as HTMLTableRowElement).getByRole("button", {
+        name: "operations_actions.view_history",
+      }),
+    );
+
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByText("operations_timeline.no_events"),
+    ).toBeInTheDocument();
+  });
+
   it("loads waiting students and confirms arrival", async () => {
     const user = userEvent.setup();
     render(<NedaaOperationsPage />);
@@ -371,6 +511,18 @@ describe("NedaaOperationsPage", () => {
         name: "operations_actions.confirm_arrival",
       }),
     );
+
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByText("operations_history.wait_duration"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("operations_history.arrival_state"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("operations_history.updated_at"),
+    ).toBeInTheDocument();
+
     await user.click(
       screen.getByRole("button", {
         name: "operations_actions.save_arrival",

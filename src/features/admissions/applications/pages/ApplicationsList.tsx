@@ -134,11 +134,11 @@ export default function ApplicationsList() {
     } catch (error) {
       console.error("Failed to load applications:", error);
       setApplications([]);
-      setApplicationsError("Failed to load applications.");
+      setApplicationsError(t("load_error"));
     } finally {
       setIsLoadingApplications(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, t]);
 
   useEffect(() => {
     void loadApplications();
@@ -254,7 +254,7 @@ export default function ApplicationsList() {
       (app) => app.status === "accepted" || app.status === "rejected",
     );
 
-    let avgProcessingDisplay = "N/A";
+    let avgProcessingDisplay = t("not_available");
 
     if (decidedApps.length > 0) {
       const totalProcessingTime = decidedApps.reduce((sum, app) => {
@@ -271,10 +271,14 @@ export default function ApplicationsList() {
       const avgHours = totalProcessingTime / decidedApps.length;
 
       if (avgHours < 48) {
-        avgProcessingDisplay = `${Math.round(avgHours)}h`;
+        avgProcessingDisplay = t("processing_hours", {
+          hours: Math.round(avgHours),
+        });
       } else {
         const days = avgHours / 24;
-        avgProcessingDisplay = `${days.toFixed(1)} days`;
+        avgProcessingDisplay = t("processing_days", {
+          days: days.toFixed(1),
+        });
       }
     }
 
@@ -288,7 +292,7 @@ export default function ApplicationsList() {
       rejected,
       avgProcessingDisplay,
     };
-  }, [scopedApplications]);
+  }, [scopedApplications, t]);
 
   const handleSubmitApp = async (appId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -297,7 +301,7 @@ export default function ApplicationsList() {
       await loadApplications();
     } catch (err) {
       console.error("Failed to submit application:", err);
-      showToast("Failed to submit application.", "error");
+      showToast(t("submit_error"), "error");
     }
   };
 
@@ -315,7 +319,9 @@ export default function ApplicationsList() {
       key: "requestedGradeId",
       label: t("grade_requested"),
       render: (value: unknown) =>
-        typeof value === "string" ? gradeLabels.get(value) ?? "—" : "—",
+        typeof value === "string"
+          ? gradeLabels.get(value) ?? t("not_available")
+          : t("not_available"),
     },
     {
       key: "source",
@@ -332,12 +338,12 @@ export default function ApplicationsList() {
     {
       key: "submittedAt",
       label: t("submitted"),
-      render: (value: unknown) => formatDate(value),
+      render: (value: unknown) => formatDate(value, t("not_available")),
     },
     {
       key: "createdAt",
       label: t("created"),
-      render: (value: unknown) => formatDate(value),
+      render: (value: unknown) => formatDate(value, t("not_available")),
     },
     {
       key: "registrationState",
@@ -404,7 +410,7 @@ export default function ApplicationsList() {
       setIsCreateAppOpen(false);
     } catch (error) {
       console.error("Failed to create application:", error);
-      showToast("Failed to create application. Please try again.", "error");
+      showToast(t("create_error"), "error");
     }
   };
 
@@ -591,7 +597,7 @@ export default function ApplicationsList() {
       {/* Table */}
       {isLoadingApplications ? (
         <div className="rounded-xl bg-white shadow-sm">
-          <EmptyState message="Loading applications..." />
+          <EmptyState message={t("loading")} />
         </div>
       ) : filteredApplications.length === 0 ? (
         <div className="rounded-xl bg-white shadow-sm">
@@ -641,15 +647,15 @@ export default function ApplicationsList() {
   );
 }
 
-function formatDate(value: unknown): string {
+function formatDate(value: unknown, fallback: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
-    return "—";
+    return fallback;
   }
 
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return "—";
+    return fallback;
   }
 
   return date.toLocaleDateString();

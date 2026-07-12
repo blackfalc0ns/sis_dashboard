@@ -42,6 +42,7 @@ export default function Application360Modal({
   onEnroll,
 }: Application360ModalProps) {
   const t = useTranslations("admissions.application360");
+  const notAvailable = t("overview.not_available");
   const [activeTab, setActiveTab] = useState("details");
 
   if (!isOpen) return null;
@@ -126,7 +127,7 @@ export default function Application360Modal({
                       <p className="text-sm font-medium text-gray-900">
                         {application.full_name_ar ||
                           application.studentNameArabic ||
-                          "N/A"}
+                          notAvailable}
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -135,7 +136,7 @@ export default function Application360Modal({
                           {t("details.gender")}
                         </p>
                         <p className="text-sm font-medium text-gray-900">
-                          {application.gender || "N/A"}
+                          {application.gender || notAvailable}
                         </p>
                       </div>
                       <div>
@@ -147,7 +148,7 @@ export default function Application360Modal({
                             ? new Date(
                                 application.date_of_birth,
                               ).toLocaleDateString()
-                            : "N/A"}
+                            : notAvailable}
                         </p>
                       </div>
                     </div>
@@ -156,7 +157,7 @@ export default function Application360Modal({
                         {t("details.nationality")}
                       </p>
                       <p className="text-sm font-medium text-gray-900">
-                        {application.nationality || "N/A"}
+                        {application.nationality || notAvailable}
                       </p>
                     </div>
                     <div>
@@ -178,7 +179,7 @@ export default function Application360Modal({
                               return "Preparatory";
                             if (gradeNum >= 10 && gradeNum <= 12)
                               return "Secondary";
-                            return "N/A";
+                            return notAvailable;
                           })()}
                       </p>
                     </div>

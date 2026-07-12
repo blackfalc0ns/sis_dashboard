@@ -1,6 +1,7 @@
 "use client";
 
 import { FileText, Download } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 interface DocumentViewerModalProps {
@@ -19,6 +20,7 @@ export default function DocumentViewerModal({
   onClose,
   document,
 }: DocumentViewerModalProps) {
+  const t = useTranslations("admissions.application360");
   if (!isOpen || !document) return null;
 
   const handleDownload = () => {
@@ -47,6 +49,7 @@ export default function DocumentViewerModal({
           </div>
           <button
             onClick={onClose}
+            aria-label={t("documents.actions.close")}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             <svg
@@ -88,10 +91,10 @@ export default function DocumentViewerModal({
                   <div className="text-center">
                     <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 mb-2">
-                      Document Preview Not Available
+                      {t("documents.preview_unavailable")}
                     </p>
                     <p className="text-sm text-gray-500">
-                      Click Download to view the file
+                      {t("documents.download_hint")}
                     </p>
                   </div>
                 </div>
@@ -101,7 +104,7 @@ export default function DocumentViewerModal({
             <div className="bg-gray-50 rounded-lg p-8 min-h-[500px] flex items-center justify-center">
               <div className="text-center">
                 <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-2">Document URL Not Available</p>
+                <p className="text-gray-600 mb-2">{t("documents.url_unavailable")}</p>
                 <p className="text-sm text-gray-500">{document.name}</p>
               </div>
             </div>
@@ -111,14 +114,14 @@ export default function DocumentViewerModal({
         {/* Modal Footer */}
         <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
           <Button variant="secondary" onClick={onClose}>
-            Close
+            {t("documents.actions.close")}
           </Button>
           {document.url && (
             <Button
               leftIcon={<Download className="w-4 h-4" />}
               onClick={handleDownload}
             >
-              Download
+              {t("documents.actions.download")}
             </Button>
           )}
         </div>

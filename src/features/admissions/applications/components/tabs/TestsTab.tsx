@@ -49,12 +49,12 @@ export default function TestsTab({
   ) => {
     try {
       await completePlacementTest(testId, { score, result });
-      showToast("Test score saved!", "success");
+      showToast(t("tests.score_saved"), "success");
       setSelectedTest(null);
       await loadTests();
     } catch (err) {
       console.error("Failed to save test score:", err);
-      showToast("Failed to save test score.", "error");
+      showToast(t("tests.score_save_failed"), "error");
     }
   };
 

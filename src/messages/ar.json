@@ -1001,7 +1001,14 @@
       "declined_applications": "طلبات مرفوضة",
       "avg_processing_time": "متوسط وقت المعالجة",
       "time_to_decision": "الوقت للقرار",
-      "submit": "تقديم"
+      "submit": "تقديم",
+      "load_error": "تعذر تحميل الطلبات.",
+      "submit_error": "تعذر تقديم الطلب.",
+      "create_error": "تعذر إنشاء الطلب. يرجى المحاولة مرة أخرى.",
+      "loading": "جارٍ تحميل الطلبات...",
+      "not_available": "غير متاح",
+      "processing_hours": "{hours} ساعة",
+      "processing_days": "{days} أيام"
     },
     "filters": {
       "filters_button": "التصفية",
@@ -1217,6 +1224,7 @@
       "no_notes": "لم يتم إضافة أي ملاحظات بعد"
     },
     "create_application": {
+      "loading": "جارٍ تحميل بيانات نموذج الطلب...",
       "title": "إنشاء طلب جديد",
       "subtitle": "املأ المعلومات المطلوبة",
       "intake_note": "أنشئ سجل طلب القبول أولاً. يتم إدخال بيانات الطالب وولي الأمر كاملة بعد القبول أثناء التسجيل.",
@@ -1367,23 +1375,88 @@
         "primary_guardian_required": "يجب تحديد ولي أمر أساسي واحد على الأقل",
         "document_required": "يجب رفع مستند واحد على الأقل",
         "file_type_error": "يُسمح فقط بملفات PDF و JPG و PNG",
-        "file_size_error": "يجب أن يكون حجم الملف أقل من 5 ميجابايت"
+        "file_size_error": "يجب أن يكون حجم الملف أقل من 5 ميجابايت",
+        "load_failed": "تعذر تحميل بيانات نموذج الطلب."
       }
     },
     "application360": {
+      "loading": "جارٍ تحميل الطلب...",
+      "not_found": "لم يتم العثور على الطلب",
+      "schedule_test_error": "تعذر جدولة الاختبار. يرجى المحاولة مرة أخرى.",
+      "schedule_interview_error": "تعذرت جدولة المقابلة. يرجى المحاولة مرة أخرى.",
+      "decision_error": "تعذر إنشاء القرار. يرجى المحاولة مرة أخرى.",
+      "submit_error": "تعذر تقديم الطلب.",
+      "registration_blocked": "التسجيل متعذر أو أن هناك صلاحيات إضافية مطلوبة.",
       "header": {
         "title": "الطلب",
         "back_to_applications": "العودة إلى الطلبات"
       },
       "tabs": {
         "details": "التفاصيل",
+        "readiness": "الجاهزية",
         "guardians": "أولياء الأمور",
         "documents": "المستندات",
         "tests": "الاختبارات",
         "interviews": "المقابلات",
         "timeline": "الجدول الزمني"
       },
+      "overview": {
+        "title": "نظرة عامة على الطلب",
+        "subtitle": "سجل الطلب كما أعادته خدمة القبول.",
+        "application_id": "معرّف الطلب",
+        "lead_id": "معرّف العميل المحتمل",
+        "student_name": "اسم الطالب",
+        "requested_academic_year_id": "معرّف السنة الدراسية المطلوبة",
+        "requested_grade_id": "معرّف الصف المطلوب",
+        "source": "المصدر",
+        "status": "الحالة",
+        "submitted_at": "تاريخ التقديم",
+        "created_at": "تاريخ الإنشاء",
+        "updated_at": "تاريخ التحديث",
+        "not_available": "غير متاح",
+        "sources": {
+          "in_app": "من داخل التطبيق",
+          "referral": "إحالة",
+          "walk_in": "حضور مباشر",
+          "other": "أخرى"
+        },
+        "statuses": {
+          "submitted": "مُقدّم",
+          "documents_pending": "المستندات قيد الانتظار",
+          "under_review": "قيد المراجعة",
+          "accepted": "مقبول",
+          "waitlisted": "قائمة الانتظار",
+          "rejected": "مرفوض"
+        }
+      },
       "details": {
+        "not_provided": "لم يتم تقديمه في هذا الطلب.",
+        "personal_info_not_provided": "لم يتم تقديم تفاصيل الملف الشخصي بعد.",
+        "contact_not_provided": "لم يتم تقديم بيانات اتصال الطالب بعد.",
+        "readiness_title": "جاهزية الطلب",
+        "readiness_subtitle": "حالة الإجراءات المحسوبة من النظام للقرار والتسجيل والمستندات ومتطلبات سير العمل.",
+        "decision_action": "إجراء القرار",
+        "registration_action": "إجراء التسجيل",
+        "enabled": "متاح",
+        "blocked": "متعذر",
+        "document_summary": "ملخص المستندات",
+        "documents_complete": "مكتملة",
+        "documents_missing": "مفقودة",
+        "documents_pending_review": "بانتظار المراجعة",
+        "documents_total": "إجمالي المستندات: {total}",
+        "workflow_readiness": "جاهزية سير العمل",
+        "placement_test": "اختبار تحديد المستوى",
+        "interview": "المقابلة",
+        "required": "مطلوب",
+        "optional": "اختياري",
+        "satisfied": "مستوفى",
+        "not_satisfied": "غير مستوفى",
+        "completed_count": "اكتمل {completed} من أصل {total}",
+        "policy_source": "مصدر السياسة",
+        "direct_acceptance": "القبول المباشر",
+        "allowed": "مسموح",
+        "not_allowed": "غير مسموح",
+        "blockers": "العوائق",
         "student_info": "معلومات الطالب",
         "english_name": "الاسم بالإنجليزية",
         "arabic_name": "الاسم بالعربية",
@@ -1409,6 +1482,9 @@
         "expected_start_date": "تاريخ البدء المتوقع"
       },
       "guardians": {
+        "loading": "جارٍ تحميل بيانات أولياء الأمور...",
+        "retry": "إعادة المحاولة",
+        "empty": "لم يتم تقديم بيانات أولياء الأمور لهذا الطلب بعد.",
         "title": "معلومات ولي الأمر",
         "primary": "أساسي",
         "primary_phone": "الهاتف الأساسي",
@@ -1437,14 +1513,89 @@
         "status_complete": "تمت مراجعة المستند وقبوله من المدرسة.",
         "status_missing": "المستند ناقص ويتطلب إجراءً من المتقدم.",
         "cancel": "إلغاء",
-        "choose_file": "اختر ملف"
+        "choose_file": "اختر ملف",
+        "loading": "جارٍ تحميل المستندات...",
+        "empty": "لم يتم تقديم مستندات لهذا الطلب بعد.",
+        "uploaded": "تم الرفع",
+        "uploaded_label": "تم الرفع:",
+        "preview_unavailable": "معاينة المستند غير متاحة",
+        "download_hint": "اضغط على تنزيل لعرض الملف",
+        "url_unavailable": "رابط المستند غير متاح",
+        "remove_confirm": "إزالة رابط هذا المستند؟ لا يمكن التراجع عن هذا الإجراء.",
+        "actions": {
+          "view": "عرض المستند",
+          "download": "تنزيل المستند",
+          "remove": "إزالة المستند",
+          "close": "إغلاق"
+        },
+        "review": {
+          "accept": "قبول",
+          "reject": "رفض",
+          "request_replacement": "طلب استبدال",
+          "accept_title": "قبول المستند",
+          "reject_title": "رفض المستند",
+          "request_replacement_title": "طلب استبدال المستند",
+          "title": "مراجعة المستند",
+          "submit": "إرسال المراجعة",
+          "cancel": "إلغاء",
+          "note": "ملاحظة",
+          "optional": "اختياري",
+          "required_note": "أدخل ملاحظة قبل الإرسال",
+          "optional_note": "أضف ملاحظة",
+          "approval_note": "أضف ملاحظة اختيارية لهذا القبول.",
+          "rejection_note": "أدخل سبب رفض هذا المستند.",
+          "replacement_note": "أدخل ما يحتاج المتقدم إلى استبداله أو تصحيحه.",
+          "replacement_notice": "قد يحتاج المتقدم إلى رفع مستند جديد بعد هذا الإجراء.",
+          "eligibility": {
+            "reviewable": "جاهز للمراجعة",
+            "application_status_not_reviewable": "حالة الطلب لا تسمح بمراجعة المستند",
+            "document_not_pending_review": "المستند ليس بانتظار المراجعة",
+            "not_applicant_portal_document": "لم يتم تقديم المستند عبر بوابة المتقدم",
+            "applicant_document_not_uploaded": "لم يتم رفع مستند المتقدم"
+          }
+        },
+        "errors": {
+          "review_failed": "تعذر تحديث مراجعة المستند.",
+          "review_success": "تم تحديث مراجعة المستند.",
+          "upload_failed": "تعذر رفع المستند.",
+          "review_permission": "ليس لديك صلاحية مراجعة هذا المستند.",
+          "not_found": "تعذر العثور على الطلب أو المستند.",
+          "already_reviewed": "تمت مراجعة هذا المستند بالفعل أو لم يعد بانتظار المراجعة.",
+          "invalid_review_note": "يرجى التحقق من ملاحظة المراجعة والمحاولة مرة أخرى.",
+          "load_failed": "تعذر تحميل المستندات.",
+          "view_permission": "ليس لديك صلاحية عرض هذه المستندات.",
+          "manage_permission": "ليس لديك صلاحية إدارة المستندات.",
+          "changed_status": "تغيرت حالة هذا المستند. حدّث الصفحة وحاول مرة أخرى.",
+          "invalid_details": "يرجى التحقق من تفاصيل المستند والمحاولة مرة أخرى.",
+          "open_failed": "تعذر فتح المستند.",
+          "download_failed": "تعذر تنزيل المستند.",
+          "select_type": "يرجى اختيار نوع مستند أو إدخاله.",
+          "file_type": "يسمح فقط بملفات PDF وJPG وPNG.",
+          "file_size": "يجب أن يكون حجم الملف أقل من 5 ميجابايت.",
+          "type_missing": "نوع المستند مفقود.",
+          "upload_success": "تم رفع المستند بنجاح.",
+          "remove_success": "تمت إزالة المستند.",
+          "remove_failed": "تعذر إزالة المستند."
+        },
+        "types": {
+          "birth_certificate": "شهادة الميلاد",
+          "passport_copy": "نسخة جواز السفر",
+          "medical_report": "التقرير الطبي",
+          "previous_school_certificate": "شهادة المدرسة السابقة",
+          "national_id": "الهوية الوطنية",
+          "vaccination_record": "سجل التطعيمات",
+          "report_card": "بطاقة الدرجات",
+          "transfer_certificate": "شهادة التحويل"
+        }
       },
       "tests": {
         "title": "اختبارات القبول",
         "schedule_test": "جدولة اختبار",
         "no_tests": "لم يتم جدولة أي اختبارات بعد",
         "at": "في",
-        "score": "الدرجة"
+        "score": "الدرجة",
+        "score_saved": "تم حفظ درجة الاختبار!",
+        "score_save_failed": "تعذر حفظ درجة الاختبار."
       },
       "interviews": {
         "title": "المقابلات",
@@ -1452,7 +1603,9 @@
         "no_interviews": "لم يتم جدولة أي مقابلات بعد",
         "interview_with": "مقابلة مع",
         "at": "في",
-        "rating": "التقييم"
+        "rating": "التقييم",
+        "completed": "اكتملت المقابلة!",
+        "complete_failed": "تعذر إكمال المقابلة."
       },
       "timeline": {
         "title": "الجدول الزمني للطلب",
@@ -1472,6 +1625,7 @@
         "make_decision": "اتخاذ قرار",
         "enroll_student": "تسجيل الطالب",
         "submit_application": "تقديم الطلب",
+        "blocked_title": "عوائق الإجراء",
         "enrolled_status": "تم تسجيل الطالب بنجاح",
         "waitlisted_no_transition": "هذا الطلب في قائمة الانتظار ولا توجد إجراءات انتقال متاحة حالياً.",
         "rejected_no_actions": "تم رفض هذا الطلب ولا توجد إجراءات إضافية."
@@ -1977,6 +2131,7 @@
       "all_years": "جميع السنوات",
       "no_match": "لا توجد تسجيلات تطابق التصفية",
       "no_enrollments": "لم يتم العثور على تسجيلات",
+      "load_error": "تعذر تحميل التسجيلات.",
       "found": "تم العثور عليها",
       "promote_students": "ترقية الطلاب",
       "rebalance_classrooms": "إعادة توزيع الفصول",
@@ -1999,7 +2154,69 @@
       "pending_placement": "بانتظار التوزيع",
       "full_classrooms": "الفصول الممتلئة",
       "promote_waitlist": "ترقية قائمة الانتظار",
-      "waitlist_summary": "سيتم فحص {count} من إدخالات قائمة الانتظار النشطة بحثًا عن مقاعد متاحة."
+      "waitlist_summary": "سيتم فحص {count} من إدخالات قائمة الانتظار النشطة بحثًا عن مقاعد متاحة.",
+      "actions": {
+        "new_enrollment": "تسجيل جديد",
+        "retry": "إعادة المحاولة",
+        "save": "حفظ",
+        "edit_placement": "تعديل التوزيع",
+        "transfer": "نقل",
+        "promote": "ترقية",
+        "withdraw": "انسحاب"
+      },
+      "status": {
+        "all": "جميع الحالات",
+        "active": "نشط",
+        "completed": "مكتمل",
+        "withdrawn": "منسحب"
+      },
+      "dialogs": {
+        "placement": {
+          "new_title": "تسجيل جديد",
+          "edit_title": "تعديل التوزيع",
+          "student": "الطالب",
+          "academic_year": "السنة الدراسية",
+          "grade": "الصف",
+          "section": "الشعبة",
+          "classroom": "الفصل",
+          "enrollment_date": "تاريخ التسجيل",
+          "save_error": "تعذر حفظ التسجيل."
+        },
+        "workflow": {
+          "titles": {
+            "transfer": "نقل التسجيل",
+            "withdraw": "سحب التسجيل",
+            "promote": "ترقية التسجيل"
+          },
+          "target_section": "الشعبة المستهدفة",
+          "target_classroom": "الفصل المستهدف",
+          "target_academic_year": "السنة الدراسية المستهدفة",
+          "effective_date": "تاريخ السريان",
+          "reason": "السبب",
+          "notes_optional": "ملاحظات (اختياري)",
+          "action_error": "تعذر إكمال إجراء التسجيل."
+        }
+      },
+      "details": {
+        "aria_label": "تفاصيل التسجيل",
+        "title": "تفاصيل التسجيل",
+        "close": "إغلاق",
+        "unable_to_load": "تعذر تحميل تفاصيل التسجيل.",
+        "overview": "نظرة عامة",
+        "current_enrollment": "التسجيل الحالي",
+        "history": "السجل",
+        "no_active_enrollment": "لا يوجد تسجيل نشط",
+        "no_history": "لا يوجد سجل للتسجيلات",
+        "fields": {
+          "status": "الحالة",
+          "academic_year": "السنة الدراسية",
+          "grade": "الصف",
+          "section": "الشعبة",
+          "classroom": "الفصل",
+          "enrollment_date": "تاريخ التسجيل"
+        },
+        "not_available": "—"
+      }
     },
     "export": {
       "title": "تصدير بيانات القبول",
@@ -2842,6 +3059,44 @@
         "confirm_change": "تأكيد التغيير"
       }
     },
+    "modal": {
+      "title": "إنشاء طلب تحويل أو انسحاب",
+      "cancel": "إلغاء",
+      "submit": "إرسال الطلب",
+      "no_students_found": "لم يتم العثور على طلاب",
+      "fields": {
+        "student": "الطالب",
+        "search_student": "ابحث باسم الطالب أو رقمه...",
+        "student_id": "رقم الطالب",
+        "stage": "المرحلة",
+        "grade": "الصف",
+        "section": "الشعبة",
+        "classroom": "الفصل",
+        "type": "نوع الطلب",
+        "reason": "السبب",
+        "select_reason": "اختر السبب",
+        "effective_date": "تاريخ السريان",
+        "notes": "ملاحظات إضافية",
+        "notes_placeholder": "أدخل أي معلومات إضافية..."
+      },
+      "types": {
+        "transfer": "تحويل",
+        "withdrawal": "انسحاب"
+      },
+      "reasons": {
+        "relocation": "الانتقال إلى مكان آخر",
+        "financial": "أسباب مالية",
+        "academic": "أسباب أكاديمية",
+        "behavior": "مشكلات سلوكية",
+        "other": "أخرى"
+      },
+      "errors": {
+        "student_required": "يرجى اختيار طالب",
+        "type_required": "يرجى اختيار نوع الطلب",
+        "reason_required": "يرجى اختيار السبب",
+        "date_required": "يرجى اختيار تاريخ السريان"
+      }
+    },
     "profile": {
       "back_to_students": "العودة إلى الطلاب",
       "student_not_found": "لم يتم العثور على الطالب",
@@ -2850,6 +3105,7 @@
       "section": "الشعبة",
       "classroom": "الفصل",
       "na": "غير متاح",
+      "no_data": "لا توجد بيانات متاحة",
       "account_linking": {
         "action": "ربط الحساب",
         "manage_required": "ربط الحسابات يتطلب settings.users.manage."
@@ -10885,7 +11141,32 @@
       "subtitle": "إدارة طلبات الانصراف النشطة والطلاب المنتظرين وسجل الاستلام من مساحة عمل واحدة.",
       "empty_title": "لا توجد سجلات انصراف",
       "empty_description": "عدّل الفلاتر أو حدّث مساحة العمل لتحميل أحدث نشاط للانصراف.",
-      "detail_loading": "جاري تحميل تفاصيل الطلب..."
+      "detail_loading": "جاري تحميل تفاصيل الطلب...",
+      "detail_failed": "فشل تحميل تفاصيل الطلب."
+    },
+    "operations_history": {
+      "summary": "ملخص الطلب",
+      "student": "الطالب",
+      "grade": "الصف",
+      "section": "الشعبة",
+      "classroom": "الفصل",
+      "gate": "البوابة",
+      "requester": "مقدم الطلب",
+      "arrival_state": "حالة الوصول",
+      "request_id": "معرّف الطلب",
+      "wait_duration": "مدة الانتظار",
+      "wait_minutes": "{minutes} دقيقة",
+      "requested_at": "وقت الطلب",
+      "updated_at": "آخر تحديث",
+      "escalation": "التصعيد",
+      "escalated": "تم التصعيد",
+      "not_escalated": "لا يوجد تصعيد",
+      "timeline": "الخط الزمني للطلب"
+    },
+    "operations_timeline": {
+      "request_created": "تم إنشاء الطلب",
+      "status_changed": "تغيرت الحالة",
+      "no_events": "لا توجد أحداث زمنية متاحة لهذا الطلب."
     },
     "operations_tabs": {
       "active": "الطلبات النشطة",

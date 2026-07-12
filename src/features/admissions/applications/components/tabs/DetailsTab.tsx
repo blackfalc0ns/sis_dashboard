@@ -1,10 +1,9 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { FileText, User, MapPin, Heart, Calendar } from "lucide-react";
-import { Application } from "@/features/admissions/types/admissions";
+import { useLocale, useTranslations } from "next-intl";
+import { Hash } from "lucide-react";
+import type { Application } from "@/features/admissions/types/admissions";
 import type { RegistrationStudentRequest } from "@/features/admissions/applications/api/registrationDtos";
-import StatusBadge from "../../../shared/StatusBadge";
 
 interface DetailsTabProps {
   application: Application;
@@ -14,373 +13,129 @@ interface DetailsTabProps {
   previousSchool?: string | null;
 }
 
-export default function DetailsTab({
-  application,
-  studentDraft,
-  gradeLabel,
-  academicYearLabel,
-  previousSchool,
-}: DetailsTabProps) {
+function formatApplicationDate(
+  value: string | null | undefined,
+  locale: string,
+  fallback: string,
+) {
+  if (!value) return fallback;
+
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function OverviewField({
+  label,
+  value,
+  monospace = false,
+}: {
+  label: string;
+  value: string;
+  monospace?: boolean;
+}) {
+  return (
+    <div className="min-w-0 rounded-xl border border-gray-200 bg-white p-4">
+      <p className="text-xs font-medium text-gray-500">{label}</p>
+      <p
+        className={`mt-2 break-words text-sm font-semibold text-gray-900 ${monospace ? "font-mono text-xs sm:text-sm" : ""}`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+export default function DetailsTab({ application }: DetailsTabProps) {
   const t = useTranslations("admissions.application360");
-  const studentContact = studentDraft?.contact;
-
-  // Helper function to determine stage from grade
-  const getStageFromGrade = (grade: string | undefined): string => {
-    if (!grade) return "N/A";
-    const gradeNum = parseInt(grade.replace(/\D/g, ""));
-    if (gradeNum >= 1 && gradeNum <= 5) return "Primary";
-    if (gradeNum >= 6 && gradeNum <= 9) return "Preparatory";
-    if (gradeNum >= 10 && gradeNum <= 12) return "Secondary";
-    return "N/A";
+  const locale = useLocale();
+  const notAvailable = t("overview.not_available");
+  const sourceLabels: Record<string, string> = {
+    in_app: t("overview.sources.in_app"),
+    referral: t("overview.sources.referral"),
+    walk_in: t("overview.sources.walk_in"),
+    other: t("overview.sources.other"),
   };
-
-  const displayStage =
-    application.stage ??
-    getStageFromGrade(
-      gradeLabel || undefined,
-    );
-  const displayGrade = gradeLabel;
-  const hasArabicName =
-    Boolean(studentDraft?.first_name_ar) ||
-    Boolean(studentDraft?.father_name_ar) ||
-    Boolean(studentDraft?.grandfather_name_ar) ||
-    Boolean(studentDraft?.family_name_ar) ||
-    Boolean(studentDraft?.full_name_ar);
-  const hasPersonalInfo =
-    Boolean(studentDraft?.gender) ||
-    Boolean(studentDraft?.date_of_birth || studentDraft?.dateOfBirth) ||
-    Boolean(studentDraft?.nationality);
-  const hasContactInfo =
-    Boolean(studentContact?.address_line) ||
-    Boolean(studentContact?.district) ||
-    Boolean(studentContact?.city) ||
-    Boolean(studentContact?.student_phone) ||
-    Boolean(studentContact?.student_email);
+  const statusLabels: Record<string, string> = {
+    submitted: t("overview.statuses.submitted"),
+    documents_pending: t("overview.statuses.documents_pending"),
+    under_review: t("overview.statuses.under_review"),
+    accepted: t("overview.statuses.accepted"),
+    waitlisted: t("overview.statuses.waitlisted"),
+    rejected: t("overview.statuses.rejected"),
+  };
+  const source = application.source
+    ? sourceLabels[application.source] ?? application.source
+    : notAvailable;
+  const status = statusLabels[application.status] ?? application.status;
 
   return (
-    <div className="space-y-6">
-      {/* Student Personal Information - Name Details */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-          <User className="w-4 h-4" />
-          {t("details.student_info")}
-        </h3>
-        <div className="space-y-6">
-          {/* Arabic Name Components */}
-          <div>
-            <p className="text-xs font-semibold text-gray-600 mb-2">
-              {t("details.arabic_name")}
-            </p>
-            {!hasArabicName && (
-              <p className="text-sm text-gray-500">{t("details.not_provided")}</p>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-            {studentDraft?.first_name_ar && (
-                <div>
-                  <p className="text-xs text-gray-500">First Name (AR)</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {studentDraft.first_name_ar}
-                  </p>
-                </div>
-              )}
-              {studentDraft?.father_name_ar && (
-                <div>
-                  <p className="text-xs text-gray-500">Father Name (AR)</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {studentDraft.father_name_ar}
-                  </p>
-                </div>
-              )}
-              {studentDraft?.grandfather_name_ar && (
-                <div>
-                  <p className="text-xs text-gray-500">Grandfather Name (AR)</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {studentDraft.grandfather_name_ar}
-                  </p>
-                </div>
-              )}
-              {studentDraft?.family_name_ar && (
-                <div>
-                  <p className="text-xs text-gray-500">Family Name (AR)</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {studentDraft.family_name_ar}
-                  </p>
-                </div>
-              )}
-            </div>
-            {studentDraft?.full_name_ar && (
-              <div className="mt-2">
-                <p className="text-xs text-gray-500">Full Name (AR)</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {studentDraft.full_name_ar}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* English Name Components */}
-          <div>
-            <p className="text-xs font-semibold text-gray-600 mb-2">
-              {t("details.english_name")}
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-              {studentDraft?.first_name_en && (
-                <div>
-                  <p className="text-xs text-gray-500">First Name (EN)</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {studentDraft.first_name_en}
-                  </p>
-                </div>
-              )}
-              {studentDraft?.father_name_en && (
-                <div>
-                  <p className="text-xs text-gray-500">Father Name (EN)</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {studentDraft.father_name_en}
-                  </p>
-                </div>
-              )}
-              {studentDraft?.grandfather_name_en && (
-                <div>
-                  <p className="text-xs text-gray-500">Grandfather Name (EN)</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {studentDraft.grandfather_name_en}
-                  </p>
-                </div>
-              )}
-              {studentDraft?.family_name_en && (
-                <div>
-                  <p className="text-xs text-gray-500">Family Name (EN)</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {studentDraft.family_name_en}
-                  </p>
-                </div>
-              )}
-            </div>
-            {(studentDraft?.full_name_en || studentDraft?.name || application.studentName) && (
-              <div className="mt-2">
-                <p className="text-xs text-gray-500">Full Name (EN)</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {studentDraft?.full_name_en || studentDraft?.name || application.studentName}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Personal Information */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {!hasPersonalInfo && (
-              <p className="text-sm text-gray-500 md:col-span-3">
-                {t("details.personal_info_not_provided")}
-              </p>
-            )}
-            {studentDraft?.gender && (
-              <div>
-                <p className="text-xs text-gray-500">{t("details.gender")}</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {studentDraft.gender}
-                </p>
-              </div>
-            )}
-            {(studentDraft?.date_of_birth || studentDraft?.dateOfBirth) && (
-              <div>
-                <p className="text-xs text-gray-500">
-                  {t("details.date_of_birth")}
-                </p>
-                <p className="text-sm font-medium text-gray-900">
-                  {new Date(
-                    studentDraft.date_of_birth || studentDraft.dateOfBirth || "",
-                  ).toLocaleDateString()}
-                </p>
-              </div>
-            )}
-            {studentDraft?.nationality && (
-              <div>
-                <p className="text-xs text-gray-500">
-                  {t("details.nationality")}
-                </p>
-                <p className="text-sm font-medium text-gray-900">
-                  {studentDraft.nationality}
-                </p>
-              </div>
-            )}
-          </div>
+    <section
+      aria-labelledby="application-overview-title"
+      className="space-y-6"
+    >
+      <div className="flex items-start gap-3 border-b border-gray-200 pb-5">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#036b80]/10 text-[#036b80]">
+          <Hash className="h-5 w-5" aria-hidden="true" />
+        </div>
+        <div>
+          <h2
+            id="application-overview-title"
+            className="text-xl font-bold text-gray-900"
+          >
+            {t("overview.title")}
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            {t("overview.subtitle")}
+          </p>
         </div>
       </div>
 
-      {/* Academic Information */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-          <FileText className="w-4 h-4" />
-          {t("details.academic_info")}
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {displayStage !== "N/A" && (
-            <div>
-              <p className="text-xs text-gray-500">{t("details.stage")}</p>
-              <p className="text-sm font-medium text-gray-900">
-                {displayStage}
-              </p>
-            </div>
-          )}
-          {displayGrade && (
-            <div>
-              <p className="text-xs text-gray-500">
-                {t("details.grade_requested")}
-              </p>
-              <p className="text-sm font-medium text-gray-900">
-                {displayGrade}
-              </p>
-            </div>
-          )}
-          {academicYearLabel && (
-            <div>
-              <p className="text-xs text-gray-500">Academic Year</p>
-              <p className="text-sm font-medium text-gray-900">
-                {academicYearLabel}
-              </p>
-            </div>
-          )}
-          {application.section && (
-            <div>
-              <p className="text-xs text-gray-500">{t("details.section")}</p>
-              <p className="text-sm font-medium text-gray-900">
-                {application.section}
-              </p>
-            </div>
-          )}
-          {previousSchool && (
-            <div>
-              <p className="text-xs text-gray-500">
-                {t("details.previous_school")}
-              </p>
-              <p className="text-sm font-medium text-gray-900">
-                {previousSchool}
-              </p>
-            </div>
-          )}
-        </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <OverviewField
+          label={t("overview.application_id")}
+          value={application.id}
+          monospace
+        />
+        <OverviewField
+          label={t("overview.student_name")}
+          value={application.studentName || notAvailable}
+        />
+        <OverviewField
+          label={t("overview.lead_id")}
+          value={application.leadId || notAvailable}
+          monospace
+        />
+        <OverviewField
+          label={t("overview.requested_academic_year_id")}
+          value={application.requestedAcademicYearId || notAvailable}
+          monospace
+        />
+        <OverviewField
+          label={t("overview.requested_grade_id")}
+          value={application.requestedGradeId || notAvailable}
+          monospace
+        />
+        <OverviewField label={t("overview.source")} value={source} />
+        <OverviewField label={t("overview.status")} value={status} />
       </div>
 
-      {/* Contact Information */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-          <MapPin className="w-4 h-4" />
-          {t("details.contact_info")}
-        </h3>
-        <div className="space-y-3">
-          {!hasContactInfo && (
-            <p className="text-sm text-gray-500">
-              {t("details.contact_not_provided")}
-            </p>
-          )}
-          {studentContact?.address_line && (
-            <div>
-              <p className="text-xs text-gray-500">{t("details.address")}</p>
-              <p className="text-sm font-medium text-gray-900">
-                {studentContact.address_line}
-              </p>
-              {(studentContact.district || studentContact.city) && (
-                <p className="text-xs text-gray-600">
-                  {[studentContact.district, studentContact.city]
-                    .filter(Boolean)
-                    .join(", ")}
-                </p>
-              )}
-            </div>
-          )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {studentContact?.student_phone && (
-              <div>
-                <p className="text-xs text-gray-500">
-                  {t("details.student_phone")}
-                </p>
-                <p className="text-sm font-medium text-gray-900">
-                  {studentContact.student_phone}
-                </p>
-              </div>
-            )}
-            {studentContact?.student_email && (
-              <div>
-                <p className="text-xs text-gray-500">
-                  {t("details.student_email")}
-                </p>
-                <p className="text-sm font-medium text-gray-900">
-                  {studentContact.student_email}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <OverviewField
+          label={t("overview.submitted_at")}
+          value={formatApplicationDate(application.submittedAt, locale, notAvailable)}
+        />
+        <OverviewField
+          label={t("overview.created_at")}
+          value={formatApplicationDate(application.createdAt, locale, notAvailable)}
+        />
+        <OverviewField
+          label={t("overview.updated_at")}
+          value={formatApplicationDate(application.updatedAt, locale, notAvailable)}
+        />
       </div>
 
-      {/* Medical & Notes */}
-      {(application.medical_conditions || application.notes) && (
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <Heart className="w-4 h-4" />
-            {t("details.medical_additional")}
-          </h3>
-          <div className="space-y-3">
-            {application.medical_conditions && (
-              <div>
-                <p className="text-xs text-gray-500">
-                  {t("details.medical_conditions")}
-                </p>
-                <p className="text-sm font-medium text-gray-900">
-                  {application.medical_conditions}
-                </p>
-              </div>
-            )}
-            {application.notes && (
-              <div>
-                <p className="text-xs text-gray-500">{t("details.notes")}</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {application.notes}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Application Dates & Status */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-          <Calendar className="w-4 h-4" />
-          {t("details.important_dates")}
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {application.submittedDate && (
-            <div>
-              <p className="text-xs text-gray-500">
-                {t("details.submitted_date")}
-              </p>
-              <p className="text-sm font-medium text-gray-900">
-                {new Date(application.submittedDate).toLocaleDateString()}
-              </p>
-            </div>
-          )}
-          {application.join_date && (
-            <div>
-              <p className="text-xs text-gray-500">
-                {t("details.expected_start_date")}
-              </p>
-              <p className="text-sm font-medium text-gray-900">
-                {new Date(application.join_date).toLocaleDateString()}
-              </p>
-            </div>
-          )}
-          {application.status && (
-            <div>
-              <p className="text-xs text-gray-500">
-                {t("details.application_status")}
-              </p>
-              <StatusBadge status={application.status} size="md" />
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+    </section>
   );
 }

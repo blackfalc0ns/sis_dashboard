@@ -2,9 +2,11 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import ApplicationReadinessPanel from "@/features/admissions/applications/components/tabs/ApplicationReadinessPanel";
+import DetailsTab from "@/features/admissions/applications/components/tabs/DetailsTab";
 import type { Application } from "@/features/admissions/types/admissions";
 
 vi.mock("next-intl", () => ({
+  useLocale: () => "en",
   useTranslations: () => (key: string, values?: Record<string, string | number>) => {
     const messages: Record<string, string> = {
       "details.readiness_title": "Application readiness",
@@ -24,6 +26,10 @@ vi.mock("next-intl", () => ({
       "details.not_satisfied": "Not satisfied",
       "details.completed_count": `${values?.completed ?? 0} of ${values?.total ?? 0} completed`,
       "details.blockers": "Blockers",
+      "overview.title": "Application overview",
+      "overview.sources.in_app": "In-app",
+      "overview.statuses.submitted": "Submitted",
+      "overview.not_available": "Not available",
       submitted: "Submitted",
     };
 
@@ -154,5 +160,30 @@ describe("ApplicationReadinessPanel", () => {
       screen.getAllByText("Required admissions workflow steps are not satisfied.").length,
     ).toBeGreaterThan(0);
     expect(screen.getAllByText("Application is not accepted.").length).toBeGreaterThan(0);
+  });
+});
+
+describe("DetailsTab", () => {
+  it("renders only the application overview DTO fields", () => {
+    const overviewApplication = {
+      ...application,
+      leadId: null,
+      requestedAcademicYearId: null,
+      requestedGradeId: null,
+      source: "in_app",
+      status: "submitted",
+    } as Application;
+
+    render(<DetailsTab application={overviewApplication} />);
+
+    expect(screen.getByText("Application overview")).toBeInTheDocument();
+    expect(screen.getByText(overviewApplication.id)).toBeInTheDocument();
+    expect(screen.getByText(overviewApplication.studentName)).toBeInTheDocument();
+    expect(screen.getByText("In-app")).toBeInTheDocument();
+    expect(screen.getByText("Submitted")).toBeInTheDocument();
+    expect(screen.getAllByText("Not available")).toHaveLength(3);
+    expect(screen.queryByText("details.student_info")).not.toBeInTheDocument();
+    expect(screen.queryByText("details.contact_info")).not.toBeInTheDocument();
+    expect(screen.queryByText("details.medical_additional")).not.toBeInTheDocument();
   });
 });

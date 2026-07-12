@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import type { EnrollmentDto } from "../api/enrollmentDtos";
@@ -33,7 +33,22 @@ export default function EnrollmentDetailsDrawer({
   onEdit,
   onLifecycle,
 }: Props) {
+  const t = useTranslations("admissions.enrollment");
   const locale = useLocale();
+  const fieldLabels = {
+    status: t("details.fields.status"),
+    academicYear: t("details.fields.academic_year"),
+    grade: t("details.fields.grade"),
+    section: t("details.fields.section"),
+    classroom: t("details.fields.classroom"),
+    enrollmentDate: t("details.fields.enrollment_date"),
+  };
+  const statusLabels = {
+    active: t("status.active"),
+    completed: t("status.completed"),
+    withdrawn: t("status.withdrawn"),
+  };
+  const notAvailable = t("details.not_available");
   const [detail, setDetail] = useState<EnrollmentDto | null>(null);
   const [current, setCurrent] = useState<EnrollmentDto | null>(null);
   const [history, setHistory] = useState<EnrollmentDto[]>([]);
@@ -89,14 +104,14 @@ export default function EnrollmentDetailsDrawer({
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label="Enrollment details"
+        aria-label={t("details.aria_label")}
         dir={locale === "ar" ? "rtl" : "ltr"}
         onClick={(event) => event.stopPropagation()}
         className={`absolute inset-y-0 flex w-full max-w-xl flex-col bg-white shadow-2xl ${locale === "ar" ? "left-0" : "right-0"}`}
       >
         <header className="flex items-center justify-between border-b border-border p-5">
           <div>
-            <p className="text-sm text-gray-500">Enrollment details</p>
+            <p className="text-sm text-gray-500">{t("details.title")}</p>
             <h2 className="text-xl font-bold">{enrollment.studentName}</h2>
           </div>
           <Button
@@ -105,7 +120,7 @@ export default function EnrollmentDetailsDrawer({
             size="sm"
             className="p-2"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("details.close")}
           >
             <X className="h-5 w-5" />
           </Button>
@@ -118,19 +133,23 @@ export default function EnrollmentDetailsDrawer({
           )}
           {error && (
             <p role="alert" className="rounded-lg bg-red-50 p-3 text-red-700">
-              Unable to load enrollment details.
+              {t("details.unable_to_load")}
             </p>
           )}
           {!isLoading && (
             <>
-              <Section title="Overview" enrollment={shown} />
+              <Section title={t("details.overview")} enrollment={shown} fieldLabels={fieldLabels} statusLabels={statusLabels} locale={locale} notAvailable={notAvailable} />
               <Section
-                title="Current enrollment"
+                title={t("details.current_enrollment")}
                 enrollment={current}
-                empty="No active enrollment"
+                empty={t("details.no_active_enrollment")}
+                fieldLabels={fieldLabels}
+                statusLabels={statusLabels}
+                locale={locale}
+                notAvailable={notAvailable}
               />
               <section>
-                <h3 className="mb-3 font-semibold">History</h3>
+                <h3 className="mb-3 font-semibold">{t("details.history")}</h3>
                 <div className="space-y-3">
                   {history.length ? (
                     history.map((item) => (
@@ -138,11 +157,15 @@ export default function EnrollmentDetailsDrawer({
                         key={item.enrollmentId}
                         enrollment={item}
                         compact
+                        fieldLabels={fieldLabels}
+                        statusLabels={statusLabels}
+                        locale={locale}
+                        notAvailable={notAvailable}
                       />
                     ))
                   ) : (
                     <p className="text-sm text-gray-500">
-                      No enrollment history
+                      {t("details.no_history")}
                     </p>
                   )}
                 </div>
@@ -158,7 +181,7 @@ export default function EnrollmentDetailsDrawer({
               size="sm"
               onClick={() => onEdit(enrollment)}
             >
-              Edit placement
+              {t("actions.edit_placement")}
             </Button>
           )}
           {canManageLifecycle && (
@@ -169,7 +192,7 @@ export default function EnrollmentDetailsDrawer({
                 size="sm"
                 onClick={() => onLifecycle("transfer", enrollment)}
               >
-                Transfer
+                {t("actions.transfer")}
               </Button>
               <Button
                 type="button"
@@ -177,7 +200,7 @@ export default function EnrollmentDetailsDrawer({
                 size="sm"
                 onClick={() => onLifecycle("promote", enrollment)}
               >
-                Promote
+                {t("actions.promote")}
               </Button>
               <Button
                 type="button"
@@ -185,7 +208,7 @@ export default function EnrollmentDetailsDrawer({
                 size="sm"
                 onClick={() => onLifecycle("withdraw", enrollment)}
               >
-                Withdraw
+                {t("actions.withdraw")}
               </Button>
             </>
           )}
@@ -200,11 +223,26 @@ function Section({
   enrollment,
   empty,
   compact,
+  fieldLabels,
+  statusLabels,
+  locale,
+  notAvailable,
 }: {
   title?: string;
   enrollment: EnrollmentDto | EnrollmentRecord | null;
   empty?: string;
   compact?: boolean;
+  fieldLabels: {
+    status: string;
+    academicYear: string;
+    grade: string;
+    section: string;
+    classroom: string;
+    enrollmentDate: string;
+  };
+  statusLabels: Record<string, string>;
+  locale: string;
+  notAvailable: string;
 }) {
   if (!enrollment)
     return (
@@ -224,25 +262,26 @@ function Section({
     >
       {title && <h3 className="mb-3 font-semibold">{title}</h3>}
       <dl className="grid grid-cols-2 gap-3 text-sm">
-        <Field label="Status" value={enrollment.status} />
-        <Field label="Academic year" value={enrollment.academicYear} />
-        <Field label="Grade" value={enrollment.grade} />
-        <Field label="Section" value={enrollment.section} />
-        <Field label="Classroom" value={enrollment.classroom} />
+        <Field label={fieldLabels.status} value={statusLabels[enrollment.status] ?? enrollment.status} notAvailable={notAvailable} />
+        <Field label={fieldLabels.academicYear} value={enrollment.academicYear} notAvailable={notAvailable} />
+        <Field label={fieldLabels.grade} value={enrollment.grade} notAvailable={notAvailable} />
+        <Field label={fieldLabels.section} value={enrollment.section} notAvailable={notAvailable} />
+        <Field label={fieldLabels.classroom} value={enrollment.classroom} notAvailable={notAvailable} />
         <Field
-          label="Enrollment date"
-          value={new Date(date).toLocaleDateString()}
+          label={fieldLabels.enrollmentDate}
+          value={date ? new Date(date).toLocaleDateString(locale) : ""}
+          notAvailable={notAvailable}
         />
       </dl>
     </section>
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value, notAvailable }: { label: string; value: string; notAvailable: string }) {
   return (
     <div>
       <dt className="text-gray-500">{label}</dt>
-      <dd className="font-medium text-gray-900">{value || "—"}</dd>
+      <dd className="font-medium text-gray-900">{value || notAvailable}</dd>
     </div>
   );
 }

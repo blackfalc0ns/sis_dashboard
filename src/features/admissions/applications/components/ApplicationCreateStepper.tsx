@@ -85,7 +85,7 @@ export default function ApplicationCreateStepper({
       .catch((loadError) => {
         if (!cancelled) {
           console.error("Failed to load application intake data:", loadError);
-          setError("Failed to load application form data.");
+          setError(t("errors.load_failed"));
         }
       })
       .finally(() => {
@@ -94,7 +94,7 @@ export default function ApplicationCreateStepper({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, lead?.gradeInterest, lead?.studentName, termId, yearId]);
+  }, [isOpen, lead?.gradeInterest, lead?.studentName, t, termId, yearId]);
 
   if (!isOpen) return null;
 

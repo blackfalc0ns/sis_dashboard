@@ -7,7 +7,10 @@ import {
   CheckCircle2,
   Clock3,
   History,
+  MapPin,
   RefreshCw,
+  ShieldCheck,
+  UserRound,
   Users,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -41,8 +44,11 @@ import {
 import type {
   ActiveDismissalRequestSort,
   ActiveDismissalRequest,
+  ActiveDismissalRequestDetail,
   ActiveDismissalRequestsSummary,
+  DismissalPickupRecipientsResponse,
   DismissalRequestHistoryItem,
+  DismissalRequestHistoryDetail,
   DismissalRequestHistoryStatus,
   DismissalRequestHistorySort,
   DismissalRequestHistorySummary,
@@ -116,6 +122,7 @@ interface ActionModalState {
     | "history";
   requestId: string;
   title: string;
+  waitingStudent?: DismissalWaitingStudent;
 }
 
 interface OperationsFilterGroupProps {
@@ -123,6 +130,379 @@ interface OperationsFilterGroupProps {
   columns?: string;
   id: string;
   title: string;
+}
+
+interface HistoryDetailContentProps {
+  detail: DismissalRequestHistoryDetail;
+  locale: string;
+  t: ReturnType<typeof useTranslations>;
+}
+
+function formatHistoryDateTime(value: string | null, locale: string) {
+  if (!value) return "-";
+
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function requestStatusTone(status: string) {
+  if (status === "handed_over") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (status === "cancelled" || status === "expired") {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+
+  return "border-blue-200 bg-blue-50 text-blue-700";
+}
+
+interface RequestContextContentProps {
+  detail: ActiveDismissalRequest | DismissalWaitingStudent;
+  locale: string;
+  t: ReturnType<typeof useTranslations>;
+  timeline?: ActiveDismissalRequestDetail["timeline"];
+}
+
+function RequestContextContent({
+  detail,
+  locale,
+  t,
+  timeline,
+}: RequestContextContentProps) {
+  const isWaitingStudent = "arrivalState" in detail;
+  const signalLabel = detail.signals.urgent
+    ? t("operations_signals.urgent")
+    : detail.signals.delayed
+      ? t("operations_signals.delayed")
+      : t("operations_signals.normal");
+
+  return (
+    <div className="space-y-5 py-3">
+      <section aria-labelledby="nedaa-request-summary-heading" className="space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {t("operations_history.summary")}
+            </p>
+            <h3
+              id="nedaa-request-summary-heading"
+              className="mt-1 text-lg font-bold text-gray-900"
+            >
+              {detail.child.displayName}
+            </h3>
+          </div>
+          <span
+            className={`rounded-full border px-3 py-1 text-xs font-bold ${requestStatusTone(detail.status)}`}
+          >
+            {t(`operations_status.${detail.status}`)}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:grid-cols-2">
+          <HistoryIdentityItem
+            icon={UserRound}
+            label={t("operations_history.student")}
+            value={`${detail.child.grade || "-"} · ${detail.child.section || "-"}`}
+          />
+          <HistoryIdentityItem
+            icon={MapPin}
+            label={t("operations_history.gate")}
+            value={gateLabel(detail.gate)}
+          />
+          <HistoryIdentityItem
+            label={t("operations_history.classroom")}
+            value={detail.child.classroom || "-"}
+          />
+          <HistoryIdentityItem
+            label={t("operations_history.request_id")}
+            value={detail.id.slice(0, 8)}
+            title={detail.id}
+          />
+          {"requester" in detail ? (
+            <HistoryIdentityItem
+              label={t("operations_history.requester")}
+              value={detail.requester.displayName || "-"}
+            />
+          ) : (
+            <HistoryIdentityItem
+              label={t("operations_history.arrival_state")}
+              value={t(`operations_arrival.${detail.arrivalState}`)}
+            />
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <HistoryMetric
+            label={t("operations_history.wait_duration")}
+            value={t("operations_history.wait_minutes", {
+              minutes: detail.waitMinutes,
+            })}
+            icon={Clock3}
+          />
+          <HistoryMetric
+            label={t("operations_history.requested_at")}
+            value={formatHistoryDateTime(detail.requestedAt, locale)}
+            icon={History}
+          />
+          {isWaitingStudent ? (
+            <HistoryMetric
+              label={t("operations_history.updated_at")}
+              value={formatHistoryDateTime(detail.updatedAt, locale)}
+              icon={RefreshCw}
+            />
+          ) : null}
+          <HistoryMetric
+            label={t("operations_fields.signals")}
+            value={signalLabel}
+            icon={detail.signals.urgent ? AlertTriangle : ShieldCheck}
+          />
+        </div>
+
+        {detail.signals.delayed || detail.signals.urgent ? (
+          <div
+            className={`rounded-xl border px-4 py-3 text-sm ${detail.signals.urgent ? "border-red-200 bg-red-50 text-red-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}
+            role="status"
+          >
+            <p className="font-semibold">{signalLabel}</p>
+            <p className="mt-1 text-xs opacity-80">
+              {t("operations_history.wait_minutes", {
+                minutes: detail.signals.urgent
+                  ? detail.signals.urgentThresholdMinutes
+                  : detail.signals.delayThresholdMinutes,
+              })}
+            </p>
+          </div>
+        ) : null}
+      </section>
+
+      {timeline ? (
+        <RequestTimeline detail={timeline} locale={locale} t={t} />
+      ) : null}
+    </div>
+  );
+}
+
+function RequestTimeline({
+  detail,
+  locale,
+  t,
+}: {
+  detail: ActiveDismissalRequestDetail["timeline"];
+  locale: string;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  return (
+    <section aria-labelledby="nedaa-request-timeline-heading" className="space-y-3">
+      <div>
+        <h3
+          id="nedaa-request-timeline-heading"
+          className="text-sm font-bold text-gray-900"
+        >
+          {t("operations_history.timeline")}
+        </h3>
+        <p className="mt-1 text-xs text-gray-500">
+          {t("history.timeline_subtitle")}
+        </p>
+      </div>
+      {detail.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+          {t("operations_timeline.no_events")}
+        </div>
+      ) : (
+        <ol className="relative space-y-0 border-s-2 border-gray-200 ps-5">
+          {detail.map((event, index) => {
+            const isFinalEvent = index === detail.length - 1;
+            const eventLabel =
+              event.type === "request_created"
+                ? t("operations_timeline.request_created")
+                : t("operations_timeline.status_changed");
+            const statusChange = event.statusTo
+              ? t(`operations_status.${event.statusTo}`)
+              : "-";
+
+            return (
+              <li
+                key={`${event.createdAt}-${event.type}`}
+                className="relative pb-5 last:pb-0"
+              >
+                <span
+                  className={`absolute -start-[1.55rem] top-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white ${isFinalEvent ? "bg-emerald-500" : "bg-primary"}`}
+                  aria-hidden="true"
+                >
+                  <CheckCircle2 className="h-3 w-3 text-white" />
+                </span>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <p className="text-sm font-semibold text-gray-900">
+                    {eventLabel}
+                  </p>
+                  <time className="text-xs text-gray-500">
+                    {formatHistoryDateTime(event.createdAt, locale)}
+                  </time>
+                </div>
+                <p className="mt-1 text-sm text-gray-600">{statusChange}</p>
+                {event.note ? (
+                  <div
+                    className={`mt-2 rounded-lg border px-3 py-2 text-sm ${isFinalEvent ? "border-amber-200 bg-amber-50 text-amber-900" : "border-gray-200 bg-gray-50 text-gray-700"}`}
+                  >
+                    {event.note}
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </section>
+  );
+}
+
+function HistoryDetailContent({
+  detail,
+  locale,
+  t,
+}: HistoryDetailContentProps) {
+  const statusLabel = t(`operations_status.${detail.status}`);
+
+  return (
+    <div className="space-y-5 py-3">
+      <section
+        aria-labelledby="nedaa-history-summary-heading"
+        className="space-y-4"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {t("operations_history.summary")}
+            </p>
+            <h3
+              id="nedaa-history-summary-heading"
+              className="mt-1 text-lg font-bold text-gray-900"
+            >
+              {detail.child.displayName}
+            </h3>
+          </div>
+          <span
+            className={`rounded-full border px-3 py-1 text-xs font-bold ${requestStatusTone(detail.status)}`}
+          >
+            {statusLabel}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:grid-cols-2">
+          <HistoryIdentityItem
+            icon={UserRound}
+            label={t("operations_history.student")}
+            value={`${detail.child.grade || "-"} · ${detail.child.section || "-"}`}
+          />
+          <HistoryIdentityItem
+            icon={MapPin}
+            label={t("operations_history.gate")}
+            value={gateLabel(detail.gate)}
+          />
+          <HistoryIdentityItem
+            label={t("operations_history.classroom")}
+            value={detail.child.classroom || "-"}
+          />
+          <HistoryIdentityItem
+            label={t("operations_history.request_id")}
+            value={detail.id.slice(0, 8)}
+            title={detail.id}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <HistoryMetric
+            label={t("operations_history.wait_duration")}
+            value={t("operations_history.wait_minutes", {
+              minutes: detail.wait.minutes,
+            })}
+            icon={Clock3}
+          />
+          <HistoryMetric
+            label={t("operations_history.requested_at")}
+            value={formatHistoryDateTime(detail.requestedAt, locale)}
+            icon={History}
+          />
+          <HistoryMetric
+            label={t("operations_history.updated_at")}
+            value={formatHistoryDateTime(detail.updatedAt, locale)}
+            icon={RefreshCw}
+          />
+          <HistoryMetric
+            label={t("operations_history.escalation")}
+            value={
+              detail.escalation.escalated
+                ? t("operations_history.escalated")
+                : t("operations_history.not_escalated")
+            }
+            icon={detail.escalation.escalated ? AlertTriangle : ShieldCheck}
+          />
+        </div>
+      </section>
+
+      <RequestTimeline detail={detail.timeline} locale={locale} t={t} />
+    </div>
+  );
+}
+
+function HistoryIdentityItem({
+  icon: Icon,
+  label,
+  value,
+  title,
+}: {
+  icon?: typeof UserRound;
+  label: string;
+  value: string;
+  title?: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-start gap-2">
+      {Icon ? (
+        <Icon
+          className="mt-0.5 h-4 w-4 shrink-0 text-gray-500"
+          aria-hidden="true"
+        />
+      ) : null}
+      <div className="min-w-0">
+        <p className="text-xs font-medium text-gray-500">{label}</p>
+        <p
+          className="truncate text-sm font-semibold text-gray-900"
+          title={title}
+        >
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function HistoryMetric({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon: typeof Clock3;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+      <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
+      <p className="mt-2 text-[11px] font-semibold leading-tight text-gray-500">
+        {label}
+      </p>
+      <p
+        className="mt-1 truncate text-sm font-bold text-gray-900"
+        title={value}
+      >
+        {value}
+      </p>
+    </div>
+  );
 }
 
 function OperationsFilterGroup({
@@ -295,11 +675,7 @@ function createActiveRequestParams(
   debouncedSearch: string,
 ): ListActiveDismissalRequestsParams {
   return {
-    ...createBaseRequestParams(
-      debouncedSearch,
-      filters.gateId,
-      filters.status,
-    ),
+    ...createBaseRequestParams(debouncedSearch, filters.gateId, filters.status),
     ...(filters.stageId ? { stageId: filters.stageId } : {}),
     ...(filters.gradeId ? { gradeId: filters.gradeId } : {}),
     ...(filters.sectionId ? { sectionId: filters.sectionId } : {}),
@@ -326,11 +702,7 @@ function createWaitingRequestParams(
   debouncedSearch: string,
 ): ListDismissalWaitingStudentsParams {
   return {
-    ...createBaseRequestParams(
-      debouncedSearch,
-      filters.gateId,
-      filters.status,
-    ),
+    ...createBaseRequestParams(debouncedSearch, filters.gateId, filters.status),
     ...(filters.stageId ? { stageId: filters.stageId } : {}),
     ...(filters.gradeId ? { gradeId: filters.gradeId } : {}),
     ...(filters.sectionId ? { sectionId: filters.sectionId } : {}),
@@ -398,7 +770,9 @@ export default function NedaaOperationsPage() {
   const [waitingSummary, setWaitingSummary] = useState(emptyWaitingSummary);
   const [historySummary, setHistorySummary] = useState(emptyHistorySummary);
   const [gateOptionsSource, setGateOptionsSource] = useState<NedaaGate[]>([]);
-  const [studentOptionsSource, setStudentOptionsSource] = useState<Student[]>([]);
+  const [studentOptionsSource, setStudentOptionsSource] = useState<Student[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -411,6 +785,16 @@ export default function NedaaOperationsPage() {
   });
   const [refreshKey, setRefreshKey] = useState(0);
   const [actionModal, setActionModal] = useState<ActionModalState | null>(null);
+  const [requestDetail, setRequestDetail] =
+    useState<ActiveDismissalRequestDetail | null>(null);
+  const [pickupRecipients, setPickupRecipients] =
+    useState<DismissalPickupRecipientsResponse | null>(null);
+  const [historyDetail, setHistoryDetail] =
+    useState<DismissalRequestHistoryDetail | null>(null);
+  const [readOnlyModalLoading, setReadOnlyModalLoading] = useState(false);
+  const [readOnlyModalError, setReadOnlyModalError] = useState<string | null>(
+    null,
+  );
   const [selectedStatus, setSelectedStatus] =
     useState<Exclude<DismissalRequestStatus, "requested">>("called");
   const [pickupCode, setPickupCode] = useState("");
@@ -488,21 +872,21 @@ export default function NedaaOperationsPage() {
   );
   const hasActiveFilters = Boolean(
     currentFilters.search.trim() ||
-      currentFilters.gateId ||
-      currentFilters.status ||
-      currentFilters.stageId ||
-      currentFilters.gradeId ||
-      currentFilters.sectionId ||
-      currentFilters.classroomId ||
-      currentFilters.childId ||
-      currentFilters.statuses.length ||
-      currentFilters.dateFrom ||
-      currentFilters.dateTo ||
-      currentFilters.activeOnly ||
-      currentFilters.terminalOnly ||
-      currentFilters.delayedOnly ||
-      currentFilters.urgentOnly ||
-      currentFilters.escalatedOnly,
+    currentFilters.gateId ||
+    currentFilters.status ||
+    currentFilters.stageId ||
+    currentFilters.gradeId ||
+    currentFilters.sectionId ||
+    currentFilters.classroomId ||
+    currentFilters.childId ||
+    currentFilters.statuses.length ||
+    currentFilters.dateFrom ||
+    currentFilters.dateTo ||
+    currentFilters.activeOnly ||
+    currentFilters.terminalOnly ||
+    currentFilters.delayedOnly ||
+    currentFilters.urgentOnly ||
+    currentFilters.escalatedOnly,
   );
 
   useEffect(() => {
@@ -547,7 +931,8 @@ export default function NedaaOperationsPage() {
       setLoadError(null);
       try {
         if (activeTab === "active") {
-          const response = await listActiveDismissalRequests(activeRequestParams);
+          const response =
+            await listActiveDismissalRequests(activeRequestParams);
           if (!cancelled) {
             setActiveRequests(response.data);
             setActiveSummary(response.summary);
@@ -668,17 +1053,16 @@ export default function NedaaOperationsPage() {
     ...options,
   ];
 
-  const sortOptions = useMemo<SelectOption[]>(
-    () => {
-      const sorts =
-        activeTab === "history"
-          ? ([
-              "created_at_desc",
-              "created_at_asc",
-              "updated_at_desc",
-              "wait_minutes_desc",
-            ] as DismissalRequestHistorySort[])
-          : activeTab === "waiting"
+  const sortOptions = useMemo<SelectOption[]>(() => {
+    const sorts =
+      activeTab === "history"
+        ? ([
+            "created_at_desc",
+            "created_at_asc",
+            "updated_at_desc",
+            "wait_minutes_desc",
+          ] as DismissalRequestHistorySort[])
+        : activeTab === "waiting"
           ? ([
               "arrival_stage_asc",
               "requested_at_asc",
@@ -690,13 +1074,11 @@ export default function NedaaOperationsPage() {
               "requested_at_asc",
               "requested_at_desc",
             ] as ActiveDismissalRequestSort[]);
-      return sorts.map((sort) => ({
-        value: sort,
-        label: t(`operations_filters.${sort}`),
-      }));
-    },
-    [activeTab, t],
-  );
+    return sorts.map((sort) => ({
+      value: sort,
+      label: t(`operations_filters.${sort}`),
+    }));
+  }, [activeTab, t]);
 
   const activeRows = useMemo<OperationTableRow[]>(
     () =>
@@ -966,6 +1348,7 @@ export default function NedaaOperationsPage() {
       type: "arrival",
       requestId: student.id,
       title: student.child.displayName,
+      waitingStudent: student,
     });
   };
 
@@ -994,32 +1377,56 @@ export default function NedaaOperationsPage() {
 
   const openRecipients = (request?: ActiveDismissalRequest) => {
     if (!request) return;
-    void listDismissalPickupRecipients(request.id);
+    setRequestDetail(null);
+    setPickupRecipients(null);
+    setHistoryDetail(null);
+    setReadOnlyModalError(null);
+    setReadOnlyModalLoading(true);
     setActionModal({
       type: "recipients",
       requestId: request.id,
       title: request.child.displayName,
     });
+    void listDismissalPickupRecipients(request.id)
+      .then((response) => setPickupRecipients(response))
+      .catch(() => setReadOnlyModalError(t("operations.detail_failed")))
+      .finally(() => setReadOnlyModalLoading(false));
   };
 
   const openDetail = (requestId?: string) => {
     if (!requestId) return;
-    void fetchDismissalRequest(requestId);
+    setRequestDetail(null);
+    setPickupRecipients(null);
+    setHistoryDetail(null);
+    setReadOnlyModalError(null);
+    setReadOnlyModalLoading(true);
     setActionModal({
       type: "detail",
       requestId,
       title: t("operations_actions.view"),
     });
+    void fetchDismissalRequest(requestId)
+      .then((response) => setRequestDetail(response.request))
+      .catch(() => setReadOnlyModalError(t("operations.detail_failed")))
+      .finally(() => setReadOnlyModalLoading(false));
   };
 
   const openHistoryDetail = (requestId?: string) => {
     if (!requestId) return;
-    void fetchDismissalRequestHistoryItem(requestId);
+    setRequestDetail(null);
+    setPickupRecipients(null);
+    setHistoryDetail(null);
+    setReadOnlyModalError(null);
+    setReadOnlyModalLoading(true);
     setActionModal({
       type: "history",
       requestId,
       title: t("operations_actions.view_history"),
     });
+    void fetchDismissalRequestHistoryItem(requestId)
+      .then((response) => setHistoryDetail(response.request))
+      .catch(() => setReadOnlyModalError(t("operations.detail_failed")))
+      .finally(() => setReadOnlyModalLoading(false));
   };
 
   const closeActionModal = () => {
@@ -1028,6 +1435,11 @@ export default function NedaaOperationsPage() {
     setActionNote("");
     setPickupCode("");
     setPickupRecipientToken("");
+    setRequestDetail(null);
+    setPickupRecipients(null);
+    setHistoryDetail(null);
+    setReadOnlyModalError(null);
+    setReadOnlyModalLoading(false);
   };
 
   const saveAction = async () => {
@@ -1168,9 +1580,7 @@ export default function NedaaOperationsPage() {
             <Select
               label={t("operations_filters.child")}
               value={currentFilters.childId}
-              onChange={(childId) =>
-                updateCurrentFilters({ childId, page: 1 })
-              }
+              onChange={(childId) => updateCurrentFilters({ childId, page: 1 })}
               options={studentOptions}
               searchable
               searchPlaceholder={t("operations_filters.search_child")}
@@ -1197,9 +1607,7 @@ export default function NedaaOperationsPage() {
               <Select
                 label={t("table.gate")}
                 value={currentFilters.gateId}
-                onChange={(gateId) =>
-                  updateCurrentFilters({ gateId, page: 1 })
-                }
+                onChange={(gateId) => updateCurrentFilters({ gateId, page: 1 })}
                 options={gateOptions}
                 searchable
                 searchPlaceholder={t("table.gate")}
@@ -1209,9 +1617,7 @@ export default function NedaaOperationsPage() {
               <Select
                 label={t("table.status")}
                 value={currentFilters.status}
-                onChange={(status) =>
-                  updateCurrentFilters({ status, page: 1 })
-                }
+                onChange={(status) => updateCurrentFilters({ status, page: 1 })}
                 options={statusOptions}
               />
               <Select
@@ -1271,9 +1677,7 @@ export default function NedaaOperationsPage() {
               <Select
                 label={t("operations_filters.classroom")}
                 value={currentFilters.classroomId}
-                onChange={(value) =>
-                  updateAcademicFilter("classroomId", value)
-                }
+                onChange={(value) => updateAcademicFilter("classroomId", value)}
                 options={withAllOption(academicOptions.classrooms)}
                 disabled={isAcademicTreeLoading}
                 searchable
@@ -1416,9 +1820,7 @@ export default function NedaaOperationsPage() {
       <DataTable
         columns={activeDataset.columns}
         data={activeDataset.rows}
-        itemsPerPage={
-          currentFilters.limit
-        }
+        itemsPerPage={currentFilters.limit}
         isLoading={isLoading}
         showDensityToggle
         serverPagination={{
@@ -1441,8 +1843,18 @@ export default function NedaaOperationsPage() {
         isOpen={Boolean(actionModal)}
         onClose={closeActionModal}
         title={actionModal?.title}
-        size="md"
-        footer={renderActionFooter(actionModal, isSavingAction, t, saveAction)}
+        size="xl"
+        footer={
+          actionModal?.type === "history" ||
+          actionModal?.type === "detail" ||
+          actionModal?.type === "recipients" ? (
+            <Button variant="secondary" onClick={closeActionModal}>
+              {t("common.close")}
+            </Button>
+          ) : (
+            renderActionFooter(actionModal, isSavingAction, t, saveAction)
+          )
+        }
       >
         {actionModal?.type === "status" ? (
           <div className="space-y-4 py-2">
@@ -1469,7 +1881,14 @@ export default function NedaaOperationsPage() {
             />
           </div>
         ) : actionModal?.type === "arrival" ? (
-          <div className="py-2">
+          <div className="space-y-4 py-2">
+            {actionModal.waitingStudent ? (
+              <RequestContextContent
+                detail={actionModal.waitingStudent}
+                locale={locale}
+                t={t}
+              />
+            ) : null}
             <TextArea
               label={t("operations_fields.note")}
               value={actionNote}
@@ -1518,6 +1937,61 @@ export default function NedaaOperationsPage() {
               onChange={(event) => setActionNote(event.target.value)}
             />
           </div>
+        ) : actionModal?.type === "detail" ? (
+          <ReadOnlyModalState
+            isLoading={readOnlyModalLoading}
+            error={readOnlyModalError}
+            empty={!requestDetail}
+            loadingLabel={t("operations.detail_loading")}
+          >
+            {requestDetail ? (
+              <RequestContextContent
+                detail={requestDetail}
+                locale={locale}
+                t={t}
+                timeline={requestDetail.timeline}
+              />
+            ) : null}
+          </ReadOnlyModalState>
+        ) : actionModal?.type === "recipients" ? (
+          <ReadOnlyModalState
+            isLoading={readOnlyModalLoading}
+            error={readOnlyModalError}
+            empty={!pickupRecipients}
+            loadingLabel={t("operations.detail_loading")}
+          >
+            {pickupRecipients ? (
+              <div className="space-y-3 py-2 text-sm text-gray-700">
+                <p>{pickupRecipients.request.child.displayName}</p>
+                <p>
+                  {pickupRecipients.policy.pickupCodeRequired
+                    ? t("operations_fields.pickup_code")
+                    : t("operations.detail_loading")}
+                </p>
+                {pickupRecipients.recipients.map((recipient) => (
+                  <p key={recipient.pickupRecipientToken}>
+                    {recipient.displayName}
+                    {recipient.relation ? ` (${recipient.relation})` : ""}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+          </ReadOnlyModalState>
+        ) : actionModal?.type === "history" ? (
+          <ReadOnlyModalState
+            isLoading={readOnlyModalLoading}
+            error={readOnlyModalError}
+            empty={!historyDetail}
+            loadingLabel={t("operations.detail_loading")}
+          >
+            {historyDetail ? (
+              <HistoryDetailContent
+                detail={historyDetail}
+                locale={locale}
+                t={t}
+              />
+            ) : null}
+          </ReadOnlyModalState>
         ) : (
           <div className="py-3 text-sm text-gray-600">
             {t("operations.detail_loading")}
@@ -1526,6 +2000,34 @@ export default function NedaaOperationsPage() {
       </Modal>
     </div>
   );
+}
+
+function ReadOnlyModalState({
+  isLoading,
+  error,
+  empty,
+  loadingLabel,
+  children,
+}: {
+  isLoading: boolean;
+  error: string | null;
+  empty: boolean;
+  loadingLabel: string;
+  children: ReactNode;
+}) {
+  if (error) {
+    return (
+      <div className="py-3 text-sm text-red-600" role="alert">
+        {error}
+      </div>
+    );
+  }
+
+  if (isLoading || empty) {
+    return <div className="py-3 text-sm text-gray-600">{loadingLabel}</div>;
+  }
+
+  return children;
 }
 
 function summaryEntries(

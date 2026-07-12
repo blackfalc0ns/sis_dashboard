@@ -36,65 +36,81 @@ const DOCUMENT_TYPES = [
   "Transfer Certificate",
 ];
 
+const DOCUMENT_TYPE_LABEL_KEYS: Record<string, string> = {
+  "Birth Certificate": "documents.types.birth_certificate",
+  "Passport Copy": "documents.types.passport_copy",
+  "Medical Report": "documents.types.medical_report",
+  "Previous School Certificate": "documents.types.previous_school_certificate",
+  "National ID": "documents.types.national_id",
+  "Vaccination Record": "documents.types.vaccination_record",
+  "Report Card": "documents.types.report_card",
+  "Transfer Certificate": "documents.types.transfer_certificate",
+};
+
 interface DocumentsTabProps {
   application: Application;
   initialDocuments?: Document[];
 }
 
 type ReviewAction = "accept" | "reject" | "request_replacement";
+type Translate = (key: string) => string;
 
-function documentReviewErrorMessage(error: unknown): string {
+function documentReviewErrorMessage(error: unknown, t: Translate): string {
   if (!isApiError(error)) {
-    return "Failed to update document review.";
+    return t("documents.errors.review_failed");
   }
 
   if (error.status === 403) {
-    return "You do not have permission to review this document.";
+    return t("documents.errors.review_permission");
   }
   if (error.status === 404) {
-    return "This application or document could not be found.";
+    return t("documents.errors.not_found");
   }
   if (error.status === 409) {
-    return "This document has already been reviewed or is no longer pending review.";
+    return t("documents.errors.already_reviewed");
   }
   if (error.status === 422) {
-    return "Please check the review note and try again.";
+    return t("documents.errors.invalid_review_note");
   }
 
-  return error.message || "Failed to update document review.";
+  return error.message || t("documents.errors.review_failed");
 }
 
-function documentLoadErrorMessage(error: unknown): string {
+function documentLoadErrorMessage(error: unknown, t: Translate): string {
   if (!isApiError(error)) {
-    return "Failed to load documents.";
+    return t("documents.errors.load_failed");
   }
 
   if (error.status === 403) {
-    return "You do not have permission to view these documents.";
+    return t("documents.errors.view_permission");
   }
   if (error.status === 404) {
-    return "This application could not be found.";
+    return t("documents.errors.not_found");
   }
 
-  return error.message || "Failed to load documents.";
+  return error.message || t("documents.errors.load_failed");
 }
 
-function documentMutationErrorMessage(error: unknown, fallback: string): string {
+function documentMutationErrorMessage(
+  error: unknown,
+  fallback: string,
+  t: Translate,
+): string {
   if (!isApiError(error)) {
     return fallback;
   }
 
   if (error.status === 403) {
-    return "You do not have permission to manage documents.";
+    return t("documents.errors.manage_permission");
   }
   if (error.status === 404) {
-    return "This application or document could not be found.";
+    return t("documents.errors.not_found");
   }
   if (error.status === 409) {
-    return "This document changed status. Refresh and try again.";
+    return t("documents.errors.changed_status");
   }
   if (error.status === 422) {
-    return "Please check the document details and try again.";
+    return t("documents.errors.invalid_details");
   }
 
   return error.message || fallback;
@@ -105,6 +121,8 @@ export default function DocumentsTab({
   initialDocuments,
 }: DocumentsTabProps) {
   const t = useTranslations("admissions.application360");
+  const translateRef = useRef(t);
+  translateRef.current = t;
   const locale = useLocale();
   const { showToast } = useToast();
   const { hasPermission } = usePermissions();
@@ -153,7 +171,7 @@ export default function DocumentsTab({
       setDocuments(nextDocuments);
     } catch (loadError) {
       console.error("Failed to load application documents:", loadError);
-      setError(documentLoadErrorMessage(loadError));
+      setError(documentLoadErrorMessage(loadError, translateRef.current));
     } finally {
       setIsLoading(false);
     }
@@ -217,7 +235,7 @@ export default function DocumentsTab({
       setSelectedDocument({ ...document, url: blobUrl });
     } catch (viewError) {
       console.error("Failed to load document preview:", viewError);
-      showToast("Failed to open document.", "error");
+      showToast(t("documents.errors.open_failed"), "error");
     } finally {
       setViewingDocumentId(null);
     }
@@ -236,7 +254,7 @@ export default function DocumentsTab({
       URL.revokeObjectURL(blobUrl);
     } catch (downloadError) {
       console.error("Failed to download document:", downloadError);
-      showToast("Failed to download document.", "error");
+      showToast(t("documents.errors.download_failed"), "error");
     } finally {
       setDownloadingDocumentId(null);
     }
@@ -244,7 +262,7 @@ export default function DocumentsTab({
 
   const handleAddClick = () => {
     if (!canManageDocuments) {
-      showToast("You do not have permission to manage documents.", "error");
+      showToast(t("documents.errors.manage_permission"), "error");
       return;
     }
     setSelectedType("");
@@ -255,7 +273,7 @@ export default function DocumentsTab({
   const handleTypeConfirm = () => {
     const docType = selectedType === "__custom__" ? customType.trim() : selectedType;
     if (!docType) {
-      showToast("Please select or enter a document type.", "error");
+      showToast(t("documents.errors.select_type"), "error");
       return;
     }
     setIsTypeModalOpen(false);
@@ -268,7 +286,7 @@ export default function DocumentsTab({
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!canManageDocuments) {
-      showToast("You do not have permission to manage documents.", "error");
+      showToast(t("documents.errors.manage_permission"), "error");
       return;
     }
 
@@ -282,18 +300,18 @@ export default function DocumentsTab({
       "image/png",
     ];
     if (!allowedTypes.includes(file.type)) {
-      showToast("Only PDF, JPG, and PNG files are allowed.", "error");
+      showToast(t("documents.errors.file_type"), "error");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      showToast("File size must be less than 5MB.", "error");
+      showToast(t("documents.errors.file_size"), "error");
       return;
     }
 
     const docType = getResolvedType();
     if (!docType) {
-      showToast("Document type is missing.", "error");
+      showToast(t("documents.errors.type_missing"), "error");
       return;
     }
 
@@ -305,12 +323,16 @@ export default function DocumentsTab({
         documentType: docType,
         status: "complete",
       });
-      showToast("Document uploaded successfully.", "success");
+      showToast(t("documents.errors.upload_success"), "success");
       await loadDocuments();
     } catch (uploadError) {
       console.error("Failed to upload document:", uploadError);
       showToast(
-        documentMutationErrorMessage(uploadError, "Failed to upload document."),
+        documentMutationErrorMessage(
+          uploadError,
+          t("documents.errors.upload_failed"),
+          t,
+        ),
         "error",
       );
     } finally {
@@ -323,23 +345,27 @@ export default function DocumentsTab({
 
   const handleDeleteDocument = async (documentId: string) => {
     if (!canManageDocuments) {
-      showToast("You do not have permission to manage documents.", "error");
+      showToast(t("documents.errors.manage_permission"), "error");
       return;
     }
 
-    if (!window.confirm("Remove this document link? This action cannot be undone.")) {
+    if (!window.confirm(t("documents.remove_confirm"))) {
       return;
     }
 
     setDeletingDocumentId(documentId);
     try {
       await deleteApplicationDocument(application.id, documentId);
-      showToast("Document removed.", "success");
+      showToast(t("documents.errors.remove_success"), "success");
       await loadDocuments();
     } catch (deleteError) {
       console.error("Failed to delete document:", deleteError);
       showToast(
-        documentMutationErrorMessage(deleteError, "Failed to remove document."),
+        documentMutationErrorMessage(
+          deleteError,
+          t("documents.errors.remove_failed"),
+          t,
+        ),
         "error",
       );
     } finally {
@@ -349,7 +375,7 @@ export default function DocumentsTab({
 
   const openReviewModal = (documentId: string, action: ReviewAction) => {
     if (!canManageDocuments) {
-      showToast("You do not have permission to manage documents.", "error");
+      showToast(t("documents.errors.manage_permission"), "error");
       return;
     }
     setReviewingDocumentId(documentId);
@@ -369,20 +395,22 @@ export default function DocumentsTab({
   };
 
   const reviewActionTitle = () => {
-    if (reviewAction === "accept") return "Accept document";
-    if (reviewAction === "reject") return "Reject document";
-    if (reviewAction === "request_replacement") return "Request replacement";
-    return "Review document";
+    if (reviewAction === "accept") return t("documents.review.accept_title");
+    if (reviewAction === "reject") return t("documents.review.reject_title");
+    if (reviewAction === "request_replacement") {
+      return t("documents.review.request_replacement_title");
+    }
+    return t("documents.review.title");
   };
 
   const reviewActionDescription = () => {
     if (reviewAction === "accept") {
-      return "Add an optional note for this approval.";
+      return t("documents.review.approval_note");
     }
     if (reviewAction === "reject") {
-      return "Enter the reason this document is being rejected.";
+      return t("documents.review.rejection_note");
     }
-    return "Enter what the applicant needs to replace or fix.";
+    return t("documents.review.replacement_note");
   };
 
   const reviewActionRequiresNote =
@@ -414,29 +442,29 @@ export default function DocumentsTab({
     if (isSubmittingReview) return;
     if (!reviewingDocumentId || !reviewAction) return;
     if (!canManageDocuments) {
-      showToast("You do not have permission to manage documents.", "error");
+      showToast(t("documents.errors.manage_permission"), "error");
       return;
     }
 
     const trimmedNote = reviewNote.trim();
     if (reviewActionRequiresNote && !trimmedNote) {
-      showToast("Please enter a note before submitting.", "error");
+      showToast(t("documents.review.required_note"), "error");
       return;
     }
     if (trimmedNote.length > 2000) {
-      showToast("The review note must be 2,000 characters or fewer.", "error");
+      showToast(t("documents.errors.invalid_review_note"), "error");
       return;
     }
 
     setIsSubmittingReview(true);
     try {
       await runReviewAction(reviewingDocumentId, reviewAction, trimmedNote);
-      showToast("Document review updated.", "success");
+      showToast(t("documents.errors.review_success"), "success");
       resetReviewState();
       await loadDocuments();
     } catch (reviewError) {
       console.error("Failed to update document review:", reviewError);
-      showToast(documentReviewErrorMessage(reviewError), "error");
+      showToast(documentReviewErrorMessage(reviewError, t), "error");
     } finally {
       setIsSubmittingReview(false);
     }
@@ -453,9 +481,12 @@ export default function DocumentsTab({
     label: locale === "ar" ? requirement.nameAr || requirement.nameEn : requirement.nameEn,
   }));
   const documentTypeOptions =
-    configuredTypeOptions.length > 0
+      configuredTypeOptions.length > 0
       ? configuredTypeOptions
-      : DOCUMENT_TYPES.map((type) => ({ value: type, label: type }));
+      : DOCUMENT_TYPES.map((type) => ({
+          value: type,
+          label: t(DOCUMENT_TYPE_LABEL_KEYS[type]),
+        }));
 
   if (!canViewDocuments) {
     return <AdmissionsAccessDenied />;
@@ -494,7 +525,7 @@ export default function DocumentsTab({
         />
 
         {isLoading ? (
-          <p className="text-sm text-gray-500">Loading documents...</p>
+          <p className="text-sm text-gray-500">{t("documents.loading")}</p>
         ) : null}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
@@ -502,7 +533,7 @@ export default function DocumentsTab({
           <div className="rounded-lg border-2 border-dashed border-gray-200 p-8 text-center">
             <FileText className="mx-auto h-10 w-10 text-gray-300 mb-3" />
             <p className="text-sm text-gray-500">
-              No documents have been submitted for this application yet.
+              {t("documents.empty")}
             </p>
             {isEditable && (
               <Button
@@ -534,7 +565,7 @@ export default function DocumentsTab({
                     )}
                     {doc.uploadedDate && (
                       <p className="text-xs text-gray-400">
-                        Uploaded:{" "}
+                        {t("documents.uploaded_label")}{" "}
                         {new Date(doc.uploadedDate).toLocaleDateString()}
                       </p>
                     )}
@@ -557,7 +588,7 @@ export default function DocumentsTab({
                         onClick={() => openReviewModal(doc.id, "accept")}
                         disabled={isSubmittingReview}
                       >
-                        Accept
+                        {t("documents.review.accept")}
                       </Button>
                       <Button
                         size="sm"
@@ -565,7 +596,7 @@ export default function DocumentsTab({
                         onClick={() => openReviewModal(doc.id, "reject")}
                         disabled={isSubmittingReview}
                       >
-                        Reject
+                        {t("documents.review.reject")}
                       </Button>
                       <Button
                         size="sm"
@@ -575,13 +606,13 @@ export default function DocumentsTab({
                         }
                         disabled={isSubmittingReview}
                       >
-                        Request replacement
+                        {t("documents.review.request_replacement")}
                       </Button>
                     </div>
                   )}
                   {doc.status === "pending_review" && doc.canReview === false && doc.reviewEligibility ? (
-                    <span className="text-xs text-amber-700" title={doc.reviewEligibility.reason}>
-                      {doc.reviewEligibility.reason.replaceAll("_", " ")}
+                    <span className="text-xs text-amber-700" title={t(`documents.review.eligibility.${doc.reviewEligibility.reason}`)}>
+                      {t(`documents.review.eligibility.${doc.reviewEligibility.reason}`)}
                     </span>
                   ) : null}
                   <Button
@@ -590,7 +621,7 @@ export default function DocumentsTab({
                     onClick={() => void viewDocument(doc)}
                     disabled={!doc.fileId || viewingDocumentId !== null}
                     loading={viewingDocumentId === doc.id}
-                    title="View document"
+                    title={t("documents.actions.view")}
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -601,7 +632,7 @@ export default function DocumentsTab({
                       onClick={() => void downloadDocument(doc)}
                       disabled={downloadingDocumentId !== null}
                       loading={downloadingDocumentId === doc.id}
-                      title="Download document"
+                      title={t("documents.actions.download")}
                     >
                       <Download className="h-4 w-4" />
                     </Button>
@@ -612,7 +643,7 @@ export default function DocumentsTab({
                       variant="ghost"
                       onClick={() => handleDeleteDocument(doc.id)}
                       disabled={deletingDocumentId === doc.id}
-                      title="Remove document"
+                      title={t("documents.actions.remove")}
                       className="text-red-500 hover:text-red-700 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -723,13 +754,13 @@ export default function DocumentsTab({
               onClick={closeReviewModal}
               disabled={isSubmittingReview}
             >
-              Cancel
+              {t("documents.review.cancel")}
             </Button>
             <Button
               onClick={() => void submitReviewAction()}
               loading={isSubmittingReview}
             >
-              Submit review
+              {t("documents.review.submit")}
             </Button>
           </>
         }
@@ -738,14 +769,14 @@ export default function DocumentsTab({
           <p className="text-sm text-gray-600">{reviewActionDescription()}</p>
           {reviewActionRequiresNote && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              The applicant may need to upload a new document after this action.
+              {t("documents.review.replacement_notice")}
             </div>
           )}
           <label
             className="block text-sm font-medium text-gray-700"
             htmlFor="document-review-note"
           >
-            Note {reviewActionRequiresNote ? "" : "(optional)"}
+            {t("documents.review.note")} {reviewActionRequiresNote ? "" : `(${t("documents.review.optional")})`}
           </label>
           <textarea
             id="document-review-note"
@@ -755,8 +786,8 @@ export default function DocumentsTab({
             className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-primary"
             placeholder={
               reviewActionRequiresNote
-                ? "Enter a note before submitting"
-                : "Add a note"
+                ? t("documents.review.required_note")
+                : t("documents.review.optional_note")
             }
             disabled={isSubmittingReview}
             maxLength={2000}

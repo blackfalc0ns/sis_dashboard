@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { Application } from "@/features/admissions/types/admissions";
 import { fetchApplicationById } from "@/features/admissions/applications/services/applicationsApiService";
 import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
@@ -30,11 +31,12 @@ export default function ApplicationTabContent({
   applicationId,
   tab,
 }: ApplicationTabContentProps) {
+  const t = useTranslations("admissions.application360");
   const { hasPermission } = usePermissions();
   const canViewApplications = hasPermission("admissions.applications.view");
   const [application, setApplication] = useState<Application | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const needsRegistrationHandoff = tab === "details" || tab === "guardians";
+  const needsRegistrationHandoff = tab === "guardians";
   const relatedData = useApplicationRelatedData(
     applicationId,
     application?.requestedGradeId,
@@ -66,22 +68,16 @@ export default function ApplicationTabContent({
   }
 
   if (isLoading) {
-    return <p className="text-sm text-gray-500">Loading application...</p>;
+    return <p className="text-sm text-gray-500">{t("loading")}</p>;
   }
 
   if (!application) {
-    return <p className="text-sm text-gray-500">Application not found</p>;
+    return <p className="text-sm text-gray-500">{t("not_found")}</p>;
   }
 
   if (tab === "details") {
     return (
-      <DetailsTab
-        application={application}
-        studentDraft={relatedData.studentDraft}
-        gradeLabel={relatedData.gradeLabel}
-        academicYearLabel={relatedData.academicYearLabel}
-        previousSchool={relatedData.previousSchool}
-      />
+      <DetailsTab application={application} />
     );
   }
   if (tab === "readiness") {

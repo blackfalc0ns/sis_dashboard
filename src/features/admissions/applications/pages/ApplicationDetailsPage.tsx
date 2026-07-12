@@ -102,8 +102,7 @@ export default function ApplicationDetailsPage({
   const [application, setApplication] = useState<Application | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const needsRegistrationHandoff =
-    activeTab === "details" || activeTab === "guardians";
+  const needsRegistrationHandoff = activeTab === "guardians";
   const relatedData = useApplicationRelatedData(
     applicationId,
     application?.requestedGradeId,
@@ -118,11 +117,11 @@ export default function ApplicationDetailsPage({
     } catch (loadError) {
       console.error("Failed to load application:", loadError);
       setApplication(null);
-      setError("Application not found");
+      setError(t("not_found"));
     } finally {
       setIsLoading(false);
     }
-  }, [applicationId]);
+  }, [applicationId, t]);
 
   useEffect(() => {
     void loadApplication();
@@ -132,7 +131,7 @@ export default function ApplicationDetailsPage({
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <p className="text-gray-500">Loading application...</p>
+          <p className="text-gray-500">{t("loading")}</p>
         </div>
       </div>
     );
@@ -142,13 +141,13 @@ export default function ApplicationDetailsPage({
     return (
       <div className="p-6">
         <EmptyState
-          message={error || "Application not found"}
+          message={error || t("not_found")}
           action={
             <Button
               type="button"
               onClick={() => router.push(`/${locale}/admissions/applications`)}
             >
-              Back to Applications
+              {t("header.back_to_applications")}
             </Button>
           }
         />
@@ -253,7 +252,7 @@ export default function ApplicationDetailsPage({
       await loadApplication();
     } catch (scheduleError) {
       console.error("Failed to schedule test:", scheduleError);
-      showToast("Failed to schedule test. Please try again.", "error");
+      showToast(t("schedule_test_error"), "error");
     }
   };
 
@@ -273,7 +272,7 @@ export default function ApplicationDetailsPage({
       await loadApplication();
     } catch (scheduleError) {
       console.error("Failed to schedule interview:", scheduleError);
-      showToast("Failed to schedule interview. Please try again.", "error");
+      showToast(t("schedule_interview_error"), "error");
     }
   };
 
@@ -294,7 +293,7 @@ export default function ApplicationDetailsPage({
       console.error("Failed to create decision:", decisionError);
       showToast(
         getDecisionFriendlyErrorMessage(decisionError) ||
-          "Failed to create decision. Please try again.",
+          t("decision_error"),
         "error",
       );
     } finally {
@@ -316,7 +315,7 @@ export default function ApplicationDetailsPage({
               className="mb-4 px-0"
               leftIcon={locale === "ar" ? <ArrowRight /> : <ArrowLeft />}
             >
-              Back to Applications
+              {t("header.back_to_applications")}
             </Button>
             <div className="flex items-center justify-between">
               <div>
@@ -346,13 +345,7 @@ export default function ApplicationDetailsPage({
         {/* Content */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           {activeTab === "details" && (
-            <DetailsTab
-              application={application}
-              studentDraft={relatedData.studentDraft}
-              gradeLabel={relatedData.gradeLabel}
-              academicYearLabel={relatedData.academicYearLabel}
-              previousSchool={relatedData.previousSchool}
-            />
+            <DetailsTab application={application} />
           )}
           {activeTab === "readiness" && (
             <ApplicationReadinessPanel application={application} />
@@ -439,7 +432,7 @@ export default function ApplicationDetailsPage({
                   title={
                     canRegisterApplication && application.dashboardState?.canRegister !== false
                       ? undefined
-                      : application.dashboardState?.blockers?.map((blocker) => blocker.message).join("; ") || "Registration is blocked or additional permissions are required"
+                      : application.dashboardState?.blockers?.map((blocker) => blocker.message).join("; ") || t("registration_blocked")
                   }
                   variant="success"
                   size="sm"

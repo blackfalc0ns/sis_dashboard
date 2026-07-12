@@ -8,4 +8,10 @@ describe("Admissions workflow policy translations", () => {
     expect(ar.admissions.workflowPolicy).toBeDefined();
     expect(Object.keys(ar.admissions.workflowPolicy).sort()).toEqual(Object.keys(en.admissions.workflowPolicy).sort());
   });
+
+  it("keeps application profile tab labels available in both locales", () => {
+    expect(Object.keys(ar.admissions.application360.tabs).sort()).toEqual(
+      Object.keys(en.admissions.application360.tabs).sort(),
+    );
+  });
 });

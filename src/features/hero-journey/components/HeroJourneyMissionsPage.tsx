@@ -40,6 +40,7 @@ import { fetchAssessments } from "@/features/grades/overview/services/gradesOver
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import { heroJourneySectionBanners } from "../config/heroJourneySectionBanners";
 import useHeroJourneyOverlayMode from "../hooks/useHeroJourneyOverlayMode";
+import { useHeroJourneyMissionSearch } from "../hooks/useHeroJourneyMissionSearch";
 import {
   createHeroJourneyBadge,
   createHeroJourneyMission,
@@ -192,11 +193,15 @@ export default function HeroJourneyMissionsPage() {
       status: "replace",
     },
   });
+  const {
+    debouncedSearch,
+    isDebouncing: isMissionSearchDebouncing,
+  } = useHeroJourneyMissionSearch(queryState.values.q);
   const missionFilters: HeroJourneyMissionFilters = useMemo(
     () => ({
       academicYearId: academicYearId || undefined,
       termId: termId || undefined,
-      search: queryState.values.q || undefined,
+      search: debouncedSearch || undefined,
       status: queryState.values.status as HeroJourneyMissionFilters["status"],
       includeArchived:
         queryState.values.includeArchived === "true"
@@ -209,10 +214,10 @@ export default function HeroJourneyMissionsPage() {
     }),
     [
       academicYearId,
+      debouncedSearch,
       missionTablePage,
       missionTablePageSize,
       queryState.values.includeArchived,
-      queryState.values.q,
       queryState.values.status,
       termId,
     ],
@@ -472,6 +477,10 @@ export default function HeroJourneyMissionsPage() {
       return;
     }
 
+    if (isMissionSearchDebouncing) {
+      return;
+    }
+
     let cancelled = false;
     setIsLoading(true);
 
@@ -499,7 +508,9 @@ export default function HeroJourneyMissionsPage() {
     };
   }, [
     academicYearId,
+    debouncedSearch,
     isAcademicContextInitializing,
+    isMissionSearchDebouncing,
     missionFilters,
     t,
     termId,

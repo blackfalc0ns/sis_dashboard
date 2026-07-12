@@ -56,7 +56,7 @@ export default function CreateTransferWithdrawalModal({
   onClose,
   onSubmit,
 }: CreateTransferWithdrawalModalProps) {
-  const t = useTranslations("students_guardians.transfers_withdrawals.modal");
+  const t = useTranslations("students_guardians.modal");
 
   const [formData, setFormData] = useState<ApplicationData>(initialFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});

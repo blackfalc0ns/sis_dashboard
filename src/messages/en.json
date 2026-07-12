@@ -1001,7 +1001,14 @@
       "declined_applications": "Declined applications",
       "avg_processing_time": "Avg Processing Time",
       "time_to_decision": "Time to decision",
-      "submit": "Submit"
+      "submit": "Submit",
+      "load_error": "Failed to load applications.",
+      "submit_error": "Failed to submit application.",
+      "create_error": "Failed to create application. Please try again.",
+      "loading": "Loading applications...",
+      "not_available": "Not available",
+      "processing_hours": "{hours}h",
+      "processing_days": "{days} days"
     },
     "filters": {
       "filters_button": "Filters",
@@ -1217,6 +1224,7 @@
       "no_notes": "No notes added yet"
     },
     "create_application": {
+      "loading": "Loading application form data...",
       "title": "Create New Application",
       "subtitle": "Fill in the required information",
       "intake_note": "Create the admission application record first. Full student and guardian data is entered after acceptance during registration.",
@@ -1367,10 +1375,18 @@
         "primary_guardian_required": "At least one guardian must be marked as primary",
         "document_required": "At least one document must be uploaded",
         "file_type_error": "Only PDF, JPG, and PNG files are allowed",
-        "file_size_error": "File size must be less than 5MB"
+        "file_size_error": "File size must be less than 5MB",
+        "load_failed": "Failed to load application form data."
       }
     },
     "application360": {
+      "loading": "Loading application...",
+      "not_found": "Application not found",
+      "schedule_test_error": "Failed to schedule test. Please try again.",
+      "schedule_interview_error": "Failed to schedule interview. Please try again.",
+      "decision_error": "Failed to create decision. Please try again.",
+      "submit_error": "Failed to submit application.",
+      "registration_blocked": "Registration is blocked or additional permissions are required.",
       "header": {
         "title": "Application",
         "back_to_applications": "Back to Applications"
@@ -1383,6 +1399,35 @@
         "tests": "Tests",
         "interviews": "Interviews",
         "timeline": "Timeline"
+      },
+      "overview": {
+        "title": "Application overview",
+        "subtitle": "The application record returned by the admissions service.",
+        "application_id": "Application ID",
+        "lead_id": "Lead ID",
+        "student_name": "Student name",
+        "requested_academic_year_id": "Requested academic year ID",
+        "requested_grade_id": "Requested grade ID",
+        "source": "Source",
+        "status": "Status",
+        "submitted_at": "Submitted at",
+        "created_at": "Created at",
+        "updated_at": "Updated at",
+        "not_available": "Not available",
+        "sources": {
+          "in_app": "In-app",
+          "referral": "Referral",
+          "walk_in": "Walk-in",
+          "other": "Other"
+        },
+        "statuses": {
+          "submitted": "Submitted",
+          "documents_pending": "Documents pending",
+          "under_review": "Under review",
+          "accepted": "Accepted",
+          "waitlisted": "Waitlisted",
+          "rejected": "Rejected"
+        }
       },
       "details": {
         "student_info": "Student Information",
@@ -1468,14 +1513,89 @@
         "status_complete": "This document has been accepted by the school.",
         "status_missing": "This document is missing or requires applicant action.",
         "cancel": "Cancel",
-        "choose_file": "Choose File"
+        "choose_file": "Choose File",
+        "loading": "Loading documents...",
+        "empty": "No documents have been submitted for this application yet.",
+        "uploaded": "Uploaded",
+        "uploaded_label": "Uploaded:",
+        "preview_unavailable": "Document preview not available",
+        "download_hint": "Click Download to view the file",
+        "url_unavailable": "Document URL not available",
+        "remove_confirm": "Remove this document link? This action cannot be undone.",
+        "actions": {
+          "view": "View document",
+          "download": "Download document",
+          "remove": "Remove document",
+          "close": "Close"
+        },
+        "review": {
+          "accept": "Accept",
+          "reject": "Reject",
+          "request_replacement": "Request replacement",
+          "accept_title": "Accept document",
+          "reject_title": "Reject document",
+          "request_replacement_title": "Request replacement",
+          "title": "Review document",
+          "submit": "Submit review",
+          "cancel": "Cancel",
+          "note": "Note",
+          "optional": "optional",
+          "required_note": "Enter a note before submitting",
+          "optional_note": "Add a note",
+          "approval_note": "Add an optional note for this approval.",
+          "rejection_note": "Enter the reason this document is being rejected.",
+          "replacement_note": "Enter what the applicant needs to replace or fix.",
+          "replacement_notice": "The applicant may need to upload a new document after this action.",
+          "eligibility": {
+            "reviewable": "Ready for review",
+            "application_status_not_reviewable": "Application status does not allow document review",
+            "document_not_pending_review": "Document is not waiting for review",
+            "not_applicant_portal_document": "Document was not submitted through the applicant portal",
+            "applicant_document_not_uploaded": "Applicant document has not been uploaded"
+          }
+        },
+        "errors": {
+          "review_failed": "Failed to update document review.",
+          "review_success": "Document review updated.",
+          "upload_failed": "Failed to upload document.",
+          "review_permission": "You do not have permission to review this document.",
+          "not_found": "This application or document could not be found.",
+          "already_reviewed": "This document has already been reviewed or is no longer pending review.",
+          "invalid_review_note": "Please check the review note and try again.",
+          "load_failed": "Failed to load documents.",
+          "view_permission": "You do not have permission to view these documents.",
+          "manage_permission": "You do not have permission to manage documents.",
+          "changed_status": "This document changed status. Refresh and try again.",
+          "invalid_details": "Please check the document details and try again.",
+          "open_failed": "Failed to open document.",
+          "download_failed": "Failed to download document.",
+          "select_type": "Please select or enter a document type.",
+          "file_type": "Only PDF, JPG, and PNG files are allowed.",
+          "file_size": "File size must be less than 5MB.",
+          "type_missing": "Document type is missing.",
+          "upload_success": "Document uploaded successfully.",
+          "remove_success": "Document removed.",
+          "remove_failed": "Failed to remove document."
+        },
+        "types": {
+          "birth_certificate": "Birth Certificate",
+          "passport_copy": "Passport Copy",
+          "medical_report": "Medical Report",
+          "previous_school_certificate": "Previous School Certificate",
+          "national_id": "National ID",
+          "vaccination_record": "Vaccination Record",
+          "report_card": "Report Card",
+          "transfer_certificate": "Transfer Certificate"
+        }
       },
       "tests": {
         "title": "Placement Tests",
         "schedule_test": "Schedule Test",
         "no_tests": "No tests scheduled yet",
         "at": "at",
-        "score": "Score"
+        "score": "Score",
+        "score_saved": "Test score saved!",
+        "score_save_failed": "Failed to save test score."
       },
       "interviews": {
         "title": "Interviews",
@@ -1483,7 +1603,9 @@
         "no_interviews": "No interviews scheduled yet",
         "interview_with": "Interview with",
         "at": "at",
-        "rating": "Rating"
+        "rating": "Rating",
+        "completed": "Interview completed!",
+        "complete_failed": "Failed to complete interview."
       },
       "timeline": {
         "title": "Application Timeline",
@@ -2008,6 +2130,7 @@
       "all_years": "All Years",
       "no_match": "No enrollments match your filters",
       "no_enrollments": "No enrollments found",
+      "load_error": "Unable to load enrollments.",
       "clear_filters": "Clear filters",
       "found": "found",
       "promote_students": "Promote Students",
@@ -2031,7 +2154,69 @@
       "pending_placement": "pending placement",
       "full_classrooms": "Full Classrooms",
       "promote_waitlist": "Promote Waitlist",
-      "waitlist_summary": "{count} active waitlist entries will be checked for available seats."
+      "waitlist_summary": "{count} active waitlist entries will be checked for available seats.",
+      "actions": {
+        "new_enrollment": "New enrollment",
+        "retry": "Retry",
+        "save": "Save",
+        "edit_placement": "Edit placement",
+        "transfer": "Transfer",
+        "promote": "Promote",
+        "withdraw": "Withdraw"
+      },
+      "status": {
+        "all": "All statuses",
+        "active": "Active",
+        "completed": "Completed",
+        "withdrawn": "Withdrawn"
+      },
+      "dialogs": {
+        "placement": {
+          "new_title": "New enrollment",
+          "edit_title": "Edit placement",
+          "student": "Student",
+          "academic_year": "Academic year",
+          "grade": "Grade",
+          "section": "Section",
+          "classroom": "Classroom",
+          "enrollment_date": "Enrollment date",
+          "save_error": "The enrollment could not be saved."
+        },
+        "workflow": {
+          "titles": {
+            "transfer": "Transfer enrollment",
+            "withdraw": "Withdraw enrollment",
+            "promote": "Promote enrollment"
+          },
+          "target_section": "Target section",
+          "target_classroom": "Target classroom",
+          "target_academic_year": "Target academic year",
+          "effective_date": "Effective date",
+          "reason": "Reason",
+          "notes_optional": "Notes (optional)",
+          "action_error": "The enrollment action could not be completed."
+        }
+      },
+      "details": {
+        "aria_label": "Enrollment details",
+        "title": "Enrollment details",
+        "close": "Close",
+        "unable_to_load": "Unable to load enrollment details.",
+        "overview": "Overview",
+        "current_enrollment": "Current enrollment",
+        "history": "History",
+        "no_active_enrollment": "No active enrollment",
+        "no_history": "No enrollment history",
+        "fields": {
+          "status": "Status",
+          "academic_year": "Academic year",
+          "grade": "Grade",
+          "section": "Section",
+          "classroom": "Classroom",
+          "enrollment_date": "Enrollment date"
+        },
+        "not_available": "—"
+      }
     },
     "export": {
       "title": "Export Admissions Data",
@@ -2873,6 +3058,44 @@
         "confirm_change": "Confirm Change"
       }
     },
+    "modal": {
+      "title": "Create transfer or withdrawal application",
+      "cancel": "Cancel",
+      "submit": "Submit application",
+      "no_students_found": "No students found",
+      "fields": {
+        "student": "Student",
+        "search_student": "Search student by name or ID...",
+        "student_id": "Student ID",
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
+        "classroom": "Classroom",
+        "type": "Application type",
+        "reason": "Reason",
+        "select_reason": "Select a reason",
+        "effective_date": "Effective date",
+        "notes": "Additional notes",
+        "notes_placeholder": "Enter any additional information..."
+      },
+      "types": {
+        "transfer": "Transfer",
+        "withdrawal": "Withdrawal"
+      },
+      "reasons": {
+        "relocation": "Relocation",
+        "financial": "Financial reasons",
+        "academic": "Academic reasons",
+        "behavior": "Behavior issues",
+        "other": "Other"
+      },
+      "errors": {
+        "student_required": "Please select a student",
+        "type_required": "Please select an application type",
+        "reason_required": "Please select a reason",
+        "date_required": "Please select an effective date"
+      }
+    },
     "profile": {
       "back_to_students": "Back to Students",
       "student_not_found": "Student not found",
@@ -2881,6 +3104,7 @@
       "section": "Section",
       "classroom": "Classroom",
       "na": "N/A",
+      "no_data": "No data available",
       "account_linking": {
         "action": "Link account",
         "manage_required": "Linking accounts requires settings.users.manage."
@@ -10916,7 +11140,32 @@
       "subtitle": "Run active dismissal requests, waiting students, and pickup history from one live workspace.",
       "empty_title": "No dismissal records found",
       "empty_description": "Adjust filters or refresh the workspace to load the latest dismissal activity.",
-      "detail_loading": "Loading request details..."
+      "detail_loading": "Loading request details...",
+      "detail_failed": "Failed to load request details."
+    },
+    "operations_history": {
+      "summary": "Request summary",
+      "student": "Student",
+      "grade": "Grade",
+      "section": "Section",
+      "classroom": "Classroom",
+      "gate": "Gate",
+      "requester": "Requester",
+      "arrival_state": "Arrival state",
+      "request_id": "Request ID",
+      "wait_duration": "Wait duration",
+      "wait_minutes": "{minutes} min",
+      "requested_at": "Requested",
+      "updated_at": "Last updated",
+      "escalation": "Escalation",
+      "escalated": "Escalated",
+      "not_escalated": "No escalation",
+      "timeline": "Request timeline"
+    },
+    "operations_timeline": {
+      "request_created": "Request created",
+      "status_changed": "Status changed",
+      "no_events": "No timeline events are available for this request."
     },
     "operations_tabs": {
       "active": "Active Requests",

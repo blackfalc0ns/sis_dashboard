@@ -10,12 +10,46 @@ vi.mock("next-intl", () => ({
   useLocale: () => "en",
   useTranslations: () => (key: string) =>
     ({
+      "documents.empty":
+        "No documents have been submitted for this application yet.",
+      "documents.actions.view": "View document",
+      "documents.actions.download": "Download document",
+      "documents.actions.remove": "Remove document",
+      "documents.review.accept": "Accept",
+      "documents.review.reject": "Reject",
+      "documents.review.request_replacement": "Request replacement",
+      "documents.review.accept_title": "Accept document",
+      "documents.review.reject_title": "Reject document",
+      "documents.review.request_replacement_title": "Request replacement",
+      "documents.review.title": "Review document",
+      "documents.review.submit": "Submit review",
+      "documents.review.cancel": "Cancel",
+      "documents.review.note": "Note",
+      "documents.review.optional": "optional",
+      "documents.review.required_note": "Please enter a note before submitting.",
+      "documents.review.optional_note": "Add a note",
+      "documents.review.approval_note": "Add an optional note for this approval.",
+      "documents.review.rejection_note":
+        "Enter the reason this document is being rejected.",
+      "documents.review.replacement_note":
+        "Enter what the applicant needs to replace or fix.",
+      "documents.review.replacement_notice":
+        "The applicant may need to upload a new document after this action.",
       "documents.status_pending_review":
         "This document was submitted by the applicant and is waiting for school review.",
       "documents.status_complete":
         "This document has been accepted by the school.",
       "documents.status_missing":
         "This document is missing or requires applicant action.",
+      "documents.errors.review_success": "Document review updated.",
+      "documents.errors.review_permission":
+        "You do not have permission to review this document.",
+      "documents.errors.not_found":
+        "This application or document could not be found.",
+      "documents.errors.already_reviewed":
+        "This document has already been reviewed or is no longer pending review.",
+      "documents.errors.invalid_review_note":
+        "Please check the review note and try again.",
     })[key] ?? key,
 }));
 

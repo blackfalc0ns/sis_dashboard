@@ -57,12 +57,12 @@ export default function InterviewsTab({
         status: "completed",
         notes,
       });
-      showToast("Interview completed!", "success");
+      showToast(t("interviews.completed"), "success");
       setSelectedInterview(null);
       await loadInterviews();
     } catch (err) {
       console.error("Failed to complete interview:", err);
-      showToast("Failed to complete interview.", "error");
+      showToast(t("interviews.complete_failed"), "error");
     }
   };
 
