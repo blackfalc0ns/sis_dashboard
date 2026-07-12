@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Activity,
   AlertTriangle,
@@ -60,6 +60,33 @@ const checkIcons = {
   push: Radio,
 };
 
+const detailLabels = {
+  en: {
+    email: {
+      activeConnections: "Active",
+      readyConnections: "Ready",
+      invalidConnections: "Invalid",
+    },
+    push: {
+      mode: "Delivery mode",
+      send_enabled: "Sending enabled",
+      unknown: "Unknown",
+    },
+  },
+  ar: {
+    email: {
+      activeConnections: "نشطة",
+      readyConnections: "جاهزة",
+      invalidConnections: "غير صالحة",
+    },
+    push: {
+      mode: "وضع الإرسال",
+      send_enabled: "الإرسال مفعّل",
+      unknown: "غير معروف",
+    },
+  },
+} as const;
+
 function StatusBadge({
   status,
   label,
@@ -76,17 +103,110 @@ function StatusBadge({
   );
 }
 
-function getQueueDetails(check: HealthDependencyCheck): HealthQueueReadiness[] {
-  const queues = check.details?.queues;
+function getQueueDetails(
+  details: HealthDependencyCheck["details"],
+): HealthQueueReadiness[] {
+  const queues = details?.queues;
   return Array.isArray(queues) ? (queues as HealthQueueReadiness[]) : [];
 }
 
-function formatDetails(details: HealthDependencyCheck["details"]) {
+function getNumericDetail(
+  details: HealthDependencyCheck["details"],
+  key: string,
+) {
+  const value = details?.[key];
+  return typeof value === "number" ? value : 0;
+}
+
+function HealthCheckDetails({
+  checkKey,
+  details,
+  isArabic,
+  translate,
+}: {
+  checkKey: HealthCheckKey;
+  details: HealthDependencyCheck["details"];
+  isArabic: boolean;
+  translate: ReturnType<typeof useTranslations>;
+}) {
   if (!details) return null;
-  return JSON.stringify(details, null, 2);
+
+  if (checkKey === "queues") {
+    const queues = getQueueDetails(details);
+
+    return (
+      <div className="mt-4 space-y-2">
+        {queues.map((queue) => (
+          <div
+            key={queue.name}
+            className="rounded-lg border border-gray-100 bg-gray-50 p-2.5"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="truncate font-mono text-[11px] text-gray-700">
+                {queue.name}
+              </span>
+              <StatusBadge
+                status={queue.status}
+                label={translate(`status.${queue.status}`)}
+              />
+            </div>
+            <div className="mt-2 grid grid-cols-4 gap-1 text-center text-[10px] text-gray-500">
+              {(["waiting", "active", "delayed", "failed"] as const).map(
+                (countKey) => (
+                  <div key={countKey}>
+                    <span className="block font-semibold text-gray-800">
+                      {queue.counts?.[countKey] ?? 0}
+                    </span>
+                    {translate(`queues.${countKey}`)}
+                  </div>
+                ),
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (checkKey === "email") {
+    return (
+      <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
+        {(["activeConnections", "readyConnections", "invalidConnections"] as const).map(
+          (detailKey) => (
+            <div key={detailKey} className="rounded-lg bg-gray-50 p-2">
+              <dt className="text-[10px] text-gray-500">
+                {detailLabels[isArabic ? "ar" : "en"].email[detailKey]}
+              </dt>
+              <dd className="mt-1 text-lg font-semibold text-gray-900">
+                {getNumericDetail(details, detailKey)}
+              </dd>
+            </div>
+          ),
+        )}
+      </dl>
+    );
+  }
+
+  if (checkKey === "push") {
+    const mode = typeof details.mode === "string" ? details.mode : "unknown";
+    return (
+      <div className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+        <span className="text-xs text-gray-500">
+          {detailLabels[isArabic ? "ar" : "en"].push.mode}
+        </span>
+        <span className="mt-1 block font-semibold text-gray-900">
+          {detailLabels[isArabic ? "ar" : "en"].push[mode as "send_enabled" | "unknown"] ?? mode}
+        </span>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 export default function SettingsHealthPage() {
+  const locale = useLocale();
+  const isArabic = locale === "ar";
   const t = useTranslations("settings.health");
   const [report, setReport] = useState<HealthReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -121,7 +241,7 @@ export default function SettingsHealthPage() {
   }, [loadReport]);
 
   const queueDetails = useMemo(
-    () => (report ? getQueueDetails(report.checks.queues) : []),
+    () => (report ? getQueueDetails(report.checks.queues.details) : []),
     [report],
   );
 
@@ -200,7 +320,6 @@ export default function SettingsHealthPage() {
               const check = report.checks[key];
               const Icon = checkIcons[key];
               const StatusIcon = statusIcons[check.status];
-              const details = formatDetails(check.details);
 
               return (
                 <section
@@ -246,11 +365,12 @@ export default function SettingsHealthPage() {
                     ) : null}
                   </div>
 
-                  {details ? (
-                    <pre className="mt-4 max-h-40 overflow-auto rounded-xl bg-gray-950 p-3 text-xs leading-relaxed text-gray-100">
-                      {details}
-                    </pre>
-                  ) : null}
+                  <HealthCheckDetails
+                    checkKey={key}
+                    details={check.details}
+                    isArabic={isArabic}
+                    translate={t}
+                  />
                 </section>
               );
             })}
