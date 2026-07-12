@@ -42,7 +42,7 @@ Mutations use server state as the authority. On success, refetch the detail reso
 
 Backend permissions remain authoritative. The UI can hide unavailable controls based on the existing permission model, but each server rejection must produce an actionable error message. Do not optimistically alter completion, XP, or badge state before a successful response.
 
-Use the dashboard's existing components and tokens. New operational screens should be data-dense but readable: accessible labels, non-color status indicators, keyboard-focusable controls, stable 150-300ms feedback, and responsive layouts at 375px, 768px, 1024px, and 1440px. Do not introduce a separate visual theme or typography system.
+Use the existing Student Profile tab framework, tab loader, cards, buttons, dialogs, status pills, and loading/empty/error components. New Hero Journey tab content must follow these established interaction patterns, preserve accessible labels, non-color status indicators, keyboard-focusable controls, stable 150-300ms feedback, and responsive layouts at 375px, 768px, 1024px, and 1440px. Do not introduce a separate visual theme, typography system, or standalone operations UI.
 
 ## Acceptance Criteria
 
