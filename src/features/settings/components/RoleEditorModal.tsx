@@ -44,7 +44,13 @@ export default function RoleEditorModal({
     );
     setDescription(initialValues?.description || "");
     setIsSaving(false);
-  }, [initialValues, isOpen, mode, sourceRoleName]);
+  }, [
+    initialValues?.description,
+    initialValues?.name,
+    isOpen,
+    mode,
+    sourceRoleName,
+  ]);
 
   const handleSubmit = async () => {
     if (!name.trim()) {
