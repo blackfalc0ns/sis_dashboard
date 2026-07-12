@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Check,
@@ -73,6 +73,8 @@ export default function SettingsRolesPage() {
     "create" | "clone" | "edit" | null
   >(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTableLoading, setIsTableLoading] = useState(false);
+  const hasLoadedRolesRef = useRef(false);
   const [isSavingPermissions, setIsSavingPermissions] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -91,7 +93,8 @@ export default function SettingsRolesPage() {
     let isCancelled = false;
 
     void Promise.resolve().then(async () => {
-      setIsLoading(true);
+      setIsLoading(!hasLoadedRolesRef.current);
+      setIsTableLoading(true);
       try {
         const rolesParams: FetchSettingsRolesParams = {
           page,
@@ -107,6 +110,7 @@ export default function SettingsRolesPage() {
         setPage(rolesResult.pagination.page);
         setLimit(rolesResult.pagination.limit);
         setTotalRoles(rolesResult.pagination.total);
+        hasLoadedRolesRef.current = true;
         setSelectedRoleId(
           (current) => current || rolesResult.items[0]?.id || "",
         );
@@ -117,6 +121,7 @@ export default function SettingsRolesPage() {
       } finally {
         if (!isCancelled) {
           setIsLoading(false);
+          setIsTableLoading(false);
         }
       }
     });
@@ -824,6 +829,7 @@ export default function SettingsRolesPage() {
             <DataTable
               columns={columns}
               data={roles as unknown as Record<string, unknown>[]}
+              isLoading={isTableLoading}
               showPagination
               itemsPerPage={limit}
               serverPagination={{
