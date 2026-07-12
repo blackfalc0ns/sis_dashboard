@@ -21,12 +21,7 @@ Keep the current routes:
 - `/hero-journey`: executive overview and summary cards.
 - `/hero-journey/missions`: mission and badge catalog management.
 
-Add an operations route group:
-
-- `/hero-journey/operations`: filterable student-progress workspace.
-- `/hero-journey/operations/:studentId`: student progress and rewards detail, preferably rendered as a desktop drawer with a route-backed mobile page.
-
-The operations workspace contains student rows, a progress-status filter, and clear empty/loading/error states. Row selection resolves a student progress record and exposes state-valid actions: start mission, complete objective, complete mission, grant XP, and award badge. Reward mutations require a confirmation dialog and refresh the affected progress, rewards, and dashboard summaries.
+Add a `Hero Journey` tab to the existing Student Profile. The tab receives the profile student ID, loads direct progress and rewards only while active, and exposes state-valid actions: start mission, complete objective, complete mission, grant XP, and award badge. Reward mutations require a confirmation dialog and refresh the affected progress, rewards, and dashboard summaries.
 
 Overview cards and filters expose stage, classroom, and badge drill-downs from their dedicated server endpoints. The frontend must not recreate those aggregates locally.
 
@@ -51,7 +46,7 @@ Use the dashboard's existing components and tokens. New operational screens shou
 
 ## Acceptance Criteria
 
-1. All 25 school-management Hero Journey contracts have a frontend service function and are reachable from an appropriate admin workflow.
+1. All 25 school-management Hero Journey contracts have a frontend service function and are reachable from an appropriate admin workflow; student-specific operations are reached from Student Profile's Hero Journey tab.
 2. No Hero Journey screen derives student progress from `/overview` or displays fake progress values.
 3. Overview requests never send unsupported `gradeId`; selecting a grade cannot cause a validation error.
 4. Stage, classroom, and badge summary UI reads the matching backend endpoint.
@@ -63,4 +58,5 @@ Use the dashboard's existing components and tokens. New operational screens shou
 - Backend schema or contract changes.
 - Changing backend permission rules.
 - A global dashboard redesign.
+- A standalone Hero Journey Operations route or dashboard workflow.
 - Student, teacher, or parent app Hero Journey flows.
