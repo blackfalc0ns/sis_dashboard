@@ -49,36 +49,18 @@ const fieldLabel = (key: string, t: Translator): string =>
 const xpValue = (value: unknown, t: Translator): string =>
   `${toValue(value)} ${t("xp.unit")}`;
 
-const localizedTaskTitle = (
-  task: ReinforcementTask,
-  locale: string,
-): string =>
+const localizedTaskTitle = (task: ReinforcementTask, locale: string): string =>
   locale === "ar"
     ? task.titleAr || task.titleEn || task.id
     : task.titleEn || task.titleAr || task.id;
 
 const translatedStatusLabel = (status: unknown, t: Translator): string => {
   const value = typeof status === "string" ? status : "";
-  return value && t.has(`status.${value}`) ? t(`status.${value}`) : value ? toLabel(value) : "";
-};
-
-const localizedName = (
-  record: Record<string, unknown> | undefined,
-  locale: string,
-): string | undefined => {
-  if (!record) return undefined;
-
-  return locale === "ar"
-    ? asString(record.nameAr) ||
-        asString(record.full_name_ar) ||
-        asString(record.name) ||
-        asString(record.nameEn) ||
-        asString(record.id)
-    : asString(record.name) ||
-        asString(record.nameEn) ||
-        asString(record.full_name_en) ||
-        asString(record.nameAr) ||
-        asString(record.id);
+  return value && t.has(`status.${value}`)
+    ? t(`status.${value}`)
+    : value
+      ? toLabel(value)
+      : "";
 };
 
 const normalizeProgressSummary = (
@@ -123,9 +105,7 @@ const normalizeTasks = (
         ...taskRecord,
         id: taskId,
         titleEn:
-          asString(taskRecord.titleEn) ||
-          asString(taskRecord.title) ||
-          taskId,
+          asString(taskRecord.titleEn) || asString(taskRecord.title) || taskId,
         titleAr:
           asString(taskRecord.titleAr) ||
           asString(taskRecord.titleEn) ||
@@ -149,7 +129,10 @@ const normalizeTasks = (
 const normalizeXpSummary = (
   progress: StudentReinforcementProgress,
 ): XpSummary | undefined => {
-  if (isRecord(progress.xpSummary) && Object.keys(progress.xpSummary).length > 0) {
+  if (
+    isRecord(progress.xpSummary) &&
+    Object.keys(progress.xpSummary).length > 0
+  ) {
     return progress.xpSummary as XpSummary;
   }
 
@@ -194,16 +177,18 @@ function SummaryGrid({
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {Object.entries(summary).slice(0, 9).map(([key, value]) => (
-        <div key={key} className="rounded-lg bg-gray-50 px-3 py-3">
-          <div className="text-xs font-medium uppercase text-gray-500">
-            {fieldLabel(key, t)}
+      {Object.entries(summary)
+        .slice(0, 9)
+        .map(([key, value]) => (
+          <div key={key} className="rounded-lg bg-gray-50 px-3 py-3">
+            <div className="text-xs font-medium uppercase text-gray-500">
+              {fieldLabel(key, t)}
+            </div>
+            <div className="mt-1 text-base font-semibold text-gray-900">
+              {localizedValue(value, t)}
+            </div>
           </div>
-          <div className="mt-1 text-base font-semibold text-gray-900">
-            {localizedValue(value, t)}
-          </div>
-        </div>
-      ))}
+        ))}
     </div>
   );
 }
@@ -242,65 +227,6 @@ function XpSummaryBlock({ xpSummary }: { xpSummary?: XpSummary }) {
             </div>
           </div>
         ))}
-      </div>
-    </section>
-  );
-}
-
-function StudentIdentityBlock({
-  progress,
-}: {
-  progress: StudentReinforcementProgress;
-}) {
-  const locale = useLocale();
-  const t = useTranslations("reinforcement");
-  const student = asRecord(progress.student);
-  const enrollment = asRecord(progress.enrollment);
-  const studentName = localizedName(student, locale);
-
-  if (!studentName && !enrollment) return null;
-
-  return (
-    <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center gap-2">
-        <BookOpen className="h-5 w-5 text-primary" />
-        <h2 className="text-base font-semibold text-gray-900">
-          {studentName || toValue(progress.studentId)}
-        </h2>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {student?.code ? (
-          <div className="rounded-lg bg-gray-50 px-3 py-3">
-            <div className="text-xs font-medium uppercase text-gray-500">
-              {fieldLabel("code", t)}
-            </div>
-            <div className="mt-1 text-base font-semibold text-gray-900">
-              {localizedValue(student.code, t)}
-            </div>
-          </div>
-        ) : null}
-        {student?.admissionNo ? (
-          <div className="rounded-lg bg-gray-50 px-3 py-3">
-            <div className="text-xs font-medium uppercase text-gray-500">
-              {fieldLabel("admissionNo", t)}
-            </div>
-            <div className="mt-1 text-base font-semibold text-gray-900">
-              {localizedValue(student.admissionNo, t)}
-            </div>
-          </div>
-        ) : null}
-        {enrollment
-          ? Object.entries(enrollment).map(([key, value]) => (
-              <div key={key} className="rounded-lg bg-gray-50 px-3 py-3">
-                <div className="text-xs font-medium uppercase text-gray-500">
-                  {fieldLabel(key, t)}
-                </div>
-                <div className="mt-1 truncate text-base font-semibold text-gray-900">
-                  {localizedValue(value, t)}
-                </div>
-              </div>
-            ))
-          : null}
       </div>
     </section>
   );
@@ -375,7 +301,8 @@ function RecentLedgerEntriesBlock({
       <div className="divide-y divide-gray-100">
         {entries.slice(0, 5).map((entry, index) => {
           const sourceType = asString(entry.sourceType) || "system";
-          const occurredAt = asString(entry.occurredAt) || asString(entry.createdAt);
+          const occurredAt =
+            asString(entry.occurredAt) || asString(entry.createdAt);
           const reason =
             locale === "ar"
               ? asString(entry.reasonAr) || asString(entry.reason)
@@ -398,7 +325,9 @@ function RecentLedgerEntriesBlock({
               </div>
               <div className="shrink-0 text-start sm:text-end">
                 <div className="text-sm font-bold text-emerald-600">
-                  {typeof entry.amount === "number" && entry.amount > 0 ? "+" : ""}
+                  {typeof entry.amount === "number" && entry.amount > 0
+                    ? "+"
+                    : ""}
                   {xpValue(entry.amount, t)}
                 </div>
                 {occurredAt ? (
@@ -433,8 +362,6 @@ export default function StudentProgressCard({
 
   return (
     <div className="space-y-4">
-      <StudentIdentityBlock progress={progress} />
-
       <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-primary" />

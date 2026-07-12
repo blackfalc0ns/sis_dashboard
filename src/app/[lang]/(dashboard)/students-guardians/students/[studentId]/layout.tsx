@@ -7,14 +7,13 @@ import {
   ArrowLeft,
   User,
   Users,
-  Calendar,
   GraduationCap,
   Heart,
   FileText,
-  Activity,
   MessageSquare,
   Clock,
   Award,
+  ListChecks,
   ArrowRight,
 } from "lucide-react";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
@@ -24,10 +23,10 @@ import {
   getStudentDisplayId,
   getStudentGrade,
 } from "@/features/students-guardians/students/utils/studentUtils";
-import { useSectionTabs } from "@/hooks/useSectionTabs";
+import { useSectionTabs, type TabConfig } from "@/hooks/useSectionTabs";
 import { buildLocalePath } from "@/lib/routing/localePath";
 
-const tabs = [
+const tabs: TabConfig[] = [
   { key: "personal", labelKey: "tabs.personal_info", icon: User },
   { key: "guardians", labelKey: "tabs.guardians", icon: Users },
   {
@@ -36,6 +35,8 @@ const tabs = [
     icon: GraduationCap,
   },
   { key: "grades", labelKey: "tabs.grades", icon: GraduationCap },
+  { key: "hero-journey", labelKey: "tabs.hero_journey", icon: Award },
+  { key: "reinforcement", labelKey: "tabs.reinforcement_progress", icon: ListChecks },
   { key: "behavior", labelKey: "tabs.behavior", icon: Award },
   { key: "documents", labelKey: "tabs.documents", icon: FileText },
   { key: "medical", labelKey: "tabs.medical", icon: Heart },
@@ -67,7 +68,11 @@ export default function StudentProfileLayout({
   const params = useParams();
   const lang = (params.lang as string) || "en";
 
-  const { activeTab, entityId: studentId, handleTabClick } = useSectionTabs({
+  const {
+    activeTab,
+    entityId: studentId,
+    handleTabClick,
+  } = useSectionTabs({
     basePath: ["students-guardians", "students"],
     idParam: "studentId",
     tabs,
@@ -85,7 +90,8 @@ export default function StudentProfileLayout({
       setStudentLoadError(null);
 
       try {
-        const fetchedStudent = await studentsService.fetchStudentWithEnrollment(studentId);
+        const fetchedStudent =
+          await studentsService.fetchStudentWithEnrollment(studentId);
         if (!cancelled) {
           setStudent(fetchedStudent || null);
         }
@@ -127,7 +133,11 @@ export default function StudentProfileLayout({
             <p className="mt-2 text-sm text-gray-400">{studentLoadError}</p>
           ) : null}
           <button
-            onClick={() => router.push(buildLocalePath(lang, "students-guardians", "students"))}
+            onClick={() =>
+              router.push(
+                buildLocalePath(lang, "students-guardians", "students"),
+              )
+            }
             className="mt-4 text-[#036b80] hover:underline"
           >
             {t("back_to_students")}
@@ -146,7 +156,9 @@ export default function StudentProfileLayout({
     <div className="p-4 sm:p-6 space-y-6">
       <div className="flex items-center justify-between">
         <button
-          onClick={() => router.push(buildLocalePath(lang, "students-guardians", "students"))}
+          onClick={() =>
+            router.push(buildLocalePath(lang, "students-guardians", "students"))
+          }
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
         >
           {locale === "en" ? <ArrowLeft /> : <ArrowRight />}
@@ -172,7 +184,10 @@ export default function StudentProfileLayout({
                   {t("grade")}: {getStudentGrade(student) || t("na")}
                 </span>
                 <span>
-                  {t("section")}: {(student as any).enrollment?.section || student.section || t("na")}
+                  {t("section")}:{" "}
+                  {(student as Student & { enrollment?: { section?: string } }).enrollment?.section ||
+                    student.section ||
+                    t("na")}
                 </span>
               </div>
             </div>
@@ -202,7 +217,7 @@ export default function StudentProfileLayout({
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  {t(tab.labelKey)}
+                  {String(t(tab.labelKey))}
                 </button>
               );
             })}

@@ -121,7 +121,9 @@ export type PermissionKey =
   | "reinforcement.rewards.redemptions.view"
   | "reinforcement.rewards.redemptions.request"
   | "reinforcement.rewards.redemptions.review"
-  | "reinforcement.rewards.fulfill";
+  | "reinforcement.rewards.fulfill"
+  | "reinforcement.hero.progress.view"
+  | "reinforcement.hero.progress.manage";
 
 const legacyAdminPermissions: PermissionKey[] = [
   "attendance.rollcall.submit",

@@ -812,7 +812,6 @@ export default function HeroJourneyOverviewPage() {
       dateFrom: filters.dateFrom,
       dateTo: filters.dateTo,
       stageId: filters.stageId || undefined,
-      gradeId: filters.gradeId || undefined,
       sectionId: filters.sectionId || undefined,
       classroomId: filters.classroomId || undefined,
       studentId: filters.studentId || undefined,
@@ -962,8 +961,7 @@ export default function HeroJourneyOverviewPage() {
         title={t("overview")}
         description={t("overviewDescription")}
         bannerImageSrc={heroJourneySectionBanners.overview}
-        actions={
-          <Button
+        actions={<Button
             type="button"
             variant="secondary"
             leftIcon={<RefreshCw className="h-4 w-4" />}
@@ -971,8 +969,7 @@ export default function HeroJourneyOverviewPage() {
             loading={isLoading}
           >
             {t("overviewState.refresh")}
-          </Button>
-        }
+          </Button>}
       />
 
       <section className="sticky top-0 z-20 rounded-xl border border-gray-200 bg-white/95 p-4 shadow-sm backdrop-blur">

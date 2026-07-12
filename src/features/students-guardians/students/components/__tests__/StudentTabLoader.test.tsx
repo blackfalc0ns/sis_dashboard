@@ -37,6 +37,14 @@ vi.mock("@/features/students-guardians/students/components/tabs/GradesTab", () =
   ),
 }));
 
+vi.mock("@/features/students-guardians/students/components/tabs/ReinforcementProgressTab", () => ({
+  default: ({ studentId, academicYearId, termId }: { studentId: string; academicYearId?: string; termId?: string }) => (
+    <div data-testid="reinforcement-progress-tab">
+      {studentId}:{academicYearId}:{termId}
+    </div>
+  ),
+}));
+
 const mockStudent: Student = {
   id: "student-456",
   student_id: "STU-456",
@@ -76,5 +84,15 @@ describe("StudentTabLoader", () => {
     expect(screen.getByText("Student: student-456")).toBeInTheDocument();
     expect(screen.getByText("Year: year-2026")).toBeInTheDocument();
     expect(screen.getByText("Term: term-1")).toBeInTheDocument();
+  });
+
+  it("passes the student and academic context to the reinforcement progress tab", async () => {
+    vi.mocked(studentsService.fetchStudentById).mockResolvedValue(mockStudent);
+
+    render(<StudentTabLoader studentId="student-456" tab={"reinforcement" as never} />);
+
+    expect(await screen.findByTestId("reinforcement-progress-tab")).toHaveTextContent(
+      "student-456:year-2026:term-1",
+    );
   });
 });

@@ -20,6 +20,7 @@ import {
   ArrowLeftRight,
   LogOut,
   Lock,
+  ListChecks,
 } from "lucide-react";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { Student } from "@/features/students-guardians/students/types";
@@ -34,6 +35,8 @@ import {
   StudentDocumentsTab,
   StudentEnrollmentHistoryTab,
   StudentGradesTab,
+  StudentHeroJourneyTab,
+  StudentReinforcementProgressTab,
   StudentGuardiansTab,
   StudentMedicalTab,
   StudentNotesTab,
@@ -63,6 +66,8 @@ type TabKey =
   | "enrollment"
   | "attendance"
   | "grades"
+  | "heroJourney"
+  | "reinforcementProgress"
   | "behavior"
   | "documents"
   | "medical"
@@ -81,6 +86,8 @@ const tabs = [
   },
   { key: "attendance" as TabKey, labelKey: "tabs.attendance", icon: Calendar },
   { key: "grades" as TabKey, labelKey: "tabs.grades", icon: GraduationCap },
+  { key: "heroJourney" as TabKey, labelKey: "tabs.hero_journey", icon: Award },
+  { key: "reinforcementProgress" as TabKey, labelKey: "tabs.reinforcement_progress", icon: ListChecks },
   { key: "behavior" as TabKey, labelKey: "tabs.behavior", icon: Award },
   { key: "documents" as TabKey, labelKey: "tabs.documents", icon: FileText },
   { key: "medical" as TabKey, labelKey: "tabs.medical", icon: Heart },
@@ -244,6 +251,8 @@ export default function StudentProfilePage({
         termId={termId}
       />
     ),
+    heroJourney: <StudentHeroJourneyTab student={profileStudent} academicYearId={yearId} termId={termId} />,
+    reinforcementProgress: <StudentReinforcementProgressTab studentId={profileStudent.id} academicYearId={yearId} termId={termId} />,
     behavior: <StudentBehaviorTab student={profileStudent} />,
     documents: <StudentDocumentsTab student={profileStudent} />,
     medical: <StudentMedicalTab student={profileStudent} />,

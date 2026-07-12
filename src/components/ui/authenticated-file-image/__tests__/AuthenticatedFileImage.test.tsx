@@ -68,6 +68,42 @@ describe("AuthenticatedFileImage", () => {
     expect(fileMocks.downloadFileBlob).not.toHaveBeenCalled();
   });
 
+  it("uses the public fallback only when no file id is available", async () => {
+    const { rerender } = render(
+      <AuthenticatedFileImage
+        fileId={null}
+        fallbackSrc="https://cdn.example.com/reward.png"
+        alt="Reward"
+        canDownload
+        unavailableLabel="Unavailable"
+        retryLabel="Retry"
+      />,
+    );
+
+    expect(screen.getByRole("img", { name: "Reward" })).toHaveAttribute(
+      "src",
+      "https://cdn.example.com/reward.png",
+    );
+    expect(fileMocks.downloadFileBlob).not.toHaveBeenCalled();
+
+    const blob = new Blob(["protected"], { type: "image/png" }) as Blob & { marker: string };
+    blob.marker = "protected";
+    fileMocks.downloadFileBlob.mockResolvedValue(blob);
+    rerender(
+      <AuthenticatedFileImage
+        fileId="file-1"
+        fallbackSrc="https://cdn.example.com/reward.png"
+        alt="Reward"
+        canDownload
+        unavailableLabel="Unavailable"
+        retryLabel="Retry"
+      />,
+    );
+
+    expect(await screen.findByRole("img", { name: "Reward" })).toHaveAttribute("src", "blob:protected");
+    expect(fileMocks.downloadFileBlob).toHaveBeenCalledWith("file-1");
+  });
+
   it("shows a retry action after a failed request", async () => {
     const user = userEvent.setup();
     const blob = new Blob(["image"], { type: "image/png" }) as Blob & {

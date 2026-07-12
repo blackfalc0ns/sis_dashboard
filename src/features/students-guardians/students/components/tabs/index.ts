@@ -3,6 +3,8 @@ export { default as StudentBehaviorTab } from "./BehaviorTab";
 export { default as StudentDocumentsTab } from "./DocumentsTab";
 export { default as StudentEnrollmentHistoryTab } from "./EnrollmentHistoryTab";
 export { default as StudentGradesTab } from "./GradesTab";
+export { default as StudentHeroJourneyTab } from "./HeroJourneyTab";
+export { default as StudentReinforcementProgressTab } from "./ReinforcementProgressTab";
 export { default as StudentGuardiansTab } from "./GuardiansTab";
 export { default as StudentMedicalTab } from "./MedicalTab";
 export { default as StudentNotesTab } from "./NotesTab";

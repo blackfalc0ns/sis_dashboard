@@ -14,6 +14,8 @@ import NotesTab from "@/features/students-guardians/students/components/tabs/Not
 import TimelineTab from "@/features/students-guardians/students/components/tabs/TimelineTab";
 import BehaviorTab from "@/features/students-guardians/students/components/tabs/BehaviorTab";
 import GradesTab from "@/features/students-guardians/students/components/tabs/GradesTab";
+import HeroJourneyTab from "@/features/students-guardians/students/components/tabs/HeroJourneyTab";
+import ReinforcementProgressTab from "@/features/students-guardians/students/components/tabs/ReinforcementProgressTab";
 import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import { Clock } from "lucide-react";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
@@ -29,7 +31,9 @@ export type StudentTabKey =
   | "timeline"
   | "behavior"
   | "attendance"
-  | "grades";
+  | "grades"
+  | "reinforcement"
+  | "hero-journey";
 
 interface StudentTabLoaderProps {
   studentId: string;
@@ -86,6 +90,16 @@ function renderTab(
           termId={termId}
         />
       );
+    case "reinforcement":
+      return (
+        <ReinforcementProgressTab
+          studentId={student.id}
+          academicYearId={academicYearId}
+          termId={termId}
+        />
+      );
+    case "hero-journey":
+      return <HeroJourneyTab student={student} academicYearId={academicYearId} termId={termId} />;
     default:
       return null;
   }

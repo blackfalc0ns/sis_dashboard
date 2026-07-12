@@ -10,6 +10,7 @@ type ImageState =
 
 export interface AuthenticatedFileImageProps {
   fileId?: string | null;
+  fallbackSrc?: string | null;
   alt: string;
   canDownload: boolean;
   unavailableLabel: string;
@@ -19,6 +20,7 @@ export interface AuthenticatedFileImageProps {
 
 export default function AuthenticatedFileImage({
   fileId,
+  fallbackSrc,
   alt,
   canDownload,
   unavailableLabel,
@@ -63,6 +65,18 @@ export default function AuthenticatedFileImage({
         : { requestKey: null, status: "idle" as const, url: null };
 
   const frameClass = `relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-100 text-gray-400 ${className}`;
+
+  if (!fileId && fallbackSrc) {
+    return (
+      // Public fallback URLs do not require the authenticated file proxy.
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={fallbackSrc}
+        alt={alt}
+        className={`${className} shrink-0 rounded-lg object-cover`}
+      />
+    );
+  }
 
   if (visibleState.status === "ready") {
     return (
