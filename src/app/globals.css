@@ -208,6 +208,12 @@ textarea::placeholder {
   opacity: 1;
 }
 
+.sidebar-search-input::-webkit-search-cancel-button,
+.sidebar-search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 12px;
