@@ -8,7 +8,8 @@ import Button from "@/components/ui/button/Button";
 
 interface RoleEditorModalProps {
   isOpen: boolean;
-  mode: "create" | "clone";
+  mode: "create" | "clone" | "edit";
+  initialValues?: { name: string; description: string };
   sourceRoleName?: string;
   errors?: Partial<Record<"name" | "description", string>>;
   formError?: string | null;
@@ -20,6 +21,7 @@ interface RoleEditorModalProps {
 export default function RoleEditorModal({
   isOpen,
   mode,
+  initialValues,
   sourceRoleName,
   errors,
   formError,
@@ -36,11 +38,21 @@ export default function RoleEditorModal({
   useEffect(() => {
     if (!isOpen) return;
     setName(
-      mode === "clone" && sourceRoleName ? `${sourceRoleName} Copy` : "",
+      mode === "edit"
+        ? initialValues?.name || ""
+        : mode === "clone" && sourceRoleName
+          ? `${sourceRoleName} Copy`
+          : "",
     );
-    setDescription("");
+    setDescription(mode === "edit" ? initialValues?.description || "" : "");
     setIsSaving(false);
-  }, [isOpen, mode, sourceRoleName]);
+  }, [
+    initialValues?.description,
+    initialValues?.name,
+    isOpen,
+    mode,
+    sourceRoleName,
+  ]);
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -64,7 +76,9 @@ export default function RoleEditorModal({
       title={
         mode === "create"
           ? t("create_role")
-          : t("clone_role")
+          : mode === "edit"
+            ? t("edit_role")
+            : t("clone_role")
       }
       size="md"
       footer={
@@ -72,12 +86,18 @@ export default function RoleEditorModal({
           <Button variant="secondary" onClick={onClose}>
             {tCommon("cancel")}
           </Button>
-          <Button variant="primary" onClick={handleSubmit} disabled={!name.trim() || isSaving}>
+          <Button
+            variant="primary"
+            onClick={handleSubmit}
+            disabled={!name.trim() || isSaving}
+          >
             {isSaving
               ? tCommon("saving")
               : mode === "create"
                 ? t("create_role")
-              : t("clone_role")}
+                : mode === "edit"
+                  ? t("edit_role")
+                  : t("clone_role")}
           </Button>
         </>
       }

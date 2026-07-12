@@ -8,6 +8,7 @@ import {
   ChevronRight,
   CopyPlus,
   Download,
+  Pencil,
   Trash2,
   Minus,
   Plus,
@@ -31,6 +32,7 @@ import {
   cloneSettingsRole,
   createSettingsRole,
   deleteSettingsRole,
+  updateSettingsRole,
   type FetchSettingsRolesParams,
   fetchSettingsPermissions,
   fetchSettingsRoles,
@@ -79,7 +81,10 @@ export default function SettingsRolesPage() {
       canViewPermissionCatalog ? "loading" : "forbidden",
     );
   const [selectedRoleId, setSelectedRoleId] = useState<string>("");
-  const [modalMode, setModalMode] = useState<"create" | "clone" | null>(null);
+  const [modalMode, setModalMode] = useState<
+    "create" | "clone" | "edit" | null
+  >(null);
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTableLoading, setIsTableLoading] = useState(false);
   const hasLoadedRolesRef = useRef(false);
@@ -293,11 +298,26 @@ export default function SettingsRolesPage() {
     });
   };
 
-  const handleCreateOrClone = async (payload: {
+  const handleRoleSubmit = async (payload: {
     name: string;
     description: string;
   }) => {
     try {
+      if (modalMode === "edit" && editingRoleId) {
+        const updatedRole = await updateSettingsRole(editingRoleId, payload);
+        setRoles((current) =>
+          current.map((role) =>
+            role.id === updatedRole.id ? updatedRole : role,
+          ),
+        );
+        setModalMode(null);
+        setEditingRoleId(null);
+        setModalFieldErrors({});
+        setModalError(null);
+        showSuccess(t("messages.role_updated"));
+        return;
+      }
+
       const nextRole =
         modalMode === "clone" && selectedRole
           ? await cloneSettingsRole(selectedRole.id, payload.name)
@@ -611,21 +631,38 @@ export default function SettingsRolesPage() {
         return canManageRoles ? (
           <div className="flex gap-2">
             {!role.isSystem ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-9 w-9 rounded-lg border border-gray-200 p-0"
-                title={t("delete")}
-                aria-label={t("delete")}
-                loading={isDeletingRole}
-                disabled={isDeletingRole}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  void handleDeleteRole(role);
-                }}
-              >
-                <Trash2 className="h-4 w-4 text-error" />
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 rounded-lg border border-gray-200 p-0"
+                  title={t("edit")}
+                  aria-label={t("edit")}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setSelectedRoleId(role.id);
+                    setEditingRoleId(role.id);
+                    setModalMode("edit");
+                  }}
+                >
+                  <Pencil className="h-4 w-4 text-gray-600" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 rounded-lg border border-gray-200 p-0"
+                  title={t("delete")}
+                  aria-label={t("delete")}
+                  loading={isDeletingRole}
+                  disabled={isDeletingRole}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void handleDeleteRole(role);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 text-error" />
+                </Button>
+              </>
             ) : null}
           </div>
         ) : null;
@@ -657,14 +694,20 @@ export default function SettingsRolesPage() {
                   variant="secondary"
                   leftIcon={<CopyPlus className="h-4 w-4" />}
                   disabled={!selectedRole}
-                  onClick={() => setModalMode("clone")}
+                  onClick={() => {
+                    setEditingRoleId(null);
+                    setModalMode("clone");
+                  }}
                 >
                   {t("clone_role")}
                 </Button>
                 <Button
                   variant="primary"
                   leftIcon={<Plus className="h-4 w-4" />}
-                  onClick={() => setModalMode("create")}
+                  onClick={() => {
+                    setEditingRoleId(null);
+                    setModalMode("create");
+                  }}
                 >
                   {t("create_role")}
                 </Button>
@@ -902,6 +945,14 @@ export default function SettingsRolesPage() {
         <RoleEditorModal
           isOpen={modalMode !== null}
           mode={modalMode || "create"}
+          initialValues={
+            modalMode === "edit" && selectedRole
+              ? {
+                  name: selectedRole.name,
+                  description: selectedRole.description,
+                }
+              : undefined
+          }
           sourceRoleName={selectedRole?.name}
           errors={modalFieldErrors}
           formError={modalError}
@@ -913,10 +964,11 @@ export default function SettingsRolesPage() {
           }
           onClose={() => {
             setModalMode(null);
+            setEditingRoleId(null);
             setModalFieldErrors({});
             setModalError(null);
           }}
-          onSubmit={handleCreateOrClone}
+          onSubmit={handleRoleSubmit}
         />
         <SettingsGlobalExportModal
           isOpen={isExportModalOpen}
