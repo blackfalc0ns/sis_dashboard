@@ -508,11 +508,12 @@ export default function SettingsRolesPage() {
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`inline-flex h-5 w-5 items-center justify-center rounded border transition ${
+      aria-label={`permission-${state}`}
+      className={`inline-flex h-7 w-7 items-center justify-center rounded-md border transition-[background-color,border-color,color,opacity,box-shadow] duration-150 ease-out motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
         state === "none"
-          ? "border-gray-300 bg-white"
-          : "border-blue-600 bg-blue-600 text-white"
-      } ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+          ? "border-gray-300 bg-white hover:border-blue-400 hover:bg-blue-50"
+          : "border-blue-600 bg-blue-600 text-white hover:border-blue-700 hover:bg-blue-700"
+      } ${disabled ? "cursor-not-allowed opacity-50 hover:border-inherit hover:bg-inherit" : "cursor-pointer"}`}
     >
       {state === "all" ? (
         <Check className="h-3.5 w-3.5" />
@@ -688,16 +689,16 @@ export default function SettingsRolesPage() {
               </div>
             ) : selectedRole ? (
               <div className="overflow-x-auto rounded-xl border border-gray-200">
-                <table className="min-w-[760px] w-full">
-                  <thead className="bg-gray-50">
+                <table className="min-w-[760px] w-full text-sm">
+                  <thead className="bg-gray-50/90">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      <th className="sticky left-0 z-10 bg-gray-50/95 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600 backdrop-blur-sm">
                         {t("permission_matrix_title")}
                       </th>
                       {actionColumns.map((action) => (
                         <th
                           key={action}
-                          className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-600"
+                          className="px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide text-gray-600"
                         >
                           {action}
                         </th>
@@ -709,11 +710,11 @@ export default function SettingsRolesPage() {
                       const isExpanded = expandedModules[module] ?? true;
                       return (
                         <Fragment key={`${module}-module`}>
-                          <tr className="bg-gray-50">
-                            <td className="px-4 py-3">
+                          <tr className="bg-gray-50/70 transition-colors duration-150 hover:bg-gray-100/80 motion-reduce:transition-none">
+                            <td className="sticky left-0 z-[1] bg-gray-50/90 px-3 py-2.5 backdrop-blur-sm">
                               <button
                                 type="button"
-                                className="inline-flex items-center gap-2 text-sm font-semibold text-gray-900"
+                                className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-sm font-semibold text-gray-900 transition-colors duration-150 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 motion-reduce:transition-none"
                                 onClick={() =>
                                   setExpandedModules((current) => ({
                                     ...current,
@@ -751,7 +752,7 @@ export default function SettingsRolesPage() {
                                   key={`${module}-${row.id}`}
                                   className="bg-hover-50"
                                 >
-                                  <td className="px-8 py-3 text-sm text-gray-800">
+                                  <td className="px-5 py-2.5 text-sm text-gray-800 transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none">
                                     {row.label}
                                   </td>
                                   {actionColumns.map((action) => {
@@ -760,9 +761,9 @@ export default function SettingsRolesPage() {
                                       ? isPermissionChecked(permission.key)
                                       : false;
                                     return (
-                                      <td
-                                        key={`${module}-${row.id}-${action}`}
-                                        className="px-4 py-3 text-center"
+                                <td
+                                  key={`${module}-${row.id}-${action}`}
+                                  className="px-3 py-2.5 text-center transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none"
                                       >
                                         {permission ? (
                                           renderMatrixToggle(
