@@ -50,6 +50,7 @@ import type {
   RoleDefinition,
 } from "@/features/settings/types";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useDirtyKey } from "@/hooks/useDirtyKey";
 import { isApiError } from "@/lib/api-error";
 import { getValidationFieldErrors } from "@/lib/validation-errors";
 import {
@@ -103,6 +104,7 @@ export default function SettingsRolesPage() {
   const tExport = useTranslations("settings.export");
   const tCommon = useTranslations("common");
   const { hasPermission } = usePermissions();
+  const { markDirty, clearDirty } = useDirtyKey("settings-roles-permissions");
   const { showSuccess, showError } = useToast();
   const canManageRoles = hasPermission("settings.roles.manage");
   const canViewPermissionCatalog = hasPermission("settings.permissions.view");
@@ -324,17 +326,12 @@ export default function SettingsRolesPage() {
   );
 
   useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (changedPermissionKeys.size === 0) {
-        return;
-      }
-      event.preventDefault();
-      event.returnValue = "";
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [changedPermissionKeys]);
+    if (changedPermissionKeys.size > 0) {
+      markDirty();
+    } else {
+      clearDirty();
+    }
+  }, [changedPermissionKeys.size, clearDirty, markDirty]);
 
   const handleExport = (format: SettingsExportFormat) => {
     const metadata = {
