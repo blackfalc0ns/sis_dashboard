@@ -51,8 +51,20 @@ import {
 
 type PermissionCatalogState = "loading" | "ready" | "forbidden" | "failed";
 
+type PermissionMatrixRow = {
+  id: string;
+  label: string;
+  cells: Partial<Record<string, PermissionDefinition>>;
+};
+
+const isPermissionActionSupported = (
+  rows: PermissionMatrixRow[],
+  action: string,
+) => rows.some((row) => Boolean(row.cells[action]));
+
 export default function SettingsRolesPage() {
   const locale = useLocale();
+  const isArabic = locale === "ar";
   const t = useTranslations("settings.roles");
   const tExport = useTranslations("settings.export");
   const tCommon = useTranslations("common");
@@ -188,14 +200,7 @@ export default function SettingsRolesPage() {
 
   const permissionMatrix = useMemo(() => {
     return groupedPermissions.map(([module, modulePermissions]) => {
-      const rowMap = new Map<
-        string,
-        {
-          id: string;
-          label: string;
-          cells: Partial<Record<string, PermissionDefinition>>;
-        }
-      >();
+      const rowMap = new Map<string, PermissionMatrixRow>();
 
       modulePermissions.forEach((permission) => {
         const keyParts = permission.key.split(".");
@@ -297,9 +302,7 @@ export default function SettingsRolesPage() {
         modalMode === "clone" && selectedRole
           ? await cloneSettingsRole(selectedRole.id, payload.name)
           : await createSettingsRole(payload);
-      setRoles((current) =>
-        [nextRole, ...current],
-      );
+      setRoles((current) => [nextRole, ...current]);
       setSelectedRoleId(nextRole.id);
       setModalMode(null);
       setModalFieldErrors({});
@@ -430,9 +433,7 @@ export default function SettingsRolesPage() {
   };
 
   const toggleModuleAction = (
-    moduleRows: {
-      cells: Partial<Record<string, PermissionDefinition>>;
-    }[],
+    moduleRows: PermissionMatrixRow[],
     action: string,
   ) => {
     if (!selectedRole) {
@@ -472,9 +473,7 @@ export default function SettingsRolesPage() {
   };
 
   const getModuleActionState = (
-    moduleRows: {
-      cells: Partial<Record<string, PermissionDefinition>>;
-    }[],
+    moduleRows: PermissionMatrixRow[],
     action: string,
   ) => {
     if (!selectedRole) {
@@ -497,6 +496,43 @@ export default function SettingsRolesPage() {
       return "all";
     }
     return "partial";
+  };
+
+  const getPermissionCounts = (rows: PermissionMatrixRow[]) => {
+    const rowPermissions = rows.flatMap((row) =>
+      Object.values(row.cells).filter(
+        (permission): permission is PermissionDefinition => Boolean(permission),
+      ),
+    );
+    const uniquePermissions = Array.from(
+      new Map(
+        rowPermissions.map((permission) => [permission.key, permission]),
+      ).values(),
+    );
+
+    return {
+      selected: uniquePermissions.filter((permission) =>
+        isPermissionChecked(permission.key),
+      ).length,
+      total: uniquePermissions.length,
+    };
+  };
+
+  const renderUnavailablePermission = (module: string) => {
+    const label = isArabic
+      ? `هذا الإذن غير مدعوم من وحدة ${module}`
+      : `This permission is not supported by the ${module} module.`;
+
+    return (
+      <span
+        role="img"
+        aria-label={label}
+        title={label}
+        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-dashed border-gray-200 bg-gray-50 text-sm text-gray-400"
+      >
+        —
+      </span>
+    );
   };
 
   const renderMatrixToggle = (
@@ -636,7 +672,9 @@ export default function SettingsRolesPage() {
                   variant="secondary"
                   leftIcon={<Trash2 className="h-4 w-4" />}
                   loading={isDeletingRole}
-                  disabled={!selectedRole || selectedRole.isSystem || isDeletingRole}
+                  disabled={
+                    !selectedRole || selectedRole.isSystem || isDeletingRole
+                  }
                   onClick={() => void handleDeleteSelectedRole()}
                 >
                   {t("delete_role")}
@@ -662,9 +700,7 @@ export default function SettingsRolesPage() {
                   variant="primary"
                   loading={isSavingPermissions}
                   disabled={
-                    !selectedRole ||
-                    !canManageRoles ||
-                    selectedRole.isSystem
+                    !selectedRole || !canManageRoles || selectedRole.isSystem
                   }
                   onClick={handleSavePermissions}
                 >
@@ -692,13 +728,15 @@ export default function SettingsRolesPage() {
                 <table className="min-w-[760px] w-full text-sm">
                   <thead className="bg-gray-50/90">
                     <tr>
-                      <th className="sticky left-0 z-10 bg-gray-50/95 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-600 backdrop-blur-sm">
+                      <th
+                        className={`sticky top-0 z-30 bg-gray-50/95 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-gray-600 backdrop-blur-sm shadow-[0_2px_6px_-4px_rgba(15,23,42,0.35)] ${isArabic ? "right-0 text-right shadow-[-2px_0_6px_-4px_rgba(15,23,42,0.35)]" : "left-0 text-left shadow-[2px_0_6px_-4px_rgba(15,23,42,0.35)]"}`}
+                      >
                         {t("permission_matrix_title")}
                       </th>
                       {actionColumns.map((action) => (
                         <th
                           key={action}
-                          className="px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide text-gray-600"
+                          className="sticky top-0 z-20 bg-gray-50/95 px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide text-gray-600 shadow-[0_2px_6px_-4px_rgba(15,23,42,0.35)] backdrop-blur-sm"
                         >
                           {action}
                         </th>
@@ -708,13 +746,23 @@ export default function SettingsRolesPage() {
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {permissionMatrix.map(({ module, rows }) => {
                       const isExpanded = expandedModules[module] ?? true;
+                      const moduleId = `permission-module-${module.replace(/[^a-zA-Z0-9]+/g, "-")}`;
+                      const moduleCounts = getPermissionCounts(rows);
                       return (
                         <Fragment key={`${module}-module`}>
-                          <tr className="bg-gray-50/70 transition-colors duration-150 hover:bg-gray-100/80 motion-reduce:transition-none">
-                            <td className="sticky left-0 z-[1] bg-gray-50/90 px-3 py-2.5 backdrop-blur-sm">
+                          <tr
+                            id={moduleId}
+                            className="bg-gray-50/70 transition-colors duration-150 hover:bg-gray-100/80 motion-reduce:transition-none"
+                          >
+                            <td
+                              className={`sticky z-10 bg-gray-50/95 px-3 py-2.5 backdrop-blur-sm ${isArabic ? "right-0 text-right shadow-[-2px_0_6px_-4px_rgba(15,23,42,0.35)]" : "left-0 text-left shadow-[2px_0_6px_-4px_rgba(15,23,42,0.35)]"}`}
+                            >
                               <button
                                 type="button"
-                                className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 text-sm font-semibold text-gray-900 transition-colors duration-150 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 motion-reduce:transition-none"
+                                aria-label={module}
+                                aria-expanded={isExpanded}
+                                aria-controls={`${moduleId}-rows`}
+                                className="inline-flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-sm font-semibold text-gray-900 transition-colors duration-150 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 motion-reduce:transition-none"
                                 onClick={() =>
                                   setExpandedModules((current) => ({
                                     ...current,
@@ -728,60 +776,88 @@ export default function SettingsRolesPage() {
                                   <ChevronRight className="h-4 w-4 text-gray-500" />
                                 )}
                                 <span>{module}</span>
+                                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium tabular-nums text-blue-700">
+                                  {moduleCounts.selected} / {moduleCounts.total}
+                                </span>
                               </button>
                             </td>
                             {actionColumns.map((action) => {
-                              const state = getModuleActionState(rows, action);
+                              const supported = isPermissionActionSupported(
+                                rows,
+                                action,
+                              );
                               return (
                                 <td
                                   key={`${module}-${action}`}
                                   className="px-4 py-3 text-center"
                                 >
-                                  {renderMatrixToggle(
-                                    state,
-                                    () => toggleModuleAction(rows, action),
-                                    !canManageRoles || Boolean(selectedRole?.isSystem),
-                                  )}
+                                  {supported
+                                    ? renderMatrixToggle(
+                                        getModuleActionState(rows, action),
+                                        () => toggleModuleAction(rows, action),
+                                        !canManageRoles ||
+                                          Boolean(selectedRole?.isSystem),
+                                      )
+                                    : renderUnavailablePermission(module)}
                                 </td>
                               );
                             })}
                           </tr>
                           {isExpanded
-                            ? rows.map((row) => (
-                                <tr
-                                  key={`${module}-${row.id}`}
-                                  className="bg-hover-50"
-                                >
-                                  <td className="px-5 py-2.5 text-sm text-gray-800 transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none">
-                                    {row.label}
-                                  </td>
-                                  {actionColumns.map((action) => {
-                                    const permission = row.cells[action];
-                                    const checked = permission
-                                      ? isPermissionChecked(permission.key)
-                                      : false;
-                                    return (
-                                <td
-                                  key={`${module}-${row.id}-${action}`}
-                                  className="px-3 py-2.5 text-center transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none"
-                                      >
-                                        {permission ? (
-                                          renderMatrixToggle(
-                                            checked ? "all" : "none",
-                                            () =>
-                                              handleTogglePermission(
-                                                permission.key,
-                                              ),
-                                            !canManageRoles || Boolean(selectedRole?.isSystem),
-                                          )
-                                        ) : (
-                                          <span className="inline-block h-5 w-5 rounded border border-gray-200 bg-gray-50" />
-                                        )}
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              ))
+                            ? rows.map((row, rowIndex) => {
+                                const rowCounts = getPermissionCounts([row]);
+                                return (
+                                  <tr
+                                    key={`${module}-${row.id}`}
+                                    id={
+                                      rowIndex === 0
+                                        ? `${moduleId}-rows`
+                                        : undefined
+                                    }
+                                    className="bg-hover-50"
+                                  >
+                                    <td
+                                      className={`px-5 py-2.5 text-sm text-gray-800 transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none ${isArabic ? "border-r-2 border-blue-100 pr-10 text-right" : "border-l-2 border-blue-100 pl-10 text-left"}`}
+                                    >
+                                      <div className="flex items-center justify-between gap-3">
+                                        <span>{row.label}</span>
+                                        <span className="shrink-0 text-[11px] tabular-nums text-gray-500">
+                                          {rowCounts.selected} /{" "}
+                                          {rowCounts.total}
+                                        </span>
+                                      </div>
+                                    </td>
+                                    {actionColumns.map((action) => {
+                                      const permission = row.cells[action];
+                                      const checked = permission
+                                        ? isPermissionChecked(permission.key)
+                                        : false;
+                                      return (
+                                        <td
+                                          key={`${module}-${row.id}-${action}`}
+                                          className="px-3 py-2.5 text-center transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none"
+                                        >
+                                          {permission
+                                            ? renderMatrixToggle(
+                                                checked ? "all" : "none",
+                                                () =>
+                                                  handleTogglePermission(
+                                                    permission.key,
+                                                  ),
+                                                !canManageRoles ||
+                                                  Boolean(
+                                                    selectedRole?.isSystem,
+                                                  ),
+                                              )
+                                            : renderUnavailablePermission(
+                                                module,
+                                              )}
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                );
+                              })
                             : null}
                         </Fragment>
                       );
