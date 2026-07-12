@@ -1,6 +1,10 @@
 "use client";
 
-import { bottomItems, menuItems } from "@/config/navigation";
+import {
+  bottomItems,
+  groupMenuChildren,
+  menuItems,
+} from "@/config/navigation";
 import {
   Building2,
   Menu,
@@ -534,7 +538,17 @@ export default function Sidebar({
                         isArabic ? "mr-6" : "ml-6"
                       } before:content-[''] before:absolute before:w-[2px] before:h-full before:top-0 before:bg-primary`}
                     >
-                      {item.children!.map((child) => {
+                      {groupMenuChildren(item, item.children!).map(
+                        ({ subgroup, children }) => (
+                          <div key={subgroup.key}>
+                            <p
+                              className={`px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/55 ${
+                                isArabic ? "text-right" : "text-left"
+                              }`}
+                            >
+                              {isArabic ? subgroup.label_ar : subgroup.label_en}
+                            </p>
+                            {children.map((child) => {
                         const ChildIcon = child.icon;
                         const childHref = isArabic
                           ? child.href_ar
@@ -548,8 +562,8 @@ export default function Sidebar({
                           child.key,
                         );
 
-                        return (
-                          <div key={child.key}>
+                              return (
+                                <div key={child.key}>
                             {/* Child Item */}
                             {hasGrandchildren ? (
                               <button
@@ -677,9 +691,12 @@ export default function Sidebar({
                                 })}
                               </div>
                             )}
+                                </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
+                        ),
+                      )}
                     </div>
                   )}
                 </div>
@@ -798,7 +815,19 @@ export default function Sidebar({
                 : hoveredCollapsedItem.label_en}
             </p>
             <div className="space-y-1">
-              {hoveredCollapsedItem.children.map((child) => {
+              {groupMenuChildren(
+                hoveredCollapsedItem,
+                hoveredCollapsedItem.children,
+              ).map(({ subgroup, children }) => (
+                <div key={subgroup.key}>
+                  <p
+                    className={`px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/55 ${
+                      isArabic ? "text-right" : "text-left"
+                    }`}
+                  >
+                    {isArabic ? subgroup.label_ar : subgroup.label_en}
+                  </p>
+                  {children.map((child) => {
                 const ChildIcon = child.icon;
                 const childHref = isArabic ? child.href_ar : child.href_en;
                 const childNavigationHref = preserveGradesQuery(childHref);
@@ -903,7 +932,9 @@ export default function Sidebar({
                     ) : null}
                   </div>
                 );
-              })}
+                  })}
+                </div>
+              ))}
             </div>
           </div>
         ) : null}

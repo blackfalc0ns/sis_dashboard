@@ -40,6 +40,12 @@ import {
   mockDecisions,
 } from "@/data/mockDataLinked";
 
+export interface SubgroupDefinition {
+  key: string;
+  label_en: string;
+  label_ar: string;
+}
+
 interface MenuItem {
   key: string;
   label_en: string;
@@ -48,9 +54,30 @@ interface MenuItem {
   href_ar: string;
   icon: React.ComponentType<{ className?: string }>;
   children?: MenuItem[];
+  subgroup?: string;
+  subgroups?: SubgroupDefinition[];
   badge?: () => number; // Function to get dynamic badge count
   buttonVariant?: "default" | "highlight";
   buttonBackgroundImage?: string;
+}
+
+export interface GroupedMenuChildren {
+  subgroup: SubgroupDefinition;
+  children: MenuItem[];
+}
+
+export function groupMenuChildren(
+  item: MenuItem,
+  children: MenuItem[],
+): GroupedMenuChildren[] {
+  return (item.subgroups ?? [])
+    .map((subgroup) => ({
+      subgroup,
+      children: children.filter(
+        (child) => child.subgroup === subgroup.key,
+      ),
+    }))
+    .filter((group) => group.children.length > 0);
 }
 
 export const menuItems: MenuItem[] = [
@@ -78,9 +105,16 @@ export const menuItems: MenuItem[] = [
     href_en: "/en/communication",
     href_ar: "/ar/communication",
     icon: MessageSquare,
+    subgroups: [
+      { key: "general", label_en: "General", label_ar: "عام" },
+      { key: "messaging", label_en: "Messaging", label_ar: "المراسلات" },
+      { key: "notifications", label_en: "Notifications", label_ar: "الإشعارات" },
+      { key: "safety-settings", label_en: "Safety & Settings", label_ar: "الأمان والإعدادات" },
+    ],
     children: [
       {
         key: "communication-overview",
+        subgroup: "general",
         label_en: "Overview",
         label_ar: "نظرة عامة",
         href_en: "/en/communication",
@@ -89,6 +123,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "communication-conversations",
+        subgroup: "messaging",
         label_en: "Conversations",
         label_ar: "المحادثات",
         href_en: "/en/communication/conversations",
@@ -97,6 +132,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "communication-announcements",
+        subgroup: "messaging",
         label_en: "Announcements",
         label_ar: "الإعلانات",
         href_en: "/en/communication/announcements",
@@ -105,6 +141,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "communication-notifications",
+        subgroup: "notifications",
         label_en: "Notifications",
         label_ar: "الإشعارات",
         href_en: "/en/communication/notifications",
@@ -113,6 +150,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "communication-notification-deliveries",
+        subgroup: "notifications",
         label_en: "Notification Deliveries",
         label_ar: "تسليم الإشعارات",
         href_en: "/en/communication/notification-deliveries",
@@ -121,6 +159,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "communication-safety",
+        subgroup: "safety-settings",
         label_en: "Safety & Moderation",
         label_ar: "الأمان والإشراف",
         href_en: "/en/communication/moderation",
@@ -129,6 +168,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "communication-settings",
+        subgroup: "safety-settings",
         label_en: "Settings",
         label_ar: "الإعدادات",
         href_en: "/en/communication/settings",
@@ -144,9 +184,14 @@ export const menuItems: MenuItem[] = [
     href_en: "/en/admissions/applications",
     href_ar: "/ar/admissions/applications",
     icon: UserPlus,
+    subgroups: [
+      { key: "pipeline", label_en: "Application Pipeline", label_ar: "مسار التقديم" },
+      { key: "enrollment", label_en: "Enrollment", label_ar: "التسجيل" },
+    ],
     children: [
       {
         key: "admissions-applications",
+        subgroup: "pipeline",
         label_en: "Applications",
         label_ar: "طلبات الالتحاق",
         href_en: "/en/admissions/applications",
@@ -157,6 +202,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "admissions-leads",
+        subgroup: "pipeline",
         label_en: "Leads",
         label_ar: "الاستفسارات",
         href_en: "/en/admissions/leads",
@@ -166,6 +212,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "admissions-tests",
+        subgroup: "pipeline",
         label_en: "Tests",
         label_ar: "الاختبارات",
         href_en: "/en/admissions/tests",
@@ -176,6 +223,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "admissions-interviews",
+        subgroup: "pipeline",
         label_en: "Interviews",
         label_ar: "المقابلات",
         href_en: "/en/admissions/interviews",
@@ -187,6 +235,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "admissions-decisions",
+        subgroup: "pipeline",
         label_en: "Decisions",
         label_ar: "القرارات",
         href_en: "/en/admissions/decisions",
@@ -198,6 +247,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "admissions-enrollment",
+        subgroup: "enrollment",
         label_en: "Enrollment",
         label_ar: "التسجيل",
         href_en: "/en/admissions/enrollment",
@@ -206,6 +256,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "admissions-workflow-policy",
+        subgroup: "enrollment",
         label_en: "Workflow Policy",
         label_ar: "سياسة سير العمل",
         href_en: "/en/admissions/workflow-policy",
@@ -217,6 +268,10 @@ export const menuItems: MenuItem[] = [
 
   {
     key: "students-guardians",
+    subgroups: [
+      { key: "directory", label_en: "Directory", label_ar: "الدليل" },
+      { key: "requests", label_en: "Requests", label_ar: "الطلبات" },
+    ],
     label_en: "Students & Guardians",
     label_ar: "الطلاب وأولياء الأمور",
     href_en: "/en/students-guardians",
@@ -225,6 +280,7 @@ export const menuItems: MenuItem[] = [
     children: [
       {
         key: "students-guardians-dashboard",
+        subgroup: "directory",
         label_en: "Overview",
         label_ar: "نظرة عامة",
         href_en: "/en/students-guardians",
@@ -233,6 +289,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "students-list",
+        subgroup: "directory",
         label_en: "Students",
         label_ar: "الطلاب",
         href_en: "/en/students-guardians/students",
@@ -241,6 +298,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "guardians-list",
+        subgroup: "directory",
         label_en: "Guardians",
         label_ar: "أولياء الأمور",
         href_en: "/en/students-guardians/guardians",
@@ -249,6 +307,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "profile-correction-requests",
+        subgroup: "requests",
         label_en: "Profile Correction Requests",
         label_ar: "طلبات تصحيح الملف",
         href_en: "/en/students-guardians/profile-correction-requests",
@@ -323,6 +382,11 @@ export const menuItems: MenuItem[] = [
   },
   {
     key: "academics",
+    subgroups: [
+      { key: "setup", label_en: "Academic Setup", label_ar: "الإعداد الأكاديمي" },
+      { key: "teaching-learning", label_en: "Teaching & Learning", label_ar: "التعليم والتعلم" },
+      { key: "staff", label_en: "Staff", label_ar: "الموظفون" },
+    ],
     label_en: "Academics",
     label_ar: "الأكاديميات",
     href_en: "/en/academics",
@@ -331,6 +395,7 @@ export const menuItems: MenuItem[] = [
     children: [
       {
         key: "academics-overview",
+        subgroup: "setup",
         label_en: "Overview",
         label_ar: "نظرة عامة",
         href_en: "/en/academics",
@@ -339,6 +404,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "academics-structure",
+        subgroup: "setup",
         label_en: "Academic Structure",
         label_ar: "الهيكل الأكاديمي",
         href_en: "/en/academics/structure",
@@ -347,6 +413,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "academics-rooms",
+        subgroup: "setup",
         label_en: "Rooms",
         label_ar: "الغرف",
         href_en: "/en/academics/rooms",
@@ -355,6 +422,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "academics-subjects",
+        subgroup: "setup",
         label_en: "Subjects & Allocation",
         label_ar: "المواد وتوزيعها",
         href_en: "/en/academics/subjects",
@@ -363,6 +431,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "academics-curriculum",
+        subgroup: "teaching-learning",
         label_en: "Curriculum",
         label_ar: "المنهج",
         href_en: "/en/academics/curriculum",
@@ -371,6 +440,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "academics-homework",
+        subgroup: "teaching-learning",
         label_en: "Homework",
         label_ar: "الواجبات",
         href_en: "/en/academics/homework",
@@ -380,6 +450,7 @@ export const menuItems: MenuItem[] = [
 
       {
         key: "academics-calendar",
+        subgroup: "teaching-learning",
         label_en: "Academic Calendar",
         label_ar: "التقويم الأكاديمي",
         href_en: "/en/academics/calendar",
@@ -388,6 +459,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "academics-timetable",
+        subgroup: "teaching-learning",
         label_en: "Time Table",
         label_ar: "الجدول",
         href_en: "/en/academics/timetable",
@@ -396,6 +468,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "academics-lesson-plans",
+        subgroup: "teaching-learning",
         label_en: "Lesson Plans",
         label_ar: "خطة الدروس",
         href_en: "/en/academics/lesson-plans",
@@ -404,6 +477,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "academics-teacher-allocation",
+        subgroup: "staff",
         label_en: "Teacher Allocation",
         label_ar: "توزيع المعلمين",
         href_en: "/en/academics/teacher-allocation",
@@ -412,6 +486,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "teachers",
+        subgroup: "staff",
         label_en: "Teachers Management",
         label_ar: "إدارة المعلمين",
         href_en: "/en/teachers",
@@ -423,6 +498,10 @@ export const menuItems: MenuItem[] = [
 
   {
     key: "grades",
+    subgroups: [
+      { key: "general", label_en: "General", label_ar: "عام" },
+      { key: "assessment-management", label_en: "Assessment Management", label_ar: "إدارة التقييمات" },
+    ],
     label_en: "Assessments & Grades",
     label_ar: "التقييمات والدرجات",
     href_en: "/en/grades",
@@ -431,6 +510,7 @@ export const menuItems: MenuItem[] = [
     children: [
       {
         key: "grades-overview",
+        subgroup: "general",
         label_en: "Overview",
         label_ar: "نظرة عامة",
         href_en: "/en/grades",
@@ -439,6 +519,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "grades-assessments",
+        subgroup: "assessment-management",
         label_en: "Assessments",
         label_ar: "التقييمات",
         href_en: "/en/grades/assessments",
@@ -447,6 +528,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "grades-gradebook",
+        subgroup: "assessment-management",
         label_en: "Gradebook",
         label_ar: "الدرجات",
         href_en: "/en/grades/gradebook",
@@ -455,6 +537,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "grades-rules",
+        subgroup: "assessment-management",
         label_en: "Grade Rules",
         label_ar: "قواعد الدرجات",
         href_en: "/en/grades/rules",
@@ -465,6 +548,10 @@ export const menuItems: MenuItem[] = [
   },
   {
     key: "attendance",
+    subgroups: [
+      { key: "monitoring", label_en: "Monitoring", label_ar: "المتابعة" },
+      { key: "policies-records", label_en: "Policies & Records", label_ar: "السياسات والسجلات" },
+    ],
     label_en: "Attendance & Discipline",
     label_ar: "الحضور والانضباط",
     href_en: "/en/attendance/policies",
@@ -473,6 +560,7 @@ export const menuItems: MenuItem[] = [
     children: [
       {
         key: "attendance-reports",
+        subgroup: "monitoring",
         label_en: "Overview",
         label_ar: "نظرة عامة",
         href_en: "/en/attendance/reports",
@@ -481,6 +569,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "attendance-policies",
+        subgroup: "policies-records",
         label_en: "Policies",
         label_ar: "السياسات",
         href_en: "/en/attendance/policies",
@@ -489,6 +578,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "attendance-roll-call",
+        subgroup: "monitoring",
         label_en: "Live Roll Call",
         label_ar: "كشف الحضور المباشر",
         href_en: "/en/attendance/roll-call",
@@ -497,6 +587,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "attendance-absences",
+        subgroup: "policies-records",
         label_en: "Absences & Leaves",
         label_ar: "الغياب والإجازات",
         href_en: "/en/attendance/absences",
@@ -505,6 +596,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "attendance-late-early",
+        subgroup: "policies-records",
         label_en: "Late/Early",
         label_ar: "التأخير/المغادرة المبكرة",
         href_en: "/en/attendance/late-early",
@@ -514,6 +606,7 @@ export const menuItems: MenuItem[] = [
 
       {
         key: "attendance-excuses",
+        subgroup: "policies-records",
         label_en: "Excuses",
         label_ar: "الأعذار",
         href_en: "/en/attendance/excuses",
@@ -524,6 +617,10 @@ export const menuItems: MenuItem[] = [
   },
   {
     key: "behavior",
+    subgroups: [
+      { key: "general", label_en: "General", label_ar: "عام" },
+      { key: "management", label_en: "Behavior Management", label_ar: "إدارة السلوك" },
+    ],
     label_en: "Behavior",
     label_ar: "السلوك",
     href_en: "/en/behavior/overview",
@@ -532,6 +629,7 @@ export const menuItems: MenuItem[] = [
     children: [
       {
         key: "behavior-overview",
+        subgroup: "general",
         label_en: "Overview",
         label_ar: "نظرة عامة",
         href_en: "/en/behavior/overview",
@@ -540,6 +638,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "behavior-reviews",
+        subgroup: "management",
         label_en: "Reviews",
         label_ar: "المراجعة",
         href_en: "/en/behavior/reviews",
@@ -548,6 +647,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "behavior-records",
+        subgroup: "management",
         label_en: "Records",
         label_ar: "السجلات",
         href_en: "/en/behavior/records",
@@ -556,6 +656,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "behavior-categories",
+        subgroup: "management",
         label_en: "Categories",
         label_ar: "الفئات",
         href_en: "/en/behavior/categories",
@@ -566,6 +667,10 @@ export const menuItems: MenuItem[] = [
   },
   {
     key: "nedaa",
+    subgroups: [
+      { key: "operations", label_en: "Operations", label_ar: "العمليات" },
+      { key: "configuration", label_en: "Configuration", label_ar: "الإعدادات" },
+    ],
     label_en: "Nedaa",
     label_ar: "نداء",
     href_en: "/en/nedaa/settings",
@@ -574,6 +679,7 @@ export const menuItems: MenuItem[] = [
     children: [
       {
         key: "nedaa-operations",
+        subgroup: "operations",
         label_en: "Operations",
         label_ar: "عمليات نداء",
         href_en: "/en/nedaa/operations",
@@ -582,6 +688,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "nedaa-settings",
+        subgroup: "configuration",
         label_en: "Settings",
         label_ar: "الإعدادات",
         href_en: "/en/nedaa/settings",
@@ -590,6 +697,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "nedaa-gates",
+        subgroup: "operations",
         label_en: "Gates",
         label_ar: "البوابات",
         href_en: "/en/nedaa/gates",
@@ -598,6 +706,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "nedaa-staff-assignments",
+        subgroup: "operations",
         label_en: "Staff Assignments",
         label_ar: "تكليفات الموظفين",
         href_en: "/en/nedaa/staff-assignments",
@@ -608,6 +717,11 @@ export const menuItems: MenuItem[] = [
   },
   {
     key: "reinforcement",
+    subgroups: [
+      { key: "general", label_en: "General", label_ar: "عام" },
+      { key: "programs", label_en: "Programs", label_ar: "البرامج" },
+      { key: "xp-rewards", label_en: "XP & Rewards", label_ar: "نقاط الخبرة والمكافآت" },
+    ],
     label_en: "Reinforcement",
     label_ar: "التعزيز",
     href_en: "/en/reinforcement",
@@ -616,6 +730,7 @@ export const menuItems: MenuItem[] = [
     children: [
       {
         key: "reinforcement-overview",
+        subgroup: "general",
         label_en: "Overview",
         label_ar: "النظرة العامة",
         href_en: "/en/reinforcement",
@@ -624,6 +739,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "reinforcement-templates",
+        subgroup: "programs",
         label_en: "Templates",
         label_ar: "القوالب",
         href_en: "/en/reinforcement/templates",
@@ -632,6 +748,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "reinforcement-tasks",
+        subgroup: "programs",
         label_en: "Tasks",
         label_ar: "المهام",
         href_en: "/en/reinforcement/tasks",
@@ -640,6 +757,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "reinforcement-xp-policies",
+        subgroup: "xp-rewards",
         label_en: "XP Policies",
         label_ar: "سياسات النقاط",
         href_en: "/en/reinforcement/xp/policies",
@@ -648,6 +766,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "reinforcement-xp-ledger",
+        subgroup: "xp-rewards",
         label_en: "XP Ledger",
         label_ar: "سجل النقاط",
         href_en: "/en/reinforcement/xp/ledger",
@@ -656,6 +775,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "reinforcement-reviews",
+        subgroup: "xp-rewards",
         label_en: "Reviews",
         label_ar: "المراجعات",
         href_en: "/en/reinforcement/reviews",
@@ -664,6 +784,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "reinforcement-rewards",
+        subgroup: "xp-rewards",
         label_en: "Rewards",
         label_ar: "المكافآت",
         href_en: "/en/reinforcement/rewards",
@@ -674,6 +795,12 @@ export const menuItems: MenuItem[] = [
   },
   {
     key: "settings",
+    subgroups: [
+      { key: "general", label_en: "General", label_ar: "عام" },
+      { key: "access-identity", label_en: "Access & Identity", label_ar: "الوصول والهوية" },
+      { key: "email", label_en: "Email", label_ar: "البريد الإلكتروني" },
+      { key: "security-data", label_en: "Security & Data", label_ar: "الأمان والبيانات" },
+    ],
     label_en: "Settings & Integrations",
     label_ar: "الإعدادات والتكاملات",
     href_en: "/en/settings",
@@ -682,6 +809,7 @@ export const menuItems: MenuItem[] = [
     children: [
       {
         key: "settings-overview",
+        subgroup: "general",
         label_en: "Overview",
         label_ar: "نظرة عامة",
         href_en: "/en/settings",
@@ -690,6 +818,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "settings-branding",
+        subgroup: "general",
         label_en: "Branding & Profile",
         label_ar: "الهوية وملف المدرسة",
         href_en: "/en/settings/branding",
@@ -698,6 +827,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "settings-users",
+        subgroup: "access-identity",
         label_en: "Users",
         label_ar: "المستخدمون",
         href_en: "/en/settings/users",
@@ -706,6 +836,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "settings-login-identity",
+        subgroup: "access-identity",
         label_en: "Login Identity",
         label_ar: "هوية تسجيل الدخول",
         href_en: "/en/settings/login-identity",
@@ -714,6 +845,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "settings-credentials",
+        subgroup: "access-identity",
         label_en: "Credentials",
         label_ar: "بيانات الدخول",
         href_en: "/en/settings/credentials",
@@ -722,6 +854,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "settings-roles",
+        subgroup: "access-identity",
         label_en: "Roles & Permissions",
         label_ar: "الأدوار والصلاحيات",
         href_en: "/en/settings/roles",
@@ -730,6 +863,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "settings-email-connection",
+        subgroup: "email",
         label_en: "Email Connection",
         label_ar: "اتصال البريد",
         href_en: "/en/settings/email/connection",
@@ -738,6 +872,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "settings-email-templates",
+        subgroup: "email",
         label_en: "Email Templates",
         label_ar: "قوالب البريد",
         href_en: "/en/settings/email/templates",
@@ -746,6 +881,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "settings-email-credential-deliveries",
+        subgroup: "email",
         label_en: "Credential Delivery",
         label_ar: "إرسال بيانات الدخول",
         href_en: "/en/settings/email/credential-deliveries",
@@ -754,6 +890,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "settings-email-deliveries",
+        subgroup: "email",
         label_en: "Email Deliveries",
         label_ar: "تسليم البريد",
         href_en: "/en/settings/email/deliveries",
@@ -762,6 +899,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "settings-email-campaigns",
+        subgroup: "email",
         label_en: "Email Campaigns",
         label_ar: "حملات البريد",
         href_en: "/en/settings/email/campaigns",
@@ -770,6 +908,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "settings-security",
+        subgroup: "security-data",
         label_en: "Security & Audit",
         label_ar: "الأمان وسجل المراجعة",
         href_en: "/en/settings/security",
@@ -778,6 +917,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         key: "settings-backup",
+        subgroup: "security-data",
         label_en: "Backup & Migration",
         label_ar: "النسخ الاحتياطي والترحيل",
         href_en: "/en/settings/backup",
