@@ -66,6 +66,41 @@ export interface GroupedMenuChildren {
   children: MenuItem[];
 }
 
+const normalizeNavigationText = (value: string) =>
+  value.trim().toLocaleLowerCase();
+
+export function filterMenuItems(
+  items: MenuItem[],
+  query: string,
+  isArabic: boolean,
+): MenuItem[] {
+  const normalizedQuery = normalizeNavigationText(query);
+  if (!normalizedQuery) return items;
+
+  return items.flatMap((item) => {
+    const itemLabel = isArabic ? item.label_ar : item.label_en;
+    const itemMatches = normalizeNavigationText(itemLabel).includes(
+      normalizedQuery,
+    );
+
+    if (!item.children) {
+      return itemMatches ? [item] : [];
+    }
+
+    const matchingChildren = filterMenuItems(item.children, query, isArabic);
+    if (!itemMatches && matchingChildren.length === 0) {
+      return [];
+    }
+
+    return [
+      {
+        ...item,
+        children: itemMatches ? item.children : matchingChildren,
+      },
+    ];
+  });
+}
+
 export function groupMenuChildren(
   item: MenuItem,
   children: MenuItem[],

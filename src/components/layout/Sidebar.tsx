@@ -2,6 +2,7 @@
 
 import {
   bottomItems,
+  filterMenuItems,
   groupMenuChildren,
   menuItems,
 } from "@/config/navigation";
@@ -12,6 +13,8 @@ import {
   ChevronDown,
   Loader2,
   LogOut,
+  Search,
+  X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
@@ -60,6 +63,12 @@ export default function Sidebar({
   const lastAutoExpandedPathRef = useRef<string | null>(null);
 
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchSnapshotRef = useRef<string[] | null>(null);
+  const focusSearchOnOpenRef = useRef(false);
+
+  const hasSearchQuery = searchQuery.trim().length > 0;
 
   const visibleMenuItems = useMemo(
     () =>
@@ -83,6 +92,14 @@ export default function Sidebar({
     [hasPermission],
   );
 
+  const displayMenuItems = useMemo(
+    () =>
+      hasSearchQuery
+        ? filterMenuItems(visibleMenuItems, searchQuery, isArabic)
+        : visibleMenuItems,
+    [hasSearchQuery, isArabic, searchQuery, visibleMenuItems],
+  );
+
   // Clear pending state when pathname changes (navigation complete)
   useEffect(() => {
     if (pendingHref !== null) {
@@ -95,6 +112,52 @@ export default function Sidebar({
     if (isOpen) {
       setHoveredCollapsedItemKey(null);
     }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!hasSearchQuery) {
+      if (searchSnapshotRef.current !== null) {
+        setExpandedItems(searchSnapshotRef.current);
+        searchSnapshotRef.current = null;
+      }
+      return;
+    }
+
+    if (searchSnapshotRef.current === null) {
+      setExpandedItems((current) => {
+        searchSnapshotRef.current = current;
+        return current;
+      });
+    }
+
+    const matchingExpandedKeys = displayMenuItems.flatMap((item) => [
+      ...(item.children ? [item.key] : []),
+      ...(item.children ?? [])
+        .filter((child) => child.children && child.children.length > 0)
+        .map((child) => child.key),
+    ]);
+
+    setExpandedItems((current) => {
+      const next = [...new Set([...current, ...matchingExpandedKeys])];
+      const isUnchanged =
+        next.length === current.length &&
+        next.every((key, index) => key === current[index]);
+
+      return isUnchanged ? current : next;
+    });
+  }, [displayMenuItems, hasSearchQuery]);
+
+  useEffect(() => {
+    if (!isOpen || !focusSearchOnOpenRef.current) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+      focusSearchOnOpenRef.current = false;
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
   }, [isOpen]);
 
   // Auto-expand parent if current route is a child or grandchild
@@ -164,6 +227,15 @@ export default function Sidebar({
 
   const handleItemClick = (key: string) => {
     onSelect?.(key);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+  };
+
+  const openSearchFromCollapsedSidebar = () => {
+    focusSearchOnOpenRef.current = true;
+    onToggle?.();
   };
 
   const handleNavigationStart = (href: string) => {
@@ -341,9 +413,7 @@ export default function Sidebar({
                 ? "-translate-y-1 pointer-events-none opacity-0 group-hover/sidebar:pointer-events-auto group-hover/sidebar:translate-y-0 group-hover/sidebar:opacity-100 group-focus-within/sidebar:pointer-events-auto group-focus-within/sidebar:translate-y-0 group-focus-within/sidebar:opacity-100"
                 : "translate-y-0 opacity-100 hover:bg-white/20 hover:shadow-md"
             }
-            mt-2 shrink-0 ${
-            isRTL ? "ml-2 mr-auto" : "ml-auto mr-2"
-          }`}
+            mt-2 shrink-0 ${isRTL ? "ml-2 mr-auto" : "ml-auto mr-2"}`}
         >
           {isOpen ? (
             <ChevronLeft className={`w-5 h-5 ${isRTL ? "rotate-180" : ""}`} />
@@ -351,6 +421,19 @@ export default function Sidebar({
             <Menu className="w-5 h-5" />
           )}
         </button>
+
+        {!isOpen && (
+          <button
+            type="button"
+            onClick={openSearchFromCollapsedSidebar}
+            aria-label={isArabic ? "فتح بحث التنقل" : "Open navigation search"}
+            className={`hidden lg:inline-flex rounded-lg border border-white/30 p-2 text-white transition-colors duration-200 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#065769] motion-reduce:transition-none ${
+              isRTL ? "ml-2 mr-auto" : "ml-auto mr-2"
+            }`}
+          >
+            <Search aria-hidden="true" className="h-5 w-5" />
+          </button>
+        )}
 
         {/* Logo Section (fixed top) */}
         <div className="px-4 py-6 flex items-center justify-center shrink-0">
@@ -368,7 +451,7 @@ export default function Sidebar({
 
         {/* School Selector (fixed top) */}
         {isOpen && (
-          <div className="mb-6 shrink-0 p-2">
+          <div className="mb-1 shrink-0 p-2">
             <div className="flex items-center gap-3 p-3 border border-white/20 rounded-xl bg-white/20">
               <div className="w-10 h-10 rounded-full bg-white flex border-2 border-primary flex items-center justify-center shrink-0">
                 <Building2 className="w-5 h-5 text-primary" />
@@ -384,324 +467,385 @@ export default function Sidebar({
         )}
 
         {/* âœ… Scrollable Menu Only */}
+        {isOpen && (
+          <div className="mx-2 mb-3 shrink-0">
+            <div className="relative">
+              <Search
+                aria-hidden="true"
+                className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55"
+              />
+              <input
+                ref={searchInputRef}
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                aria-label={isArabic ? "بحث في التنقل" : "Search navigation"}
+                placeholder={
+                  isArabic ? "ابحث في التبويبات..." : "Search tabs..."
+                }
+                className="h-10 w-full rounded-lg border border-white/15 bg-white/10 ps-9 pe-9 text-sm text-white outline-none transition-[border-color,background-color,box-shadow] duration-200 placeholder:text-white/45 focus:border-white/45 focus:bg-white/15 focus:ring-2 focus:ring-white/25 motion-reduce:transition-none"
+              />
+              {hasSearchQuery && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  aria-label={
+                    isArabic ? "مسح بحث التنقل" : "Clear navigation search"
+                  }
+                  className="absolute end-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-white/60 transition-colors duration-150 hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 motion-reduce:transition-none"
+                >
+                  <X aria-hidden="true" className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 sidebar-scroll">
           <nav className="space-y-1 pb-4">
-            {visibleMenuItems.map((item) => {
-              const Icon = item.icon;
-              const itemHref = isArabic ? item.href_ar : item.href_en;
-              const itemNavigationHref = preserveGradesQuery(itemHref);
-              const isHeroJourneyItem = item.key === "hero-journey";
+            {hasSearchQuery && displayMenuItems.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-white/60">
+                {isArabic ? "لم يتم العثور على تبويبات" : "No tabs found"}
+              </p>
+            ) : (
+              displayMenuItems.map((item) => {
+                const Icon = item.icon;
+                const itemHref = isArabic ? item.href_ar : item.href_en;
+                const itemNavigationHref = preserveGradesQuery(itemHref);
+                const isHeroJourneyItem = item.key === "hero-journey";
 
-              const isActive = isItemActive(item);
-              const isExpanded = expandedItems.includes(item.key);
-              const hasChildren = item.children && item.children.length > 0;
-              const itemVariantClasses = getVariantClasses(item.buttonVariant, {
-                active: isActive,
-                backgroundImage: item.buttonBackgroundImage,
-              });
-              const itemVariantStyle = getVariantStyle({
-                active: isActive,
-                backgroundImage: item.buttonBackgroundImage,
-              });
-              const isHighlighted =
-                item.buttonVariant === "highlight" &&
-                !isActive &&
-                !item.buttonBackgroundImage;
-              const hasImageBackground = Boolean(item.buttonBackgroundImage);
+                const isActive = isItemActive(item);
+                const isExpanded = expandedItems.includes(item.key);
+                const hasChildren = item.children && item.children.length > 0;
+                const itemVariantClasses = getVariantClasses(
+                  item.buttonVariant,
+                  {
+                    active: isActive,
+                    backgroundImage: item.buttonBackgroundImage,
+                  },
+                );
+                const itemVariantStyle = getVariantStyle({
+                  active: isActive,
+                  backgroundImage: item.buttonBackgroundImage,
+                });
+                const isHighlighted =
+                  item.buttonVariant === "highlight" &&
+                  !isActive &&
+                  !item.buttonBackgroundImage;
+                const hasImageBackground = Boolean(item.buttonBackgroundImage);
 
-              return (
-                <div
-                  key={item.key}
-                  className={item.buttonBackgroundImage ? "px-0" : "px-2"}
-                  onMouseEnter={(event) =>
-                    showCollapsedFlyout(
-                      item.key,
-                      event.currentTarget,
-                      Boolean(hasChildren),
-                    )
-                  }
-                >
-                  {/* Parent Item */}
-                  {hasChildren ? (
-                    <button
-                      onClick={(e) => {
-                        if (isOpen) {
-                          toggleExpand(item.key, e);
+                return (
+                  <div
+                    key={item.key}
+                    className={item.buttonBackgroundImage ? "px-0" : "px-2"}
+                    onMouseEnter={(event) =>
+                      showCollapsedFlyout(
+                        item.key,
+                        event.currentTarget,
+                        Boolean(hasChildren),
+                      )
+                    }
+                  >
+                    {/* Parent Item */}
+                    {hasChildren ? (
+                      <button
+                        onClick={(e) => {
+                          if (isOpen) {
+                            toggleExpand(item.key, e);
+                          }
+                        }}
+                        title={
+                          !isOpen
+                            ? isArabic
+                              ? item.label_ar
+                              : item.label_en
+                            : undefined
                         }
-                      }}
-                      title={
-                        !isOpen
-                          ? isArabic
-                            ? item.label_ar
-                            : item.label_en
-                          : undefined
-                      }
-                      className={`group w-full flex items-center gap-3 ${item.buttonBackgroundImage ? "rounded-none" : "rounded-[6px]"} transition-all duration-200 ${
-                        isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
-                      } ${
-                        isActive
-                          ? item.buttonBackgroundImage
-                            ? "text-white shadow-sm"
-                            : "bg-white text-primary shadow-sm"
-                          : "text-white hover:bg-white hover:text-primary"
-                      } ${isArabic ? "text-right" : "text-left"} ${itemVariantClasses}`}
-                      style={itemVariantStyle}
-                    >
-                      <Icon
-                        className={`w-5 h-5 shrink-0 transition-colors ${
+                        className={`group w-full flex items-center gap-3 ${item.buttonBackgroundImage ? "rounded-none" : "rounded-[6px]"} transition-all duration-200 ${
+                          isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
+                        } ${
                           isActive
-                            ? "text-primary"
-                            : hasImageBackground
-                              ? "text-white"
-                              : isHighlighted
-                                ? "text-primary"
-                                : "text-white group-hover:text-primary"
-                        }`}
-                      />
-                      {isOpen && (
-                        <>
-                          <span className="font-semibold text-[15px] flex-1 truncate">
-                            {isArabic ? item.label_ar : item.label_en}
-                          </span>
-                          <ChevronDown
-                            className={`w-4 h-4 transition-transform shrink-0 ${
-                              isExpanded ? "rotate-180" : ""
-                            }`}
-                          />
-                        </>
-                      )}
-                    </button>
-                  ) : (
-                    <GuardedLink
-                      href={itemNavigationHref}
-                      onClick={() => handleItemClick(item.key)}
-                      onNavigationStart={() =>
-                        handleNavigationStart(itemNavigationHref)
-                      }
-                      prefetch
-                      title={
-                        !isOpen
-                          ? isArabic
-                            ? item.label_ar
-                            : item.label_en
-                          : undefined
-                      }
-                      className={`group w-full flex items-center gap-3 ${item.buttonBackgroundImage ? "rounded-none" : "rounded-[6px]"} transition-all duration-200 text-left ${
-                        isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
-                      } ${
-                        isActive || pendingHref === itemNavigationHref
-                          ? item.buttonBackgroundImage
-                            ? "text-white shadow-sm"
-                            : "bg-white text-primary shadow-sm"
-                          : "text-white hover:bg-white/15"
-                      } ${getVariantClasses(item.buttonVariant, {
-                        active: isActive,
-                        pending: pendingHref === itemNavigationHref,
-                        backgroundImage: item.buttonBackgroundImage,
-                      })} ${isHeroJourneyItem ? "h-27.5" : ""}`}
-                      style={getVariantStyle({
-                        active: isActive,
-                        pending: pendingHref === itemNavigationHref,
-                        backgroundImage: item.buttonBackgroundImage,
-                      })}
-                    >
-                      {!isHeroJourneyItem && (
+                            ? item.buttonBackgroundImage
+                              ? "text-white shadow-sm"
+                              : "bg-white text-primary shadow-sm"
+                            : "text-white hover:bg-white hover:text-primary"
+                        } ${isArabic ? "text-right" : "text-left"} ${itemVariantClasses}`}
+                        style={itemVariantStyle}
+                      >
                         <Icon
                           className={`w-5 h-5 shrink-0 transition-colors ${
-                            isActive || pendingHref === itemNavigationHref
+                            isActive
                               ? "text-primary"
-                              : item.buttonBackgroundImage
+                              : hasImageBackground
                                 ? "text-white"
-                                : item.buttonVariant === "highlight"
+                                : isHighlighted
                                   ? "text-primary"
-                                  : "text-white group-hover:text-white"
+                                  : "text-white group-hover:text-primary"
                           }`}
                         />
-                      )}
-                      {isOpen && (
-                        <>
-                          <span className="font-semibold text-[16px] truncate">
-                            {isArabic ? item.label_ar : item.label_en}
-                          </span>
-                          {pendingHref === itemNavigationHref && (
-                            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                          )}
-                        </>
-                      )}
-                    </GuardedLink>
-                  )}
-
-                  {/* Children Items */}
-                  {hasChildren && isExpanded && isOpen && (
-                    <div
-                      className={`relative mt-1 space-y-1 ${
-                        isArabic ? "mr-6" : "ml-6"
-                      } before:content-[''] before:absolute before:w-[2px] before:h-full before:top-0 before:bg-primary`}
-                    >
-                      {groupMenuChildren(item, item.children!).map(
-                        ({ subgroup, children }) => (
-                          <div key={subgroup.key}>
-                            <p
-                              className={`px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/55 ${
-                                isArabic ? "text-right" : "text-left"
+                        {isOpen && (
+                          <>
+                            <span className="font-semibold text-[15px] flex-1 truncate">
+                              {isArabic ? item.label_ar : item.label_en}
+                            </span>
+                            <ChevronDown
+                              className={`w-4 h-4 transition-transform shrink-0 ${
+                                isExpanded ? "rotate-180" : ""
                               }`}
-                            >
-                              {isArabic ? subgroup.label_ar : subgroup.label_en}
-                            </p>
-                            {children.map((child) => {
-                        const ChildIcon = child.icon;
-                        const childHref = isArabic
-                          ? child.href_ar
-                          : child.href_en;
-                        const childNavigationHref =
-                          preserveGradesQuery(childHref);
-                        const isChildActive = pathname === childHref;
-                        const hasGrandchildren =
-                          child.children && child.children.length > 0;
-                        const isChildExpanded = expandedItems.includes(
-                          child.key,
-                        );
+                            />
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <GuardedLink
+                        href={itemNavigationHref}
+                        onClick={() => handleItemClick(item.key)}
+                        onNavigationStart={() =>
+                          handleNavigationStart(itemNavigationHref)
+                        }
+                        prefetch
+                        title={
+                          !isOpen
+                            ? isArabic
+                              ? item.label_ar
+                              : item.label_en
+                            : undefined
+                        }
+                        className={`group w-full flex items-center gap-3 ${item.buttonBackgroundImage ? "rounded-none" : "rounded-[6px]"} transition-all duration-200 text-left ${
+                          isOpen ? "px-4 py-3" : "px-3 py-3 justify-center"
+                        } ${
+                          isActive || pendingHref === itemNavigationHref
+                            ? item.buttonBackgroundImage
+                              ? "text-white shadow-sm"
+                              : "bg-white text-primary shadow-sm"
+                            : "text-white hover:bg-white/15"
+                        } ${getVariantClasses(item.buttonVariant, {
+                          active: isActive,
+                          pending: pendingHref === itemNavigationHref,
+                          backgroundImage: item.buttonBackgroundImage,
+                        })} ${isHeroJourneyItem ? "h-27.5" : ""}`}
+                        style={getVariantStyle({
+                          active: isActive,
+                          pending: pendingHref === itemNavigationHref,
+                          backgroundImage: item.buttonBackgroundImage,
+                        })}
+                      >
+                        {!isHeroJourneyItem && (
+                          <Icon
+                            className={`w-5 h-5 shrink-0 transition-colors ${
+                              isActive || pendingHref === itemNavigationHref
+                                ? "text-primary"
+                                : item.buttonBackgroundImage
+                                  ? "text-white"
+                                  : item.buttonVariant === "highlight"
+                                    ? "text-primary"
+                                    : "text-white group-hover:text-white"
+                            }`}
+                          />
+                        )}
+                        {isOpen && (
+                          <>
+                            <span className="font-semibold text-[16px] truncate">
+                              {isArabic ? item.label_ar : item.label_en}
+                            </span>
+                            {pendingHref === itemNavigationHref && (
+                              <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                            )}
+                          </>
+                        )}
+                      </GuardedLink>
+                    )}
 
-                              return (
-                                <div key={child.key}>
-                            {/* Child Item */}
-                            {hasGrandchildren ? (
-                              <button
-                                onClick={(e) => toggleExpand(child.key, e)}
-                                className={`group w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${
+                    {/* Children Items */}
+                    {hasChildren && isExpanded && isOpen && (
+                      <div
+                        className={`relative mt-1 space-y-1 ${
+                          isArabic ? "mr-6" : "ml-6"
+                        } before:content-[''] before:absolute before:w-[2px] before:h-full before:top-0 before:bg-primary`}
+                      >
+                        {groupMenuChildren(item, item.children!).map(
+                          ({ subgroup, children }) => (
+                            <div key={subgroup.key}>
+                              <p
+                                className={`px-4 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white/55 ${
                                   isArabic ? "text-right" : "text-left"
-                                } ${
-                                  isChildActive
-                                    ? "bg-white/20 text-primary font-semibold"
-                                    : "text-white/80 hover:bg-white/15"
                                 }`}
                               >
-                                <ChildIcon
-                                  className={`w-4 h-4 shrink-0 transition-colors ${isChildActive ? "text-primary" : "group-hover:text-white"}`}
-                                />
-                                <span className="text-sm flex-1 truncate">
-                                  {isArabic ? child.label_ar : child.label_en}
-                                </span>
-                                <ChevronDown
-                                  className={`w-3 h-3 transition-transform shrink-0 ${
-                                    isChildExpanded ? "rotate-180" : ""
-                                  }`}
-                                />
-                              </button>
-                            ) : (
-                              <GuardedLink
-                                href={childNavigationHref}
-                                onClick={() => handleItemClick(child.key)}
-                                onNavigationStart={() =>
-                                  handleNavigationStart(childNavigationHref)
-                                }
-                                prefetch
-                                className={`group w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${
-                                  isArabic ? "text-right" : "text-left"
-                                } ${
-                                  isChildActive ||
-                                  pendingHref === childNavigationHref
-                                    ? "bg-white/20 text-white font-semibold"
-                                    : "text-white/80 hover:bg-white/15"
-                                }`}
-                              >
-                                <ChildIcon
-                                  className={`w-4 h-4 shrink-0 transition-colors ${isChildActive || pendingHref === childNavigationHref ? "text-white" : "group-hover:text-white"}`}
-                                />
-                                <span className="text-sm flex-1 truncate">
-                                  {isArabic ? child.label_ar : child.label_en}
-                                </span>
-                                {pendingHref === childNavigationHref && (
-                                  <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                                )}
-                                {child.badge &&
-                                  (() => {
-                                    const count = child.badge();
-                                    if (count === 0) return null;
+                                {isArabic
+                                  ? subgroup.label_ar
+                                  : subgroup.label_en}
+                              </p>
+                              {children.map((child) => {
+                                const ChildIcon = child.icon;
+                                const childHref = isArabic
+                                  ? child.href_ar
+                                  : child.href_en;
+                                const childNavigationHref =
+                                  preserveGradesQuery(childHref);
+                                const isChildActive = pathname === childHref;
+                                const hasGrandchildren =
+                                  child.children && child.children.length > 0;
+                                const isChildExpanded = expandedItems.includes(
+                                  child.key,
+                                );
 
-                                    const badgeClass =
-                                      child.key === "admissions-decisions"
-                                        ? "bg-amber-100 text-amber-700 border border-amber-200"
-                                        : "bg-primary-100 text-primary-700 border border-primary-200";
-
-                                    return (
-                                      <span
-                                        className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold rounded-full ${badgeClass}`}
+                                return (
+                                  <div key={child.key}>
+                                    {/* Child Item */}
+                                    {hasGrandchildren ? (
+                                      <button
+                                        onClick={(e) =>
+                                          toggleExpand(child.key, e)
+                                        }
+                                        className={`group w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${
+                                          isArabic ? "text-right" : "text-left"
+                                        } ${
+                                          isChildActive
+                                            ? "bg-white/20 text-primary font-semibold"
+                                            : "text-white/80 hover:bg-white/15"
+                                        }`}
                                       >
-                                        {count > 99 ? "99+" : count}
-                                      </span>
-                                    );
-                                  })()}
-                              </GuardedLink>
-                            )}
+                                        <ChildIcon
+                                          className={`w-4 h-4 shrink-0 transition-colors ${isChildActive ? "text-primary" : "group-hover:text-white"}`}
+                                        />
+                                        <span className="text-sm flex-1 truncate">
+                                          {isArabic
+                                            ? child.label_ar
+                                            : child.label_en}
+                                        </span>
+                                        <ChevronDown
+                                          className={`w-3 h-3 transition-transform shrink-0 ${
+                                            isChildExpanded ? "rotate-180" : ""
+                                          }`}
+                                        />
+                                      </button>
+                                    ) : (
+                                      <GuardedLink
+                                        href={childNavigationHref}
+                                        onClick={() =>
+                                          handleItemClick(child.key)
+                                        }
+                                        onNavigationStart={() =>
+                                          handleNavigationStart(
+                                            childNavigationHref,
+                                          )
+                                        }
+                                        prefetch
+                                        className={`group w-full flex items-center gap-3 rounded-[6px] transition-all duration-200 px-4 py-2.5 ${
+                                          isArabic ? "text-right" : "text-left"
+                                        } ${
+                                          isChildActive ||
+                                          pendingHref === childNavigationHref
+                                            ? "bg-white/20 text-white font-semibold"
+                                            : "text-white/80 hover:bg-white/15"
+                                        }`}
+                                      >
+                                        <ChildIcon
+                                          className={`w-4 h-4 shrink-0 transition-colors ${isChildActive || pendingHref === childNavigationHref ? "text-white" : "group-hover:text-white"}`}
+                                        />
+                                        <span className="text-sm flex-1 truncate">
+                                          {isArabic
+                                            ? child.label_ar
+                                            : child.label_en}
+                                        </span>
+                                        {pendingHref ===
+                                          childNavigationHref && (
+                                          <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                        )}
+                                        {child.badge &&
+                                          (() => {
+                                            const count = child.badge();
+                                            if (count === 0) return null;
 
-                            {/* Grandchildren Items */}
-                            {hasGrandchildren && isChildExpanded && (
-                              <div
-                                className={`relative mt-1 space-y-1 ${
-                                  isArabic ? "mr-4" : "ml-4"
-                                }`}
-                              >
-                                {child.children!.map((grandchild) => {
-                                  const GrandchildIcon = grandchild.icon;
-                                  const grandchildHref = isArabic
-                                    ? grandchild.href_ar
-                                    : grandchild.href_en;
-                                  const grandchildNavigationHref =
-                                    preserveGradesQuery(grandchildHref);
-                                  const isGrandchildActive =
-                                    pathname === grandchildHref;
+                                            const badgeClass =
+                                              child.key ===
+                                              "admissions-decisions"
+                                                ? "bg-amber-100 text-amber-700 border border-amber-200"
+                                                : "bg-primary-100 text-primary-700 border border-primary-200";
 
-                                  return (
-                                    <GuardedLink
-                                      key={grandchild.key}
-                                      href={grandchildNavigationHref}
-                                      onClick={() =>
-                                        handleItemClick(grandchild.key)
-                                      }
-                                      onNavigationStart={() =>
-                                        handleNavigationStart(
-                                          grandchildNavigationHref,
-                                        )
-                                      }
-                                      prefetch
-                                      className={`group w-full flex items-center gap-2 rounded-[6px] transition-all duration-200 px-3 py-2 ${
-                                        isArabic ? "text-right" : "text-left"
-                                      } ${
-                                        isGrandchildActive ||
-                                        pendingHref === grandchildNavigationHref
-                                          ? "bg-white/20 text-primary font-semibold"
-                                          : "text-white/70 hover:bg-white/15"
-                                      }`}
-                                    >
-                                      <GrandchildIcon
-                                        className={`w-3.5 h-3.5 shrink-0 transition-colors ${isGrandchildActive || pendingHref === grandchildNavigationHref ? "text-primary" : "group-hover:text-white"}`}
-                                      />
-                                      <span className="text-xs truncate">
-                                        {isArabic
-                                          ? grandchild.label_ar
-                                          : grandchild.label_en}
-                                      </span>
-                                      {pendingHref ===
-                                        grandchildNavigationHref && (
-                                        <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                                      )}
-                                    </GuardedLink>
-                                  );
-                                })}
-                              </div>
-                            )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                                            return (
+                                              <span
+                                                className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold rounded-full ${badgeClass}`}
+                                              >
+                                                {count > 99 ? "99+" : count}
+                                              </span>
+                                            );
+                                          })()}
+                                      </GuardedLink>
+                                    )}
+
+                                    {/* Grandchildren Items */}
+                                    {hasGrandchildren && isChildExpanded && (
+                                      <div
+                                        className={`relative mt-1 space-y-1 ${
+                                          isArabic ? "mr-4" : "ml-4"
+                                        }`}
+                                      >
+                                        {child.children!.map((grandchild) => {
+                                          const GrandchildIcon =
+                                            grandchild.icon;
+                                          const grandchildHref = isArabic
+                                            ? grandchild.href_ar
+                                            : grandchild.href_en;
+                                          const grandchildNavigationHref =
+                                            preserveGradesQuery(grandchildHref);
+                                          const isGrandchildActive =
+                                            pathname === grandchildHref;
+
+                                          return (
+                                            <GuardedLink
+                                              key={grandchild.key}
+                                              href={grandchildNavigationHref}
+                                              onClick={() =>
+                                                handleItemClick(grandchild.key)
+                                              }
+                                              onNavigationStart={() =>
+                                                handleNavigationStart(
+                                                  grandchildNavigationHref,
+                                                )
+                                              }
+                                              prefetch
+                                              className={`group w-full flex items-center gap-2 rounded-[6px] transition-all duration-200 px-3 py-2 ${
+                                                isArabic
+                                                  ? "text-right"
+                                                  : "text-left"
+                                              } ${
+                                                isGrandchildActive ||
+                                                pendingHref ===
+                                                  grandchildNavigationHref
+                                                  ? "bg-white/20 text-primary font-semibold"
+                                                  : "text-white/70 hover:bg-white/15"
+                                              }`}
+                                            >
+                                              <GrandchildIcon
+                                                className={`w-3.5 h-3.5 shrink-0 transition-colors ${isGrandchildActive || pendingHref === grandchildNavigationHref ? "text-primary" : "group-hover:text-white"}`}
+                                              />
+                                              <span className="text-xs truncate">
+                                                {isArabic
+                                                  ? grandchild.label_ar
+                                                  : grandchild.label_en}
+                                              </span>
+                                              {pendingHref ===
+                                                grandchildNavigationHref && (
+                                                <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                              )}
+                                            </GuardedLink>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </nav>
         </div>
 
@@ -753,7 +897,9 @@ export default function Sidebar({
               >
                 <Icon
                   className={`w-5 h-5 shrink-0 transition-colors ${
-                    item.buttonBackgroundImage && !isActiveItem && !isPendingItem
+                    item.buttonBackgroundImage &&
+                    !isActiveItem &&
+                    !isPendingItem
                       ? "text-white"
                       : item.buttonVariant === "highlight" &&
                           !isActiveItem &&
@@ -828,110 +974,115 @@ export default function Sidebar({
                     {isArabic ? subgroup.label_ar : subgroup.label_en}
                   </p>
                   {children.map((child) => {
-                const ChildIcon = child.icon;
-                const childHref = isArabic ? child.href_ar : child.href_en;
-                const childNavigationHref = preserveGradesQuery(childHref);
-                const isChildActive = pathname === childHref;
-                const hasGrandchildren =
-                  child.children && child.children.length > 0;
-                const isChildExpanded = expandedItems.includes(child.key);
+                    const ChildIcon = child.icon;
+                    const childHref = isArabic ? child.href_ar : child.href_en;
+                    const childNavigationHref = preserveGradesQuery(childHref);
+                    const isChildActive = pathname === childHref;
+                    const hasGrandchildren =
+                      child.children && child.children.length > 0;
+                    const isChildExpanded = expandedItems.includes(child.key);
 
-                return (
-                  <div key={child.key}>
-                    {hasGrandchildren ? (
-                      <button
-                        type="button"
-                        onClick={(event) => toggleExpand(child.key, event)}
-                        className={`group flex w-full items-center gap-3 rounded-[6px] px-3 py-2 text-sm transition-colors ${
-                          isArabic ? "text-right" : "text-left"
-                        } ${
-                          isChildActive
-                            ? "bg-white/20 text-white font-semibold"
-                            : "text-white/85 hover:bg-white/15"
-                        }`}
-                      >
-                        <ChildIcon className="h-4 w-4 shrink-0" />
-                        <span className="flex-1 truncate">
-                          {isArabic ? child.label_ar : child.label_en}
-                        </span>
-                        <ChevronDown
-                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${
-                            isChildExpanded ? "rotate-180" : ""
-                          }`}
-                        />
-                      </button>
-                    ) : (
-                      <GuardedLink
-                        href={childNavigationHref}
-                        onClick={() => handleItemClick(child.key)}
-                        onNavigationStart={() =>
-                          handleNavigationStart(childNavigationHref)
-                        }
-                        prefetch
-                        className={`group flex w-full items-center gap-3 rounded-[6px] px-3 py-2 text-sm transition-colors ${
-                          isArabic ? "text-right" : "text-left"
-                        } ${
-                          isChildActive || pendingHref === childNavigationHref
-                            ? "bg-white/20 text-white font-semibold"
-                            : "text-white/85 hover:bg-white/15"
-                        }`}
-                      >
-                        <ChildIcon className="h-4 w-4 shrink-0" />
-                        <span className="flex-1 truncate">
-                          {isArabic ? child.label_ar : child.label_en}
-                        </span>
-                        {pendingHref === childNavigationHref ? (
-                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
-                        ) : null}
-                      </GuardedLink>
-                    )}
-
-                    {hasGrandchildren && isChildExpanded ? (
-                      <div className={isArabic ? "mr-4 mt-1" : "ml-4 mt-1"}>
-                        {child.children!.map((grandchild) => {
-                          const GrandchildIcon = grandchild.icon;
-                          const grandchildHref = isArabic
-                            ? grandchild.href_ar
-                            : grandchild.href_en;
-                          const grandchildNavigationHref =
-                            preserveGradesQuery(grandchildHref);
-                          const isGrandchildActive =
-                            pathname === grandchildHref;
-
-                          return (
-                            <GuardedLink
-                              key={grandchild.key}
-                              href={grandchildNavigationHref}
-                              onClick={() => handleItemClick(grandchild.key)}
-                              onNavigationStart={() =>
-                                handleNavigationStart(grandchildNavigationHref)
-                              }
-                              prefetch
-                              className={`group flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-xs transition-colors ${
-                                isArabic ? "text-right" : "text-left"
-                              } ${
-                                isGrandchildActive ||
-                                pendingHref === grandchildNavigationHref
-                                  ? "bg-white/20 text-white font-semibold"
-                                  : "text-white/75 hover:bg-white/15"
+                    return (
+                      <div key={child.key}>
+                        {hasGrandchildren ? (
+                          <button
+                            type="button"
+                            onClick={(event) => toggleExpand(child.key, event)}
+                            className={`group flex w-full items-center gap-3 rounded-[6px] px-3 py-2 text-sm transition-colors ${
+                              isArabic ? "text-right" : "text-left"
+                            } ${
+                              isChildActive
+                                ? "bg-white/20 text-white font-semibold"
+                                : "text-white/85 hover:bg-white/15"
+                            }`}
+                          >
+                            <ChildIcon className="h-4 w-4 shrink-0" />
+                            <span className="flex-1 truncate">
+                              {isArabic ? child.label_ar : child.label_en}
+                            </span>
+                            <ChevronDown
+                              className={`h-3.5 w-3.5 shrink-0 transition-transform ${
+                                isChildExpanded ? "rotate-180" : ""
                               }`}
-                            >
-                              <GrandchildIcon className="h-3.5 w-3.5 shrink-0" />
-                              <span className="truncate">
-                                {isArabic
-                                  ? grandchild.label_ar
-                                  : grandchild.label_en}
-                              </span>
-                              {pendingHref === grandchildNavigationHref ? (
-                                <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
-                              ) : null}
-                            </GuardedLink>
-                          );
-                        })}
+                            />
+                          </button>
+                        ) : (
+                          <GuardedLink
+                            href={childNavigationHref}
+                            onClick={() => handleItemClick(child.key)}
+                            onNavigationStart={() =>
+                              handleNavigationStart(childNavigationHref)
+                            }
+                            prefetch
+                            className={`group flex w-full items-center gap-3 rounded-[6px] px-3 py-2 text-sm transition-colors ${
+                              isArabic ? "text-right" : "text-left"
+                            } ${
+                              isChildActive ||
+                              pendingHref === childNavigationHref
+                                ? "bg-white/20 text-white font-semibold"
+                                : "text-white/85 hover:bg-white/15"
+                            }`}
+                          >
+                            <ChildIcon className="h-4 w-4 shrink-0" />
+                            <span className="flex-1 truncate">
+                              {isArabic ? child.label_ar : child.label_en}
+                            </span>
+                            {pendingHref === childNavigationHref ? (
+                              <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                            ) : null}
+                          </GuardedLink>
+                        )}
+
+                        {hasGrandchildren && isChildExpanded ? (
+                          <div className={isArabic ? "mr-4 mt-1" : "ml-4 mt-1"}>
+                            {child.children!.map((grandchild) => {
+                              const GrandchildIcon = grandchild.icon;
+                              const grandchildHref = isArabic
+                                ? grandchild.href_ar
+                                : grandchild.href_en;
+                              const grandchildNavigationHref =
+                                preserveGradesQuery(grandchildHref);
+                              const isGrandchildActive =
+                                pathname === grandchildHref;
+
+                              return (
+                                <GuardedLink
+                                  key={grandchild.key}
+                                  href={grandchildNavigationHref}
+                                  onClick={() =>
+                                    handleItemClick(grandchild.key)
+                                  }
+                                  onNavigationStart={() =>
+                                    handleNavigationStart(
+                                      grandchildNavigationHref,
+                                    )
+                                  }
+                                  prefetch
+                                  className={`group flex w-full items-center gap-2 rounded-[6px] px-3 py-2 text-xs transition-colors ${
+                                    isArabic ? "text-right" : "text-left"
+                                  } ${
+                                    isGrandchildActive ||
+                                    pendingHref === grandchildNavigationHref
+                                      ? "bg-white/20 text-white font-semibold"
+                                      : "text-white/75 hover:bg-white/15"
+                                  }`}
+                                >
+                                  <GrandchildIcon className="h-3.5 w-3.5 shrink-0" />
+                                  <span className="truncate">
+                                    {isArabic
+                                      ? grandchild.label_ar
+                                      : grandchild.label_en}
+                                  </span>
+                                  {pendingHref === grandchildNavigationHref ? (
+                                    <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
+                                  ) : null}
+                                </GuardedLink>
+                              );
+                            })}
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
-                  </div>
-                );
+                    );
                   })}
                 </div>
               ))}
