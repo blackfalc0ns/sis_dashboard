@@ -1,17 +1,7 @@
 import { NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
+import DocumentLocaleSync from "@/components/i18n/DocumentLocaleSync";
 import { routing } from "@/i18n/routing";
-import { somar } from "@/lib/fonts";
-import "../globals.css";
-import Providers from "../providers";
-
-export const metadata = {
-  title: "Moazzez | معزز",
-  description: "School Management System",
- 
-  themeColor: "#ffffff",
-  manifest: "/manifest.json",
-};
 
 export default async function DashboardLayout({
   children,
@@ -24,14 +14,12 @@ export default async function DashboardLayout({
   if (!routing.locales.includes(lang as "en" | "ar")) notFound();
 
   const messages = (await import(`@/messages/${lang}.json`)).default;
+  const locale = lang as "en" | "ar";
 
   return (
-    <html lang={lang} dir={lang === "ar" ? "rtl" : "ltr"}>
-      <body className={`${somar.variable} antialiased`}>
-        <NextIntlClientProvider locale={lang} messages={messages}>
-          <Providers>{children}</Providers>
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <NextIntlClientProvider locale={locale} messages={messages}>
+      <DocumentLocaleSync locale={locale} />
+      {children}
+    </NextIntlClientProvider>
   );
 }

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import LanguageSwitcher from "@/components/ui/language-switcher/LanguageSwitcher";
 
-const push = vi.fn();
+const replace = vi.fn();
 
 vi.mock("next/image", () => ({
   default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
@@ -14,7 +14,7 @@ vi.mock("next/image", () => ({
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/en/academics/timetable",
-  useRouter: () => ({ push }),
+  useRouter: () => ({ replace }),
   useSearchParams: () =>
     new URLSearchParams(
       "tab=timetable&stage=stage-1&grade=grade-1&section=section-1&classroom=classroom-1",
@@ -28,8 +28,9 @@ describe("LanguageSwitcher", () => {
 
     await user.click(screen.getByRole("button", { name: /ar/i }));
 
-    expect(push).toHaveBeenCalledWith(
+    expect(replace).toHaveBeenCalledWith(
       "/ar/academics/timetable?tab=timetable&stage=stage-1&grade=grade-1&section=section-1&classroom=classroom-1",
+      { scroll: false },
     );
   });
 });

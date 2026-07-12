@@ -29,7 +29,9 @@ export default function LanguageSwitcher() {
     const nextPath = "/" + newSegments.join("/");
     const queryString = searchParams.toString();
 
-    router.push(queryString ? `${nextPath}?${queryString}` : nextPath);
+    router.replace(queryString ? `${nextPath}?${queryString}` : nextPath, {
+      scroll: false,
+    });
   }
 
   return (

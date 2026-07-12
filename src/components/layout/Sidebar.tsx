@@ -411,7 +411,7 @@ export default function Sidebar({
             ${
               isOpen
                 ? "-translate-y-1 pointer-events-none opacity-0 group-hover/sidebar:pointer-events-auto group-hover/sidebar:translate-y-0 group-hover/sidebar:opacity-100 group-focus-within/sidebar:pointer-events-auto group-focus-within/sidebar:translate-y-0 group-focus-within/sidebar:opacity-100"
-                : "translate-y-0 opacity-100 hover:bg-white/20 hover:shadow-md"
+                : "translate-y-0 opacity-100 hover:bg-white/20 hover:shadow-md mb-2"
             }
             mt-2 shrink-0 ${isRTL ? "ml-2 mr-auto" : "ml-auto mr-2"}`}
         >
