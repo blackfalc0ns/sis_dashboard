@@ -203,6 +203,11 @@ textarea::placeholder {
   color: rgba(0, 0, 0, 0.5);
 }
 
+.sidebar-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+  opacity: 1;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 12px;

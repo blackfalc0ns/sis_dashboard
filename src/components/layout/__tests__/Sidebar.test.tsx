@@ -95,6 +95,7 @@ describe("Sidebar toggle control", () => {
     const search = screen.getByRole("searchbox", {
       name: "Search navigation",
     });
+    expect(search).toHaveClass("sidebar-search-input");
     await user.type(search, "Applications");
 
     expect(screen.getByText("Applications")).toBeInTheDocument();

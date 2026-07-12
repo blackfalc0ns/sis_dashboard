@@ -483,7 +483,7 @@ export default function Sidebar({
                 placeholder={
                   isArabic ? "ابحث في التبويبات..." : "Search tabs..."
                 }
-                className="h-10 w-full rounded-lg border border-white/15 bg-white/10 ps-9 pe-9 text-sm text-white outline-none transition-[border-color,background-color,box-shadow] duration-200 placeholder:text-white/45 focus:border-white/45 focus:bg-white/15 focus:ring-2 focus:ring-white/25 motion-reduce:transition-none"
+                className="sidebar-search-input h-10 w-full rounded-lg border border-white/15 bg-white/10 ps-9 pe-9 text-sm text-white outline-none transition-[border-color,background-color,box-shadow] duration-200 placeholder:text-white/70 focus:border-white/45 focus:bg-white/15 focus:ring-2 focus:ring-white/25 motion-reduce:transition-none"
               />
               {hasSearchQuery && (
                 <button
