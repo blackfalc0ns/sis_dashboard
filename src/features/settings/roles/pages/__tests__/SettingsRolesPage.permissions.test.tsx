@@ -1,7 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast/Toast";
-import { UnsavedChangesProvider } from "@/providers/UnsavedChangesProvider";
 import SettingsRolesPage from "../SettingsRolesPage";
 
 const authState = vi.hoisted(() => ({
@@ -46,11 +45,9 @@ const role = {
 
 function renderPage() {
   return render(
-    <UnsavedChangesProvider>
-      <ToastProvider>
-        <SettingsRolesPage />
-      </ToastProvider>
-    </UnsavedChangesProvider>,
+    <ToastProvider>
+      <SettingsRolesPage />
+    </ToastProvider>,
   );
 }
 
