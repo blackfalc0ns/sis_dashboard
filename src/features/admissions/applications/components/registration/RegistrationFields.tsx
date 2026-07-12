@@ -1,5 +1,8 @@
+import Input from "@/components/ui/input/Input";
+import DatePicker from "@/components/ui/input/DatePicker";
 import Select from "@/components/ui/input/Select";
 import type { ReactNode } from "react";
+import { useLocale } from "next-intl";
 import type {
   AcademicStructureClassroom,
   AcademicStructureGrade,
@@ -42,6 +45,7 @@ export default function RegistrationFields({
   removeGuardian,
   setPrimaryGuardian,
 }: RegistrationFieldsProps) {
+  const locale = useLocale();
   const visibleSections = sections.filter((section) => section.gradeId === form.gradeId);
   const visibleClassrooms = classrooms.filter(
     (classroom) => classroom.sectionId === form.sectionId,
@@ -50,16 +54,22 @@ export default function RegistrationFields({
   return (
     <div className="space-y-6">
       <FieldSection title={labels.studentSection}>
-        <TextField label={labels.fullNameEn} value={form.fullNameEn} onChange={(value) => updateField("fullNameEn", value)} />
-        <TextField label={labels.fullNameAr} required={false} value={form.fullNameAr} onChange={(value) => updateField("fullNameAr", value)} />
-        <TextField label={labels.firstNameEn} required={false} value={form.firstNameEn} onChange={(value) => updateField("firstNameEn", value)} />
-        <TextField label={labels.fatherNameEn} required={false} value={form.fatherNameEn} onChange={(value) => updateField("fatherNameEn", value)} />
-        <TextField label={labels.grandfatherNameEn} required={false} value={form.grandfatherNameEn} onChange={(value) => updateField("grandfatherNameEn", value)} />
-        <TextField label={labels.familyNameEn} required={false} value={form.familyNameEn} onChange={(value) => updateField("familyNameEn", value)} />
-        <TextField label={labels.firstNameAr} required={false} value={form.firstNameAr} onChange={(value) => updateField("firstNameAr", value)} />
-        <TextField label={labels.fatherNameAr} required={false} value={form.fatherNameAr} onChange={(value) => updateField("fatherNameAr", value)} />
-        <TextField label={labels.grandfatherNameAr} required={false} value={form.grandfatherNameAr} onChange={(value) => updateField("grandfatherNameAr", value)} />
-        <TextField label={labels.familyNameAr} required={false} value={form.familyNameAr} onChange={(value) => updateField("familyNameAr", value)} />
+        <FieldGroup title={labels.fullNameGroup}>
+          <TextField label={labels.fullNameEn} value={form.fullNameEn} onChange={(value) => updateField("fullNameEn", value)} />
+          <TextField label={labels.fullNameAr} required={false} value={form.fullNameAr} onChange={(value) => updateField("fullNameAr", value)} />
+        </FieldGroup>
+        <FieldGroup title={labels.englishNameGroup}>
+          <TextField label={labels.firstNameEn} required={false} value={form.firstNameEn} onChange={(value) => updateField("firstNameEn", value)} />
+          <TextField label={labels.fatherNameEn} required={false} value={form.fatherNameEn} onChange={(value) => updateField("fatherNameEn", value)} />
+          <TextField label={labels.grandfatherNameEn} required={false} value={form.grandfatherNameEn} onChange={(value) => updateField("grandfatherNameEn", value)} />
+          <TextField label={labels.familyNameEn} required={false} value={form.familyNameEn} onChange={(value) => updateField("familyNameEn", value)} />
+        </FieldGroup>
+        <FieldGroup title={labels.arabicNameGroup}>
+          <TextField label={labels.firstNameAr} required={false} value={form.firstNameAr} onChange={(value) => updateField("firstNameAr", value)} />
+          <TextField label={labels.fatherNameAr} required={false} value={form.fatherNameAr} onChange={(value) => updateField("fatherNameAr", value)} />
+          <TextField label={labels.grandfatherNameAr} required={false} value={form.grandfatherNameAr} onChange={(value) => updateField("grandfatherNameAr", value)} />
+          <TextField label={labels.familyNameAr} required={false} value={form.familyNameAr} onChange={(value) => updateField("familyNameAr", value)} />
+        </FieldGroup>
         <TextField label={labels.dateOfBirth} type="date" value={form.dateOfBirth} onChange={(value) => updateField("dateOfBirth", value)} />
         <Select label={labels.gender} required value={form.gender} options={[{ value: "male", label: labels.male }, { value: "female", label: labels.female }]} onChange={(value) => updateField("gender", value)} />
         <TextField label={labels.nationality} value={form.nationality} onChange={(value) => updateField("nationality", value)} />
@@ -95,9 +105,9 @@ export default function RegistrationFields({
       </div>
 
       <FieldSection title={labels.enrollmentSection}>
-        <Select label={labels.grade} required value={form.gradeId} options={grades.map(namedOption)} onChange={(value) => { updateField("gradeId", value); updateField("sectionId", ""); updateField("classroomId", ""); }} />
-        <Select label={labels.section} required value={form.sectionId} options={visibleSections.map(namedOption)} onChange={(value) => { updateField("sectionId", value); updateField("classroomId", ""); }} />
-        <Select label={labels.classroom} required value={form.classroomId} options={visibleClassrooms.map(namedOption)} onChange={(value) => updateField("classroomId", value)} />
+        <Select label={labels.grade} required value={form.gradeId} options={grades.map((grade) => getLocalizedRegistrationOption(grade, locale))} onChange={(value) => { updateField("gradeId", value); updateField("sectionId", ""); updateField("classroomId", ""); }} />
+        <Select label={labels.section} required value={form.sectionId} options={visibleSections.map((section) => getLocalizedRegistrationOption(section, locale))} onChange={(value) => { updateField("sectionId", value); updateField("classroomId", ""); }} />
+        <Select label={labels.classroom} required value={form.classroomId} options={visibleClassrooms.map((classroom) => getLocalizedRegistrationOption(classroom, locale))} onChange={(value) => updateField("classroomId", value)} />
         <TextField label={labels.enrollmentDate} type="date" value={form.enrollmentDate} onChange={(value) => updateField("enrollmentDate", value)} />
       </FieldSection>
     </div>
@@ -167,8 +177,29 @@ function FieldSection({
   );
 }
 
-function namedOption(namedEntity: { id: string; nameEn?: string; nameAr?: string; name: string }) {
-  return { value: namedEntity.id, label: namedEntity.nameEn || namedEntity.nameAr || namedEntity.name };
+function FieldGroup({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="col-span-full space-y-3 rounded-lg border border-gray-100 bg-gray-50/60 p-3">
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-600">{title}</h4>
+      <div className="grid gap-4 md:grid-cols-2">{children}</div>
+    </div>
+  );
+}
+
+export function getLocalizedRegistrationOption(
+  namedEntity: { id: string; nameEn?: string; nameAr?: string; name: string },
+  locale: string,
+) {
+  const label = locale === "ar"
+    ? namedEntity.nameAr || namedEntity.nameEn || namedEntity.name
+    : namedEntity.nameEn || namedEntity.nameAr || namedEntity.name;
+  return { value: namedEntity.id, label };
 }
 
 function TextField({
@@ -184,12 +215,33 @@ function TextField({
   required?: boolean;
   onChange: (value: string) => void;
 }) {
+  if (type === "date") {
+    return (
+      <DatePicker
+        label={label}
+        required={required}
+        value={value ? new Date(`${value}T00:00:00`) : null}
+        onChange={(date) => onChange(date ? formatDateValue(date) : "")}
+      />
+    );
+  }
+
   return (
-    <label className="block text-sm font-medium text-gray-700">
-      {label}{required && <span className="text-red-500"> *</span>}
-      <input type={type} value={value} required={required} onChange={(event) => onChange(event.target.value)} className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-transparent focus:ring-2 focus:ring-primary" />
-    </label>
+    <Input
+      label={label}
+      type={type}
+      value={value}
+      required={required}
+      onChange={(event) => onChange(event.target.value)}
+    />
   );
+}
+
+function formatDateValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function CheckboxField({

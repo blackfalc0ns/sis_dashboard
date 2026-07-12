@@ -948,9 +948,7 @@ interface CreateAttendancePolicyBody {
   nameEn: string;
   descriptionAr?: string;
   descriptionEn?: string;
-  notes?: string;
-  notesAr?: string;
-  notesEn?: string;
+  note?: string;
 
   scopeType: AttendanceScopeType;
   scopeKey?: string;
@@ -1019,7 +1017,7 @@ interface AttendancePolicy {
   nameEn: string;
   descriptionAr: string | null;
   descriptionEn: string | null;
-  notes: string | null;
+  note: string | null;
   scopeType: AttendanceScopeType;
   scopeKey: string;
   scopeIds: { stageId: string | null; gradeId: string | null; sectionId: string | null; classroomId: string | null } | null;

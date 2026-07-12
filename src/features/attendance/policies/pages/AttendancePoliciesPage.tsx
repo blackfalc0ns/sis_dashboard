@@ -31,7 +31,11 @@ import {
   deletePolicy,
   isAttendancePolicyConflict,
 } from "../services/attendancePolicyService";
-import { computePolicyKpis, hasNotificationsEnabled, isPolicyConfigComplete } from "../utils/policyKpis";
+import {
+  computePolicyKpis,
+  hasNotificationsEnabled,
+  isPolicyConfigComplete,
+} from "../utils/policyKpis";
 import type { AttendancePolicy, PolicyFormData } from "../types";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import AttendanceReadOnlyBanner from "../../shared/components/AttendanceReadOnlyBanner";
@@ -54,11 +58,15 @@ export default function AttendancePoliciesPage() {
   // Policies data
   const [policies, setPolicies] = useState<AttendancePolicy[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [visiblePolicies, setVisiblePolicies] = useState<AttendancePolicy[]>([]);
+  const [visiblePolicies, setVisiblePolicies] = useState<AttendancePolicy[]>(
+    [],
+  );
   const [showExportModal, setShowExportModal] = useState(false);
 
   // Editor state
-  const [selectedPolicy, setSelectedPolicy] = useState<AttendancePolicy | null>(null);
+  const [selectedPolicy, setSelectedPolicy] = useState<AttendancePolicy | null>(
+    null,
+  );
   const [isEditorOpen, setIsEditorOpen] = useState(false);
 
   const isReadOnly = termContext.isReadOnly;
@@ -77,12 +85,15 @@ export default function AttendancePoliciesPage() {
   }, [termContext.terms, termContext.termId]);
 
   const selectedYearName =
-    ((locale === "ar"
-      ? termContext.academicYears.find((item) => item.id === termContext.yearId)?.nameAr
-      : termContext.academicYears.find((item) => item.id === termContext.yearId)?.nameEn) ||
-      termContext.academicYears.find((item) => item.id === termContext.yearId)?.nameEn ||
-      termContext.yearId ||
-      "");
+    (locale === "ar"
+      ? termContext.academicYears.find((item) => item.id === termContext.yearId)
+          ?.nameAr
+      : termContext.academicYears.find((item) => item.id === termContext.yearId)
+          ?.nameEn) ||
+    termContext.academicYears.find((item) => item.id === termContext.yearId)
+      ?.nameEn ||
+    termContext.yearId ||
+    "";
 
   const selectedTermName =
     (locale === "ar" ? term?.nameAr : term?.nameEn) ||
@@ -105,14 +116,20 @@ export default function AttendancePoliciesPage() {
     try {
       setIsLoading(true);
       // Load structure
-      const structure = await fetchStructureTree(termContext.yearId, termContext.termId);
+      const structure = await fetchStructureTree(
+        termContext.yearId,
+        termContext.termId,
+      );
       setStages(structure.stages);
       setGrades(structure.grades);
       setSections(structure.sections);
       setClassrooms(structure.classrooms);
 
       // Load policies
-      const policiesData = await fetchPolicies(termContext.yearId, termContext.termId);
+      const policiesData = await fetchPolicies(
+        termContext.yearId,
+        termContext.termId,
+      );
       setPolicies(policiesData);
     } catch (error) {
       console.error("Failed to load data:", error);
@@ -209,9 +226,15 @@ export default function AttendancePoliciesPage() {
         { key: "dailyComputationStrategy", label: "Daily Computation" },
         { key: "selectedPeriods", label: "Selected Periods" },
         { key: "lateThresholdMinutes", label: "Late Threshold (min)" },
-        { key: "earlyLeaveThresholdMinutes", label: "Early Leave Threshold (min)" },
+        {
+          key: "earlyLeaveThresholdMinutes",
+          label: "Early Leave Threshold (min)",
+        },
         { key: "autoAbsentAfterMinutes", label: "Auto Absent After (min)" },
-        { key: "absentIfMissedPeriodsCount", label: "Absent If Missed Periods" },
+        {
+          key: "absentIfMissedPeriodsCount",
+          label: "Absent If Missed Periods",
+        },
         { key: "allowExcuses", label: "Allow Excuses" },
         { key: "requireExcuseReason", label: "Require Reason" },
         { key: "requireAttachmentForExcuse", label: "Require Attachment" },
@@ -222,8 +245,7 @@ export default function AttendancePoliciesPage() {
         { key: "effectiveEndDate", label: "Effective End" },
         { key: "status", label: "Status" },
         { key: "isConfigComplete", label: "Configuration Complete" },
-        { key: "notesEn", label: "Notes (English)" },
-        { key: "notesAr", label: "Notes (Arabic)" },
+        { key: "notes", label: "Notes" },
         { key: "createdAt", label: "Created At" },
         { key: "updatedAt", label: "Updated At" },
       ];
@@ -237,12 +259,24 @@ export default function AttendancePoliciesPage() {
               { key: "scopeType", label: "نوع النطاق" },
               { key: "scopeName", label: "النطاق" },
               { key: "mode", label: "الوضع" },
-              { key: "dailyComputationStrategy", label: "استراتيجية الحساب اليومي" },
+              {
+                key: "dailyComputationStrategy",
+                label: "استراتيجية الحساب اليومي",
+              },
               { key: "selectedPeriods", label: "الحصص المحددة" },
               { key: "lateThresholdMinutes", label: "حد التأخير (دقيقة)" },
-              { key: "earlyLeaveThresholdMinutes", label: "حد المغادرة المبكرة (دقيقة)" },
-              { key: "autoAbsentAfterMinutes", label: "الغياب التلقائي بعد (دقيقة)" },
-              { key: "absentIfMissedPeriodsCount", label: "الغياب إذا فات عدد حصص" },
+              {
+                key: "earlyLeaveThresholdMinutes",
+                label: "حد المغادرة المبكرة (دقيقة)",
+              },
+              {
+                key: "autoAbsentAfterMinutes",
+                label: "الغياب التلقائي بعد (دقيقة)",
+              },
+              {
+                key: "absentIfMissedPeriodsCount",
+                label: "الغياب إذا فات عدد حصص",
+              },
               { key: "allowExcuses", label: "السماح بالأعذار" },
               { key: "requireExcuseReason", label: "يتطلب سببًا" },
               { key: "requireAttachmentForExcuse", label: "يتطلب مرفقًا" },
@@ -253,8 +287,7 @@ export default function AttendancePoliciesPage() {
               { key: "effectiveEndDate", label: "تاريخ الانتهاء" },
               { key: "status", label: "الحالة" },
               { key: "isConfigComplete", label: "الإعداد مكتمل" },
-              { key: "notesEn", label: "ملاحظات (بالإنجليزية)" },
-              { key: "notesAr", label: "ملاحظات (بالعربية)" },
+              { key: "notes", label: "ملاحظة" },
               { key: "createdAt", label: "تاريخ الإنشاء" },
               { key: "updatedAt", label: "آخر تحديث" },
             ]
@@ -274,16 +307,32 @@ export default function AttendancePoliciesPage() {
           .map((id) => getPeriodDisplayLabel(id))
           .join(", ");
         const recipients = [
-          policy.notifyTeachers ? (locale === "ar" ? "المعلمون" : "Teachers") : null,
-          policy.notifyStudents ? (locale === "ar" ? "الطلاب" : "Students") : null,
-          policy.notifyGuardians ? (locale === "ar" ? "أولياء الأمور" : "Guardians") : null,
+          policy.notifyTeachers
+            ? locale === "ar"
+              ? "المعلمون"
+              : "Teachers"
+            : null,
+          policy.notifyStudents
+            ? locale === "ar"
+              ? "الطلاب"
+              : "Students"
+            : null,
+          policy.notifyGuardians
+            ? locale === "ar"
+              ? "أولياء الأمور"
+              : "Guardians"
+            : null,
         ]
           .filter(Boolean)
           .join(", ");
         const triggers = [
           policy.notifyOnAbsent ? (locale === "ar" ? "غياب" : "Absent") : null,
           policy.notifyOnLate ? (locale === "ar" ? "تأخر" : "Late") : null,
-          policy.notifyOnEarlyLeave ? (locale === "ar" ? "مغادرة مبكرة" : "Early Leave") : null,
+          policy.notifyOnEarlyLeave
+            ? locale === "ar"
+              ? "مغادرة مبكرة"
+              : "Early Leave"
+            : null,
         ]
           .filter(Boolean)
           .join(", ");
@@ -294,10 +343,7 @@ export default function AttendancePoliciesPage() {
           nameAr: policy.nameAr,
           scopeType: t(`scopeType.${policy.scopeType.toLowerCase()}`),
           scopeName,
-          mode:
-            policy.mode === "DAILY"
-              ? t("form.daily")
-              : t("form.period"),
+          mode: policy.mode === "DAILY" ? t("form.daily") : t("form.period"),
           dailyComputationStrategy:
             policy.dailyComputationStrategy === "MANUAL"
               ? t("wizard.computation.manual")
@@ -310,17 +356,24 @@ export default function AttendancePoliciesPage() {
           autoAbsentAfterMinutes: policy.autoAbsentAfterMinutes ?? "",
           absentIfMissedPeriodsCount: policy.absentIfMissedPeriodsCount ?? "",
           allowExcuses: policy.allowExcuses ? tCommon("yes") : tCommon("no"),
-          requireExcuseReason: policy.requireExcuseReason ? tCommon("yes") : tCommon("no"),
-          requireAttachmentForExcuse: policy.requireAttachmentForExcuse ? tCommon("yes") : tCommon("no"),
-          notificationsEnabled: hasNotificationsEnabled(policy) ? tCommon("yes") : tCommon("no"),
+          requireExcuseReason: policy.requireExcuseReason
+            ? tCommon("yes")
+            : tCommon("no"),
+          requireAttachmentForExcuse: policy.requireAttachmentForExcuse
+            ? tCommon("yes")
+            : tCommon("no"),
+          notificationsEnabled: hasNotificationsEnabled(policy)
+            ? tCommon("yes")
+            : tCommon("no"),
           notificationRecipients: recipients,
           notificationTriggers: triggers,
           effectiveStartDate: policy.effectiveStartDate,
           effectiveEndDate: policy.effectiveEndDate,
           status: policy.isActive ? t("active") : t("inactive"),
-          isConfigComplete: isPolicyConfigComplete(policy) ? tCommon("yes") : tCommon("no"),
-          notesEn: policy.notesEn || "",
-          notesAr: policy.notesAr || "",
+          isConfigComplete: isPolicyConfigComplete(policy)
+            ? tCommon("yes")
+            : tCommon("no"),
+          notes: policy.notes || "",
           createdAt: policy.createdAt,
           updatedAt: policy.updatedAt,
         };
@@ -334,7 +387,10 @@ export default function AttendancePoliciesPage() {
           viewName: t("policiesList"),
           exportDate: formatAttendanceExportDate(locale === "ar" ? "ar" : "en"),
         },
-        filename: generateAttendanceExportFilename("attendance-policies", termContext.termId || undefined),
+        filename: generateAttendanceExportFilename(
+          "attendance-policies",
+          termContext.termId || undefined,
+        ),
         format,
         columns: localizedColumns,
         rows,
@@ -342,7 +398,9 @@ export default function AttendancePoliciesPage() {
           title: "Attendance Policies",
           metadata: {
             yearName:
-              termContext.academicYears.find((item) => item.id === termContext.yearId)?.nameEn ||
+              termContext.academicYears.find(
+                (item) => item.id === termContext.yearId,
+              )?.nameEn ||
               termContext.yearId ||
               "",
             termName: term?.nameEn || term?.name || "",
@@ -357,8 +415,7 @@ export default function AttendancePoliciesPage() {
             nameAr: policy.nameAr,
             descriptionEn: policy.descriptionEn || "",
             descriptionAr: policy.descriptionAr || "",
-            notesEn: policy.notesEn || "",
-            notesAr: policy.notesAr || "",
+            notes: policy.notes || "",
             scopeType: policy.scopeType,
             scopeIds: policy.scopeIds || null,
             scopeName: getAttendanceScopeLabel({
@@ -376,7 +433,8 @@ export default function AttendancePoliciesPage() {
             lateThresholdMinutes: policy.lateThresholdMinutes,
             earlyLeaveThresholdMinutes: policy.earlyLeaveThresholdMinutes,
             autoAbsentAfterMinutes: policy.autoAbsentAfterMinutes ?? null,
-            absentIfMissedPeriodsCount: policy.absentIfMissedPeriodsCount ?? null,
+            absentIfMissedPeriodsCount:
+              policy.absentIfMissedPeriodsCount ?? null,
             allowExcuses: policy.allowExcuses,
             requireExcuseReason: policy.requireExcuseReason,
             requireAttachmentForExcuse: policy.requireAttachmentForExcuse,

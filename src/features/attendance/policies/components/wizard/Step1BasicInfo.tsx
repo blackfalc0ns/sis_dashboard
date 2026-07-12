@@ -13,7 +13,7 @@ interface Step1BasicInfoProps {
   nameValidationError?: string;
   onFieldChange: <K extends keyof PolicyFormData>(
     field: K,
-    value: PolicyFormData[K]
+    value: PolicyFormData[K],
   ) => void;
   onNameBlur: () => void;
   onRetryNameValidation: () => void;
@@ -59,17 +59,27 @@ export default function Step1BasicInfo({
       />
 
       {nameValidationStatus === "checking" && (
-        <div className="flex items-center gap-2 text-sm text-gray-600" role="status" aria-live="polite">
+        <div
+          className="flex items-center gap-2 text-sm text-gray-600"
+          role="status"
+          aria-live="polite"
+        >
           <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
           {t("nameValidation.checking")}
         </div>
       )}
 
-      {nameValidationStatus === "success" && !errors.nameAr && !errors.nameEn && (
-        <div className="text-sm text-green-700" role="status" aria-live="polite">
-          {t("nameValidation.available")}
-        </div>
-      )}
+      {nameValidationStatus === "success" &&
+        !errors.nameAr &&
+        !errors.nameEn && (
+          <div
+            className="text-sm text-green-700"
+            role="status"
+            aria-live="polite"
+          >
+            {t("nameValidation.available")}
+          </div>
+        )}
 
       {nameValidationStatus === "error" && nameValidationError && (
         <div
@@ -126,32 +136,13 @@ export default function Step1BasicInfo({
         <label className="block text-sm font-medium text-gray-700">
           {t("fields.notes")}
         </label>
-        <div className="space-y-2">
-          <div>
-            <label className="block text-xs text-gray-600 mb-1">
-              {t("fields.notes")} (عربي)
-            </label>
-            <textarea
-              value={formData.notesAr || ""}
-              onChange={(e) => onFieldChange("notesAr", e.target.value)}
-              disabled={isReadOnly}
-              rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-600 mb-1">
-              {t("fields.notes")} (English)
-            </label>
-            <textarea
-              value={formData.notesEn || ""}
-              onChange={(e) => onFieldChange("notesEn", e.target.value)}
-              disabled={isReadOnly}
-              rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-            />
-          </div>
-        </div>
+        <textarea
+          value={formData.notes || ""}
+          onChange={(e) => onFieldChange("notes", e.target.value)}
+          disabled={isReadOnly}
+          rows={3}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+        />
       </div>
 
       {/* Active Status */}

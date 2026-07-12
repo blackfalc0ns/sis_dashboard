@@ -52,13 +52,17 @@ export default function ApplicationRegistrationWizard(props: ApplicationRegistra
   };
 
   const handoff = registration.context?.handoff;
-  const messages = [
-    ...(handoff?.warnings ?? []),
-    ...(handoff?.missingRequiredForRegistration ?? []),
-  ];
   const validationMessages = registration.isLoading
     ? []
     : registration.validationIssues.map((issue) => t(`validation.${issue}`));
+  const messages = [
+    ...(handoff?.warnings ?? []),
+    ...(handoff?.missingRequiredForRegistration ?? []),
+  ]
+    .map((message) => translateRegistrationMessage(message, t))
+    .filter((message, index, allMessages) =>
+      allMessages.indexOf(message) === index && !validationMessages.includes(message),
+    );
   return (
     <Modal
       isOpen={isOpen}
@@ -108,6 +112,9 @@ export default function ApplicationRegistrationWizard(props: ApplicationRegistra
             contactSection: t("contact_section"),
             guardiansSection: t("guardians_section"),
             enrollmentSection: t("enrollment_section"),
+            fullNameGroup: t("full_name_group"),
+            englishNameGroup: t("english_name_group"),
+            arabicNameGroup: t("arabic_name_group"),
             fullNameEn: t("full_name_en"),
             fullNameAr: t("full_name_ar"),
             firstNameEn: t("first_name_en"),
@@ -180,6 +187,23 @@ function MessageList({ messages }: { messages: string[] }) {
       {messages.map((message) => <p key={message}>• {message}</p>)}
     </div>
   );
+}
+
+type RegistrationMessageTranslator = (key: string) => string;
+
+export function translateRegistrationMessage(
+  message: string,
+  translate: RegistrationMessageTranslator,
+): string {
+  if (message === "guardian.source_missing" || message.startsWith("guardian[")) {
+    if (message.includes("full_name")) return translate("validation.guardian_name_required");
+    if (message.includes("relation")) return translate("validation.guardian_relation_required");
+    if (message.includes("phone_primary")) return translate("validation.guardian_phone_required");
+    return translate("validation.guardian_required");
+  }
+  if (message.includes("classroomId")) return translate("validation.classroom_required");
+  if (message.includes("enrollmentDate")) return translate("validation.enrollment_date_required");
+  return translate("validation.registration_incomplete");
 }
 
 function translateError(

@@ -69,7 +69,8 @@ export default function PolicyWizardDialog({
   const [isDirty, setIsDirty] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [nameValidationStatus, setNameValidationStatus] = useState<NameValidationStatus>("idle");
+  const [nameValidationStatus, setNameValidationStatus] =
+    useState<NameValidationStatus>("idle");
   const nameValidationRequestId = useRef(0);
 
   // Form data
@@ -80,8 +81,7 @@ export default function PolicyWizardDialog({
     nameEn: policy?.nameEn || "",
     descriptionAr: policy?.descriptionAr || "",
     descriptionEn: policy?.descriptionEn || "",
-    notesAr: policy?.notesAr || "",
-    notesEn: policy?.notesEn || "",
+    notes: policy?.notes || "",
     scopeType: policy?.scopeType || "SCHOOL",
     scopeIds: policy?.scopeIds || {},
     mode: policy?.mode || "DAILY",
@@ -106,15 +106,17 @@ export default function PolicyWizardDialog({
   });
 
   // Available periods from timetable config
-  const [availablePeriods, setAvailablePeriods] = useState<TimetablePeriod[]>([]);
+  const [availablePeriods, setAvailablePeriods] = useState<TimetablePeriod[]>(
+    [],
+  );
   const [isLoadingPeriods, setIsLoadingPeriods] = useState(false);
 
   const getDefaultPeriodIds = (periods: TimetablePeriod[]) =>
     periods.length >= 2
       ? [periods[0].id, periods[1].id]
       : periods.length === 1
-      ? [periods[0].id]
-      : [];
+        ? [periods[0].id]
+        : [];
 
   // Reset form when dialog opens/closes or policy changes
   useEffect(() => {
@@ -126,8 +128,7 @@ export default function PolicyWizardDialog({
         nameEn: policy.nameEn,
         descriptionAr: policy.descriptionAr || "",
         descriptionEn: policy.descriptionEn || "",
-        notesAr: policy.notesAr || "",
-        notesEn: policy.notesEn || "",
+        notes: policy.notes || "",
         scopeType: policy.scopeType,
         scopeIds: policy.scopeIds || {},
         mode: policy.mode,
@@ -163,8 +164,7 @@ export default function PolicyWizardDialog({
         nameEn: "",
         descriptionAr: "",
         descriptionEn: "",
-        notesAr: "",
-        notesEn: "",
+        notes: "",
         scopeType: "SCHOOL",
         scopeIds: {},
         mode: "DAILY",
@@ -196,7 +196,8 @@ export default function PolicyWizardDialog({
   }, [isOpen, policy, term]);
 
   useEffect(() => {
-    if (!isOpen || formData.mode !== "PERIOD" || availablePeriods.length === 0) return;
+    if (!isOpen || formData.mode !== "PERIOD" || availablePeriods.length === 0)
+      return;
 
     setFormData((prev) => {
       const selectedPeriodIds = prev.selectedPeriodIds || [];
@@ -204,12 +205,18 @@ export default function PolicyWizardDialog({
         const match = id.match(/^period-(\d+)$/);
         if (!match) return id;
 
-        const period = availablePeriods.find((item) => item.index === Number(match[1]));
+        const period = availablePeriods.find(
+          (item) => item.index === Number(match[1]),
+        );
         return period?.id || id;
       });
 
       const nextPeriodIds =
-        migratedPeriodIds.length > 0 ? migratedPeriodIds : policy ? migratedPeriodIds : getDefaultPeriodIds(availablePeriods);
+        migratedPeriodIds.length > 0
+          ? migratedPeriodIds
+          : policy
+            ? migratedPeriodIds
+            : getDefaultPeriodIds(availablePeriods);
 
       if (
         nextPeriodIds.length === selectedPeriodIds.length &&
@@ -221,7 +228,8 @@ export default function PolicyWizardDialog({
       return {
         ...prev,
         selectedPeriodIds: nextPeriodIds,
-        absentIfMissedPeriodsCount: prev.absentIfMissedPeriodsCount || nextPeriodIds.length || 1,
+        absentIfMissedPeriodsCount:
+          prev.absentIfMissedPeriodsCount || nextPeriodIds.length || 1,
       };
     });
   }, [isOpen, policy, availablePeriods, formData.mode]);
@@ -250,22 +258,29 @@ export default function PolicyWizardDialog({
 
     setIsLoadingPeriods(true);
     try {
-      const targetId = formData.scopeType === "GRADE"
-        ? formData.scopeIds?.gradeId
-        : formData.scopeType === "SECTION"
-          ? formData.scopeIds?.sectionId
-          : formData.scopeType === "CLASSROOM"
-            ? formData.scopeIds?.classroomId
-            : undefined;
+      const targetId =
+        formData.scopeType === "GRADE"
+          ? formData.scopeIds?.gradeId
+          : formData.scopeType === "SECTION"
+            ? formData.scopeIds?.sectionId
+            : formData.scopeType === "CLASSROOM"
+              ? formData.scopeIds?.classroomId
+              : undefined;
 
       // Load only the selected policy target. TERM/STAGE/SCHOOL configs are
       // not valid timetable lookup targets on the current backend contract.
-      if (!targetId || !["GRADE", "SECTION", "CLASSROOM"].includes(formData.scopeType)) {
+      if (
+        !targetId ||
+        !["GRADE", "SECTION", "CLASSROOM"].includes(formData.scopeType)
+      ) {
         setAvailablePeriods([]);
         return;
       }
 
-      const targetScopeType = formData.scopeType as "GRADE" | "SECTION" | "CLASSROOM";
+      const targetScopeType = formData.scopeType as
+        | "GRADE"
+        | "SECTION"
+        | "CLASSROOM";
 
       const targetConfig = await fetchTimetableConfig({
         academicYearId: formData.yearId || term.yearId,
@@ -289,11 +304,20 @@ export default function PolicyWizardDialog({
 
   const handleFieldChange = (
     field: keyof PolicyFormData,
-    value: PolicyFormData[keyof PolicyFormData]
+    value: PolicyFormData[keyof PolicyFormData],
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setIsDirty(true);
-    if (["yearId", "termId", "nameAr", "nameEn", "scopeType", "scopeIds"].includes(field)) {
+    if (
+      [
+        "yearId",
+        "termId",
+        "nameAr",
+        "nameEn",
+        "scopeType",
+        "scopeIds",
+      ].includes(field)
+    ) {
       nameValidationRequestId.current += 1;
       setNameValidationStatus("idle");
     }
@@ -314,18 +338,26 @@ export default function PolicyWizardDialog({
     }
   };
 
-  const applyNameValidationResponse = (validationResponse: PolicyNameValidationResult) => {
+  const applyNameValidationResponse = (
+    validationResponse: PolicyNameValidationResult,
+  ) => {
     setErrors((current) => {
       const next = { ...current };
       delete next.nameAr;
       delete next.nameEn;
       delete next.nameValidation;
-      if (!validationResponse.uniqueAr) next.nameAr = tValidation("uniqueNameAr");
-      if (!validationResponse.uniqueEn) next.nameEn = tValidation("uniqueNameEn");
+      if (!validationResponse.uniqueAr)
+        next.nameAr = tValidation("uniqueNameAr");
+      if (!validationResponse.uniqueEn)
+        next.nameEn = tValidation("uniqueNameEn");
       return next;
     });
     setNameValidationStatus("success");
-    return validationResponse.available && validationResponse.uniqueAr && validationResponse.uniqueEn;
+    return (
+      validationResponse.available &&
+      validationResponse.uniqueAr &&
+      validationResponse.uniqueEn
+    );
   };
 
   const runNameValidation = async (): Promise<boolean> => {
@@ -375,15 +407,20 @@ export default function PolicyWizardDialog({
       if (!formData.nameEn.trim()) {
         newErrors.nameEn = tValidation("nameEnRequired");
       }
-
     } else if (step === 1) {
       // Step 2: Scope
-      for (const field of getScopeSelectionMissingFields(formData.scopeType, formData.scopeIds)) {
+      for (const field of getScopeSelectionMissingFields(
+        formData.scopeType,
+        formData.scopeIds,
+      )) {
         newErrors[field] = tValidation("required");
       }
     } else if (step === 2 && formData.mode === "PERIOD") {
       // Step 3: Period Selection (always required now)
-      if (!formData.selectedPeriodIds || formData.selectedPeriodIds.length === 0) {
+      if (
+        !formData.selectedPeriodIds ||
+        formData.selectedPeriodIds.length === 0
+      ) {
         newErrors.selectedPeriodIds = tValidation("periodsRequired");
       }
     } else if (step === 3) {
@@ -394,12 +431,13 @@ export default function PolicyWizardDialog({
       if (formData.earlyLeaveThresholdMinutes < 0) {
         newErrors.earlyLeaveThresholdMinutes = tValidation("nonNegative");
       }
-      
+
       // Validate absentIfMissedPeriodsCount (required now)
-      if (formData.mode === "PERIOD" && (
-        formData.absentIfMissedPeriodsCount === undefined ||
-        formData.absentIfMissedPeriodsCount < 1
-      )) {
+      if (
+        formData.mode === "PERIOD" &&
+        (formData.absentIfMissedPeriodsCount === undefined ||
+          formData.absentIfMissedPeriodsCount < 1)
+      ) {
         newErrors.absentIfMissedPeriodsCount = tValidation("thresholdRequired");
       } else if (
         formData.mode === "PERIOD" &&
@@ -407,11 +445,13 @@ export default function PolicyWizardDialog({
         formData.selectedPeriodIds &&
         formData.absentIfMissedPeriodsCount > formData.selectedPeriodIds.length
       ) {
-        newErrors.absentIfMissedPeriodsCount = tValidation("thresholdOutOfRange", {
-          max: formData.selectedPeriodIds.length,
-        });
+        newErrors.absentIfMissedPeriodsCount = tValidation(
+          "thresholdOutOfRange",
+          {
+            max: formData.selectedPeriodIds.length,
+          },
+        );
       }
-      
     } else if (step === 4) {
       // Step 5: Dates & Review
       if (!formData.effectiveStartDate) {
@@ -503,7 +543,10 @@ export default function PolicyWizardDialog({
   };
 
   const steps = [
-    { title: t("steps.basicInfo.title"), subtitle: t("steps.basicInfo.subtitle") },
+    {
+      title: t("steps.basicInfo.title"),
+      subtitle: t("steps.basicInfo.subtitle"),
+    },
     { title: t("steps.scope.title"), subtitle: t("steps.scope.subtitle") },
     { title: t("steps.mode.title"), subtitle: t("steps.mode.subtitle") },
     { title: t("steps.rules.title"), subtitle: t("steps.rules.subtitle") },
@@ -525,7 +568,9 @@ export default function PolicyWizardDialog({
 
   const filteredClassrooms = useMemo(() => {
     if (!formData.scopeIds?.sectionId) return classrooms;
-    return classrooms.filter((item) => item.sectionId === formData.scopeIds?.sectionId);
+    return classrooms.filter(
+      (item) => item.sectionId === formData.scopeIds?.sectionId,
+    );
   }, [classrooms, formData.scopeIds?.sectionId]);
 
   return (
@@ -551,7 +596,9 @@ export default function PolicyWizardDialog({
                   onClick={handleNext}
                   variant="primary"
                   disabled={nameValidationStatus === "checking"}
-                  loading={activeStep === 0 && nameValidationStatus === "checking"}
+                  loading={
+                    activeStep === 0 && nameValidationStatus === "checking"
+                  }
                 >
                   {t("next")}
                 </Button>
@@ -572,7 +619,11 @@ export default function PolicyWizardDialog({
       >
         <div className="max-w-4xl mx-auto">
           {/* Stepper */}
-          <WizardStepper steps={steps} activeStep={activeStep} locale={locale} />
+          <WizardStepper
+            steps={steps}
+            activeStep={activeStep}
+            locale={locale}
+          />
 
           {/* Step Content */}
           <div className="min-h-[400px] py-6">

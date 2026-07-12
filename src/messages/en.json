@@ -1644,6 +1644,9 @@
         "contact_section": "Student contact",
         "guardians_section": "Guardians",
         "enrollment_section": "Enrollment",
+        "full_name_group": "Full names",
+        "english_name_group": "English name parts",
+        "arabic_name_group": "Arabic name parts",
         "full_name_en": "Full name (English)",
         "full_name_ar": "Full name (Arabic)",
         "first_name_en": "First name (English)",
@@ -1707,7 +1710,8 @@
           "section_required": "Section is required.",
           "classroom_required": "Classroom is required.",
           "enrollment_date_required": "Enrollment date is required.",
-          "enrollment_date_invalid": "Enrollment date must be a valid YYYY-MM-DD date."
+          "enrollment_date_invalid": "Enrollment date must be a valid YYYY-MM-DD date.",
+          "registration_incomplete": "Some registration fields are incomplete. Please review the form."
         }
       }
     },

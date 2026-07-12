@@ -1,4 +1,9 @@
-export type AttendanceScopeType = "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSROOM";
+export type AttendanceScopeType =
+  | "SCHOOL"
+  | "STAGE"
+  | "GRADE"
+  | "SECTION"
+  | "CLASSROOM";
 export type AttendanceMode = "DAILY" | "PERIOD";
 export type DailyComputationStrategy = "MANUAL" | "DERIVED_FROM_PERIODS";
 
@@ -10,8 +15,7 @@ export interface AttendancePolicy {
   nameEn: string;
   descriptionAr?: string;
   descriptionEn?: string;
-  notesAr?: string;
-  notesEn?: string;
+  notes?: string;
   scopeType: AttendanceScopeType;
   scopeIds?: {
     stageId?: string;
@@ -42,7 +46,10 @@ export interface AttendancePolicy {
   updatedAt: string;
 }
 
-export type PolicyFormData = Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">;
+export type PolicyFormData = Omit<
+  AttendancePolicy,
+  "id" | "createdAt" | "updatedAt"
+>;
 
 export interface PolicyConflict {
   policyId: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Modal } from "@/components/ui/modal";
 import Select from "@/components/ui/input/Select";
 import { fetchAdmissionsDocumentRequirements } from "@/features/settings/services/settingsService";
@@ -37,6 +37,7 @@ export default function ApplicationCreateStepper({
   onSubmit,
 }: ApplicationCreateStepperProps) {
   const t = useTranslations("admissions.create_application");
+  const locale = useLocale();
   const { yearId, termId } = useAdmissionsYearTermContext();
   const [form, setForm] = useState<IntakeFormState>({
     studentName: lead?.studentName || "",
@@ -159,7 +160,7 @@ export default function ApplicationCreateStepper({
           label={t("student.grade_requested")}
           required
           value={form.gradeId}
-          options={grades.map(namedOption)}
+          options={grades.map((grade) => getLocalizedGradeOption(grade, locale))}
           onChange={(gradeId) => setForm((current) => ({ ...current, gradeId }))}
         />
         <DocumentInputs
@@ -312,6 +313,12 @@ function findLeadGradeId(grades: Grade[], gradeInterest?: string): string {
   );
 }
 
-function namedOption(namedEntity: { id: string; nameEn?: string; nameAr?: string; name: string }) {
-  return { value: namedEntity.id, label: namedEntity.nameEn || namedEntity.nameAr || namedEntity.name };
+export function getLocalizedGradeOption(
+  grade: { id: string; nameEn?: string; nameAr?: string; name: string },
+  locale: string,
+) {
+  const label = locale === "ar"
+    ? grade.nameAr || grade.nameEn || grade.name
+    : grade.nameEn || grade.nameAr || grade.name;
+  return { value: grade.id, label };
 }

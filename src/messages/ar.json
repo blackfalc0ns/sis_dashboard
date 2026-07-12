@@ -1644,6 +1644,9 @@
         "contact_section": "بيانات التواصل",
         "guardians_section": "أولياء الأمور",
         "enrollment_section": "بيانات التسجيل",
+        "full_name_group": "الأسماء الكاملة",
+        "english_name_group": "أجزاء الاسم بالإنجليزية",
+        "arabic_name_group": "أجزاء الاسم بالعربية",
         "full_name_en": "الاسم الكامل بالإنجليزية",
         "full_name_ar": "الاسم الكامل بالعربية",
         "first_name_en": "الاسم الأول بالإنجليزية",
@@ -1707,7 +1710,8 @@
           "section_required": "الشعبة مطلوبة.",
           "classroom_required": "الفصل مطلوب.",
           "enrollment_date_required": "تاريخ التسجيل مطلوب.",
-          "enrollment_date_invalid": "يجب أن يكون تاريخ التسجيل بصيغة YYYY-MM-DD صحيحة."
+          "enrollment_date_invalid": "يجب أن يكون تاريخ التسجيل بصيغة YYYY-MM-DD صحيحة.",
+          "registration_incomplete": "بعض حقول التسجيل غير مكتملة. يرجى مراجعة النموذج."
         }
       }
     },

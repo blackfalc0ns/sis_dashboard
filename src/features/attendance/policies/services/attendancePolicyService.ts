@@ -4,9 +4,7 @@ import type { AttendancePolicy, AttendanceScopeType } from "../types";
 import { migratePeriodIds } from "@/features/academics/timetable/types/timetableConfig";
 import { fetchTimetableConfigs } from "@/features/academics/timetable/services/timetableConfigService";
 import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
-import {
-  type AttendanceScopeIds,
-} from "@/features/attendance/shared/attendanceScope";
+import { type AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
 
 type BackendRecord = Record<string, unknown>;
 
@@ -57,7 +55,8 @@ function unwrapPolicy(response: unknown): BackendRecord {
   const object = asRecord(response);
   for (const key of ["policy", "data"]) {
     const nested = object[key];
-    if (nested && typeof nested === "object" && !Array.isArray(nested)) return nested as BackendRecord;
+    if (nested && typeof nested === "object" && !Array.isArray(nested))
+      return nested as BackendRecord;
   }
   return object;
 }
@@ -112,21 +111,44 @@ function stripScopeKeyPrefix(scopeKey: string) {
   return separatorIndex === -1 ? scopeKey : scopeKey.slice(separatorIndex + 1);
 }
 
-function resolveScopeIds(scopeType: AttendanceScopeType, object: BackendRecord): AttendanceScopeIds | undefined {
-  const nested = object.scopeIds && typeof object.scopeIds === "object" ? (object.scopeIds as AttendanceScopeIds) : {};
+function resolveScopeIds(
+  scopeType: AttendanceScopeType,
+  object: BackendRecord,
+): AttendanceScopeIds | undefined {
+  const nested =
+    object.scopeIds && typeof object.scopeIds === "object"
+      ? (object.scopeIds as AttendanceScopeIds)
+      : {};
   const scopeKey = getOptionalString(object, ["scopeKey", "scopeId"]);
-  const scopeId = scopeKey && scopeKey !== "school" ? stripScopeKeyPrefix(scopeKey) : undefined;
+  const scopeId =
+    scopeKey && scopeKey !== "school"
+      ? stripScopeKeyPrefix(scopeKey)
+      : undefined;
   return {
     ...nested,
-    stageId: getOptionalString(object, ["stageId"]) || nested.stageId || (scopeType === "STAGE" ? scopeId : undefined),
-    gradeId: getOptionalString(object, ["gradeId"]) || nested.gradeId || (scopeType === "GRADE" ? scopeId : undefined),
-    sectionId: getOptionalString(object, ["sectionId"]) || nested.sectionId || (scopeType === "SECTION" ? scopeId : undefined),
+    stageId:
+      getOptionalString(object, ["stageId"]) ||
+      nested.stageId ||
+      (scopeType === "STAGE" ? scopeId : undefined),
+    gradeId:
+      getOptionalString(object, ["gradeId"]) ||
+      nested.gradeId ||
+      (scopeType === "GRADE" ? scopeId : undefined),
+    sectionId:
+      getOptionalString(object, ["sectionId"]) ||
+      nested.sectionId ||
+      (scopeType === "SECTION" ? scopeId : undefined),
     classroomId:
-      getOptionalString(object, ["classroomId"]) || nested.classroomId || (scopeType === "CLASSROOM" ? scopeId : undefined),
+      getOptionalString(object, ["classroomId"]) ||
+      nested.classroomId ||
+      (scopeType === "CLASSROOM" ? scopeId : undefined),
   };
 }
 
-function buildScopeParams(scopeType: AttendanceScopeType, scopeIds?: AttendanceScopeIds) {
+function buildScopeParams(
+  scopeType: AttendanceScopeType,
+  scopeIds?: AttendanceScopeIds,
+) {
   const params: Record<string, string> = {};
   if (scopeIds?.stageId) params.stageId = scopeIds.stageId;
   if (scopeIds?.gradeId) params.gradeId = scopeIds.gradeId;
@@ -135,19 +157,32 @@ function buildScopeParams(scopeType: AttendanceScopeType, scopeIds?: AttendanceS
   return params;
 }
 
-function compactPayload<T extends Record<string, unknown>>(payload: T): Partial<T> {
-  return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined)) as Partial<T>;
+function compactPayload<T extends Record<string, unknown>>(
+  payload: T,
+): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined),
+  ) as Partial<T>;
 }
 
-function mapPolicy(item: unknown, fallback?: { yearId?: string; termId?: string }): AttendancePolicy {
+function mapPolicy(
+  item: unknown,
+  fallback?: { yearId?: string; termId?: string },
+): AttendancePolicy {
   const object = unwrapPolicy(item);
   const id = getString(object, ["id"]);
-  const yearId = getString(object, ["yearId", "academicYearId"], fallback?.yearId || "");
+  const yearId = getString(
+    object,
+    ["yearId", "academicYearId"],
+    fallback?.yearId || "",
+  );
   const termId = getString(object, ["termId"], fallback?.termId || "");
   if (!id || !yearId || !termId) {
     throw new Error("Invalid attendance policy response");
   }
-  const scopeType = String(object.scopeType || "SCHOOL").toUpperCase() as AttendanceScopeType;
+  const scopeType = String(
+    object.scopeType || "SCHOOL",
+  ).toUpperCase() as AttendanceScopeType;
   return {
     id,
     yearId,
@@ -156,27 +191,55 @@ function mapPolicy(item: unknown, fallback?: { yearId?: string; termId?: string 
     nameEn: getString(object, ["nameEn"]),
     descriptionAr: getOptionalString(object, ["descriptionAr"]),
     descriptionEn: getOptionalString(object, ["descriptionEn"]),
-    notesAr: getOptionalString(object, ["notesAr", "notes"]),
-    notesEn: getOptionalString(object, ["notesEn", "notes"]),
+    notes: getOptionalString(object, ["notes"]),
     scopeType,
     scopeIds: resolveScopeIds(scopeType, object),
-    mode: String(object.mode || "DAILY").toUpperCase() as AttendancePolicy["mode"],
-    dailyComputationStrategy: getOptionalString(object, ["dailyComputationStrategy"]) as AttendancePolicy["dailyComputationStrategy"],
-    selectedPeriodIds: Array.isArray(object.selectedPeriodIds) ? (object.selectedPeriodIds as string[]) : [],
+    mode: String(
+      object.mode || "DAILY",
+    ).toUpperCase() as AttendancePolicy["mode"],
+    dailyComputationStrategy: getOptionalString(object, [
+      "dailyComputationStrategy",
+    ]) as AttendancePolicy["dailyComputationStrategy"],
+    selectedPeriodIds: Array.isArray(object.selectedPeriodIds)
+      ? (object.selectedPeriodIds as string[])
+      : [],
     lateThresholdMinutes: getNumber(object, ["lateThresholdMinutes"], 0),
-    earlyLeaveThresholdMinutes: getNumber(object, ["earlyLeaveThresholdMinutes"], 0),
-    autoAbsentAfterMinutes: getOptionalNumber(object, ["autoAbsentAfterMinutes"]),
-    absentIfMissedPeriodsCount: getOptionalNumber(object, ["absentIfMissedPeriodsCount"]),
-    allowExcuses: getBoolean(object, ["allowExcuses", "allowParentExcuseRequests"], true),
+    earlyLeaveThresholdMinutes: getNumber(
+      object,
+      ["earlyLeaveThresholdMinutes"],
+      0,
+    ),
+    autoAbsentAfterMinutes: getOptionalNumber(object, [
+      "autoAbsentAfterMinutes",
+    ]),
+    absentIfMissedPeriodsCount: getOptionalNumber(object, [
+      "absentIfMissedPeriodsCount",
+    ]),
+    allowExcuses: getBoolean(
+      object,
+      ["allowExcuses", "allowParentExcuseRequests"],
+      true,
+    ),
     requireExcuseReason: getBoolean(object, ["requireExcuseReason"], false),
-    requireAttachmentForExcuse: getBoolean(object, ["requireAttachmentForExcuse", "requireExcuseAttachment"], false),
+    requireAttachmentForExcuse: getBoolean(
+      object,
+      ["requireAttachmentForExcuse", "requireExcuseAttachment"],
+      false,
+    ),
     notifyTeachers: getBoolean(object, ["notifyTeachers"], false),
     notifyStudents: getBoolean(object, ["notifyStudents"], false),
-    notifyGuardians: getBoolean(object, ["notifyGuardians", "notifyGuardiansOnAbsence"], false),
+    notifyGuardians: getBoolean(
+      object,
+      ["notifyGuardians", "notifyGuardiansOnAbsence"],
+      false,
+    ),
     notifyOnAbsent: getBoolean(object, ["notifyOnAbsent"], false),
     notifyOnLate: getBoolean(object, ["notifyOnLate"], false),
     notifyOnEarlyLeave: getBoolean(object, ["notifyOnEarlyLeave"], false),
-    effectiveStartDate: getString(object, ["effectiveStartDate", "effectiveFrom"]),
+    effectiveStartDate: getString(object, [
+      "effectiveStartDate",
+      "effectiveFrom",
+    ]),
     effectiveEndDate: getString(object, ["effectiveEndDate", "effectiveTo"]),
     isActive: getBoolean(object, ["isActive"], true),
     createdAt: getString(object, ["createdAt"]),
@@ -184,7 +247,9 @@ function mapPolicy(item: unknown, fallback?: { yearId?: string; termId?: string 
   };
 }
 
-type PolicyWriteInput = Partial<Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">>;
+type PolicyWriteInput = Partial<
+  Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">
+>;
 
 function buildPolicyFields(payload: PolicyWriteInput) {
   return {
@@ -194,8 +259,7 @@ function buildPolicyFields(payload: PolicyWriteInput) {
     nameEn: payload.nameEn,
     descriptionAr: payload.descriptionAr,
     descriptionEn: payload.descriptionEn,
-    notesAr: payload.notesAr,
-    notesEn: payload.notesEn,
+    notes: payload.notes,
     scopeType: payload.scopeType,
     scopeIds: payload.scopeIds,
     ...buildScopeParams(payload.scopeType || "SCHOOL", payload.scopeIds),
@@ -226,11 +290,14 @@ function buildPolicyFields(payload: PolicyWriteInput) {
   };
 }
 
-function buildCreatePolicyPayload(payload: Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">) {
+function buildCreatePolicyPayload(
+  payload: Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">,
+) {
   return {
     ...buildPolicyFields(payload),
-    notes: null,
-    dailyComputationStrategy: payload.dailyComputationStrategy ?? "DERIVED_FROM_PERIODS",
+    notes: payload.notes ?? null,
+    dailyComputationStrategy:
+      payload.dailyComputationStrategy ?? "DERIVED_FROM_PERIODS",
     autoAbsentAfterMinutes: payload.autoAbsentAfterMinutes ?? null,
   };
 }
@@ -286,7 +353,9 @@ export const fetchPolicies = async (
       isActive: filters.isActive,
     }),
   });
-  const policies = unwrapArray(response).map((item) => mapPolicy(item, { yearId, termId }));
+  const policies = unwrapArray(response).map((item) =>
+    mapPolicy(item, { yearId, termId }),
+  );
 
   // Period IDs returned by the backend are already stable UUIDs in the current
   // contract. Only resolve timetable configs when an older numeric ID actually
@@ -310,13 +379,16 @@ export const fetchPolicies = async (
 
       // Migrate each policy's selectedPeriodIds
       return policies.map((policy) => {
-        if (!policy.selectedPeriodIds || policy.selectedPeriodIds.length === 0) {
+        if (
+          !policy.selectedPeriodIds ||
+          policy.selectedPeriodIds.length === 0
+        ) {
           return policy;
         }
 
         // Check if any period ID needs migration
         const needsMigration = policy.selectedPeriodIds.some((id) =>
-          id.match(/^period-\d+$/)
+          id.match(/^period-\d+$/),
         );
 
         if (!needsMigration) {
@@ -343,10 +415,16 @@ export const fetchPolicies = async (
  * Create a new policy
  */
 export const createPolicy = async (
-  payload: Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">
+  payload: Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">,
 ): Promise<AttendancePolicy> => {
-  const response = await apiPost<unknown>(BASE, buildCreatePolicyPayload(payload));
-  return mapPolicy(response, { yearId: payload.yearId, termId: payload.termId });
+  const response = await apiPost<unknown>(
+    BASE,
+    buildCreatePolicyPayload(payload),
+  );
+  return mapPolicy(response, {
+    yearId: payload.yearId,
+    termId: payload.termId,
+  });
 };
 
 /**
@@ -354,10 +432,16 @@ export const createPolicy = async (
  */
 export const updatePolicy = async (
   id: string,
-  payload: Partial<Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">>
+  payload: Partial<Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">>,
 ): Promise<AttendancePolicy> => {
-  const response = await apiPatch<unknown>(`${BASE}/${id}`, buildPatchPolicyPayload(payload));
-  return mapPolicy(response, { yearId: payload.yearId, termId: payload.termId });
+  const response = await apiPatch<unknown>(
+    `${BASE}/${id}`,
+    buildPatchPolicyPayload(payload),
+  );
+  return mapPolicy(response, {
+    yearId: payload.yearId,
+    termId: payload.termId,
+  });
 };
 
 /**
@@ -387,7 +471,7 @@ export async function resolveEffectiveExcusePolicy(
   termId: string,
   scopeType: AttendanceScopeType,
   scopeIds: AttendanceScopeIds | undefined,
-  dateISO: string // YYYY-MM-DD
+  dateISO: string, // YYYY-MM-DD
 ): Promise<EffectiveExcusePolicy> {
   const response = await apiGet<unknown>(`${BASE}/effective`, {
     params: {
