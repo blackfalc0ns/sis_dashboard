@@ -10,7 +10,6 @@ import {
   Download,
   Trash2,
   Minus,
-  Pencil,
   Plus,
 } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
@@ -36,7 +35,6 @@ import {
   fetchSettingsPermissions,
   fetchSettingsRoles,
   replaceSettingsRolePermissions,
-  updateSettingsRole,
 } from "@/features/settings/services/settingsRolesService";
 import type {
   PermissionAction,
@@ -69,9 +67,7 @@ export default function SettingsRolesPage() {
       canViewPermissionCatalog ? "loading" : "forbidden",
     );
   const [selectedRoleId, setSelectedRoleId] = useState<string>("");
-  const [modalMode, setModalMode] = useState<
-    "create" | "clone" | "edit" | null
-  >(null);
+  const [modalMode, setModalMode] = useState<"create" | "clone" | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isTableLoading, setIsTableLoading] = useState(false);
   const hasLoadedRolesRef = useRef(false);
@@ -300,13 +296,9 @@ export default function SettingsRolesPage() {
       const nextRole =
         modalMode === "clone" && selectedRole
           ? await cloneSettingsRole(selectedRole.id, payload.name)
-          : modalMode === "edit" && selectedRole
-            ? await updateSettingsRole(selectedRole.id, payload)
-            : await createSettingsRole(payload);
+          : await createSettingsRole(payload);
       setRoles((current) =>
-        modalMode === "edit"
-          ? current.map((role) => (role.id === nextRole.id ? nextRole : role))
-          : [nextRole, ...current],
+        [nextRole, ...current],
       );
       setSelectedRoleId(nextRole.id);
       setModalMode(null);
@@ -315,9 +307,7 @@ export default function SettingsRolesPage() {
       showSuccess(
         modalMode === "clone"
           ? t("messages.role_cloned")
-          : modalMode === "edit"
-            ? t("messages.role_updated")
-            : t("messages.role_created"),
+          : t("messages.role_created"),
       );
     } catch (error) {
       const fieldErrors = getValidationFieldErrors(error);
@@ -583,20 +573,6 @@ export default function SettingsRolesPage() {
         const role = row as unknown as RoleDefinition;
         return canManageRoles ? (
           <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9 w-9 rounded-lg border border-gray-200 p-0"
-              title={t("edit")}
-              aria-label={t("edit")}
-              onClick={(event) => {
-                event.stopPropagation();
-                setSelectedRoleId(role.id);
-                setModalMode("edit");
-              }}
-            >
-              <Pencil className="h-4 w-4 text-info" />
-            </Button>
             {!role.isSystem ? (
               <Button
                 variant="ghost"
@@ -642,14 +618,6 @@ export default function SettingsRolesPage() {
                 </Button>
                 <Button
                   variant="secondary"
-                  leftIcon={<Pencil className="h-4 w-4" />}
-                  disabled={!selectedRole}
-                  onClick={() => setModalMode("edit")}
-                >
-                  {t("edit_role")}
-                </Button>
-                <Button
-                  variant="secondary"
                   leftIcon={<CopyPlus className="h-4 w-4" />}
                   disabled={!selectedRole}
                   onClick={() => setModalMode("clone")}
@@ -692,7 +660,11 @@ export default function SettingsRolesPage() {
                 <Button
                   variant="primary"
                   loading={isSavingPermissions}
-                  disabled={!selectedRole || !canManageRoles}
+                  disabled={
+                    !selectedRole ||
+                    !canManageRoles ||
+                    selectedRole.isSystem
+                  }
                   onClick={handleSavePermissions}
                 >
                   {isSavingPermissions
@@ -767,7 +739,7 @@ export default function SettingsRolesPage() {
                                   {renderMatrixToggle(
                                     state,
                                     () => toggleModuleAction(rows, action),
-                                    !canManageRoles,
+                                    !canManageRoles || Boolean(selectedRole?.isSystem),
                                   )}
                                 </td>
                               );
@@ -799,7 +771,7 @@ export default function SettingsRolesPage() {
                                               handleTogglePermission(
                                                 permission.key,
                                               ),
-                                            !canManageRoles,
+                                            !canManageRoles || Boolean(selectedRole?.isSystem),
                                           )
                                         ) : (
                                           <span className="inline-block h-5 w-5 rounded border border-gray-200 bg-gray-50" />
@@ -861,14 +833,6 @@ export default function SettingsRolesPage() {
               ...current,
               [field]: undefined,
             }))
-          }
-          initialValues={
-            modalMode === "edit" && selectedRole
-              ? {
-                  name: selectedRole.name,
-                  description: selectedRole.description,
-                }
-              : null
           }
           onClose={() => {
             setModalMode(null);

@@ -10,8 +10,8 @@ function RoleEditorHarness() {
   return (
     <RoleEditorModal
       isOpen
-      mode="edit"
-      initialValues={{ name: "Administrator", description: "Full access" }}
+      mode="clone"
+      sourceRoleName="Administrator"
       errors={{}}
       onFieldChange={(field) => setFieldError(field)}
       onClose={vi.fn()}
@@ -29,6 +29,6 @@ describe("RoleEditorModal", () => {
     await user.click(nameInput);
     await user.type(nameInput, "-Updated");
 
-    expect(nameInput).toHaveValue("Administrator-Updated");
+    expect(nameInput).toHaveValue("Administrator Copy-Updated");
   });
 });

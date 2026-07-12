@@ -8,9 +8,8 @@ import Button from "@/components/ui/button/Button";
 
 interface RoleEditorModalProps {
   isOpen: boolean;
-  mode: "create" | "clone" | "edit";
+  mode: "create" | "clone";
   sourceRoleName?: string;
-  initialValues?: { name: string; description: string } | null;
   errors?: Partial<Record<"name" | "description", string>>;
   formError?: string | null;
   onFieldChange?: (field: "name" | "description") => void;
@@ -22,7 +21,6 @@ export default function RoleEditorModal({
   isOpen,
   mode,
   sourceRoleName,
-  initialValues,
   errors,
   formError,
   onFieldChange,
@@ -38,19 +36,11 @@ export default function RoleEditorModal({
   useEffect(() => {
     if (!isOpen) return;
     setName(
-      mode === "clone" && sourceRoleName
-        ? `${sourceRoleName} Copy`
-        : initialValues?.name || "",
+      mode === "clone" && sourceRoleName ? `${sourceRoleName} Copy` : "",
     );
-    setDescription(initialValues?.description || "");
+    setDescription("");
     setIsSaving(false);
-  }, [
-    initialValues?.description,
-    initialValues?.name,
-    isOpen,
-    mode,
-    sourceRoleName,
-  ]);
+  }, [isOpen, mode, sourceRoleName]);
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -74,9 +64,7 @@ export default function RoleEditorModal({
       title={
         mode === "create"
           ? t("create_role")
-          : mode === "clone"
-            ? t("clone_role")
-            : t("edit_role")
+          : t("clone_role")
       }
       size="md"
       footer={
@@ -89,9 +77,7 @@ export default function RoleEditorModal({
               ? tCommon("saving")
               : mode === "create"
                 ? t("create_role")
-                : mode === "clone"
-                  ? t("clone_role")
-                  : tCommon("save")}
+              : t("clone_role")}
           </Button>
         </>
       }
