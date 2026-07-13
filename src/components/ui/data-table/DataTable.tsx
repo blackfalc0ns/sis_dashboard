@@ -82,6 +82,7 @@ interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
   onRowClick?: (row: T) => void;
+  getRowKey?: (row: T, index: number) => React.Key;
   itemsPerPage?: number;
   showPagination?: boolean;
   showDensityToggle?: boolean;
@@ -148,6 +149,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
   columns,
   data,
   onRowClick,
+  getRowKey,
   itemsPerPage = 10,
   showPagination = true,
   showDensityToggle = true,
@@ -801,7 +803,7 @@ export default function DataTable<T extends { [key: string]: unknown }>({
 
                     return (
                       <tr
-                        key={actualIndex}
+                        key={getRowKey?.(row, actualIndex) ?? actualIndex}
                         onClick={(event) => handleRowClick(event, row)}
                         onKeyDown={(event) => handleRowKeyDown(event, row)}
                         tabIndex={onRowClick ? 0 : undefined}

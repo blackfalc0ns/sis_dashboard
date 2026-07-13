@@ -16,6 +16,39 @@ export interface AuthenticatedFileImageProps {
   unavailableLabel: string;
   retryLabel: string;
   className?: string;
+  cache?: boolean;
+}
+
+const authenticatedImageUrlCache = new Map<string, string>();
+const authenticatedImageRequestCache = new Map<string, Promise<string>>();
+
+function loadCachedImageUrl(fileId: string): Promise<string> {
+  const cachedUrl = authenticatedImageUrlCache.get(fileId);
+  if (cachedUrl) return Promise.resolve(cachedUrl);
+
+  const cachedRequest = authenticatedImageRequestCache.get(fileId);
+  if (cachedRequest) return cachedRequest;
+
+  const request = downloadFileBlob(fileId)
+    .then((blob) => {
+      const url = URL.createObjectURL(blob);
+      authenticatedImageUrlCache.set(fileId, url);
+      authenticatedImageRequestCache.delete(fileId);
+      return url;
+    })
+    .catch((error) => {
+      authenticatedImageRequestCache.delete(fileId);
+      throw error;
+    });
+
+  authenticatedImageRequestCache.set(fileId, request);
+  return request;
+}
+
+export function clearAuthenticatedFileImageCache() {
+  authenticatedImageUrlCache.forEach((url) => URL.revokeObjectURL(url));
+  authenticatedImageUrlCache.clear();
+  authenticatedImageRequestCache.clear();
 }
 
 export default function AuthenticatedFileImage({
@@ -26,26 +59,37 @@ export default function AuthenticatedFileImage({
   unavailableLabel,
   retryLabel,
   className = "h-12 w-12",
+  cache = false,
 }: AuthenticatedFileImageProps) {
-  const [state, setState] = useState<ImageState>({
-    requestKey: null,
-    status: "idle",
-    url: null,
-  });
   const [retryCount, setRetryCount] = useState(0);
   const requestKey = fileId && canDownload ? `${fileId}:${retryCount}` : null;
+  const cachedUrl = cache && fileId
+    ? authenticatedImageUrlCache.get(fileId)
+    : undefined;
+  const [state, setState] = useState<ImageState>(() => {
+    return cachedUrl && requestKey
+      ? { requestKey, status: "ready", url: cachedUrl }
+      : { requestKey: null, status: "idle", url: null };
+  });
 
   useEffect(() => {
     if (!fileId || !requestKey) return;
+    if (cachedUrl) return;
 
     let active = true;
     let objectUrl: string | null = null;
 
-    void downloadFileBlob(fileId)
-      .then((blob) => {
+    const imageRequest = cache
+      ? loadCachedImageUrl(fileId)
+      : downloadFileBlob(fileId).then((blob) => {
+          objectUrl = URL.createObjectURL(blob);
+          return objectUrl;
+        });
+
+    void imageRequest
+      .then((url) => {
         if (!active) return;
-        objectUrl = URL.createObjectURL(blob);
-        setState({ requestKey, status: "ready", url: objectUrl });
+        setState({ requestKey, status: "ready", url });
       })
       .catch(() => {
         if (active) setState({ requestKey, status: "error", url: null });
@@ -53,12 +97,14 @@ export default function AuthenticatedFileImage({
 
     return () => {
       active = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      if (!cache && objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [fileId, requestKey]);
+  }, [cache, cachedUrl, fileId, requestKey]);
 
   const visibleState =
-    state.requestKey === requestKey
+    cachedUrl && requestKey
+      ? { requestKey, status: "ready" as const, url: cachedUrl }
+      : state.requestKey === requestKey
       ? state
       : requestKey
         ? { requestKey, status: "loading" as const, url: null }

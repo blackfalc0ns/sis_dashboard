@@ -1291,6 +1291,7 @@ export default function HeroJourneyMissionsPage() {
                   columns as unknown as Column<{ [key: string]: unknown }>[]
                 }
                 data={missions as unknown as Array<{ [key: string]: unknown }>}
+                getRowKey={(row) => String(row.id)}
                 onRowClick={(row) =>
                   openMissionDetail((row as unknown as HeroJourneyMission).id)
                 }

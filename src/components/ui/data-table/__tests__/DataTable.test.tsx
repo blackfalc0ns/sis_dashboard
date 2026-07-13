@@ -55,6 +55,27 @@ describe('DataTable Component', () => {
     expect(handleRowClick).toHaveBeenCalledWith(mockData[0]);
   });
 
+  it('preserves row identity when data is reordered with a stable key', () => {
+    const { rerender } = render(
+      <DataTable
+        columns={mockColumns}
+        data={mockData}
+        getRowKey={(row) => row.id}
+      />,
+    );
+    const originalJohnRow = screen.getByText('John Doe').closest('tr');
+
+    rerender(
+      <DataTable
+        columns={mockColumns}
+        data={[...mockData].reverse()}
+        getRowKey={(row) => row.id}
+      />,
+    );
+
+    expect(screen.getByText('John Doe').closest('tr')).toBe(originalJohnRow);
+  });
+
   it('sorts data when column header is clicked', () => {
     render(<DataTable columns={mockColumns} data={mockData} />);
     

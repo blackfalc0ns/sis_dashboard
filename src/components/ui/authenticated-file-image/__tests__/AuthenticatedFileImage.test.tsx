@@ -1,7 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import AuthenticatedFileImage from "../AuthenticatedFileImage";
+import AuthenticatedFileImage, {
+  clearAuthenticatedFileImageCache,
+} from "../AuthenticatedFileImage";
 
 const fileMocks = vi.hoisted(() => ({ downloadFileBlob: vi.fn() }));
 
@@ -17,6 +19,7 @@ function deferred<T>() {
 
 describe("AuthenticatedFileImage", () => {
   beforeEach(() => {
+    clearAuthenticatedFileImageCache();
     fileMocks.downloadFileBlob.mockReset();
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,
@@ -176,5 +179,36 @@ describe("AuthenticatedFileImage", () => {
       "src",
       "blob:file-2",
     );
+  });
+
+  it("reuses a cached protected image after remounting", async () => {
+    const blob = new Blob(["image"], { type: "image/png" }) as Blob & {
+      marker: string;
+    };
+    blob.marker = "cached-file";
+    fileMocks.downloadFileBlob.mockResolvedValue(blob);
+
+    const props = {
+      fileId: "cached-file",
+      alt: "Reward",
+      canDownload: true,
+      unavailableLabel: "Unavailable",
+      retryLabel: "Retry",
+      cache: true,
+    };
+    const firstRender = render(<AuthenticatedFileImage {...props} />);
+
+    expect(await screen.findByRole("img", { name: "Reward" })).toHaveAttribute(
+      "src",
+      "blob:cached-file",
+    );
+    firstRender.unmount();
+    render(<AuthenticatedFileImage {...props} />);
+
+    expect(screen.getByRole("img", { name: "Reward" })).toHaveAttribute(
+      "src",
+      "blob:cached-file",
+    );
+    expect(fileMocks.downloadFileBlob).toHaveBeenCalledTimes(1);
   });
 });

@@ -50,6 +50,7 @@ export default function HeroJourneyBadgeThumb({
             unavailableLabel={t("badgeImageUnavailable")}
             retryLabel={t("retry")}
             className={`${sizeClasses[size]} h-full w-full`}
+            cache
           />
         ) : (
           <Award className="h-4 w-4 text-teal-600" />
