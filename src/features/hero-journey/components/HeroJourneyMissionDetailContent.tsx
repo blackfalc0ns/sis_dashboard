@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { formatDate } from "@/utils/formatters/dateTime";
 import type { HeroJourneyBadge, HeroJourneyMission } from "../types";
@@ -10,6 +11,7 @@ import HeroJourneyStatusPill from "./HeroJourneyStatusPill";
 interface HeroJourneyMissionDetailContentProps {
   mission: HeroJourneyMission | null;
   badgeMap: Map<string, HeroJourneyBadge>;
+  actions?: ReactNode;
   linkedLessonName?: string;
   linkedAssessmentName?: string;
 }
@@ -41,6 +43,7 @@ function hasLinkedValue(value?: string | null) {
 export default function HeroJourneyMissionDetailContent({
   mission,
   badgeMap,
+  actions,
   linkedLessonName,
   linkedAssessmentName,
 }: HeroJourneyMissionDetailContentProps) {
@@ -81,7 +84,10 @@ export default function HeroJourneyMissionDetailContent({
               : mission.briefEn || mission.stageNameEn}
           </p>
         </div>
-        <HeroJourneyStatusPill kind="mission" value={mission.status} />
+        <div className="flex shrink-0 items-center gap-1.5">
+          <HeroJourneyStatusPill kind="mission" value={mission.status} />
+          {actions}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">

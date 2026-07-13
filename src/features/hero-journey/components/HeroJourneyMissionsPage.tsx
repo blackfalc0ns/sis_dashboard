@@ -1334,25 +1334,26 @@ export default function HeroJourneyMissionsPage() {
                 <HeroJourneyMissionDetailContent
                   mission={detailMission}
                   badgeMap={badgeMap}
+                  actions={
+                    detailMission && canManageHero ? (
+                      <HeroJourneyMissionActions
+                        mission={detailMission}
+                        canManage={canManageHero}
+                        isPublishing={isPublishing === detailMission.id}
+                        deletingMissionId={deletingMissionId}
+                        onEdit={(missionId) => void openEditMission(missionId)}
+                        onDelete={(missionId) => void removeMission(missionId)}
+                        onPublish={(missionId) => void publishMission(missionId)}
+                        onArchive={(missionId) => void archiveMission(missionId)}
+                        iconOnly
+                      />
+                    ) : undefined
+                  }
                   linkedLessonName={getResolvedLinkedLessonName(detailMission)}
                   linkedAssessmentName={getResolvedLinkedAssessmentName(
                     detailMission,
                   )}
                 />
-                {detailMission && canManageHero ? (
-                  <div className="mt-5 grid grid-cols-2 gap-2 border-t border-gray-100 pt-4">
-                    <HeroJourneyMissionActions
-                      mission={detailMission}
-                      canManage={canManageHero}
-                      isPublishing={isPublishing === detailMission.id}
-                      deletingMissionId={deletingMissionId}
-                      onEdit={(missionId) => void openEditMission(missionId)}
-                      onDelete={(missionId) => void removeMission(missionId)}
-                      onPublish={(missionId) => void publishMission(missionId)}
-                      onArchive={(missionId) => void archiveMission(missionId)}
-                    />
-                  </div>
-                ) : null}
               </>
             )}
           </div>

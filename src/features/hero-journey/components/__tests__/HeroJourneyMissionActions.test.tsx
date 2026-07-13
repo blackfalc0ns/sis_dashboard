@@ -112,4 +112,24 @@ describe("HeroJourneyMissionActions", () => {
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
+
+  it("supports icon-only controls with accessible labels", () => {
+    render(
+      <HeroJourneyMissionActions
+        mission={mission}
+        canManage
+        isPublishing={false}
+        deletingMissionId={null}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onPublish={vi.fn()}
+        onArchive={vi.fn()}
+        iconOnly
+      />,
+    );
+
+    const editButton = screen.getByRole("button", { name: "actions.edit" });
+    expect(editButton).toHaveAttribute("title", "actions.edit");
+    expect(editButton).not.toHaveTextContent("actions.edit");
+  });
 });
