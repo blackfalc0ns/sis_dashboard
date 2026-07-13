@@ -98,6 +98,12 @@ The existing create/edit modal remains the user interface. No layout redesign is
 - Update validation evaluates the effective title state after applying dirty fields so clearing one localized title cannot leave the mission without either title.
 - When the backend rejects a reference or business rule, the UI surfaces the returned API message when it is safe and available, falling back to the existing localized save failure.
 
+### Follow-up UI completion
+
+The mission modal keeps Grade because the existing curriculum service requires it to load lesson options. Section and Classroom controls are removed because they are not `CreateHeroMissionDto` fields and are not required by curriculum loading. The mission-level lesson selector remains Grade-dependent.
+
+Objective cards expose every objective DTO field that can be authored safely in the form: type, bilingual titles, bilingual subtitles, linked lesson reference, linked assessment, sort order, and required status. Generic metadata remains internal because arbitrary JSON is not an appropriate primary form control.
+
 ### Data flow
 
 1. The modal collects mission and objective candidate values and records the exact DTO fields changed by the user.
