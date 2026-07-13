@@ -154,6 +154,8 @@ describe("normalizeCreateHeroMissionRequest", () => {
       [{ objectives: [{ type: "video" }] }, "invalidObjectiveType"],
       [{ objectives: [{ isRequired: "yes" }] }, "invalidBoolean"],
       [{ objectives: [{ sortOrder: 0 }] }, "invalidObjectiveOrder"],
+      [{ objectives: [{ sortOrder: "0" }] }, "invalidObjectiveOrder"],
+      [{ objectives: [{ sortOrder: 1.5 }] }, "integerRequired"],
       [
         { objectives: [{ sortOrder: 1 }, { sortOrder: 1 }] },
         "duplicateObjectiveOrder",
@@ -212,6 +214,15 @@ describe("normalizeCreateHeroMissionRequest", () => {
       isRequired: true,
       metadata: null,
     });
+  });
+  it("treats a blank objective order as missing before normalization", () => {
+    const normalized = normalizeCreateHeroMissionRequest(
+      validCreateCandidate({
+        objectives: [{ titleEn: "Unordered", sortOrder: "" }],
+      }),
+    );
+
+    expect(normalized.objectives[0].sortOrder).toBe(1);
   });
 });
 
