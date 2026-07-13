@@ -69,6 +69,7 @@ import { formatHeroJourneyPercent } from "../utils/heroJourneyPresentation";
 import HeroJourneyBadgeThumb from "./HeroJourneyBadgeThumb";
 import HeroJourneyBadgeFormModal from "./HeroJourneyBadgeFormModal";
 import HeroJourneyMobilePagination from "./HeroJourneyMobilePagination";
+import HeroJourneyMissionActions from "./HeroJourneyMissionActions";
 import HeroJourneyMissionDetailContent from "./HeroJourneyMissionDetailContent";
 import HeroJourneyMissionFormModal from "./HeroJourneyMissionFormModal";
 import HeroJourneyPageHeader from "./HeroJourneyPageHeader";
@@ -1329,14 +1330,30 @@ export default function HeroJourneyMissionsPage() {
                 <div className="h-24 animate-pulse rounded-lg bg-slate-100" />
               </div>
             ) : (
-              <HeroJourneyMissionDetailContent
-                mission={detailMission}
-                badgeMap={badgeMap}
-                linkedLessonName={getResolvedLinkedLessonName(detailMission)}
-                linkedAssessmentName={getResolvedLinkedAssessmentName(
-                  detailMission,
-                )}
-              />
+              <>
+                <HeroJourneyMissionDetailContent
+                  mission={detailMission}
+                  badgeMap={badgeMap}
+                  linkedLessonName={getResolvedLinkedLessonName(detailMission)}
+                  linkedAssessmentName={getResolvedLinkedAssessmentName(
+                    detailMission,
+                  )}
+                />
+                {detailMission && canManageHero ? (
+                  <div className="mt-5 grid grid-cols-2 gap-2 border-t border-gray-100 pt-4">
+                    <HeroJourneyMissionActions
+                      mission={detailMission}
+                      canManage={canManageHero}
+                      isPublishing={isPublishing === detailMission.id}
+                      deletingMissionId={deletingMissionId}
+                      onEdit={(missionId) => void openEditMission(missionId)}
+                      onDelete={(missionId) => void removeMission(missionId)}
+                      onPublish={(missionId) => void publishMission(missionId)}
+                      onArchive={(missionId) => void archiveMission(missionId)}
+                    />
+                  </div>
+                ) : null}
+              </>
             )}
           </div>
         </div>
