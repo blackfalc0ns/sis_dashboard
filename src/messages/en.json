@@ -2306,8 +2306,19 @@
       "grantXp": "Grant XP",
       "awardBadge": "Award badge",
       "completeBeforeRewards": "Complete a mission before granting its rewards.",
-      "statuses": { "not_started": "Not started", "in_progress": "In progress", "completed": "Completed", "cancelled": "Cancelled" },
-      "events": { "mission_started": "Mission started", "objective_completed": "Objective completed", "mission_completed": "Mission completed", "xp_granted": "XP granted", "badge_awarded": "Badge awarded" },
+      "statuses": {
+        "not_started": "Not started",
+        "in_progress": "In progress",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "events": {
+        "mission_started": "Mission started",
+        "objective_completed": "Objective completed",
+        "mission_completed": "Mission completed",
+        "xp_granted": "XP granted",
+        "badge_awarded": "Badge awarded"
+      },
       "requiredObjectives": "{completed}/{required} required objectives",
       "missionProgress": "Mission progress",
       "progressLabel": "{mission} progress",
@@ -2389,7 +2400,8 @@
         "username": "Username",
         "login_email": "Generated login email",
         "contact_email": "Contact email",
-        "temporary_password_mode": "Temporary password"
+        "temporary_password_mode": "Temporary password",
+        "search_users": "Search active users"
       },
       "modes": {
         "create": "Create account",
@@ -2404,12 +2416,18 @@
       "actions": {
         "submit": "Link account",
         "close": "Close",
-        "copy": "Copy password"
+        "copy": "Copy password",
+        "change": "Change"
       },
       "validation": {
         "username_required": "Username is required.",
-        "contact_email_required": "Contact email is required when creating a student account."
+        "contact_email_required": "Contact email is required when creating a student account.",
+        "user_required": "Select an existing user to link."
       },
+      "search_placeholder": "Search by name, username, or email",
+      "no_results": "No matching active users found.",
+      "search_failed": "Unable to load users. Try again.",
+      "role_unavailable": "Role unavailable",
       "messages": {
         "linked": "Account linked successfully.",
         "link_failed": "Failed to link account.",
@@ -3304,6 +3322,11 @@
         "add_guardian": "Add Guardian",
         "primary_guardian": "Primary Guardian",
         "edit_guardian": "Edit Guardian",
+        "edit_link": "Edit guardian link",
+        "edit_link_title": "Edit guardian relationship",
+        "edit_link_help": "Choose whether this guardian is the primary contact for this student.",
+        "save_link": "Save relationship",
+        "update_link_failed": "Unable to update the guardian relationship.",
         "remove_guardian": "Remove Guardian",
         "link_existing": "Link existing",
         "link_existing_modal_title": "Link existing guardian",
@@ -3584,7 +3607,21 @@
         "view": "View",
         "download": "Download",
         "upload": "Upload",
-        "delete": "Delete"
+        "delete": "Delete",
+        "import_from_admissions": "Import from admissions",
+        "import_title": "Import admissions documents",
+        "import_description": "Select uploaded documents from the student's original admissions application.",
+        "import_selected": "Import selected",
+        "no_importable_documents": "No uploaded admissions documents are available to import.",
+        "import_success": "Documents imported successfully.",
+        "import_load_error": "Unable to load admissions documents.",
+        "import_error": "Unable to import the selected documents.",
+        "delete_title": "Delete student document?",
+        "delete_description": "This removes {name} from the student's document record. This action cannot be undone.",
+        "confirm_delete": "Delete document",
+        "delete_success": "Document deleted successfully.",
+        "delete_error": "Unable to delete the document.",
+        "cancel": "Cancel"
       },
       "medical": {
         "title": "Medical Profile",
@@ -3844,7 +3881,19 @@
         "guardian_account": "{name} account",
         "username": "Username",
         "login_email": "Login email",
+        "contact_email": "Contact email",
+        "role": "Role",
+        "must_change_password": "Password change required at next sign-in",
         "temporary_password": "Temporary password",
+        "show_password": "Show password",
+        "hide_password": "Hide password",
+        "copy_password": "Copy password",
+        "status": {
+          "skipped": "Skipped",
+          "created": "Created",
+          "linked": "Linked",
+          "failed": "Failed"
+        },
         "copy_all": "Copy all credentials",
         "copied": "Copied",
         "copied_status": "Copied",

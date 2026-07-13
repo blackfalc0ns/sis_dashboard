@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/toast/Toast";
 import {
   linkGuardianAccount,
   type AccountLinkMode,
+  type AccountLinkRequest,
   type AccountLinkResponse,
   type TemporaryPasswordMode,
 } from "@/features/students-guardians/services/accountLinkingService";
@@ -17,6 +18,8 @@ import { previewLoginIdentityUsername } from "@/features/settings/login-identity
 import { isApiError } from "@/lib/api-error";
 import { useTranslations } from "next-intl";
 import type { StudentGuardian } from "@/features/students-guardians/students/types";
+import ExistingAccountPicker from "@/features/students-guardians/shared/components/ExistingAccountPicker";
+import type { SettingsUserRecord } from "@/features/settings/types";
 
 interface GuardianAccountLinkModalProps {
   isOpen: boolean;
@@ -26,7 +29,7 @@ interface GuardianAccountLinkModalProps {
 }
 
 function getTemporaryPassword(response: AccountLinkResponse | null) {
-  return response?.temporaryPassword || response?.oneTimeTemporaryPassword || "";
+  return response?.temporaryPassword || "";
 }
 
 export default function GuardianAccountLinkModal({
@@ -48,6 +51,9 @@ export default function GuardianAccountLinkModal({
   const [error, setError] = useState<string | null>(null);
   const [linkedResponse, setLinkedResponse] =
     useState<AccountLinkResponse | null>(null);
+  const [selectedUser, setSelectedUser] = useState<SettingsUserRecord | null>(
+    null,
+  );
 
   const temporaryPassword = useMemo(
     () => getTemporaryPassword(linkedResponse),
@@ -65,10 +71,11 @@ export default function GuardianAccountLinkModal({
     setPreviewEmail("");
     setError(null);
     setLinkedResponse(null);
+    setSelectedUser(null);
   }, [guardian, isOpen]);
 
   useEffect(() => {
-    if (!isOpen || !username.trim()) {
+    if (!isOpen || mode !== "create" || !username.trim()) {
       setPreviewEmail("");
       return;
     }
@@ -98,7 +105,7 @@ export default function GuardianAccountLinkModal({
       isCancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [isOpen, username]);
+  }, [isOpen, mode, username]);
 
   const handleClose = () => {
     setLinkedResponse(null);
@@ -111,8 +118,12 @@ export default function GuardianAccountLinkModal({
     if (!guardian) {
       return;
     }
-    if (!username.trim()) {
+    if (mode === "create" && !username.trim()) {
       setError(t("validation.username_required"));
+      return;
+    }
+    if (mode === "link" && !selectedUser) {
+      setError(t("validation.user_required"));
       return;
     }
 
@@ -120,12 +131,19 @@ export default function GuardianAccountLinkModal({
     setError(null);
     setLinkedResponse(null);
     try {
-      const response = await linkGuardianAccount(guardian.guardianId, {
-        mode,
-        username: username.trim(),
-        contactEmail: contactEmail.trim() || null,
-        temporaryPasswordMode,
-      });
+      let payload: AccountLinkRequest;
+      if (mode === "link") {
+        if (!selectedUser) return;
+        payload = { mode, userId: selectedUser.id };
+      } else {
+        payload = {
+          mode,
+          username: username.trim(),
+          contactEmail: contactEmail.trim() || null,
+          temporaryPasswordMode,
+        };
+      }
+      const response = await linkGuardianAccount(guardian.guardianId, payload);
       setLinkedResponse(response);
       showSuccess(t("messages.linked"));
       onLinked?.(response);
@@ -155,7 +173,9 @@ export default function GuardianAccountLinkModal({
       title={t("guardian_title")}
       size="lg"
       closeOnOverlayClick={!temporaryPassword}
-      description={guardian ? t("for_record", { name: guardian.full_name }) : ""}
+      description={
+        guardian ? t("for_record", { name: guardian.full_name }) : ""
+      }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error ? (
@@ -167,51 +187,66 @@ export default function GuardianAccountLinkModal({
         <Select
           label={t("fields.mode")}
           value={mode}
-          onChange={(value) => setMode(value as AccountLinkMode)}
+          onChange={(value) => {
+            setMode(value as AccountLinkMode);
+            setSelectedUser(null);
+            setError(null);
+          }}
           options={[
             { value: "create", label: t("modes.create") },
-            { value: "link_existing", label: t("modes.link_existing") },
+            { value: "link", label: t("modes.link_existing") },
           ]}
         />
 
-        <Input
-          label={t("fields.username")}
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
-          dir="ltr"
-          required
-        />
-
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
-          <p className="font-medium text-gray-900">{t("fields.login_email")}</p>
-          <div className="mt-1 flex items-center gap-2 text-gray-600">
-            {isPreviewing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            <span className="break-all">
-              {previewEmail || t("preview_placeholder")}
-            </span>
-          </div>
-        </div>
-
-        <Input
-          label={t("fields.contact_email")}
-          value={contactEmail}
-          onChange={(event) => setContactEmail(event.target.value)}
-          type="email"
-          dir="ltr"
-          helperText={t("guardian_contact_email_help")}
-        />
-
-        <Select
-          label={t("fields.temporary_password_mode")}
-          value={temporaryPasswordMode}
-          onChange={(value) =>
-            setTemporaryPasswordMode(value as TemporaryPasswordMode)
-          }
-          options={[
-            { value: "generate", label: t("temporary_password.generate") },
-            { value: "none", label: t("temporary_password.none") },
-          ]}
-        />
+        {mode === "link" ? (
+          <ExistingAccountPicker
+            selectedUser={selectedUser}
+            onSelect={setSelectedUser}
+            onClear={() => setSelectedUser(null)}
+          />
+        ) : (
+          <>
+            <Input
+              label={t("fields.username")}
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              dir="ltr"
+              required
+            />
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+              <p className="font-medium text-gray-900">
+                {t("fields.login_email")}
+              </p>
+              <div className="mt-1 flex items-center gap-2 text-gray-600">
+                {isPreviewing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : null}
+                <span className="break-all">
+                  {previewEmail || t("preview_placeholder")}
+                </span>
+              </div>
+            </div>
+            <Input
+              label={t("fields.contact_email")}
+              value={contactEmail}
+              onChange={(event) => setContactEmail(event.target.value)}
+              type="email"
+              dir="ltr"
+              helperText={t("guardian_contact_email_help")}
+            />
+            <Select
+              label={t("fields.temporary_password_mode")}
+              value={temporaryPasswordMode}
+              onChange={(value) =>
+                setTemporaryPasswordMode(value as TemporaryPasswordMode)
+              }
+              options={[
+                { value: "generate", label: t("temporary_password.generate") },
+                { value: "none", label: t("temporary_password.none") },
+              ]}
+            />
+          </>
+        )}
 
         {temporaryPassword ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">

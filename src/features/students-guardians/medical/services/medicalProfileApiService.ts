@@ -48,6 +48,9 @@ export async function fetchMedicalProfile(
     const response = await apiGet<unknown>(
       `${STUDENTS_BASE_PATH}/${studentId}/medical-profile`,
     );
+    if (response === null) {
+      return null;
+    }
     return normalizeMedicalProfile(
       unwrapItemResponse(response, "Medical profile"),
     );

@@ -49,19 +49,19 @@ export interface EnrollmentMovement {
   fromGradeId?: string;
   fromSectionId?: string;
   fromClassroomId?: string;
-  toGradeId?: string;
-  toSectionId?: string;
-  toClassroomId?: string;
+  toGradeId?: string | null;
+  toSectionId?: string | null;
+  toClassroomId?: string | null;
   fromGrade?: string;
   fromSection?: string;
   fromClassroom?: string;
-  toGrade?: string;
-  toSection?: string;
-  toClassroom?: string;
+  toGrade?: string | null;
+  toSection?: string | null;
+  toClassroom?: string | null;
   effectiveDate: string;
-  reason?: string;
-  notes?: string;
-  sourceRequestId?: string;
+  reason?: string | null;
+  notes?: string | null;
+  sourceRequestId?: string | null;
   createdAt: string;
 }
 

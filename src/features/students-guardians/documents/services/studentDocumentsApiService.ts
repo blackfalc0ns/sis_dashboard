@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from "@/lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import type { StudentDocument } from "@/features/students-guardians/students/types";
 import {
   normalizeStudentDocument,
@@ -14,6 +14,50 @@ export interface CreateStudentDocumentPayload {
   fileId: string;
   status: StudentDocument["status"];
   notes?: string;
+}
+
+export interface ImportStudentDocumentsFromApplicationPayload {
+  applicationId: string;
+  applicationDocumentIds: string[];
+}
+
+export interface ImportedStudentDocumentSource {
+  sourceApplicationId: string;
+  sourceApplicationDocumentId: string;
+  sourceApplicantRequestDocumentId: string | null;
+}
+
+export interface ImportedStudentDocument {
+  applicationDocumentId: string;
+  studentDocument: StudentDocument;
+  source: ImportedStudentDocumentSource;
+}
+
+export interface SkippedStudentDocumentImport {
+  applicationDocumentId: string;
+  reason: "already_imported";
+  studentDocumentId: string;
+}
+
+export interface ImportStudentDocumentsFromApplicationResponse {
+  studentId: string;
+  applicationId: string;
+  imported: ImportedStudentDocument[];
+  skipped: SkippedStudentDocumentImport[];
+  warnings: string[];
+}
+
+interface RawImportStudentDocumentsFromApplicationResponse
+  extends Omit<ImportStudentDocumentsFromApplicationResponse, "imported"> {
+  imported: Array<
+    Omit<ImportedStudentDocument, "studentDocument"> & {
+      studentDocument: unknown;
+    }
+  >;
+}
+
+export interface DeleteStudentDocumentResponse {
+  ok: boolean;
 }
 
 export async function createStudentDocument(
@@ -62,4 +106,37 @@ export async function updateStudentDocument(
   return normalizeStudentDocument(
     unwrapItemResponse(response, "Updated student document"),
   );
+}
+
+export async function importStudentDocumentsFromApplication(
+  studentId: string,
+  payload: ImportStudentDocumentsFromApplicationPayload,
+): Promise<ImportStudentDocumentsFromApplicationResponse> {
+  const response = await apiPost<unknown>(
+    `${STUDENTS_BASE_PATH}/${studentId}/documents/import-from-application`,
+    payload,
+  );
+  const importedDocuments = unwrapItemResponse<RawImportStudentDocumentsFromApplicationResponse>(
+    response,
+    "Imported student documents",
+  );
+
+  return {
+    ...importedDocuments,
+    imported: importedDocuments.imported.map((importedDocument) => ({
+      ...importedDocument,
+      studentDocument: normalizeStudentDocument(
+        importedDocument.studentDocument,
+      ),
+    })),
+  };
+}
+
+export async function deleteStudentDocument(
+  studentDocumentId: string,
+): Promise<DeleteStudentDocumentResponse> {
+  const response = await apiDelete<unknown>(
+    `${DOCUMENTS_BASE_PATH}/${studentDocumentId}`,
+  );
+  return unwrapItemResponse(response, "Deleted student document");
 }

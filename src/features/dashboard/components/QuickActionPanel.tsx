@@ -78,7 +78,7 @@ function createQuickActions(
       id: "add_student",
       icon: UserPlus,
       label: t("add_student"),
-      href: `/${locale}/students-guardians/students`,
+      href: `/${locale}/students-guardians/registration`,
       color: "#0ac5b2",
     },
     {
@@ -101,20 +101,6 @@ function createQuickActions(
       label: t("assessment"),
       href: `/${locale}/grades/assessments/new`,
       color: "#025a6b",
-    },
-    {
-      id: "import_data",
-      icon: Upload,
-      label: t("import_data"),
-      href: `/${locale}/students-guardians/documents`,
-      color: "#CF5A32",
-    },
-    {
-      id: "print_reports",
-      icon: Printer,
-      label: t("print_reports"),
-      href: `/${locale}/attendance/reports`,
-      color: "#3C49BF",
     },
   ];
 }

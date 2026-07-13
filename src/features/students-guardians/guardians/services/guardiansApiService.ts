@@ -27,6 +27,10 @@ export interface LinkGuardianPayload {
   is_primary?: boolean;
 }
 
+export interface UpdateStudentGuardianLinkPayload {
+  is_primary?: boolean;
+}
+
 export async function fetchGuardians(
   params?: FetchGuardiansParams,
 ): Promise<Array<StudentGuardian & { id: string }>> {
@@ -39,7 +43,9 @@ export async function fetchGuardians(
 export async function fetchGuardianById(
   guardianId: string,
 ): Promise<StudentGuardian & { id: string }> {
-  const response = await apiGet<unknown>(`${GUARDIANS_BASE_PATH}/${guardianId}`);
+  const response = await apiGet<unknown>(
+    `${GUARDIANS_BASE_PATH}/${guardianId}`,
+  );
   return normalizeGuardian(unwrapItemResponse(response, "Guardian"));
 }
 
@@ -83,6 +89,20 @@ export async function unlinkGuardianFromStudent(
   );
 }
 
+export async function updateStudentGuardianLink(
+  studentId: string,
+  guardianId: string,
+  payload: UpdateStudentGuardianLinkPayload,
+): Promise<StudentGuardian & { id: string }> {
+  const response = await apiPatch<unknown>(
+    `${STUDENTS_BASE_PATH}/${studentId}/guardians/${guardianId}`,
+    payload,
+  );
+  return normalizeGuardian(
+    unwrapItemResponse(response, "Updated student guardian link"),
+  );
+}
+
 export async function fetchStudentGuardians(
   studentId: string,
 ): Promise<Array<StudentGuardian & { id: string }>> {
@@ -105,10 +125,7 @@ export async function fetchPrimaryStudentGuardians(
       normalizeGuardian,
     );
   } catch (error) {
-    if (
-      error instanceof Error &&
-      /must be an array/.test(error.message)
-    ) {
+    if (error instanceof Error && /must be an array/.test(error.message)) {
       return [
         normalizeGuardian(
           unwrapItemResponse(response, "Primary student guardian"),
@@ -139,5 +156,7 @@ export async function fetchGuardianStudents(
     return (response as { students: unknown[] }).students.map(normalizeStudent);
   }
 
-  return unwrapArrayResponse(response, "Guardian students").map(normalizeStudent);
+  return unwrapArrayResponse(response, "Guardian students").map(
+    normalizeStudent,
+  );
 }

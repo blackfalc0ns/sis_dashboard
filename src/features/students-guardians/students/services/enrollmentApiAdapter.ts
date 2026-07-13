@@ -6,6 +6,7 @@ import type {
   WithdrawStudentPayload,
 } from "@/features/students-guardians/students/services/enrollmentService";
 import type {
+  EnrollmentMovement,
   StudentEnrollment,
 } from "@/features/students-guardians/students/types";
 
@@ -75,7 +76,7 @@ export const createEnrollmentApiAdapter = (
     throw new Error("enrollment_api_sync_not_supported");
   },
   transferStudent: (payload: TransferStudentPayload) =>
-    unwrap<StudentEnrollment>(
+    unwrap<EnrollmentMovement>(
       apiWithToken(`${basePath}/transfer`, {
         method: "POST",
         headers: {
@@ -85,7 +86,7 @@ export const createEnrollmentApiAdapter = (
       }),
     ),
   withdrawStudent: (payload: WithdrawStudentPayload) =>
-    unwrap<StudentEnrollment>(
+    unwrap<EnrollmentMovement>(
       apiWithToken(`${basePath}/withdraw`, {
         method: "POST",
         headers: {
@@ -95,7 +96,7 @@ export const createEnrollmentApiAdapter = (
       }),
     ),
   promoteStudentEnrollment: (payload: PromoteStudentEnrollmentPayload) =>
-    unwrap<StudentEnrollment>(
+    unwrap<EnrollmentMovement>(
       apiWithToken(`${basePath}/promote`, {
         method: "POST",
         headers: {

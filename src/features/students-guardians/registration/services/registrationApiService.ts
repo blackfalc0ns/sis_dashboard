@@ -2,7 +2,7 @@ import { apiPost } from "@/lib/api";
 import { createEnrollment } from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
 import { createGuardian, linkGuardianToStudent } from "@/features/students-guardians/guardians/services/guardiansApiService";
 import { createStudent } from "@/features/students-guardians/students/services/studentsApiService";
-import { linkGuardianAccount, linkStudentAccount } from "@/features/students-guardians/services/accountLinkingService";
+import { linkGuardianAccount, linkStudentAccount, type AccountLinkResponse } from "@/features/students-guardians/services/accountLinkingService";
 import type { RegistrationAccountFormState, RegistrationResult, RegistrationWizardFormState } from "@/features/students-guardians/registration/types/registration";
 import { mapAccount, mapGuardianProfile, mapRegistrationToCompositePayload, mapRegistrationToEnrollmentPayload, mapRegistrationToStudentPayload } from "@/features/students-guardians/registration/utils/registrationMappers";
 import { normalizeAccountResult, normalizeRegistrationResult } from "@/features/students-guardians/registration/utils/registrationResultMapper";
@@ -24,11 +24,11 @@ async function submitAtomic(form: RegistrationWizardFormState): Promise<Registra
   return { status: "success", ...normalized, warnings: [...warningsOf(response), ...normalized.warnings] };
 }
 
-function stagedAccountResult(target: "parent" | "student", account: RegistrationAccountFormState, raw: unknown, guardianId?: string): RegistrationAccountResult {
-  const response = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+function stagedAccountResult(target: "parent" | "student", account: RegistrationAccountFormState, response: AccountLinkResponse, guardianId?: string): RegistrationAccountResult {
   const normalized = normalizeAccountResult({ target, guardianId, mode: account.mode,
-    status: account.mode === "link" ? "linked" : "created", user: { ...response, fullName: "", userType: target },
-    temporaryPassword: response.temporaryPassword ?? response.oneTimeTemporaryPassword });
+    status: account.mode === "link" ? "linked" : "created",
+    user: { ...response.user, credentialStatus: response.user.status },
+    temporaryPassword: response.temporaryPassword });
   return normalized;
 }
 

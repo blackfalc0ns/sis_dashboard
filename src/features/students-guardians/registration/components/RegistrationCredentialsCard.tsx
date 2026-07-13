@@ -10,10 +10,11 @@ export default function RegistrationCredentialsCard({ account, guardianName }: {
   const [visible, setVisible] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
+  const guardianAccountName = guardianName || account.user?.fullName;
   const label = account.target === "student" 
     ? t("student_account") 
-    : guardianName 
-      ? t("guardian_account", { name: guardianName }) 
+    : guardianAccountName
+      ? t("guardian_account", { name: guardianAccountName })
       : t("parent_account");
 
   const copy = async (name: string, value?: string | null) => { 
@@ -39,7 +40,7 @@ export default function RegistrationCredentialsCard({ account, guardianName }: {
       <div className="flex items-center justify-between">
         <div>
           <h4 className="font-semibold text-gray-900">{label}</h4>
-          <p className="text-sm capitalize text-gray-600">{account.status}</p>
+          <p className="text-sm text-gray-600">{t(`status.${account.status}`)}</p>
         </div>
         {account.status === "created" || account.status === "linked" ? (
           <Check className="h-5 w-5 text-green-700" />
@@ -62,7 +63,24 @@ export default function RegistrationCredentialsCard({ account, guardianName }: {
             copied={copied === "email"} 
             copyText={t("copied_status")}
           />
+          <Credential
+            label={t("contact_email")}
+            value={account.user.contactEmail}
+            onCopy={() => copy("contactEmail", account.user?.contactEmail)}
+            copied={copied === "contactEmail"}
+            copyText={t("copied_status")}
+          />
+          <div>
+            <dt className="text-xs font-medium text-gray-500">{t("role")}</dt>
+            <dd className="mt-1 text-gray-900">{account.user.roleName}</dd>
+          </div>
         </dl>
+      )}
+
+      {account.user?.mustChangePassword && (
+        <p className="mt-3 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-amber-800">
+          {t("must_change_password")}
+        </p>
       )}
 
       {account.temporaryPassword && (
@@ -73,16 +91,16 @@ export default function RegistrationCredentialsCard({ account, guardianName }: {
             <button 
               type="button" 
               onClick={() => setVisible((current) => !current)} 
-              aria-label={visible ? "Hide password" : "Show password"} 
-              className="rounded p-1 hover:bg-gray-100"
+              aria-label={visible ? t("hide_password") : t("show_password")}
+              className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
             <button 
               type="button" 
               onClick={() => copy("password", account.temporaryPassword)} 
-              aria-label="Copy password" 
-              className="rounded p-1 hover:bg-gray-100"
+              aria-label={t("copy_password")}
+              className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <Copy className="h-4 w-4" />
             </button>
@@ -94,7 +112,7 @@ export default function RegistrationCredentialsCard({ account, guardianName }: {
         <button 
           type="button" 
           onClick={copyAll} 
-          className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary cursor-pointer"
+          className="mt-3 inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm font-medium text-primary transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Copy className="h-4 w-4" />
           {copied === "all" ? t("copied") : t("copy_all")}
@@ -118,8 +136,8 @@ function Credential({ label, value, onCopy, copied, copyText }: { label: string;
         <button 
           type="button" 
           onClick={onCopy} 
-          aria-label={`Copy ${label.toLowerCase()}`} 
-          className="rounded p-1 hover:bg-white cursor-pointer"
+          aria-label={`Copy ${label.toLowerCase()}`}
+          className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Copy className="h-3.5 w-3.5" />
         </button>

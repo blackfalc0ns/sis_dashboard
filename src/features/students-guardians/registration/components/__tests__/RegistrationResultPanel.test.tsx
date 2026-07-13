@@ -26,6 +26,9 @@ const translations: Record<string, string> = {
   "guardian_account": "{name} account",
   "username": "Username",
   "login_email": "Login email",
+  "contact_email": "Contact email",
+  "role": "Role",
+  "must_change_password": "Password change required at next sign-in",
   "temporary_password": "Temporary password",
   "copy_all": "Copy all credentials",
   "copied": "Copied",
@@ -35,7 +38,7 @@ const translations: Record<string, string> = {
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
-  useTranslations: () => (key: string, values?: any) => {
+  useTranslations: () => (key: string, values?: Record<string, unknown>) => {
     const part = key.split(".").pop() || key;
     let text = translations[part] || part;
     if (values) {
@@ -72,5 +75,38 @@ describe("RegistrationResultPanel", () => {
     render(<RegistrationResultPanel result={warningResult} onViewStudentProfile={vi.fn()} onBackToStudents={vi.fn()} />);
     expect(screen.getByRole("heading", { name: "Registration completed with warnings" })).toBeInTheDocument();
     expect(screen.queryByText("Registration failed")).not.toBeInTheDocument();
+  });
+
+  it("shows the backend account summary for an existing guardian", () => {
+    const result: RegistrationResult = {
+      ...successfulResult,
+      studentAccount: null,
+      parentAccounts: [{
+        target: "parent",
+        guardianId: "guardian-1",
+        mode: "create",
+        status: "created",
+        user: {
+          fullName: "Guardian One",
+          username: "guardian.one",
+          loginEmail: "guardian.one@school.test",
+          contactEmail: "guardian@example.com",
+          userType: "parent",
+          roleKey: "parent",
+          roleName: "Parent",
+          credentialStatus: "must_change",
+          hasPassword: true,
+          mustChangePassword: true,
+        },
+      }],
+    };
+
+    render(<RegistrationResultPanel result={result} onViewStudentProfile={vi.fn()} onBackToStudents={vi.fn()} />);
+
+    expect(screen.getByRole("heading", { name: "Guardian One account" })).toBeInTheDocument();
+    expect(screen.getByText("guardian.one@school.test")).toBeInTheDocument();
+    expect(screen.getByText("guardian@example.com")).toBeInTheDocument();
+    expect(screen.getByText("Parent")).toBeInTheDocument();
+    expect(screen.getByText("Password change required at next sign-in")).toBeInTheDocument();
   });
 });

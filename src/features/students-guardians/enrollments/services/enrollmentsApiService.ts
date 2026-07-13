@@ -1,5 +1,4 @@
 import { apiGet, apiPost } from "@/lib/api";
-import { isApiError } from "@/lib/api-error";
 import type { StudentEnrollment } from "@/features/students-guardians/students/types";
 import {
   buildQueryString,
@@ -46,7 +45,9 @@ export async function createEnrollment(
   payload: EnrollmentPayload,
 ): Promise<StudentEnrollment & { id: string }> {
   const response = await apiPost<unknown>(ENROLLMENTS_BASE_PATH, payload);
-  return normalizeEnrollment(unwrapItemResponse(response, "Created enrollment"));
+  return normalizeEnrollment(
+    unwrapItemResponse(response, "Created enrollment"),
+  );
 }
 
 export async function fetchEnrollmentById(
@@ -61,17 +62,14 @@ export async function fetchEnrollmentById(
 export async function fetchCurrentEnrollment(
   params: FetchCurrentEnrollmentParams,
 ): Promise<(StudentEnrollment & { id: string }) | null> {
-  try {
-    const response = await apiGet<unknown>(
-      `${ENROLLMENTS_BASE_PATH}/current${buildQueryString(params)}`,
-    );
-    return normalizeEnrollment(unwrapItemResponse(response, "Current enrollment"));
-  } catch (error) {
-    if (isApiError(error) && error.status === 404) {
-      return null;
-    }
-    throw error;
-  }
+  const response = await apiGet<unknown>(
+    `${ENROLLMENTS_BASE_PATH}/current${buildQueryString(params)}`,
+  );
+  if (response === null) return null;
+
+  return normalizeEnrollment(
+    unwrapItemResponse(response, "Current enrollment"),
+  );
 }
 
 export async function fetchEnrollmentHistory(

@@ -426,7 +426,7 @@ const getPlacementHistoryImpl = (studentId: string): EnrollmentMovement[] => {
 
 const transferStudentImpl = async (
   payload: TransferStudentPayload,
-): Promise<StudentEnrollment> => {
+): Promise<EnrollmentMovement> => {
   await delay();
   const currentEnrollment = getCurrentActiveEnrollmentImpl(payload.studentId);
   if (!currentEnrollment) {
@@ -484,7 +484,7 @@ const transferStudentImpl = async (
     classroomId: targetClassroom?.id,
   });
 
-  appendEnrollmentMovement({
+  return appendEnrollmentMovement({
     studentId: updated.studentId,
     academicYear: updated.academicYear,
     actionType: "transferred_internal",
@@ -506,12 +506,11 @@ const transferStudentImpl = async (
     sourceRequestId: payload.sourceRequestId,
   });
 
-  return updated;
 };
 
 const withdrawStudentImpl = async (
   payload: WithdrawStudentPayload,
-): Promise<StudentEnrollment> => {
+): Promise<EnrollmentMovement> => {
   await delay();
   const currentEnrollment = getCurrentActiveEnrollmentImpl(payload.studentId);
   if (!currentEnrollment) {
@@ -522,7 +521,7 @@ const withdrawStudentImpl = async (
     status: "withdrawn",
   });
 
-  appendEnrollmentMovement({
+  return appendEnrollmentMovement({
     studentId: updated.studentId,
     academicYear: updated.academicYear,
     actionType: payload.actionType || "withdrawn",
@@ -538,7 +537,6 @@ const withdrawStudentImpl = async (
     sourceRequestId: payload.sourceRequestId,
   });
 
-  return updated;
 };
 
 const resolvePromotionTarget = (
@@ -605,7 +603,7 @@ const resolvePromotionTarget = (
 
 const promoteStudentEnrollmentImpl = async (
   payload: PromoteStudentEnrollmentPayload,
-): Promise<StudentEnrollment> => {
+): Promise<EnrollmentMovement> => {
   await delay();
   const sourceEnrollment = getCurrentActiveEnrollmentImpl(payload.studentId);
   if (!sourceEnrollment) {
@@ -628,7 +626,7 @@ const promoteStudentEnrollmentImpl = async (
     status: "active",
   });
 
-  appendEnrollmentMovement({
+  return appendEnrollmentMovement({
     studentId: nextEnrollment.studentId,
     academicYear: nextEnrollment.academicYear,
     actionType: "promoted",
@@ -648,7 +646,6 @@ const promoteStudentEnrollmentImpl = async (
     notes: payload.notes,
   });
 
-  return nextEnrollment;
 };
 
 const bulkAssignStudentsToClassroomsImpl = async (
@@ -771,12 +768,18 @@ const promoteActiveStudentsToAcademicYearImpl = async (
   const promoted: StudentEnrollment[] = [];
   for (const enrollment of activeStudents) {
     try {
-      const nextEnrollment = await promoteStudentEnrollment({
+      await promoteStudentEnrollment({
         studentId: enrollment.studentId,
         targetAcademicYear,
         effectiveDate,
       });
-      promoted.push(nextEnrollment);
+      const nextEnrollment = getCurrentActiveEnrollmentImpl(
+        enrollment.studentId,
+        targetAcademicYear,
+      );
+      if (nextEnrollment) {
+        promoted.push(nextEnrollment);
+      }
     } catch {
       // Skip students whose target placement cannot be resolved cleanly.
     }
@@ -874,19 +877,19 @@ export function getPlacementHistory(studentId: string): EnrollmentMovement[] {
 
 export async function transferStudent(
   payload: TransferStudentPayload,
-): Promise<StudentEnrollment> {
+): Promise<EnrollmentMovement> {
   return getEnrollmentAdapter().transferStudent(payload);
 }
 
 export async function withdrawStudent(
   payload: WithdrawStudentPayload,
-): Promise<StudentEnrollment> {
+): Promise<EnrollmentMovement> {
   return getEnrollmentAdapter().withdrawStudent(payload);
 }
 
 export async function promoteStudentEnrollment(
   payload: PromoteStudentEnrollmentPayload,
-): Promise<StudentEnrollment> {
+): Promise<EnrollmentMovement> {
   return getEnrollmentAdapter().promoteStudentEnrollment(payload);
 }
 

@@ -8,8 +8,6 @@ import type {
   StudentMedicalProfile,
   StudentNote,
   CreateStudentNotePayload,
-  StudentXpEvent,
-  StudentXpSummary,
   StudentTimelineEvent,
   StudentStatus,
   RiskFlag,
@@ -928,6 +926,18 @@ export async function unlinkGuardianFromStudent(
   return guardiansApiService.unlinkGuardianFromStudent(studentId, guardianId);
 }
 
+export async function updateStudentGuardianLink(
+  studentId: string,
+  guardianId: string,
+  payload: guardiansApiService.UpdateStudentGuardianLinkPayload,
+) {
+  return guardiansApiService.updateStudentGuardianLink(
+    studentId,
+    guardianId,
+    payload,
+  );
+}
+
 export function getStudentDocuments(studentId: string): StudentDocument[] {
   return getStudentsAdapter().getStudentDocuments(studentId);
 }
@@ -1034,10 +1044,23 @@ export async function createStudentDocument(
   studentId: string,
   payload: studentDocumentsApiService.CreateStudentDocumentPayload,
 ): Promise<StudentDocument> {
-  return studentDocumentsApiService.createStudentDocument(
+  return studentDocumentsApiService.createStudentDocument(studentId, payload);
+}
+
+export async function importStudentDocumentsFromApplication(
+  studentId: string,
+  payload: studentDocumentsApiService.ImportStudentDocumentsFromApplicationPayload,
+): Promise<studentDocumentsApiService.ImportStudentDocumentsFromApplicationResponse> {
+  return studentDocumentsApiService.importStudentDocumentsFromApplication(
     studentId,
     payload,
   );
+}
+
+export async function deleteStudentDocument(
+  studentDocumentId: string,
+): Promise<studentDocumentsApiService.DeleteStudentDocumentResponse> {
+  return studentDocumentsApiService.deleteStudentDocument(studentDocumentId);
 }
 
 export async function fetchStudentMedicalProfile(

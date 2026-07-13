@@ -7,12 +7,21 @@ const apiMocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/api", () => apiMocks);
 
-import { upsertMedicalProfile } from "@/features/students-guardians/medical/services/medicalProfileApiService";
+import {
+  fetchMedicalProfile,
+  upsertMedicalProfile,
+} from "@/features/students-guardians/medical/services/medicalProfileApiService";
 
 describe("medicalProfileApiService", () => {
   beforeEach(() => {
     apiMocks.apiGet.mockReset();
     apiMocks.apiPatch.mockReset();
+  });
+
+  it("returns null when the backend has no medical profile", async () => {
+    apiMocks.apiGet.mockResolvedValue(null);
+
+    await expect(fetchMedicalProfile("student-1")).resolves.toBeNull();
   });
 
   it("maps the frontend medical form to the backend update DTO", async () => {

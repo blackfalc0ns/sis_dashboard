@@ -173,4 +173,91 @@ describe("registrationApiService", () => {
       errorMessage: "Enrollment failed",
     });
   });
+
+  it("preserves backend account user summaries in a staged existing-guardian registration", async () => {
+    studentMocks.createStudent.mockResolvedValue({
+      id: "student-1",
+      full_name_en: "Student One",
+      status: "active",
+    });
+    guardianMocks.linkGuardianToStudent.mockResolvedValue({});
+    enrollmentMocks.createEnrollment.mockResolvedValue({
+      enrollmentId: "enrollment-1",
+      studentId: "student-1",
+      status: "active",
+    });
+    apiMocks.apiPost.mockImplementation((path: string) => {
+      if (path.includes("/guardians/")) {
+        return Promise.resolve({
+          guardianId: "guardian-1",
+          linked: true,
+          temporaryPassword: "parent-secret",
+          user: {
+            fullName: "Guardian One",
+            username: "guardian.one",
+            loginEmail: "guardian.one@school.test",
+            contactEmail: "guardian@example.com",
+            userType: "parent",
+            roleKey: "parent",
+            roleName: "Parent",
+            status: "must_change",
+            hasPassword: true,
+            mustChangePassword: true,
+          },
+        });
+      }
+
+      return Promise.resolve({
+        studentId: "student-1",
+        linked: true,
+        user: {
+          fullName: "Student One",
+          username: "student.one",
+          loginEmail: "student.one@school.test",
+          contactEmail: null,
+          userType: "student",
+          roleKey: "student",
+          roleName: "Student",
+          status: "active",
+          hasPassword: false,
+          mustChangePassword: false,
+        },
+      });
+    });
+
+    const result = await submitRegistration({
+      ...formState,
+      guardians: [{
+        key: "guardian-1",
+        mode: "existing",
+        existingGuardianId: "guardian-1",
+        existingGuardianLabel: "Guardian One",
+        isPrimary: true,
+        account: { mode: "create", username: "guardian.one" },
+      }],
+    });
+
+    expect(result).toMatchObject({
+      status: "success",
+      parentAccounts: [{
+        guardianId: "guardian-1",
+        status: "created",
+        temporaryPassword: "parent-secret",
+        user: {
+          fullName: "Guardian One",
+          username: "guardian.one",
+          loginEmail: "guardian.one@school.test",
+          credentialStatus: "must_change",
+        },
+      }],
+      studentAccount: {
+        status: "created",
+        user: {
+          fullName: "Student One",
+          username: "student.one",
+          loginEmail: "student.one@school.test",
+        },
+      },
+    });
+  });
 });

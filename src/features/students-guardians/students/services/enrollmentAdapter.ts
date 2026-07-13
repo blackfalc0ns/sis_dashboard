@@ -29,11 +29,11 @@ export interface EnrollmentAdapter {
   ): StudentEnrollment | undefined;
   getEnrollmentHistory(studentId: string): StudentEnrollment[];
   getPlacementHistory(studentId: string): EnrollmentMovement[];
-  transferStudent(payload: TransferStudentPayload): Promise<StudentEnrollment>;
-  withdrawStudent(payload: WithdrawStudentPayload): Promise<StudentEnrollment>;
+  transferStudent(payload: TransferStudentPayload): Promise<EnrollmentMovement>;
+  withdrawStudent(payload: WithdrawStudentPayload): Promise<EnrollmentMovement>;
   promoteStudentEnrollment(
     payload: PromoteStudentEnrollmentPayload,
-  ): Promise<StudentEnrollment>;
+  ): Promise<EnrollmentMovement>;
   bulkAssignStudentsToClassrooms(
     payload: BulkAssignStudentsPayload,
   ): Promise<BulkAssignStudentsResult>;

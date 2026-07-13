@@ -2306,8 +2306,19 @@
       "grantXp": "منح نقاط خبرة",
       "awardBadge": "منح شارة",
       "completeBeforeRewards": "أكمل مهمة قبل منح مكافآتها.",
-      "statuses": { "not_started": "لم تبدأ", "in_progress": "قيد التنفيذ", "completed": "مكتملة", "cancelled": "ملغاة" },
-      "events": { "mission_started": "بدأت المهمة", "objective_completed": "اكتمل هدف", "mission_completed": "اكتملت المهمة", "xp_granted": "مُنحت نقاط خبرة", "badge_awarded": "مُنحت شارة" },
+      "statuses": {
+        "not_started": "لم تبدأ",
+        "in_progress": "قيد التنفيذ",
+        "completed": "مكتملة",
+        "cancelled": "ملغاة"
+      },
+      "events": {
+        "mission_started": "بدأت المهمة",
+        "objective_completed": "اكتمل هدف",
+        "mission_completed": "اكتملت المهمة",
+        "xp_granted": "مُنحت نقاط خبرة",
+        "badge_awarded": "مُنحت شارة"
+      },
       "requiredObjectives": "{completed}/{required} أهداف مطلوبة",
       "missionProgress": "تقدم المهمة",
       "progressLabel": "تقدم {mission}",
@@ -2389,7 +2400,8 @@
         "username": "اسم المستخدم",
         "login_email": "بريد تسجيل الدخول المولّد",
         "contact_email": "بريد التواصل",
-        "temporary_password_mode": "كلمة المرور المؤقتة"
+        "temporary_password_mode": "كلمة المرور المؤقتة",
+        "search_users": "البحث في المستخدمين النشطين"
       },
       "modes": {
         "create": "إنشاء حساب",
@@ -2404,12 +2416,18 @@
       "actions": {
         "submit": "ربط الحساب",
         "close": "إغلاق",
-        "copy": "نسخ كلمة المرور"
+        "copy": "نسخ كلمة المرور",
+        "change": "تغيير"
       },
       "validation": {
         "username_required": "اسم المستخدم مطلوب.",
-        "contact_email_required": "بريد التواصل مطلوب عند إنشاء حساب طالب."
+        "contact_email_required": "بريد التواصل مطلوب عند إنشاء حساب طالب.",
+        "user_required": "اختر مستخدماً موجوداً للربط."
       },
+      "search_placeholder": "البحث بالاسم أو اسم المستخدم أو البريد",
+      "no_results": "لا يوجد مستخدمون نشطون مطابقون.",
+      "search_failed": "تعذر تحميل المستخدمين. حاول مرة أخرى.",
+      "role_unavailable": "الدور غير متاح",
       "messages": {
         "linked": "تم ربط الحساب بنجاح.",
         "link_failed": "فشل ربط الحساب.",
@@ -3305,6 +3323,11 @@
         "add_guardian": "إضافة ولي أمر",
         "primary_guardian": "ولي الأمر الرئيسي",
         "edit_guardian": "تعديل ولي الأمر",
+        "edit_link": "تعديل ربط ولي الأمر",
+        "edit_link_title": "تعديل علاقة ولي الأمر",
+        "edit_link_help": "حدد ما إذا كان ولي الأمر هذا هو جهة الاتصال الأساسية لهذا الطالب.",
+        "save_link": "حفظ العلاقة",
+        "update_link_failed": "تعذر تحديث علاقة ولي الأمر.",
         "remove_guardian": "إزالة ولي الأمر",
         "link_existing": "ربط ولي أمر موجود",
         "link_existing_modal_title": "ربط ولي أمر موجود",
@@ -3585,7 +3608,21 @@
         "view": "عرض",
         "download": "تحميل",
         "upload": "رفع",
-        "delete": "حذف"
+        "delete": "حذف",
+        "import_from_admissions": "استيراد من القبول",
+        "import_title": "استيراد مستندات القبول",
+        "import_description": "حدد المستندات المرفوعة من طلب القبول الأصلي للطالب.",
+        "import_selected": "استيراد المحدد",
+        "no_importable_documents": "لا توجد مستندات قبول مرفوعة متاحة للاستيراد.",
+        "import_success": "تم استيراد المستندات بنجاح.",
+        "import_load_error": "تعذر تحميل مستندات القبول.",
+        "import_error": "تعذر استيراد المستندات المحددة.",
+        "delete_title": "حذف مستند الطالب؟",
+        "delete_description": "سيؤدي هذا إلى إزالة {name} من سجل مستندات الطالب. لا يمكن التراجع عن هذا الإجراء.",
+        "confirm_delete": "حذف المستند",
+        "delete_success": "تم حذف المستند بنجاح.",
+        "delete_error": "تعذر حذف المستند.",
+        "cancel": "إلغاء"
       },
       "medical": {
         "title": "الملف الطبي",
@@ -3845,7 +3882,19 @@
         "guardian_account": "حساب {name}",
         "username": "اسم المستخدم",
         "login_email": "بريد تسجيل الدخول",
+        "contact_email": "البريد الإلكتروني للتواصل",
+        "role": "الدور",
+        "must_change_password": "يلزم تغيير كلمة المرور عند تسجيل الدخول التالي",
         "temporary_password": "كلمة مرور مؤقتة",
+        "show_password": "إظهار كلمة المرور",
+        "hide_password": "إخفاء كلمة المرور",
+        "copy_password": "نسخ كلمة المرور",
+        "status": {
+          "skipped": "تم التخطي",
+          "created": "تم الإنشاء",
+          "linked": "تم الربط",
+          "failed": "فشل"
+        },
         "copy_all": "نسخ جميع بيانات الاعتماد",
         "copied": "تم النسخ",
         "copied_status": "تم النسخ",

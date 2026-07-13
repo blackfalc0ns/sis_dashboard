@@ -1,6 +1,6 @@
 import { apiPost } from "@/lib/api";
 
-export type AccountLinkMode = "create" | "link" | "link_existing";
+export type AccountLinkMode = "create" | "link";
 export type TemporaryPasswordMode = "none" | "generate";
 
 export interface AccountLinkRequest {
@@ -12,14 +12,22 @@ export interface AccountLinkRequest {
 }
 
 export interface AccountLinkResponse {
-  userId?: string | null;
-  username?: string | null;
-  email?: string | null;
-  loginEmail?: string | null;
-  contactEmail?: string | null;
-  mustChangePassword?: boolean | null;
+  studentId?: string;
+  guardianId?: string;
+  linked: true;
+  user: {
+    fullName: string;
+    username: string | null;
+    loginEmail: string;
+    contactEmail: string | null;
+    userType: "parent" | "student";
+    roleKey: string;
+    roleName: string;
+    status: string;
+    hasPassword: boolean;
+    mustChangePassword: boolean;
+  };
   temporaryPassword?: string | null;
-  oneTimeTemporaryPassword?: string | null;
 }
 
 export async function linkStudentAccount(

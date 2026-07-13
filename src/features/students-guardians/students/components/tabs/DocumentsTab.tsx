@@ -10,20 +10,26 @@ import {
   Eye,
   AlertCircle,
   CheckCircle,
+  FileInput,
+  Trash2,
 } from "lucide-react";
 import {
   Student,
   StudentDocument,
 } from "@/features/students-guardians/students/types";
-import { Button, DataTable } from "@/components/ui";
+import { Button, ConfirmDialog, DataTable } from "@/components/ui";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import UploadDocumentModal, {
   DocumentUploadData,
 } from "@/features/students-guardians/students/components/modals/UploadDocumentModal";
 import DocumentViewerModal from "@/features/admissions/applications/components/modals/DocumentViewerModal";
+import ImportStudentDocumentsModal from "@/features/students-guardians/students/components/modals/ImportStudentDocumentsModal";
+import { fetchApplicationDocuments } from "@/features/admissions/applications/services/applicationDocumentsApiService";
+import type { Document } from "@/features/admissions/types/admissions";
 import { useTranslations } from "next-intl";
 import { downloadFileBlob, uploadFile } from "@/services/filesService";
+import { useToast } from "@/components/ui/toast/Toast";
 
 interface DocumentsTabProps {
   student: Student;
@@ -31,8 +37,15 @@ interface DocumentsTabProps {
 
 export default function DocumentsTab({ student }: DocumentsTabProps) {
   const t = useTranslations("students_guardians.profile.documents");
+  const { showToast } = useToast();
   const [documents, setDocuments] = useState<StudentDocument[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [applicationDocuments, setApplicationDocuments] = useState<Document[]>([]);
+  const [isLoadingImports, setIsLoadingImports] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<StudentDocument | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<{
@@ -108,6 +121,72 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
     if (name.endsWith(".pdf")) return "pdf";
     if (/\.(jpg|jpeg|png|gif)$/i.test(name)) return "image";
     return "other";
+  };
+
+  const handleOpenImport = async () => {
+    if (!student.applicationId) return;
+
+    setShowImportModal(true);
+    setIsLoadingImports(true);
+    try {
+      const sourceDocuments = await fetchApplicationDocuments(
+        student.applicationId,
+      );
+      setApplicationDocuments(
+        sourceDocuments.filter((document) => Boolean(document.fileId)),
+      );
+    } catch (importLoadError) {
+      setApplicationDocuments([]);
+      showToast(
+        importLoadError instanceof Error
+          ? importLoadError.message
+          : t("import_load_error"),
+        "error",
+      );
+    } finally {
+      setIsLoadingImports(false);
+    }
+  };
+
+  const handleImportDocuments = async (applicationDocumentIds: string[]) => {
+    if (!student.applicationId) return;
+
+    setIsImporting(true);
+    try {
+      await studentsService.importStudentDocumentsFromApplication(student.id, {
+        applicationId: student.applicationId,
+        applicationDocumentIds,
+      });
+      setShowImportModal(false);
+      showToast(t("import_success"), "success");
+      await loadDocuments();
+    } catch (importError) {
+      showToast(
+        importError instanceof Error ? importError.message : t("import_error"),
+        "error",
+      );
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleDeleteDocument = async () => {
+    if (!documentToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await studentsService.deleteStudentDocument(documentToDelete.id);
+      setDocumentToDelete(null);
+      showToast(t("delete_success"), "success");
+      await loadDocuments();
+    } catch (deleteError) {
+      showToast(
+        deleteError instanceof Error ? deleteError.message : t("delete_error"),
+        "error",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleViewDocument = async (doc: Record<string, unknown>) => {
@@ -274,6 +353,16 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
               <Upload className="w-4 h-4" />
             </Button>
           )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setDocumentToDelete(row as unknown as StudentDocument)}
+            className="p-1.5 text-red-600 hover:bg-red-50"
+            title={t("delete")}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       ),
     },
@@ -339,20 +428,32 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
 
       {/* Documents Table */}
       <div className="bg-white rounded-xl shadow-sm">
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+        <div className="flex flex-col gap-4 border-b border-gray-200 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-lg font-bold text-gray-900">
               {t("student_documents")}
             </h3>
             <p className="text-sm text-gray-500 mt-1">{t("manage_track")}</p>
           </div>
-          <Button
-            type="button"
-            onClick={() => handleUploadClick()}
-            leftIcon={<Upload className="w-4 h-4" />}
-          >
-            {t("upload_document")}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {student.applicationId ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => void handleOpenImport()}
+                leftIcon={<FileInput className="h-4 w-4" />}
+              >
+                {t("import_from_admissions")}
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              onClick={() => handleUploadClick()}
+              leftIcon={<Upload className="w-4 h-4" />}
+            >
+              {t("upload_document")}
+            </Button>
+          </div>
         </div>
         <div className="p-6">
           <DataTable
@@ -377,6 +478,31 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
         isOpen={!!selectedDocument}
         onClose={handleCloseViewer}
         document={selectedDocument}
+      />
+
+      {showImportModal ? (
+        <ImportStudentDocumentsModal
+          isOpen
+          documents={applicationDocuments}
+          isLoading={isLoadingImports}
+          isSubmitting={isImporting}
+          onClose={() => setShowImportModal(false)}
+          onSubmit={(documentIds) => void handleImportDocuments(documentIds)}
+        />
+      ) : null}
+
+      <ConfirmDialog
+        isOpen={Boolean(documentToDelete)}
+        onClose={() => setDocumentToDelete(null)}
+        onConfirm={() => void handleDeleteDocument()}
+        title={t("delete_title")}
+        description={t("delete_description", {
+          name: documentToDelete?.name || documentToDelete?.type || "",
+        })}
+        confirmLabel={t("confirm_delete")}
+        cancelLabel={t("cancel")}
+        loading={isDeleting}
+        severity="danger"
       />
     </div>
   );

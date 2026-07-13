@@ -18,7 +18,10 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
-import { Student, type StudentGuardian } from "@/features/students-guardians/students/types";
+import {
+  Student,
+  type StudentGuardian,
+} from "@/features/students-guardians/students/types";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import AddGuardianModal, {
   GuardianFormData,
@@ -26,13 +29,19 @@ import AddGuardianModal, {
 import { useTranslations } from "next-intl";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import { Button, EmptyState, Input, Modal } from "@/components/ui";
+import { useToast } from "@/components/ui/toast/Toast";
 
 interface GuardiansTabProps {
   student: Student;
 }
 
+function errorMessage(failure: unknown, fallback: string) {
+  return failure instanceof Error ? failure.message : fallback;
+}
+
 export default function GuardiansTab({ student }: GuardiansTabProps) {
   const t = useTranslations("students_guardians.profile.guardians");
+  const { showError } = useToast();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [guardians, setGuardians] = useState<StudentGuardian[]>([]);
@@ -43,8 +52,16 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
   const [isSearchingGuardians, setIsSearchingGuardians] = useState(false);
   const [selectedGuardianId, setSelectedGuardianId] = useState("");
   const [linkAsPrimary, setLinkAsPrimary] = useState(false);
-  const [primaryGuardian, setPrimaryGuardian] =
-    useState<StudentGuardian | undefined>(undefined);
+  const [editingGuardian, setEditingGuardian] =
+    useState<StudentGuardian | null>(null);
+  const [editAsPrimary, setEditAsPrimary] = useState(false);
+  const [editCanPickup, setEditCanPickup] = useState(false);
+  const [editCanReceiveNotifications, setEditCanReceiveNotifications] =
+    useState(false);
+  const [isSavingLink, setIsSavingLink] = useState(false);
+  const [primaryGuardian, setPrimaryGuardian] = useState<
+    StudentGuardian | undefined
+  >(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,9 +88,9 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
         if (!isCancelled) {
           setGuardians([]);
           setPrimaryGuardian(undefined);
-          setError(
-            loadError instanceof Error ? loadError.message : "Unable to load guardians.",
-          );
+          const message = errorMessage(loadError, "Unable to load guardians.");
+          setError(message);
+          showError(message);
         }
       } finally {
         if (!isCancelled) {
@@ -85,7 +102,7 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
     return () => {
       isCancelled = true;
     };
-  }, [student.id]);
+  }, [showError, student.id]);
 
   const handleAddGuardian = async (guardianData: GuardianFormData) => {
     setError(null);
@@ -158,7 +175,9 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
         const results = await studentsService.fetchAllGuardians({
           search: guardianSearch,
         });
-        const linkedIds = new Set(guardians.map((guardian) => guardian.guardianId));
+        const linkedIds = new Set(
+          guardians.map((guardian) => guardian.guardianId),
+        );
         if (!isCancelled) {
           setGuardianSearchResults(
             results.filter((guardian) => !linkedIds.has(guardian.guardianId)),
@@ -167,11 +186,12 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
       } catch (searchError) {
         if (!isCancelled) {
           setGuardianSearchResults([]);
-          setError(
-            searchError instanceof Error
-              ? searchError.message
-              : "Unable to search guardians.",
+          const message = errorMessage(
+            searchError,
+            "Unable to search guardians.",
           );
+          setError(message);
+          showError(message);
         }
       } finally {
         if (!isCancelled) {
@@ -183,7 +203,7 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
     return () => {
       isCancelled = true;
     };
-  }, [guardianSearch, guardians, showLinkModal]);
+  }, [guardianSearch, guardians, showError, showLinkModal]);
 
   const refreshStudentGuardians = async () => {
     const [guardiansData, primaryGuardianData] = await Promise.all([
@@ -213,11 +233,9 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
       setGuardianSearch("");
       setLinkAsPrimary(false);
     } catch (linkError) {
-      setError(
-        linkError instanceof Error
-          ? linkError.message
-          : "Unable to link guardian.",
-      );
+      const message = errorMessage(linkError, "Unable to link guardian.");
+      setError(message);
+      showError(message);
     }
   };
 
@@ -227,11 +245,45 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
       await studentsService.unlinkGuardianFromStudent(student.id, guardianId);
       await refreshStudentGuardians();
     } catch (unlinkError) {
-      setError(
-        unlinkError instanceof Error
-          ? unlinkError.message
-          : "Unable to unlink guardian.",
-      );
+      const message = errorMessage(unlinkError, "Unable to unlink guardian.");
+      setError(message);
+      showError(message);
+    }
+  };
+
+  const openLinkEditor = (guardian: StudentGuardian) => {
+    setEditingGuardian(guardian);
+    setEditAsPrimary(guardian.is_primary);
+    setEditCanPickup(guardian.can_pickup);
+    setEditCanReceiveNotifications(guardian.can_receive_notifications);
+    setError(null);
+  };
+
+  const saveGuardianLink = async () => {
+    if (!editingGuardian) return;
+
+    setIsSavingLink(true);
+    setError(null);
+    try {
+      await Promise.all([
+        studentsService.updateStudentGuardianLink(
+          student.id,
+          editingGuardian.guardianId,
+          { is_primary: editAsPrimary },
+        ),
+        studentsService.updateGuardian(editingGuardian.guardianId, {
+          can_pickup: editCanPickup,
+          can_receive_notifications: editCanReceiveNotifications,
+        }),
+      ]);
+      await refreshStudentGuardians();
+      setEditingGuardian(null);
+    } catch (updateError) {
+      const message = errorMessage(updateError, t("update_link_failed"));
+      setError(message);
+      showError(message);
+    } finally {
+      setIsSavingLink(false);
     }
   };
 
@@ -353,9 +405,10 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="p-2 text-gray-400 rounded-lg cursor-not-allowed"
-                  title="Editing guardian links is not available yet"
-                  disabled
+                  className="cursor-pointer p-2 text-gray-600"
+                  aria-label={t("edit_link")}
+                  title={t("edit_link")}
+                  onClick={() => openLinkEditor(guardian)}
                 >
                   <Edit2 className="w-4 h-4" />
                 </Button>
@@ -364,7 +417,9 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => void handleUnlinkGuardian(guardian.guardianId)}
+                    onClick={() =>
+                      void handleUnlinkGuardian(guardian.guardianId)
+                    }
                     className="p-2 text-red-500"
                     title="Unlink guardian from student"
                   >
@@ -535,6 +590,91 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
         onSubmit={handleAddGuardian}
       />
 
+      {editingGuardian && (
+        <Modal
+          isOpen
+          onClose={() => setEditingGuardian(null)}
+          title={t("edit_link_title")}
+          size="sm"
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setEditingGuardian(null)}
+              >
+                {t("add_guardian_modal.cancel")}
+              </Button>
+              <Button
+                type="button"
+                loading={isSavingLink}
+                onClick={() => void saveGuardianLink()}
+              >
+                {t("save_link")}
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4 pb-4">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <p className="font-medium text-gray-900">
+                {editingGuardian.full_name}
+              </p>
+              <p className="mt-1 text-sm text-gray-600">
+                {t("edit_link_help")}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              fullWidth
+              aria-pressed={editAsPrimary}
+              className={`min-h-11 cursor-pointer justify-start rounded-lg border p-3 text-start transition-colors ${
+                editAsPrimary
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-gray-200"
+              }`}
+              onClick={() => setEditAsPrimary((current) => !current)}
+            >
+              <Star
+                className={`h-4 w-4 ${editAsPrimary ? "fill-current" : ""}`}
+              />
+              {t("mark_as_primary")}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              fullWidth
+              aria-pressed={editCanPickup}
+              className={`min-h-11 cursor-pointer justify-start rounded-lg border p-3 text-start transition-colors ${
+                editCanPickup
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-gray-200"
+              }`}
+              onClick={() => setEditCanPickup((current) => !current)}
+            >
+              {t("can_pickup")}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              fullWidth
+              aria-pressed={editCanReceiveNotifications}
+              className={`min-h-11 cursor-pointer justify-start rounded-lg border p-3 text-start transition-colors ${
+                editCanReceiveNotifications
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-gray-200"
+              }`}
+              onClick={() =>
+                setEditCanReceiveNotifications((current) => !current)
+              }
+            >
+              {t("notifications")}
+            </Button>
+          </div>
+        </Modal>
+      )}
+
       {showLinkModal && (
         <Modal
           isOpen={showLinkModal}
@@ -565,18 +705,20 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
             onSubmit={handleLinkExistingGuardian}
             className="space-y-4 pb-4"
           >
-              <Input
-                label={t("search_guardians_label")}
-                value={guardianSearch}
-                onChange={(event) => setGuardianSearch(event.target.value)}
-                placeholder={t("search_guardians_placeholder")}
-              />
+            <Input
+              label={t("search_guardians_label")}
+              value={guardianSearch}
+              onChange={(event) => setGuardianSearch(event.target.value)}
+              placeholder={t("search_guardians_placeholder")}
+            />
 
             <div className="mt-4 max-h-64 space-y-2 overflow-y-auto">
               {isSearchingGuardians ? (
                 <p className="text-sm text-gray-500">{t("searching")}</p>
               ) : guardianSearchResults.length === 0 ? (
-                <p className="text-sm text-gray-500">{t("no_guardians_found")}</p>
+                <p className="text-sm text-gray-500">
+                  {t("no_guardians_found")}
+                </p>
               ) : (
                 guardianSearchResults.map((guardian) => (
                   <Button
@@ -609,7 +751,9 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
               variant="ghost"
               fullWidth
               className={`justify-start rounded-lg border p-3 text-left ${
-                linkAsPrimary ? "border-primary bg-primary/5" : "border-gray-200"
+                linkAsPrimary
+                  ? "border-primary bg-primary/5"
+                  : "border-gray-200"
               }`}
               onClick={() => setLinkAsPrimary((current) => !current)}
             >
