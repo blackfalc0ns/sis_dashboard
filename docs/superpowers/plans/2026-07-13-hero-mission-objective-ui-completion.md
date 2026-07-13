@@ -33,7 +33,7 @@
 - Consumes: `HeroJourneyMissionFormModal` and the existing `HeroMissionObjectiveCandidate` form shape.
 - Produces: regression coverage for field rendering, defaults, and dirty objective submission.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add tests that render a draft mission and scope repeated assertions to a specific `[data-testid="mission-objective-card"]`. Confirm the custom `Select` interaction pattern before asserting its selected option. Assert:
 
@@ -49,7 +49,7 @@ expect(firstObjective.getByRole("checkbox", { name: "heroJourney.missionForm.lab
 
 Add a submission test that changes the objective type to `quiz`, fills a subtitle, and verifies `onSubmit` receives `objectives` marked dirty with those values. Cover blank, decimal, zero, duplicate, and valid positive objective order values through the contract/service tests. Add create-mode coverage confirming Grade and Subject remain visible while Section and Classroom labels are absent. Add draft-edit coverage proving an existing objective's metadata survives a subtitle edit, and that Grade or Subject changes clear a stale mission-level lesson selection. Add a published test covering disabled objective type, titles, subtitles, references, order, required checkbox, and add/remove actions. Keep archived edit suppression covered by the shared `isHeroMissionEditable`/normalizer tests.
 
-- [ ] **Step 2: Run the focused test and confirm red**
+- [x] **Step 2: Run the focused test and confirm red**
 
 Run:
 
@@ -73,11 +73,11 @@ Expected: FAIL because objective type, subtitles, links, required status, and th
 - Consumes: `HeroMissionObjectiveCandidate`, Grade/Subject-based `onLoadLessons`, page-provided assessment options, and existing mission metadata.
 - Produces: a modal that renders all first-class objective DTO fields except arbitrary metadata and only the supported academic scope controls.
 
-- [ ] **Step 1: Remove Section/Classroom form state and controls**
+- [x] **Step 1: Remove Section/Classroom form state and controls**
 
 Delete `sectionId`, `classroomId`, their option props/derived options, and their controls/handlers. Keep `stageId`, `gradeId`, `subjectId`, and Grade-dependent lesson loading. Keep page-provided assessment options filtered by available Stage/Subject data; do not delete assessment loading. Preserve the reset chain: Stage changes clear Grade and the selected mission lesson; Grade changes clear the selected mission lesson; Subject changes clear the selected mission lesson and assessment. On create, write only `academicScope.gradeId` alongside preserved metadata; on update, do not mark metadata dirty automatically, so unrelated metadata survives untouched. If metadata is explicitly changed, merge existing metadata and delete only stale `sectionId`/`classroomId` keys without sending `metadata: null`.
 
-- [ ] **Step 2: Add objective state handlers**
+- [x] **Step 2: Add objective state handlers**
 
 Keep objective state as `HeroMissionObjectiveCandidate[]`. Ensure `blankObjective()` returns `type: "manual"`, empty titles/subtitles/links, no sort order, and `isRequired: true`. Extend `updateObjective` to accept type, subtitle, linked references, order, and required changes while marking `objectives` dirty. Add a small helper for objective type options:
 
@@ -88,7 +88,7 @@ const objectiveTypeOptions = HERO_MISSION_OBJECTIVE_TYPES.map((type) => ({
 }));
 ```
 
-- [ ] **Step 3: Render the complete objective card**
+- [x] **Step 3: Render the complete objective card**
 
 Use the existing UI primitives. Each card should contain:
 
@@ -105,7 +105,7 @@ Preserve `objective.metadata` in every objective candidate passed through the fo
 
 Do not add a generic metadata JSON editor. Keep all new controls disabled for published missions and keep title/brief/position/sortOrder editable according to the existing status rules. Update the modal caller to stop passing Section/Classroom props while preserving page assessment-option loading and Grade-based lesson loading.
 
-- [ ] **Step 4: Run the focused test and confirm green**
+- [x] **Step 4: Run the focused test and confirm green**
 
 Run the same Vitest command from Task 1. Expected: PASS.
 
@@ -124,15 +124,15 @@ Run the same Vitest command from Task 1. Expected: PASS.
 - Consumes: the new modal translation keys under `heroJourney.missionForm`.
 - Produces: English/Arabic labels and objective-type names with no untranslated keys.
 
-- [ ] **Step 1: Add matching translation keys**
+- [x] **Step 1: Add matching translation keys**
 
 Add labels for objective type, subtitles, lesson reference, assessment, and required status, plus a localized `options.noAssessment` label for the `__none__` sentinel. Add six objective type labels under `objectiveTypes`: manual, lesson, quiz, assessment, task, and custom. Add Arabic equivalents with the same key structure.
 
-- [ ] **Step 2: Extend tests for localized key usage**
+- [x] **Step 2: Extend tests for localized key usage**
 
 Keep the existing mocked translator and assert controls by their translation keys, ensuring the component does not hardcode user-facing English text.
 
-- [ ] **Step 3: Run integrated checks**
+- [x] **Step 3: Run integrated checks**
 
 Run:
 
@@ -148,14 +148,14 @@ Expected: all Hero Journey tests pass, TypeScript exits 0, and ESLint reports no
 
 ## Final Verification
 
-- [ ] Run the baseline commands before implementation and compare their results with the post-change commands:
+- [x] Run the baseline commands before implementation and compare their results with the post-change commands:
 
 ```powershell
 npm run typecheck
 npm run test:run -- src/features/hero-journey
 ```
 
-- [ ] Run `git diff --check`.
-- [ ] Parse `src/messages/en.json` and `src/messages/ar.json` as JSON.
-- [ ] Confirm Section/Classroom no longer appear in the mission modal while Grade and Subject remain, and confirm Grade is restored from `metadata.academicScope.gradeId` when editing.
-- [ ] Confirm the working tree still contains unrelated user changes and no destructive cleanup was performed.
+- [x] Run `git diff --check`.
+- [x] Parse `src/messages/en.json` and `src/messages/ar.json` as JSON.
+- [x] Confirm Section/Classroom no longer appear in the mission modal while Grade and Subject remain, and confirm Grade is restored from `metadata.academicScope.gradeId` when editing.
+- [x] Confirm the working tree still contains unrelated user changes and no destructive cleanup was performed.
