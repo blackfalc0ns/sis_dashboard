@@ -19,13 +19,13 @@ The dashboard edit flow will apply the same DTO-level constraints to fields that
 
 ### Request models
 
-Replace broad string-based payload fields with contract-shaped TypeScript types and separate public create and update request boundaries.
+Replace broad string-based payload fields with separate form-candidate and contract-shaped request types, plus separate public create and update request boundaries. Form candidates model HTML values such as blank strings and numeric strings; normalizers produce strict DTO values.
 
 - Objective `type` is limited to `manual`, `lesson`, `quiz`, `assessment`, `task`, or `custom`.
 - Nullable request fields explicitly accept `null` where the DTO does.
 - Mission and objective text fields retain their documented maximum lengths.
-- Create requests accept either `academicYearId` or the `yearId` alias, with at least one required by runtime validation. The normalizer emits one canonical `academicYearId` property and omits `yearId`, preventing conflicting aliases from reaching the backend.
-- Objectives are mandatory and non-empty on create. A draft update may omit objectives, but when it replaces objectives it must send a non-empty array.
+- Create requests accept either `academicYearId` or the `yearId` alias, with at least one required by runtime validation. If both are supplied with different UUIDs, normalization fails with `academicYearConflict`. Otherwise the normalizer emits one canonical `academicYearId` property and omits `yearId`.
+- Objectives are mandatory and non-empty on create. A draft update may omit objectives, send an empty array to remove all objectives, or send a non-empty replacement array.
 - Update requests are partial. They validate only supplied properties and retain explicit `null` values where the DTO uses null to clear an existing value.
 
 The existing service functions and routes remain in place. Create continues to POST to `/reinforcement/hero/missions`; edit continues to PATCH the existing mission route.
@@ -39,7 +39,9 @@ normalizeCreateHeroMissionRequest(...)
 normalizeUpdateHeroMissionRequest(...)
 ```
 
-They share internal field validators, but they do not share required-field behavior. Create requires academic context, stage, and objectives. Update validates only properties included in the partial request and can compare against the original mission when a cross-field rule depends on the resulting state.
+They share internal field validators, but they do not share required-field behavior. Create requires academic context, stage, and objectives. Update inspects only fields recorded in a `dirtyFields` set, validates those fields, and can compare against the original mission when a cross-field rule depends on the resulting state.
+
+Contract failures use stable, language-neutral error codes plus an optional field path and structured details. Repeated objective fields retain indexed paths such as `objectives.2.sortOrder`; the page maps codes to next-intl messages.
 
 It will enforce:
 
@@ -53,7 +55,7 @@ It will enforce:
 - Integer `rewardXp` greater than or equal to 0
 - Integer mission coordinates when provided
 - Integer mission `sortOrder` when provided
-- At least one objective on create, and a non-empty array when objectives are supplied on update
+- At least one objective on create. Update may omit objectives, replace them with an empty array, or replace them with a normalized non-empty array.
 - Objective title limits of 255 characters
 - Objective subtitle limits of 500 characters
 - Objective linked lesson reference limits of 255 characters
@@ -64,7 +66,7 @@ It will enforce:
 - `null` or plain-object mission and objective `metadata` values when supplied; arrays and primitive values are rejected
 - Finite integer numeric values, rejecting values such as `NaN`, `Infinity`, and partially parsed numeric strings
 
-Nullable UUID fields convert blank form values to `null` or omission before UUID validation. Create may omit blank optional text or send `null`. Update distinguishes untouched and explicitly cleared fields: untouched properties are omitted, while a dirty optional text field cleared by the user is sent as `null`. This preserves the backend's PATCH semantics.
+Identifier strings are trimmed before UUID validation. Nullable UUID fields convert blank form values to `null` or omission before validation. Create may omit blank optional text or send `null`. Update uses `dirtyFields` to distinguish untouched and explicitly cleared fields: untouched properties are omitted, while a dirty optional text field cleared by the user is sent as `null`. This preserves the backend's PATCH semantics even when the modal submits a full candidate object.
 
 Missing objective types normalize to `manual`, and missing `isRequired` values normalize to `true`. Objective ordering mirrors the backend algorithm exactly:
 
@@ -88,7 +90,8 @@ The existing create/edit modal remains the user interface. No layout redesign is
 - Duplicate or invalid objective orders produce a clear form error before submission.
 - The create action remains hidden unless the user has `reinforcement.hero.manage`.
 - Create injects the selected academic year and term before validation and submission.
-- Edit tracks dirty fields, or derives them by comparing current values with the original mission, so untouched properties are omitted and explicit clears are sent as `null`.
+- Edit tracks dirty fields explicitly. The update context contains the original mission, current status, and the dirty-field set so untouched properties are omitted and explicit clears are sent as `null`.
+- Every update omits the dashboard-protected academic scope fields `academicYearId`, `yearId`, `termId`, and `stageId`, regardless of mission status. The corresponding scope controls are read-only while editing. Subject remains editable for drafts because it is not part of the dashboard's always-protected scope rule.
 - Draft missions may submit editable mission and objective fields.
 - Published missions disable and omit all backend-protected fields: `academicYearId`, `yearId`, `termId`, `stageId`, `subjectId`, `linkedAssessmentId`, `linkedLessonRef`, `requiredLevel`, `rewardXp`, `badgeRewardId`, and `objectives`. Property presence is avoided even when the displayed value is unchanged.
 - Archived missions are non-editable and expose no edit action.
@@ -97,7 +100,7 @@ The existing create/edit modal remains the user interface. No layout redesign is
 
 ### Data flow
 
-1. The modal collects mission and objective values and records which edit fields changed.
+1. The modal collects mission and objective candidate values and records the exact DTO fields changed by the user.
 2. The create or update normalizer builds the appropriate contract-shaped request using shared field helpers.
 3. The page adds academic context for create requests. For edits, it includes only dirty, status-editable properties and preserves explicit clears as `null`.
 4. The service sends the normalized payload to the existing POST or PATCH endpoint.
@@ -108,8 +111,8 @@ The existing create/edit modal remains the user interface. No layout redesign is
 Implementation will follow red-green-refactor.
 
 - Contract tests will cover objective type unions and nullable request fields where practical.
-- Create-normalizer tests will cover valid bilingual and single-language titles, academic-year aliases and canonical output, UUID formats, omitted defaults, integer bounds, text limits, empty objectives, metadata shapes, objective runtime types and booleans, objective defaults, duplicate orders, missing orders, stable ordering, and sequential normalization.
-- Update-normalizer tests will cover partial requests, untouched-field omission, explicit clears, effective-title validation, UUID formats, and rejection of invalid supplied fields without requiring create-only fields.
+- Create-normalizer tests will cover valid bilingual and single-language titles, academic-year aliases, alias conflicts and canonical output, trimmed UUIDs, every UUID field, omitted defaults, numeric-string conversion, finite integer bounds, text limits, empty objectives, metadata shapes, objective runtime types and booleans, objective defaults, duplicate orders, missing orders, stable ordering, and sequential normalization.
+- Update-normalizer tests will cover dirty-field-only inspection, untouched-field omission, undefined omission, explicit clears, effective-title validation, UUID formats, `objectives` omitted versus `[]`, always-protected academic scope, published protected fields, archived rejection, and rejection of invalid dirty fields without requiring create-only fields.
 - Service tests will verify the existing create and edit routes receive the normalized contract payload.
 - Form-level tests will cover published protected-field omission, archived edit unavailability, and user-visible validation behavior where component coverage adds value beyond the normalizer tests.
 - Relevant Vitest tests, TypeScript typecheck, and ESLint checks for changed files must pass before completion.
