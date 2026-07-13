@@ -100,9 +100,9 @@ The existing create/edit modal remains the user interface. No layout redesign is
 
 ### Follow-up UI completion
 
-The mission modal keeps Grade because the existing curriculum service requires it to load lesson options. Section and Classroom controls are removed because they are not `CreateHeroMissionDto` fields and are not required by curriculum loading. The mission-level lesson selector remains Grade-dependent.
+The mission modal keeps Stage, Grade, and Subject because the existing curriculum service requires Grade and Subject to load lesson options; Academic Year and Term continue to come from page context. Section and Classroom controls are removed because they are not `CreateHeroMissionDto` fields and are not required by curriculum loading. The mission-level lesson selector remains Grade-dependent. Stage, Grade, and Subject changes clear stale dependent lesson/assessment selections.
 
-Objective cards expose every objective DTO field that can be authored safely in the form: type, bilingual titles, bilingual subtitles, linked lesson reference, linked assessment, sort order, and required status. Generic metadata remains internal because arbitrary JSON is not an appropriate primary form control.
+Objective cards expose every first-class objective DTO field that can be authored safely in the form: type, bilingual titles, bilingual subtitles, linked lesson reference, linked assessment, sort order, and required status. Existing mission and objective metadata is preserved internally; Grade is retained in `metadata.academicScope.gradeId` for restoration, while Section/Classroom metadata is not authored by the UI. Generic metadata remains internal because arbitrary JSON is not an appropriate primary form control. Nullable assessment selectors provide an explicit clear option so untouched, cleared, and newly selected values remain distinct.
 
 ### Data flow
 
