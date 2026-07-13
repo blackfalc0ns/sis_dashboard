@@ -38,6 +38,7 @@ import {
 } from "@/features/academics/subjects/services/subjectsService";
 import { fetchAssessments } from "@/features/grades/overview/services/gradesOverviewService";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
+import { usePermissions } from "@/hooks/usePermissions";
 import { heroJourneySectionBanners } from "../config/heroJourneySectionBanners";
 import useHeroJourneyOverlayMode from "../hooks/useHeroJourneyOverlayMode";
 import { useHeroJourneyMissionSearch } from "../hooks/useHeroJourneyMissionSearch";
@@ -124,6 +125,15 @@ export default function HeroJourneyMissionsPage() {
   const locale = useLocale();
   const t = useTranslations("heroJourney");
   const { showError, showSuccess } = useToast();
+  const { hasPermission, isPermissionsReady } = usePermissions();
+  const canViewHero =
+    isPermissionsReady && hasPermission("reinforcement.hero.view");
+  const canManageHero =
+    isPermissionsReady && hasPermission("reinforcement.hero.manage");
+  const canViewBadges =
+    isPermissionsReady && hasPermission("reinforcement.hero.badges.view");
+  const canManageBadges =
+    isPermissionsReady && hasPermission("reinforcement.hero.badges.manage");
   const {
     academicYearId,
     termId,
@@ -224,6 +234,10 @@ export default function HeroJourneyMissionsPage() {
   );
 
   useEffect(() => {
+    if (!canViewBadges) {
+      return;
+    }
+
     let cancelled = false;
 
     void getHeroJourneyBadgeCatalog({})
@@ -241,10 +255,10 @@ export default function HeroJourneyMissionsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [canViewBadges]);
 
   useEffect(() => {
-    if (!academicYearId || !termId) {
+    if (!canViewHero || !academicYearId || !termId) {
       return;
     }
 
@@ -368,7 +382,7 @@ export default function HeroJourneyMissionsPage() {
     return () => {
       cancelled = true;
     };
-  }, [academicYearId, locale, missionOptionsReloadKey, t, termId]);
+  }, [academicYearId, canViewHero, locale, missionOptionsReloadKey, t, termId]);
 
   const assessmentNameById = useMemo(
     () =>
@@ -377,7 +391,7 @@ export default function HeroJourneyMissionsPage() {
   );
 
   useEffect(() => {
-    if (!academicYearId || !termId || missions.length === 0) {
+    if (!canViewHero || !academicYearId || !termId || missions.length === 0) {
       setLessonNameById({});
       return;
     }
@@ -463,10 +477,10 @@ export default function HeroJourneyMissionsPage() {
     return () => {
       cancelled = true;
     };
-  }, [academicYearId, gradeOptions, missions, subjectOptions, termId]);
+  }, [academicYearId, canViewHero, gradeOptions, missions, subjectOptions, termId]);
 
   useEffect(() => {
-    if (isAcademicContextInitializing) {
+    if (!canViewHero || !isPermissionsReady || isAcademicContextInitializing) {
       return;
     }
 
@@ -508,8 +522,10 @@ export default function HeroJourneyMissionsPage() {
     };
   }, [
     academicYearId,
+    canViewHero,
     debouncedSearch,
     isAcademicContextInitializing,
+    isPermissionsReady,
     isMissionSearchDebouncing,
     missionFilters,
     t,
@@ -618,17 +634,25 @@ export default function HeroJourneyMissionsPage() {
   };
 
   const refreshBadges = async () => {
+    if (!canViewBadges) {
+      return;
+    }
+
     const refreshed = await getHeroJourneyBadgeCatalog({});
     setBadges(refreshed);
   };
 
   const refreshMissions = async () => {
+    if (!canViewHero) {
+      return;
+    }
+
     const refreshed = await getHeroJourneyMissions(missionFilters);
     setMissions(refreshed);
   };
 
   const refreshMissionList = async () => {
-    if (!academicYearId || !termId) {
+    if (!canViewHero || !academicYearId || !termId) {
       return;
     }
 
@@ -644,6 +668,10 @@ export default function HeroJourneyMissionsPage() {
   };
 
   const refreshMissionFormOptions = () => {
+    if (!canManageHero) {
+      return;
+    }
+
     setMissionOptionsReloadKey((value) => value + 1);
     void refreshBadges();
   };
@@ -677,6 +705,10 @@ export default function HeroJourneyMissionsPage() {
   };
 
   const openCreateMission = () => {
+    if (!canManageHero) {
+      return;
+    }
+
     if (!academicYearId || !termId) {
       showError(t("messages.selectAcademicContextBeforeCreate"));
       return;
@@ -687,6 +719,11 @@ export default function HeroJourneyMissionsPage() {
   };
 
   const openEditMission = async (missionId: string) => {
+    if (!canManageHero) {
+      openMissionDetail(missionId);
+      return;
+    }
+
     try {
       setEditingMission(await getHeroJourneyMission(missionId));
       setIsMissionModalOpen(false);
@@ -702,23 +739,28 @@ export default function HeroJourneyMissionsPage() {
       "academicYearId" | "yearId" | "termId"
     >,
   ) => {
+    if (!canManageHero) {
+      return;
+    }
+
     if (!academicYearId || !termId) {
       showError(t("messages.selectAcademicContextBeforeSave"));
       return;
     }
 
-    const scopedPayload: HeroJourneyMissionPayload = {
-      ...payload,
-      academicYearId,
-      termId,
-    };
-
     setIsMissionSaving(true);
     try {
       if (editingMission) {
-        await updateHeroJourneyMission(editingMission.id, scopedPayload);
+        // Keep academic scope fields out of PATCH requests. The backend treats
+        // them as protected changes for published missions.
+        await updateHeroJourneyMission(editingMission.id, payload);
         showSuccess("Mission updated.");
       } else {
+        const scopedPayload: HeroJourneyMissionPayload = {
+          ...payload,
+          academicYearId,
+          termId,
+        };
         await createHeroJourneyMission(scopedPayload);
         showSuccess("Mission created.");
       }
@@ -733,6 +775,10 @@ export default function HeroJourneyMissionsPage() {
   };
 
   const removeMission = async (missionId: string) => {
+    if (!canManageHero) {
+      return;
+    }
+
     if (!window.confirm(t("messages.confirmDeleteMission"))) {
       return;
     }
@@ -753,6 +799,10 @@ export default function HeroJourneyMissionsPage() {
   };
 
   const publishMission = async (missionId: string) => {
+    if (!canManageHero) {
+      return;
+    }
+
     setIsPublishing(missionId);
     try {
       await publishHeroJourneyMission(missionId);
@@ -764,6 +814,10 @@ export default function HeroJourneyMissionsPage() {
   };
 
   const archiveMission = async (missionId: string) => {
+    if (!canManageHero) {
+      return;
+    }
+
     setIsPublishing(missionId);
     try {
       await archiveHeroJourneyMission(missionId);
@@ -775,11 +829,19 @@ export default function HeroJourneyMissionsPage() {
   };
 
   const openCreateBadge = () => {
+    if (!canManageBadges) {
+      return;
+    }
+
     setEditingBadge(null);
     setIsBadgeFormOpen(true);
   };
 
   const openEditBadge = async (badgeId: string) => {
+    if (!canManageBadges) {
+      return;
+    }
+
     try {
       setEditingBadge(await getHeroJourneyBadge(badgeId));
       setIsBadgeFormOpen(true);
@@ -789,6 +851,10 @@ export default function HeroJourneyMissionsPage() {
   };
 
   const saveBadge = async (payload: HeroJourneyBadgePayload) => {
+    if (!canManageBadges) {
+      return;
+    }
+
     setIsBadgeSaving(true);
     try {
       if (editingBadge) {
@@ -809,6 +875,10 @@ export default function HeroJourneyMissionsPage() {
   };
 
   const removeBadge = async (badgeId: string) => {
+    if (!canManageBadges) {
+      return;
+    }
+
     if (!window.confirm(t("messages.confirmDeleteBadge"))) {
       return;
     }
@@ -824,6 +894,21 @@ export default function HeroJourneyMissionsPage() {
       setDeletingBadgeId(null);
     }
   };
+
+  if (!isPermissionsReady) {
+    return <div className="h-64 animate-pulse rounded-xl bg-gray-100" />;
+  }
+
+  if (!canViewHero) {
+    return (
+      <div
+        role="alert"
+        className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800"
+      >
+        {t("accessDenied")}
+      </div>
+    );
+  }
 
   const columns: Column<HeroJourneyMission>[] = [
     {
@@ -950,36 +1035,41 @@ export default function HeroJourneyMissionsPage() {
                 icon: <Eye className="h-4 w-4" />,
                 onClick: () => openMissionDetail(row.id),
               },
-              {
-                value: "edit",
-                label: t("actions.edit"),
-                icon: <PencilLine className="h-4 w-4" />,
-                onClick: () => void openEditMission(row.id),
-              },
-              {
-                value: "publish",
-                label: t("actions.publish"),
-                icon: <Power className="h-4 w-4" />,
-                disabled:
-                  row.status === "published" ||
-                  row.status === "archived" ||
-                  isPublishing === row.id,
-                onClick: () => void publishMission(row.id),
-              },
-              {
-                value: "archive",
-                label: t("actions.archive"),
-                icon: <Archive className="h-4 w-4" />,
-                disabled: isPublishing === row.id || row.status === "archived",
-                onClick: () => void archiveMission(row.id),
-              },
-              {
-                value: "delete",
-                label: t("actions.delete"),
-                icon: <Trash2 className="h-4 w-4" />,
-                disabled: deletingMissionId === row.id,
-                onClick: () => void removeMission(row.id),
-              },
+              ...(canManageHero
+                ? [
+                    {
+                      value: "edit",
+                      label: t("actions.edit"),
+                      icon: <PencilLine className="h-4 w-4" />,
+                      onClick: () => void openEditMission(row.id),
+                    },
+                    {
+                      value: "publish",
+                      label: t("actions.publish"),
+                      icon: <Power className="h-4 w-4" />,
+                      disabled:
+                        row.status === "published" ||
+                        row.status === "archived" ||
+                        isPublishing === row.id,
+                      onClick: () => void publishMission(row.id),
+                    },
+                    {
+                      value: "archive",
+                      label: t("actions.archive"),
+                      icon: <Archive className="h-4 w-4" />,
+                      disabled:
+                        isPublishing === row.id || row.status === "archived",
+                      onClick: () => void archiveMission(row.id),
+                    },
+                    {
+                      value: "delete",
+                      label: t("actions.delete"),
+                      icon: <Trash2 className="h-4 w-4" />,
+                      disabled: deletingMissionId === row.id,
+                      onClick: () => void removeMission(row.id),
+                    },
+                  ]
+                : []),
             ]}
           />
         </div>
@@ -1003,19 +1093,23 @@ export default function HeroJourneyMissionsPage() {
             >
               {t("overviewState.refresh")}
             </Button>
-            <Button
-              variant="secondary"
-              leftIcon={<Award className="h-4 w-4" />}
-              onClick={() => setIsBadgeManagerOpen(true)}
-            >
-              {t("actions.manageBadges")}
-            </Button>
-            <Button
-              leftIcon={<Plus className="h-4 w-4" />}
-              onClick={openCreateMission}
-            >
-              {t("actions.createMission")}
-            </Button>
+            {canViewBadges ? (
+              <Button
+                variant="secondary"
+                leftIcon={<Award className="h-4 w-4" />}
+                onClick={() => setIsBadgeManagerOpen(true)}
+              >
+                {t("actions.manageBadges")}
+              </Button>
+            ) : null}
+            {canManageHero ? (
+              <Button
+                leftIcon={<Plus className="h-4 w-4" />}
+                onClick={openCreateMission}
+              >
+                {t("actions.createMission")}
+              </Button>
+            ) : null}
           </>
         }
       />
@@ -1123,7 +1217,7 @@ export default function HeroJourneyMissionsPage() {
                     <button
                       key={mission.id}
                       type="button"
-                      onClick={() => void openEditMission(mission.id)}
+                      onClick={() => openMissionDetail(mission.id)}
                       className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -1197,9 +1291,7 @@ export default function HeroJourneyMissionsPage() {
                 }
                 data={missions as unknown as Array<{ [key: string]: unknown }>}
                 onRowClick={(row) =>
-                  void openEditMission(
-                    (row as unknown as HeroJourneyMission).id,
-                  )
+                  openMissionDetail((row as unknown as HeroJourneyMission).id)
                 }
                 searchQuery={queryState.values.q}
                 itemsPerPage={8}
@@ -1265,7 +1357,7 @@ export default function HeroJourneyMissionsPage() {
           selectedMission ? getResolvedStageName(selectedMission) : undefined
         }
         footer={
-          selectedMission ? (
+          selectedMission && canManageHero ? (
             <>
               <Button
                 variant="secondary"
@@ -1370,12 +1462,14 @@ export default function HeroJourneyMissionsPage() {
             >
               {t("actions.close")}
             </Button>
-            <Button
-              leftIcon={<Plus className="h-4 w-4" />}
-              onClick={openCreateBadge}
-            >
-              {t("actions.createBadge")}
-            </Button>
+            {canManageBadges ? (
+              <Button
+                leftIcon={<Plus className="h-4 w-4" />}
+                onClick={openCreateBadge}
+              >
+                {t("actions.createBadge")}
+              </Button>
+            ) : null}
           </>
         }
       >
@@ -1391,13 +1485,15 @@ export default function HeroJourneyMissionsPage() {
                     {t("badgeManager.emptyDescription")}
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  leftIcon={<Plus className="h-4 w-4" />}
-                  onClick={openCreateBadge}
-                >
-                  {t("actions.createBadge")}
-                </Button>
+                {canManageBadges ? (
+                  <Button
+                    size="sm"
+                    leftIcon={<Plus className="h-4 w-4" />}
+                    onClick={openCreateBadge}
+                  >
+                    {t("actions.createBadge")}
+                  </Button>
+                ) : null}
               </div>
             </div>
           ) : (
@@ -1412,7 +1508,8 @@ export default function HeroJourneyMissionsPage() {
                     {badge.slug}
                   </p>
                 </div>
-                <div className="flex items-center gap-1">
+                {canManageBadges ? (
+                  <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => void openEditBadge(badge.id)}
@@ -1432,7 +1529,8 @@ export default function HeroJourneyMissionsPage() {
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
-                </div>
+                  </div>
+                ) : null}
               </div>
             ))
           )}

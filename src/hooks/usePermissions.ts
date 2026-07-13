@@ -122,6 +122,10 @@ export type PermissionKey =
   | "reinforcement.rewards.redemptions.request"
   | "reinforcement.rewards.redemptions.review"
   | "reinforcement.rewards.fulfill"
+  | "reinforcement.hero.view"
+  | "reinforcement.hero.manage"
+  | "reinforcement.hero.badges.view"
+  | "reinforcement.hero.badges.manage"
   | "reinforcement.hero.progress.view"
   | "reinforcement.hero.progress.manage";
 
@@ -183,6 +187,7 @@ export const reinforcementNavigationPermissionByKey: Partial<
   "reinforcement-rewards": "reinforcement.rewards.view",
   "reinforcement-xp-policies": "reinforcement.xp.view",
   "reinforcement-xp-ledger": "reinforcement.xp.view",
+  "hero-journey": "reinforcement.hero.view",
 };
 
 export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =

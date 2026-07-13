@@ -9604,6 +9604,7 @@
     "overviewDescription": "Monitor adoption, mission performance, XP momentum, and intervention signals across the Hero Journey experience.",
     "missionsDescription": "Search, filter, and review mission configuration, linked content, reward previews, and publishing readiness.",
     "loading": "Loading Hero Journey data...",
+    "accessDenied": "You do not have permission to view Hero Journey.",
     "status": {
       "draft": "Draft",
       "published": "Published",
@@ -9806,6 +9807,10 @@
         "stageRequired": "Stage is required.",
         "titleRequired": "At least one mission title is required.",
         "objectiveRequired": "At least one objective title is required.",
+        "integerField": "Level, XP, order, and map coordinates must be whole numbers.",
+        "requiredLevelInvalid": "Required level must be at least 1.",
+        "rewardXpInvalid": "Reward XP cannot be negative.",
+        "objectiveOrderInvalid": "Objective order must be a positive whole number.",
         "loadLessonsFailed": "Unable to load lessons for the selected grade and subject."
       }
     },
@@ -9835,6 +9840,8 @@
       "currentFileId": "Current file ID: {fileId}",
       "errors": {
         "slugRequired": "Badge slug is required.",
+        "slugInvalid": "Use lowercase letters, numbers, and single hyphens only.",
+        "sortOrderInvalid": "Sort order must be a whole number.",
         "invalidFileType": "Badge asset must be an SVG, PNG, JPG, or WebP image.",
         "fileTooLarge": "Badge asset must be 10 MB or smaller.",
         "saveFailed": "Unable to save the badge asset. Please try again."

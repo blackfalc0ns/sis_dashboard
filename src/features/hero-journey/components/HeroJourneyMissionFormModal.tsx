@@ -510,6 +510,44 @@ export default function HeroJourneyMissionFormModal({
   };
 
   const handleSubmit = () => {
+    const numericFields = [
+      requiredLevel,
+      rewardXp,
+      sortOrder,
+      positionX,
+      positionY,
+    ];
+    if (
+      numericFields.some(
+        (value) => value.trim().length > 0 && !Number.isInteger(Number(value)),
+      )
+    ) {
+      setError(t("errors.integerField"));
+      return;
+    }
+
+    if (requiredLevel.trim() && Number(requiredLevel) < 1) {
+      setError(t("errors.requiredLevelInvalid"));
+      return;
+    }
+
+    if (rewardXp.trim() && Number(rewardXp) < 0) {
+      setError(t("errors.rewardXpInvalid"));
+      return;
+    }
+
+    if (
+      objectives.some(
+        (objective) =>
+          objective.sortOrder !== undefined &&
+          objective.sortOrder !== null &&
+          (!Number.isInteger(objective.sortOrder) || objective.sortOrder < 1),
+      )
+    ) {
+      setError(t("errors.objectiveOrderInvalid"));
+      return;
+    }
+
     const cleanObjectives = objectives
       .map((objective, index) => ({
         ...objective,

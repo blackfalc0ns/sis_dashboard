@@ -74,6 +74,11 @@ export default function Sidebar({
     () =>
       menuItems
         .map((item) => {
+          const itemPermission = navigationPermissionByKey[item.key];
+          if (itemPermission && !hasPermission(itemPermission)) {
+            return null;
+          }
+
           if (!item.children) {
             return item;
           }
@@ -88,6 +93,7 @@ export default function Sidebar({
             children: nextChildren,
           };
         })
+        .filter((item): item is (typeof menuItems)[number] => item !== null)
         .filter((item) => !item.children || item.children.length > 0),
     [hasPermission],
   );

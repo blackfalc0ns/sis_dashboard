@@ -88,8 +88,22 @@ export default function HeroJourneyBadgeFormModal({
   };
 
   const handleSubmit = async () => {
-    if (!slug.trim()) {
+    const normalizedSlug = slug.trim().toLowerCase();
+    if (!normalizedSlug) {
       setError(t("errors.slugRequired"));
+      return;
+    }
+
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalizedSlug)) {
+      setError(t("errors.slugInvalid"));
+      return;
+    }
+
+    if (
+      sortOrder.trim().length > 0 &&
+      !Number.isInteger(Number(sortOrder))
+    ) {
+      setError(t("errors.sortOrderInvalid"));
       return;
     }
 
@@ -102,7 +116,7 @@ export default function HeroJourneyBadgeFormModal({
         : fileId.trim() || undefined;
 
       await onSubmit({
-        slug: slug.trim(),
+        slug: normalizedSlug,
         nameEn: nameEn.trim() || undefined,
         nameAr: nameAr.trim() || undefined,
         descriptionEn: descriptionEn.trim() || undefined,
@@ -151,6 +165,7 @@ export default function HeroJourneyBadgeFormModal({
             value={sortOrder}
             onChange={(event) => setSortOrder(event.target.value)}
             placeholder="0"
+            step="1"
           />
         </div>
 

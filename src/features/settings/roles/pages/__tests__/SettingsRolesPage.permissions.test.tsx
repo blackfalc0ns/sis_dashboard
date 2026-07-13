@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast/Toast";
 import SettingsRolesPage from "../SettingsRolesPage";
@@ -43,6 +44,14 @@ const role = {
   permissions: ["settings.users.view"],
 };
 
+const systemRole = {
+  ...role,
+  id: "system-role-1",
+  key: "system_admin",
+  name: "System Admin",
+  isSystem: true,
+};
+
 function renderPage() {
   return render(
     <ToastProvider>
@@ -67,6 +76,20 @@ describe("SettingsRolesPage permission catalog access", () => {
             action: "view",
             label: "View users",
             description: "View users in the school",
+          },
+          {
+            key: "settings.users.manage",
+            module: "users",
+            action: "manage",
+            label: "Manage users",
+            description: "Manage users in the school",
+          },
+          {
+            key: "settings.reports.view",
+            module: "reports",
+            action: "view",
+            label: "View reports",
+            description: "View reports in the school",
           },
         ]);
       }
@@ -99,6 +122,31 @@ describe("SettingsRolesPage permission catalog access", () => {
     expect(apiMocks.apiGet).toHaveBeenCalledWith("/settings/permissions");
   });
 
+  it("collapses modules and omits unsupported action placeholders", async () => {
+    authState.permissions = [
+      "settings.roles.view",
+      "settings.permissions.view",
+    ];
+
+    const user = userEvent.setup();
+    renderPage();
+
+    const usersModule = await screen.findByRole("button", { name: "users" });
+    expect(usersModule).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(usersModule);
+    expect(await screen.findByText("Users")).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("users bulk permissions")).getByText(
+        "manage",
+      ),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "reports" }));
+    expect(await screen.findByText("Reports")).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /not supported/i })).not.toBeInTheDocument();
+  });
+
   it("keeps loaded roles visible when the catalog request fails", async () => {
     authState.permissions = [
       "settings.roles.view",
@@ -119,5 +167,24 @@ describe("SettingsRolesPage permission catalog access", () => {
         screen.getByText("permission_matrix_load_failed"),
       ).toBeInTheDocument(),
     );
+  });
+
+  it("shows disabled edit and delete actions for system roles", async () => {
+    authState.permissions = [
+      "settings.roles.view",
+      "settings.roles.manage",
+    ];
+    apiMocks.apiGet.mockImplementation((path: string) => {
+      if (path.startsWith("/settings/roles")) {
+        return Promise.resolve([systemRole]);
+      }
+      return Promise.reject(new Error(`Unexpected GET ${path}`));
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("System Admin")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "edit" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "delete" })).toBeDisabled();
   });
 });

@@ -32,6 +32,7 @@ import {
 } from "@/features/academics/services/academicStructureApiService";
 import { fetchEnrollments } from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
+import { usePermissions } from "@/hooks/usePermissions";
 import { fetchAllStudents } from "@/features/students-guardians/students/services/studentsService";
 import type {
   Student,
@@ -521,6 +522,9 @@ function RecentActivityFeed({
 export default function HeroJourneyOverviewPage() {
   const locale = useLocale();
   const t = useTranslations("heroJourney");
+  const { hasPermission, isPermissionsReady } = usePermissions();
+  const canViewHero =
+    isPermissionsReady && hasPermission("reinforcement.hero.view");
   const {
     academicYearId,
     termId,
@@ -718,6 +722,8 @@ export default function HeroJourneyOverviewPage() {
   }, [activeEnrollments, locale, overview?.topStudents, studentsById]);
 
   useEffect(() => {
+    if (!canViewHero) return;
+
     if (!filters.studentId || isOptionsLoading) return;
     const hasSelectedStudent = studentOptions.some(
       (option) => option.value === filters.studentId,
@@ -730,6 +736,7 @@ export default function HeroJourneyOverviewPage() {
     });
   }, [
     filters.studentId,
+    canViewHero,
     isOptionsLoading,
     setFilterQueryValue,
     studentOptions,
@@ -737,7 +744,14 @@ export default function HeroJourneyOverviewPage() {
   ]);
 
   useEffect(() => {
-    if (isAcademicContextInitializing || !academicYearId || !termId) return;
+    if (
+      !canViewHero ||
+      !isPermissionsReady ||
+      isAcademicContextInitializing ||
+      !academicYearId ||
+      !termId
+    )
+      return;
     let cancelled = false;
 
     queueMicrotask(() => {
@@ -780,12 +794,19 @@ export default function HeroJourneyOverviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [academicYearId, isAcademicContextInitializing, termId]);
+  }, [
+    academicYearId,
+    canViewHero,
+    isAcademicContextInitializing,
+    isPermissionsReady,
+    termId,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
 
-    if (isAcademicContextInitializing) return;
+    if (!canViewHero || !isPermissionsReady || isAcademicContextInitializing)
+      return;
     if (!academicYearId || !termId) {
       queueMicrotask(() => {
         if (cancelled) return;
@@ -850,6 +871,7 @@ export default function HeroJourneyOverviewPage() {
     };
   }, [
     academicYearId,
+    canViewHero,
     filters.classroomId,
     filters.dateFrom,
     filters.dateTo,
@@ -858,6 +880,7 @@ export default function HeroJourneyOverviewPage() {
     filters.stageId,
     filters.studentId,
     isAcademicContextInitializing,
+    isPermissionsReady,
     reloadKey,
     setFilterQueryValue,
     t,
@@ -891,6 +914,21 @@ export default function HeroJourneyOverviewPage() {
   );
 
   const resetFilters = () => resetFilterQueryValues(undefined, "replace");
+
+  if (!isPermissionsReady) {
+    return <div className="h-64 animate-pulse rounded-xl bg-gray-100" />;
+  }
+
+  if (!canViewHero) {
+    return (
+      <div
+        role="alert"
+        className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800"
+      >
+        {t("accessDenied")}
+      </div>
+    );
+  }
 
   const hasOverviewData =
     overview &&

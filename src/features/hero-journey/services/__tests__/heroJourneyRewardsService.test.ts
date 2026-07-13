@@ -10,9 +10,9 @@ describe("hero journey rewards contracts", () => {
   it("uses direct rewards and mutation endpoints", async () => {
     await getStudentHeroJourneyRewards("student-1", { termId: "term-1" });
     await grantHeroJourneyXp("progress-1", { amount: 25, reason: "Great work" });
-    await awardHeroJourneyBadge("progress-1", { badgeId: "badge-1" });
+    await awardHeroJourneyBadge("progress-1", {});
     expect(apiMocks.apiGet).toHaveBeenCalledWith("/reinforcement/hero/students/student-1/rewards?termId=term-1");
     expect(apiMocks.apiPost).toHaveBeenCalledWith("/reinforcement/hero/progress/progress-1/grant-xp", { amount: 25, reason: "Great work" });
-    expect(apiMocks.apiPost).toHaveBeenCalledWith("/reinforcement/hero/progress/progress-1/award-badge", { badgeId: "badge-1" });
+    expect(apiMocks.apiPost).toHaveBeenCalledWith("/reinforcement/hero/progress/progress-1/award-badge", {});
   });
 });

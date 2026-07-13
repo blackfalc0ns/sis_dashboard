@@ -1,14 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
 import { Award } from "lucide-react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import AuthenticatedFileImage from "@/components/ui/authenticated-file-image/AuthenticatedFileImage";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { HeroJourneyBadge } from "../types";
-import {
-  getHeroJourneyBadgeAssetPath,
-  getHeroJourneyBadgePlaceholderPath,
-} from "../utils/badgeAssetRegistry";
+import { getHeroJourneyBadgeAssetPath } from "../utils/badgeAssetRegistry";
 
 interface HeroJourneyBadgeThumbProps {
   badge?: HeroJourneyBadge | null;
@@ -21,29 +18,23 @@ const sizeClasses = {
   md: "h-10 w-10",
 };
 
-const imageSizes = {
-  sm: 32,
-  md: 40,
-};
-
 export default function HeroJourneyBadgeThumb({
   badge,
   size = "sm",
   showLabel = false,
 }: HeroJourneyBadgeThumbProps) {
   const locale = useLocale();
-  const placeholder = getHeroJourneyBadgePlaceholderPath();
-  const [failedBadgeSlugs, setFailedBadgeSlugs] = useState<
-    Record<string, boolean>
-  >({});
+  const t = useTranslations("students_guardians.hero_journey");
+  const { hasPermission, isPermissionsReady } = usePermissions();
   const slug = badge?.slug || "";
-  const source =
-    slug && failedBadgeSlugs[slug]
-      ? placeholder
-      : getHeroJourneyBadgeAssetPath(slug);
+  const fallbackSrc = badge?.assetPath || getHeroJourneyBadgeAssetPath(slug);
+  const canDownloadFiles =
+    isPermissionsReady && hasPermission("files.downloads.view");
 
   const label =
-    locale === "ar" ? badge?.nameAr || "شارة" : badge?.nameEn || "Badge";
+    locale === "ar"
+      ? badge?.nameAr || badge?.nameEn || t("badge")
+      : badge?.nameEn || badge?.nameAr || t("badge");
 
   return (
     <div className="inline-flex items-center gap-2">
@@ -51,18 +42,14 @@ export default function HeroJourneyBadgeThumb({
         className={`inline-flex ${sizeClasses[size]} items-center justify-center overflow-hidden rounded-xl`}
       >
         {badge ? (
-          <Image
-            src={source}
+          <AuthenticatedFileImage
+            fileId={badge.fileId}
+            fallbackSrc={fallbackSrc}
             alt={label}
-            width={imageSizes[size]}
-            height={imageSizes[size]}
-            className="h-full w-full object-cover"
-            onError={() =>
-              setFailedBadgeSlugs((current) => ({
-                ...current,
-                [slug]: true,
-              }))
-            }
+            canDownload={canDownloadFiles}
+            unavailableLabel={t("badgeImageUnavailable")}
+            retryLabel={t("retry")}
+            className={`${sizeClasses[size]} h-full w-full`}
           />
         ) : (
           <Award className="h-4 w-4 text-teal-600" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Check,
@@ -538,23 +538,6 @@ export default function SettingsRolesPage() {
     };
   };
 
-  const renderUnavailablePermission = (module: string) => {
-    const label = isArabic
-      ? `هذا الإذن غير مدعوم من وحدة ${module}`
-      : `This permission is not supported by the ${module} module.`;
-
-    return (
-      <span
-        role="img"
-        aria-label={label}
-        title={label}
-        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-dashed border-gray-200 bg-gray-50 text-sm text-gray-400"
-      >
-        —
-      </span>
-    );
-  };
-
   const renderMatrixToggle = (
     state: "none" | "partial" | "all",
     onClick: () => void,
@@ -630,40 +613,37 @@ export default function SettingsRolesPage() {
         const role = row as unknown as RoleDefinition;
         return canManageRoles ? (
           <div className="flex gap-2">
-            {!role.isSystem ? (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 rounded-lg border border-gray-200 p-0"
-                  title={t("edit")}
-                  aria-label={t("edit")}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setSelectedRoleId(role.id);
-                    setEditingRoleId(role.id);
-                    setModalMode("edit");
-                  }}
-                >
-                  <Pencil className="h-4 w-4 text-gray-600" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 rounded-lg border border-gray-200 p-0"
-                  title={t("delete")}
-                  aria-label={t("delete")}
-                  loading={isDeletingRole}
-                  disabled={isDeletingRole}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    void handleDeleteRole(role);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 text-error" />
-                </Button>
-              </>
-            ) : null}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 w-9 rounded-lg border border-gray-200 p-0"
+              title={t("edit")}
+              aria-label={t("edit")}
+              disabled={role.isSystem}
+              onClick={(event) => {
+                event.stopPropagation();
+                setSelectedRoleId(role.id);
+                setEditingRoleId(role.id);
+                setModalMode("edit");
+              }}
+            >
+              <Pencil className="h-4 w-4 text-gray-600" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-9 w-9 rounded-lg border border-gray-200 p-0"
+              title={t("delete")}
+              aria-label={t("delete")}
+              loading={isDeletingRole}
+              disabled={role.isSystem || isDeletingRole}
+              onClick={(event) => {
+                event.stopPropagation();
+                void handleDeleteRole(role);
+              }}
+            >
+              <Trash2 className="h-4 w-4 text-error" />
+            </Button>
           </div>
         ) : null;
       },
@@ -767,146 +747,119 @@ export default function SettingsRolesPage() {
                 {t("permission_matrix_loading")}
               </div>
             ) : selectedRole ? (
-              <div className="overflow-x-auto rounded-xl border border-gray-200">
-                <table className="min-w-[760px] w-full text-sm">
-                  <thead className="bg-gray-50/90">
-                    <tr>
-                      <th
-                        className={`sticky top-0 z-30 bg-gray-50/95 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-gray-600 backdrop-blur-sm shadow-[0_2px_6px_-4px_rgba(15,23,42,0.35)] ${isArabic ? "right-0 text-right shadow-[-2px_0_6px_-4px_rgba(15,23,42,0.35)]" : "left-0 text-left shadow-[2px_0_6px_-4px_rgba(15,23,42,0.35)]"}`}
-                      >
-                        {t("permission_matrix_title")}
-                      </th>
-                      {actionColumns.map((action) => (
-                        <th
-                          key={action}
-                          className="sticky top-0 z-20 bg-gray-50/95 px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide text-gray-600 shadow-[0_2px_6px_-4px_rgba(15,23,42,0.35)] backdrop-blur-sm"
+              <div className="flex flex-col gap-3">
+                {permissionMatrix.map(({ module, rows }) => {
+                  const isExpanded = expandedModules[module] ?? false;
+                  const moduleId = `permission-module-${module.replace(/[^a-zA-Z0-9]+/g, "-")}`;
+                  const moduleCounts = getPermissionCounts(rows);
+
+                  return (
+                    <section
+                      key={module}
+                      aria-labelledby={`${moduleId}-label`}
+                      className="overflow-hidden rounded-xl border border-gray-200 bg-white"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3 bg-gray-50 px-4 py-3">
+                        <button
+                          type="button"
+                          aria-label={module}
+                          aria-expanded={isExpanded}
+                          aria-controls={`${moduleId}-rows`}
+                          className={`inline-flex min-w-0 items-center gap-2 rounded-md px-1 py-1 text-sm font-semibold text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${isArabic ? "text-right" : "text-left"}`}
+                          onClick={() =>
+                            setExpandedModules((current) => ({
+                              ...current,
+                              [module]: !isExpanded,
+                            }))
+                          }
                         >
-                          {action}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 bg-white">
-                    {permissionMatrix.map(({ module, rows }) => {
-                      const isExpanded = expandedModules[module] ?? true;
-                      const moduleId = `permission-module-${module.replace(/[^a-zA-Z0-9]+/g, "-")}`;
-                      const moduleCounts = getPermissionCounts(rows);
-                      return (
-                        <Fragment key={`${module}-module`}>
-                          <tr
-                            id={moduleId}
-                            className="bg-gray-50/70 transition-colors duration-150 hover:bg-gray-100/80 motion-reduce:transition-none"
-                          >
-                            <td
-                              className={`sticky z-10 bg-gray-50/95 px-3 py-2.5 backdrop-blur-sm ${isArabic ? "right-0 text-right shadow-[-2px_0_6px_-4px_rgba(15,23,42,0.35)]" : "left-0 text-left shadow-[2px_0_6px_-4px_rgba(15,23,42,0.35)]"}`}
-                            >
-                              <button
-                                type="button"
-                                aria-label={module}
-                                aria-expanded={isExpanded}
-                                aria-controls={`${moduleId}-rows`}
-                                className="inline-flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-sm font-semibold text-gray-900 transition-colors duration-150 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 motion-reduce:transition-none"
-                                onClick={() =>
-                                  setExpandedModules((current) => ({
-                                    ...current,
-                                    [module]: !isExpanded,
-                                  }))
-                                }
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4 text-gray-500" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-gray-500" />
+                          )}
+                          <span id={`${moduleId}-label`}>{module}</span>
+                          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium tabular-nums text-blue-700">
+                            {moduleCounts.selected} / {moduleCounts.total}
+                          </span>
+                        </button>
+
+                        <div
+                          aria-label={`${module} bulk permissions`}
+                          className="flex flex-wrap items-center gap-1.5"
+                        >
+                          {actionColumns.map((action) =>
+                            isPermissionActionSupported(rows, action) ? (
+                              <span
+                                key={`${module}-${action}`}
+                                className="inline-flex items-center gap-1 text-[11px] text-gray-600"
                               >
-                                {isExpanded ? (
-                                  <ChevronDown className="h-4 w-4 text-gray-500" />
-                                ) : (
-                                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                                <span>{action}</span>
+                                {renderMatrixToggle(
+                                  getModuleActionState(rows, action),
+                                  () => toggleModuleAction(rows, action),
+                                  !canManageRoles ||
+                                    Boolean(selectedRole?.isSystem),
                                 )}
-                                <span>{module}</span>
-                                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium tabular-nums text-blue-700">
-                                  {moduleCounts.selected} / {moduleCounts.total}
-                                </span>
-                              </button>
-                            </td>
-                            {actionColumns.map((action) => {
-                              const supported = isPermissionActionSupported(
-                                rows,
-                                action,
-                              );
-                              return (
-                                <td
-                                  key={`${module}-${action}`}
-                                  className="px-4 py-3 text-center"
-                                >
-                                  {supported
-                                    ? renderMatrixToggle(
-                                        getModuleActionState(rows, action),
-                                        () => toggleModuleAction(rows, action),
-                                        !canManageRoles ||
-                                          Boolean(selectedRole?.isSystem),
-                                      )
-                                    : renderUnavailablePermission(module)}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                          {isExpanded
-                            ? rows.map((row, rowIndex) => {
-                                const rowCounts = getPermissionCounts([row]);
-                                return (
-                                  <tr
-                                    key={`${module}-${row.id}`}
-                                    id={
-                                      rowIndex === 0
-                                        ? `${moduleId}-rows`
-                                        : undefined
-                                    }
-                                    className="bg-hover-50"
-                                  >
-                                    <td
-                                      className={`px-5 py-2.5 text-sm text-gray-800 transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none ${isArabic ? "border-r-2 border-blue-100 pr-10 text-right" : "border-l-2 border-blue-100 pl-10 text-left"}`}
-                                    >
-                                      <div className="flex items-center justify-between gap-3">
-                                        <span>{row.label}</span>
-                                        <span className="shrink-0 text-[11px] tabular-nums text-gray-500">
-                                          {rowCounts.selected} /{" "}
-                                          {rowCounts.total}
-                                        </span>
-                                      </div>
-                                    </td>
-                                    {actionColumns.map((action) => {
-                                      const permission = row.cells[action];
-                                      const checked = permission
-                                        ? isPermissionChecked(permission.key)
-                                        : false;
-                                      return (
-                                        <td
-                                          key={`${module}-${row.id}-${action}`}
-                                          className="px-3 py-2.5 text-center transition-colors duration-150 hover:bg-gray-50 motion-reduce:transition-none"
-                                        >
-                                          {permission
-                                            ? renderMatrixToggle(
-                                                checked ? "all" : "none",
-                                                () =>
-                                                  handleTogglePermission(
-                                                    permission.key,
-                                                  ),
-                                                !canManageRoles ||
-                                                  Boolean(
-                                                    selectedRole?.isSystem,
-                                                  ),
-                                              )
-                                            : renderUnavailablePermission(
-                                                module,
-                                              )}
-                                        </td>
-                                      );
-                                    })}
-                                  </tr>
-                                );
-                              })
-                            : null}
-                        </Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                              </span>
+                            ) : null,
+                          )}
+                        </div>
+                      </div>
+
+                      {isExpanded ? (
+                        <div
+                          id={`${moduleId}-rows`}
+                          className="divide-y divide-gray-100"
+                        >
+                          {rows.map((row) => {
+                            const rowCounts = getPermissionCounts([row]);
+
+                            return (
+                              <div
+                                key={`${module}-${row.id}`}
+                                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+                              >
+                                <div className="flex min-w-[12rem] items-center gap-2 text-sm text-gray-800">
+                                  <span>{row.label}</span>
+                                  <span className="shrink-0 text-[11px] tabular-nums text-gray-500">
+                                    {rowCounts.selected} / {rowCounts.total}
+                                  </span>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {actionColumns.map((action) => {
+                                    const permission = row.cells[action];
+
+                                    return permission ? (
+                                      <span
+                                        key={`${module}-${row.id}-${action}`}
+                                        className="inline-flex items-center gap-1 text-[11px] text-gray-600"
+                                      >
+                                        <span>{action}</span>
+                                        {renderMatrixToggle(
+                                          isPermissionChecked(permission.key)
+                                            ? "all"
+                                            : "none",
+                                          () =>
+                                            handleTogglePermission(
+                                              permission.key,
+                                            ),
+                                          !canManageRoles ||
+                                            Boolean(selectedRole?.isSystem),
+                                        )}
+                                      </span>
+                                    ) : null;
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </section>
+                  );
+                })}
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500">
