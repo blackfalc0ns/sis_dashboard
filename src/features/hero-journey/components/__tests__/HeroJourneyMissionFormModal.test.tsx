@@ -198,7 +198,7 @@ describe("HeroJourneyMissionFormModal", () => {
       objective.getByLabelText(
         "heroJourney.missionForm.labels.objectiveLessonRef",
       ),
-    ).toHaveValue("lesson-1");
+    ).toHaveTextContent("Lesson");
     expect(
       objective.getByRole("checkbox", {
         name: "heroJourney.missionForm.labels.objectiveRequired",
@@ -257,6 +257,32 @@ describe("HeroJourneyMissionFormModal", () => {
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
         objectives: [expect.objectContaining({ linkedAssessmentId: null })],
+      }),
+      expect.any(Set),
+    );
+  });
+
+  it("allows clearing an objective lesson explicitly", () => {
+    const { onSubmit } = renderMission(missionFixture());
+    goToStep(2);
+    const objective = within(screen.getByTestId("mission-objective-card"));
+
+    fireEvent.click(
+      objective.getByLabelText(
+        "heroJourney.missionForm.labels.objectiveLessonRef",
+      ),
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "heroJourney.missionForm.placeholders.noLesson",
+      }),
+    );
+    goToStep(1);
+    fireEvent.click(screen.getByRole("button", { name: "common.save" }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        objectives: [expect.objectContaining({ linkedLessonRef: null })],
       }),
       expect.any(Set),
     );

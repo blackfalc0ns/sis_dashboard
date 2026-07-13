@@ -309,6 +309,14 @@ export default function HeroJourneyMissionFormModal({
       t("placeholders.selectedAssessment"),
     ),
   ];
+  const objectiveLessonOptions = (lessonRef?: string | null) => [
+    { value: "__none__", label: t("placeholders.noLesson") },
+    ...withSelectedOption(
+      visibleLessonOptions,
+      lessonRef || "",
+      t("placeholders.selectedLesson"),
+    ),
+  ];
   const isEditing = Boolean(mission);
   const isPublished = mission?.status === "published";
   const protectedEditFieldsDisabled = Boolean(isPublished);
@@ -1040,15 +1048,16 @@ export default function HeroJourneyMissionFormModal({
                   dir="rtl"
                   disabled={protectedEditFieldsDisabled}
                 />
-                <Input
+                <Select
                   label={t("labels.objectiveLessonRef")}
-                  value={objective.linkedLessonRef || ""}
-                  maxLength={255}
-                  onChange={(event) =>
+                  value={objective.linkedLessonRef || "__none__"}
+                  options={objectiveLessonOptions(objective.linkedLessonRef)}
+                  onChange={(value) =>
                     updateObjective(index, {
-                      linkedLessonRef: event.target.value,
+                      linkedLessonRef: value === "__none__" ? null : value,
                     })
                   }
+                  searchable
                   disabled={protectedEditFieldsDisabled}
                 />
                 <Select
