@@ -5,6 +5,13 @@ import {
   unwrapReinforcementListResponse,
 } from "@/features/reinforcement/services/reinforcementApiUtils";
 import { getHeroJourneyBadgeAssetPath } from "../utils/badgeAssetRegistry";
+import {
+  normalizeCreateHeroMissionRequest,
+  normalizeUpdateHeroMissionRequest,
+  type CreateHeroMissionCandidate,
+  type HeroMissionUpdateContext,
+  type UpdateHeroMissionCandidate,
+} from "./heroJourneyMissionContract";
 import type {
   HeroJourneyBadge,
   HeroJourneyChartDatum,
@@ -36,41 +43,6 @@ export interface HeroJourneyBadgeCatalogParams {
   search?: string;
   isActive?: boolean;
   includeDeleted?: boolean;
-}
-
-export interface HeroJourneyMissionObjectivePayload {
-  type?: string;
-  titleEn?: string;
-  titleAr?: string;
-  subtitleEn?: string;
-  subtitleAr?: string;
-  linkedAssessmentId?: string;
-  linkedLessonRef?: string;
-  sortOrder?: number;
-  isRequired?: boolean;
-  metadata?: Record<string, unknown> | null;
-}
-
-export interface HeroJourneyMissionPayload {
-  academicYearId?: string;
-  yearId?: string;
-  termId: string;
-  stageId: string;
-  subjectId?: string;
-  linkedAssessmentId?: string;
-  linkedLessonRef?: string;
-  titleEn?: string;
-  titleAr?: string;
-  briefEn?: string;
-  briefAr?: string;
-  requiredLevel?: number;
-  rewardXp?: number;
-  badgeRewardId?: string;
-  positionX?: number;
-  positionY?: number;
-  sortOrder?: number;
-  metadata?: Record<string, unknown> | null;
-  objectives: HeroJourneyMissionObjectivePayload[];
 }
 
 export interface HeroJourneyOverviewParams {
@@ -819,19 +791,22 @@ export async function getHeroJourneyMission(
 }
 
 export async function createHeroJourneyMission(
-  payload: HeroJourneyMissionPayload,
+  candidate: CreateHeroMissionCandidate,
 ): Promise<HeroJourneyMission> {
-  const response = await apiPost<unknown>(`${HERO_ENDPOINT}/missions`, payload);
+  const request = normalizeCreateHeroMissionRequest(candidate);
+  const response = await apiPost<unknown>(`${HERO_ENDPOINT}/missions`, request);
   return mapMission(unwrapReinforcementItemResponse(response));
 }
 
 export async function updateHeroJourneyMission(
   missionId: string,
-  payload: Partial<HeroJourneyMissionPayload>,
+  candidate: UpdateHeroMissionCandidate,
+  context: HeroMissionUpdateContext,
 ): Promise<HeroJourneyMission> {
+  const request = normalizeUpdateHeroMissionRequest(candidate, context);
   const response = await apiPatch<unknown>(
     `${HERO_ENDPOINT}/missions/${missionId}`,
-    payload,
+    request,
   );
   return mapMission(unwrapReinforcementItemResponse(response));
 }

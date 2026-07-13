@@ -24,6 +24,34 @@ import {
   updateHeroJourneyBadge,
   updateHeroJourneyMission,
 } from "../services/heroJourneyService";
+import type { HeroJourneyMission } from "../types";
+
+const YEAR_ID = "11111111-1111-4111-8111-111111111111";
+const TERM_ID = "22222222-2222-4222-8222-222222222222";
+const STAGE_ID = "33333333-3333-4333-8333-333333333333";
+
+const missionFixture = (
+  patch: Partial<HeroJourneyMission> = {},
+): HeroJourneyMission => ({
+  id: "mission-1",
+  titleEn: "Read",
+  titleAr: "اقرأ",
+  stageNameEn: "Stage",
+  stageNameAr: "المرحلة",
+  requiredLevel: 1,
+  rewardXp: 10,
+  linkedLessonId: "",
+  linkedLessonTitleEn: "",
+  linkedLessonTitleAr: "",
+  linkedQuizId: "",
+  linkedQuizTitleEn: "",
+  linkedQuizTitleAr: "",
+  status: "draft",
+  studentsStarted: 0,
+  studentsCompleted: 0,
+  updatedAt: "2026-07-13T00:00:00.000Z",
+  ...patch,
+});
 
 describe("Hero Journey dashboard service", () => {
   beforeEach(() => {
@@ -213,13 +241,7 @@ describe("Hero Journey dashboard service", () => {
     );
   });
 
-  it("uses mission detail, create, update, and delete endpoints", async () => {
-    const missionPayload = {
-      termId: "term-1",
-      stageId: "stage-1",
-      titleEn: "Read",
-      objectives: [{ titleEn: "Finish chapter", isRequired: true }],
-    };
+  it("uses mission detail and delete endpoints", async () => {
     apiMocks.apiGet.mockResolvedValueOnce({
       data: {
         id: "mission-1",
@@ -235,29 +257,13 @@ describe("Hero Journey dashboard service", () => {
         ],
       },
     });
-    apiMocks.apiPost.mockResolvedValueOnce({
-      data: { id: "mission-2", titleEn: "Write" },
-    });
-    apiMocks.apiPatch.mockResolvedValueOnce({
-      data: { id: "mission-1", titleEn: "Read more" },
-    });
     apiMocks.apiDelete.mockResolvedValueOnce({ ok: true });
 
     const mission = await getHeroJourneyMission("mission-1");
-    await createHeroJourneyMission(missionPayload);
-    await updateHeroJourneyMission("mission-1", { titleEn: "Read more" });
     await deleteHeroJourneyMission("mission-1");
 
     expect(apiMocks.apiGet).toHaveBeenCalledWith(
       "/reinforcement/hero/missions/mission-1",
-    );
-    expect(apiMocks.apiPost).toHaveBeenCalledWith(
-      "/reinforcement/hero/missions",
-      missionPayload,
-    );
-    expect(apiMocks.apiPatch).toHaveBeenCalledWith(
-      "/reinforcement/hero/missions/mission-1",
-      { titleEn: "Read more" },
     );
     expect(apiMocks.apiDelete).toHaveBeenCalledWith(
       "/reinforcement/hero/missions/mission-1",
@@ -271,6 +277,90 @@ describe("Hero Journey dashboard service", () => {
         isRequired: true,
       }),
     ]);
+  });
+
+  it("normalizes mission create requests before POST", async () => {
+    apiMocks.apiPost.mockResolvedValueOnce({
+      data: { id: "mission-2", titleEn: "Write" },
+    });
+
+    await createHeroJourneyMission({
+      yearId: YEAR_ID,
+      termId: TERM_ID,
+      stageId: STAGE_ID,
+      titleEn: " Read ",
+      objectives: [{ titleEn: "Finish chapter" }],
+    });
+
+    expect(apiMocks.apiPost).toHaveBeenCalledWith(
+      "/reinforcement/hero/missions",
+      {
+        academicYearId: YEAR_ID,
+        termId: TERM_ID,
+        stageId: STAGE_ID,
+        titleEn: "Read",
+        objectives: [
+          {
+            titleEn: "Finish chapter",
+            type: "manual",
+            isRequired: true,
+            sortOrder: 1,
+          },
+        ],
+      },
+    );
+  });
+
+  it("removes published-protected fields before PATCH", async () => {
+    apiMocks.apiPatch.mockResolvedValueOnce({
+      data: { id: "mission-1", titleEn: "Read more" },
+    });
+    const mission = missionFixture({ status: "published" });
+
+    await updateHeroJourneyMission(
+      mission.id,
+      { titleEn: "Read more", rewardXp: 999 },
+      {
+        status: mission.status,
+        original: mission,
+        dirtyFields: new Set(["titleEn", "rewardXp"]),
+      },
+    );
+
+    expect(apiMocks.apiPatch).toHaveBeenCalledWith(
+      "/reinforcement/hero/missions/mission-1",
+      { titleEn: "Read more" },
+    );
+  });
+
+  it("rejects invalid creates before POST", async () => {
+    await expect(
+      createHeroJourneyMission({
+        academicYearId: "bad",
+        termId: TERM_ID,
+        stageId: STAGE_ID,
+        titleEn: "Title",
+        objectives: [{}],
+      }),
+    ).rejects.toMatchObject({ code: "invalidUuid" });
+    expect(apiMocks.apiPost).not.toHaveBeenCalled();
+  });
+
+  it("rejects archived updates before PATCH", async () => {
+    const mission = missionFixture({ status: "archived" });
+
+    await expect(
+      updateHeroJourneyMission(
+        mission.id,
+        { titleEn: "Blocked" },
+        {
+          status: mission.status,
+          original: mission,
+          dirtyFields: new Set(["titleEn"]),
+        },
+      ),
+    ).rejects.toMatchObject({ code: "missionArchived" });
+    expect(apiMocks.apiPatch).not.toHaveBeenCalled();
   });
 
   it("derives student progress rows from dashboard top students", async () => {
