@@ -114,7 +114,7 @@ Implementation will follow red-green-refactor.
 - Create-normalizer tests will cover valid bilingual and single-language titles, academic-year aliases, alias conflicts and canonical output, trimmed UUIDs, every UUID field, omitted defaults, numeric-string conversion, finite integer bounds, text limits, empty objectives, metadata shapes, objective runtime types and booleans, objective defaults, duplicate orders, missing orders, stable ordering, and sequential normalization.
 - Update-normalizer tests will cover dirty-field-only inspection, untouched-field omission, undefined omission, explicit clears, effective-title validation, UUID formats, `objectives` omitted versus `[]`, always-protected academic scope, published protected fields, archived rejection, and rejection of invalid dirty fields without requiring create-only fields.
 - Service tests will verify the existing create and edit routes receive the normalized contract payload.
-- Form-level tests will cover published protected-field omission, archived edit unavailability, and user-visible validation behavior where component coverage adds value beyond the normalizer tests.
+- Form-level tests cover published protected controls, backend-owned create defaults, draft/create objective removal behavior, and dirty-field submission. Contract-helper coverage verifies archived edit unavailability.
 - Relevant Vitest tests, TypeScript typecheck, and ESLint checks for changed files must pass before completion.
 
 ## Non-goals

@@ -29,7 +29,7 @@
 
 - Create `src/features/hero-journey/services/heroJourneyMissionContract.ts`: request DTO types, error codes, field validators, create/update normalizers, objective ordering, and editability helpers.
 - Create `src/features/hero-journey/services/__tests__/heroJourneyMissionContract.test.ts`: focused unit coverage for all DTO and business-boundary behavior.
-- Modify `src/features/hero-journey/services/heroJourneyService.ts`: remove broad mission payload declarations, re-export contract types, normalize before POST/PATCH, and require update context.
+- Modify `src/features/hero-journey/services/heroJourneyService.ts`: remove broad mission payload declarations, import contract types, normalize before POST/PATCH, and require update context.
 - Modify `src/features/hero-journey/__tests__/heroJourneyService.test.ts`: use valid UUID fixtures and assert normalized requests at the HTTP boundary.
 - Modify `src/features/hero-journey/components/HeroJourneyMissionFormModal.tsx`: DTO defaults, optional numeric/order inputs, maximum lengths, status-aware disabling, and form-candidate plus dirty-field submission.
 - Create `src/features/hero-journey/components/__tests__/HeroJourneyMissionFormModal.test.tsx`: verify published-field protection and editable copy fields.
@@ -552,7 +552,7 @@ git commit -m "feat: validate hero mission requests"
 - Produces:
   - `createHeroJourneyMission(candidate: CreateHeroMissionCandidate)`
   - `updateHeroJourneyMission(missionId, candidate: UpdateHeroMissionCandidate, context: HeroMissionUpdateContext)`
-  - Re-exported request types for existing component imports.
+  - Contract types remain exported by `heroJourneyMissionContract.ts` and are imported directly by callers.
 
 - [ ] **Step 1: Change service tests to expect normalized payloads**
 
@@ -630,30 +630,16 @@ Expected: FAIL because the current service forwards raw payloads and update has 
 
 - [ ] **Step 3: Wire the service to the contract module**
 
-Delete `HeroJourneyMissionObjectivePayload` and `HeroJourneyMissionPayload` from `heroJourneyService.ts`. Import and re-export the new request types, then normalize immediately before network calls:
+Delete `HeroJourneyMissionObjectivePayload` and `HeroJourneyMissionPayload` from `heroJourneyService.ts`. Import the candidate/context types used by the service, and have component callers import shared types directly from the contract module. Normalize immediately before network calls:
 
 ```ts
 import {
   normalizeCreateHeroMissionRequest,
   normalizeUpdateHeroMissionRequest,
   type CreateHeroMissionCandidate,
-  type CreateHeroMissionRequest,
-  type HeroMissionEditableField,
-  type HeroMissionObjectiveRequest,
   type HeroMissionUpdateContext,
   type UpdateHeroMissionCandidate,
-  type UpdateHeroMissionRequest,
 } from "./heroJourneyMissionContract";
-
-export type {
-  CreateHeroMissionCandidate,
-  CreateHeroMissionRequest,
-  HeroMissionEditableField,
-  HeroMissionObjectiveRequest,
-  HeroMissionUpdateContext,
-  UpdateHeroMissionCandidate,
-  UpdateHeroMissionRequest,
-};
 
 export async function createHeroJourneyMission(
   candidate: CreateHeroMissionCandidate,
@@ -765,18 +751,18 @@ Expected: FAIL because new missions currently inject numeric defaults and publis
 Make these concrete changes:
 
 - Replace service imports with `HeroMissionObjectiveCandidate`, `HeroMissionFormCandidate`, and `HeroMissionEditableField`; do not cast form state to request DTO types.
-- Change `onSubmit` to `(candidate: HeroMissionFormCandidate, dirtyFields: ReadonlySet<HeroMissionEditableField>) => Promise<void> | void`.
+- Change `onSubmit` to accept the modal-scoped `HeroMissionFormCandidate` fields plus `dirtyFields: ReadonlySet<HeroMissionEditableField>`.
 - Add `dirtyFields` state initialized to `new Set<HeroMissionEditableField>()` and a `markDirty(field)` helper that clones the set before adding the field.
-- Mark the corresponding DTO field in every user-driven handler. Any objective title, subtitle, type, reference, order, required-state, add, or remove action marks `objectives`. Cascading programmatic resets caused by a user subject/reference change retain the initiating field markers.
+- Mark the corresponding DTO field in every user-driven handler. Any exposed objective title/order edit, add, or remove action marks `objectives`. Cascading programmatic resets caused by a user subject/reference change retain the affected field markers.
 - Change `blankObjective()` to `{ type: "manual", titleEn: "", titleAr: "", isRequired: true }`; do not assign `sortOrder`.
 - Change mission objective fallback type from `task` to `manual`.
 - Initialize optional numeric create fields with `""`; retain mission values when editing.
 - Render optional objective order with `objective.sortOrder == null ? "" : String(objective.sortOrder)` and convert an empty event value to `undefined`.
-- Add `maxLength={255}` to mission/objective title inputs and linked lesson reference text inputs, `maxLength={2000}` to mission briefs, and `maxLength={500}` to objective subtitles.
+- Add `maxLength={255}` to exposed mission/objective title inputs and `maxLength={2000}` to mission briefs. The contract boundary enforces limits for linked lesson references and objective subtitles, which are not free-text controls in this modal.
 - Define `const isEditing = Boolean(mission)`, `const protectsAcademicScope = isEditing`, and `const protectsPublishedFields = mission?.status === "published"`. Disable stage, grade, section, and classroom for every edit. Disable subject, linked lesson, linked assessment, required level, reward XP, badge reward, and all objective controls only for published edits.
 - Disable Add/Remove Objective for published missions.
 - During create, keep Remove Objective disabled when only one objective remains. During a draft edit, allow removal of the final objective and submit `objectives: []` with `objectives` marked dirty.
-- Keep title, brief, `positionX`, `positionY`, mission `sortOrder`, and metadata-backed non-protected copy fields editable.
+- Keep title, brief, `positionX`, `positionY`, and mission `sortOrder` editable.
 - Submit the form candidate together with a snapshot of `dirtyFields`; preserve blank nullable values so a dirty clear normalizes to `null`, while the normalizer ignores identical blank values for fields not in the set.
 
 - [ ] **Step 4: Update the page to pass create/update context and status gates**
