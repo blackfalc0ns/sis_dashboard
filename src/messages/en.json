@@ -441,6 +441,7 @@
     "unsavedChanges": "Unsaved changes",
     "unsavedChangesMessage": "Save changes before switching?",
     "retry": "Retry",
+    "refresh": "Refresh",
     "reset": "Reset",
     "reset_success": "Reset successfully!",
     "reset_failed": "Failed to reset. Please try again.",
