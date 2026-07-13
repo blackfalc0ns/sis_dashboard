@@ -188,6 +188,7 @@ export const reinforcementNavigationPermissionByKey: Partial<
   "reinforcement-xp-policies": "reinforcement.xp.view",
   "reinforcement-xp-ledger": "reinforcement.xp.view",
   "hero-journey": "reinforcement.hero.view",
+  "hero-journey-missions": "reinforcement.hero.view",
 };
 
 export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =

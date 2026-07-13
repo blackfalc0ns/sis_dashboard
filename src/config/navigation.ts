@@ -79,9 +79,8 @@ export function filterMenuItems(
 
   return items.flatMap((item) => {
     const itemLabel = isArabic ? item.label_ar : item.label_en;
-    const itemMatches = normalizeNavigationText(itemLabel).includes(
-      normalizedQuery,
-    );
+    const itemMatches =
+      normalizeNavigationText(itemLabel).includes(normalizedQuery);
 
     if (!item.children) {
       return itemMatches ? [item] : [];
@@ -108,9 +107,7 @@ export function groupMenuChildren(
   return (item.subgroups ?? [])
     .map((subgroup) => ({
       subgroup,
-      children: children.filter(
-        (child) => child.subgroup === subgroup.key,
-      ),
+      children: children.filter((child) => child.subgroup === subgroup.key),
     }))
     .filter((group) => group.children.length > 0);
 }
@@ -143,8 +140,16 @@ export const menuItems: MenuItem[] = [
     subgroups: [
       { key: "general", label_en: "General", label_ar: "عام" },
       { key: "messaging", label_en: "Messaging", label_ar: "المراسلات" },
-      { key: "notifications", label_en: "Notifications", label_ar: "الإشعارات" },
-      { key: "safety-settings", label_en: "Safety & Settings", label_ar: "الأمان والإعدادات" },
+      {
+        key: "notifications",
+        label_en: "Notifications",
+        label_ar: "الإشعارات",
+      },
+      {
+        key: "safety-settings",
+        label_en: "Safety & Settings",
+        label_ar: "الأمان والإعدادات",
+      },
     ],
     children: [
       {
@@ -220,7 +225,11 @@ export const menuItems: MenuItem[] = [
     href_ar: "/ar/admissions/applications",
     icon: UserPlus,
     subgroups: [
-      { key: "pipeline", label_en: "Application Pipeline", label_ar: "مسار التقديم" },
+      {
+        key: "pipeline",
+        label_en: "Application Pipeline",
+        label_ar: "مسار التقديم",
+      },
       { key: "enrollment", label_en: "Enrollment", label_ar: "التسجيل" },
     ],
     children: [
@@ -418,8 +427,16 @@ export const menuItems: MenuItem[] = [
   {
     key: "academics",
     subgroups: [
-      { key: "setup", label_en: "Academic Setup", label_ar: "الإعداد الأكاديمي" },
-      { key: "teaching-learning", label_en: "Teaching & Learning", label_ar: "التعليم والتعلم" },
+      {
+        key: "setup",
+        label_en: "Academic Setup",
+        label_ar: "الإعداد الأكاديمي",
+      },
+      {
+        key: "teaching-learning",
+        label_en: "Teaching & Learning",
+        label_ar: "التعليم والتعلم",
+      },
       { key: "staff", label_en: "Staff", label_ar: "الموظفون" },
     ],
     label_en: "Academics",
@@ -535,7 +552,11 @@ export const menuItems: MenuItem[] = [
     key: "grades",
     subgroups: [
       { key: "general", label_en: "General", label_ar: "عام" },
-      { key: "assessment-management", label_en: "Assessment Management", label_ar: "إدارة التقييمات" },
+      {
+        key: "assessment-management",
+        label_en: "Assessment Management",
+        label_ar: "إدارة التقييمات",
+      },
     ],
     label_en: "Assessments & Grades",
     label_ar: "التقييمات والدرجات",
@@ -585,7 +606,11 @@ export const menuItems: MenuItem[] = [
     key: "attendance",
     subgroups: [
       { key: "monitoring", label_en: "Monitoring", label_ar: "المتابعة" },
-      { key: "policies-records", label_en: "Policies & Records", label_ar: "السياسات والسجلات" },
+      {
+        key: "policies-records",
+        label_en: "Policies & Records",
+        label_ar: "السياسات والسجلات",
+      },
     ],
     label_en: "Attendance & Discipline",
     label_ar: "الحضور والانضباط",
@@ -654,7 +679,11 @@ export const menuItems: MenuItem[] = [
     key: "behavior",
     subgroups: [
       { key: "general", label_en: "General", label_ar: "عام" },
-      { key: "management", label_en: "Behavior Management", label_ar: "إدارة السلوك" },
+      {
+        key: "management",
+        label_en: "Behavior Management",
+        label_ar: "إدارة السلوك",
+      },
     ],
     label_en: "Behavior",
     label_ar: "السلوك",
@@ -704,7 +733,11 @@ export const menuItems: MenuItem[] = [
     key: "nedaa",
     subgroups: [
       { key: "operations", label_en: "Operations", label_ar: "العمليات" },
-      { key: "configuration", label_en: "Configuration", label_ar: "الإعدادات" },
+      {
+        key: "configuration",
+        label_en: "Configuration",
+        label_ar: "الإعدادات",
+      },
     ],
     label_en: "Nedaa",
     label_ar: "نداء",
@@ -755,7 +788,11 @@ export const menuItems: MenuItem[] = [
     subgroups: [
       { key: "general", label_en: "General", label_ar: "عام" },
       { key: "programs", label_en: "Programs", label_ar: "البرامج" },
-      { key: "xp-rewards", label_en: "XP & Rewards", label_ar: "نقاط الخبرة والمكافآت" },
+      {
+        key: "xp-rewards",
+        label_en: "XP & Rewards",
+        label_ar: "نقاط الخبرة والمكافآت",
+      },
     ],
     label_en: "Reinforcement",
     label_ar: "التعزيز",
@@ -832,9 +869,17 @@ export const menuItems: MenuItem[] = [
     key: "settings",
     subgroups: [
       { key: "general", label_en: "General", label_ar: "عام" },
-      { key: "access-identity", label_en: "Access & Identity", label_ar: "الوصول والهوية" },
+      {
+        key: "access-identity",
+        label_en: "Access & Identity",
+        label_ar: "الوصول والهوية",
+      },
       { key: "email", label_en: "Email", label_ar: "البريد الإلكتروني" },
-      { key: "security-data", label_en: "Security & Data", label_ar: "الأمان والبيانات" },
+      {
+        key: "security-data",
+        label_en: "Security & Data",
+        label_ar: "الأمان والبيانات",
+      },
     ],
     label_en: "Settings & Integrations",
     label_ar: "الإعدادات والتكاملات",
@@ -850,6 +895,15 @@ export const menuItems: MenuItem[] = [
         href_en: "/en/settings",
         href_ar: "/ar/settings",
         icon: LayoutDashboard,
+      },
+      {
+        key: "dashboard-recent-activities",
+        subgroup: "general",
+        label_en: "Recent Activities",
+        label_ar: "الأنشطة الأخيرة",
+        href_en: "/en/dashboard/recent-activities",
+        href_ar: "/ar/dashboard/recent-activities",
+        icon: Activity,
       },
       {
         key: "settings-branding",

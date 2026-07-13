@@ -39,6 +39,7 @@ import {
 import { fetchAssessments } from "@/features/grades/overview/services/gradesOverviewService";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import { usePermissions } from "@/hooks/usePermissions";
+import { isApiError } from "@/lib/api-error";
 import { heroJourneySectionBanners } from "../config/heroJourneySectionBanners";
 import useHeroJourneyOverlayMode from "../hooks/useHeroJourneyOverlayMode";
 import { useHeroJourneyMissionSearch } from "../hooks/useHeroJourneyMissionSearch";
@@ -58,8 +59,16 @@ import {
 } from "../services/heroJourneyService";
 import type {
   HeroJourneyBadgePayload,
-  HeroJourneyMissionPayload,
 } from "../services/heroJourneyService";
+import {
+  HeroMissionContractError,
+  isHeroMissionEditable,
+} from "../services/heroJourneyMissionContract";
+import type {
+  CreateHeroMissionCandidate,
+  HeroMissionEditableField,
+  HeroMissionFormCandidate,
+} from "../services/heroJourneyMissionContract";
 import type {
   HeroJourneyBadge,
   HeroJourneyMission,
@@ -114,8 +123,6 @@ type RelatedSelectOption = SelectOption & {
   stageId?: string;
   gradeId?: string;
   gradeIds?: string[];
-  sectionId?: string;
-  classroomId?: string;
   subjectId?: string;
   scopeType?: string;
   scopeId?: string;
@@ -163,12 +170,6 @@ export default function HeroJourneyMissionsPage() {
   );
   const [stageOptions, setStageOptions] = useState<RelatedSelectOption[]>([]);
   const [gradeOptions, setGradeOptions] = useState<RelatedSelectOption[]>([]);
-  const [sectionOptions, setSectionOptions] = useState<RelatedSelectOption[]>(
-    [],
-  );
-  const [classroomOptions, setClassroomOptions] = useState<
-    RelatedSelectOption[]
-  >([]);
   const [subjectOptions, setSubjectOptions] = useState<RelatedSelectOption[]>(
     [],
   );
@@ -297,28 +298,6 @@ export default function HeroJourneyMissionsPage() {
           searchText: `${grade.nameEn} ${grade.nameAr} ${grade.name}`,
           stageId: grade.stageId,
         }));
-        const nextSectionOptions = structure.sections.map((section) => ({
-          value: section.id,
-          label: localizedOptionLabel(
-            locale,
-            section.nameEn,
-            section.nameAr,
-            section.name,
-          ),
-          searchText: `${section.nameEn} ${section.nameAr} ${section.name}`,
-          gradeId: section.gradeId,
-        }));
-        const nextClassroomOptions = structure.classrooms.map((classroom) => ({
-          value: classroom.id,
-          label: localizedOptionLabel(
-            locale,
-            classroom.nameEn,
-            classroom.nameAr,
-            classroom.name,
-          ),
-          searchText: `${classroom.nameEn} ${classroom.nameAr} ${classroom.name}`,
-          sectionId: classroom.sectionId,
-        }));
         const gradeIdsBySubject = new Map<string, string[]>();
         allocations.forEach((allocation) => {
           const current = gradeIdsBySubject.get(allocation.subjectId) || [];
@@ -352,14 +331,10 @@ export default function HeroJourneyMissionsPage() {
           subjectId: assessment.subjectId,
           scopeType: assessment.scopeType,
           scopeId: assessment.scopeId,
-          sectionId: assessment.sectionId,
-          classroomId: assessment.classroomId,
         }));
 
         setStageOptions(nextStageOptions);
         setGradeOptions(nextGradeOptions);
-        setSectionOptions(nextSectionOptions);
-        setClassroomOptions(nextClassroomOptions);
         setSubjectOptions(nextSubjectOptions);
         setAssessmentOptions(nextAssessmentOptions);
       })
@@ -367,8 +342,6 @@ export default function HeroJourneyMissionsPage() {
         if (!cancelled) {
           setStageOptions([]);
           setGradeOptions([]);
-          setSectionOptions([]);
-          setClassroomOptions([]);
           setSubjectOptions([]);
           setAssessmentOptions([]);
           setMissionOptionsError(t("messages.loadMissionOptionsFailed"));
@@ -726,7 +699,13 @@ export default function HeroJourneyMissionsPage() {
     }
 
     try {
-      setEditingMission(await getHeroJourneyMission(missionId));
+      const mission = await getHeroJourneyMission(missionId);
+      if (!isHeroMissionEditable(mission.status)) {
+        showError(t("missionForm.errors.missionArchived"));
+        return;
+      }
+
+      setEditingMission(mission);
       setIsMissionModalOpen(false);
       setIsMissionFormOpen(true);
     } catch {
@@ -736,9 +715,10 @@ export default function HeroJourneyMissionsPage() {
 
   const saveMission = async (
     payload: Omit<
-      HeroJourneyMissionPayload,
+      HeroMissionFormCandidate,
       "academicYearId" | "yearId" | "termId"
     >,
+    dirtyFields: ReadonlySet<HeroMissionEditableField>,
   ) => {
     if (!canManageHero) {
       return;
@@ -752,12 +732,14 @@ export default function HeroJourneyMissionsPage() {
     setIsMissionSaving(true);
     try {
       if (editingMission) {
-        // Keep academic scope fields out of PATCH requests. The backend treats
-        // them as protected changes for published missions.
-        await updateHeroJourneyMission(editingMission.id, payload);
+        await updateHeroJourneyMission(editingMission.id, payload, {
+          status: editingMission.status,
+          original: editingMission,
+          dirtyFields,
+        });
         showSuccess("Mission updated.");
       } else {
-        const scopedPayload: HeroJourneyMissionPayload = {
+        const scopedPayload: CreateHeroMissionCandidate = {
           ...payload,
           academicYearId,
           termId,
@@ -768,8 +750,14 @@ export default function HeroJourneyMissionsPage() {
       setIsMissionFormOpen(false);
       setEditingMission(null);
       await refreshMissions();
-    } catch {
-      showError("Unable to save mission.");
+    } catch (error) {
+      if (error instanceof HeroMissionContractError) {
+        showError(t(`missionForm.errors.${error.code}`));
+      } else if (isApiError(error) && error.message.trim()) {
+        showError(error.message);
+      } else {
+        showError(t("messages.saveMissionFailed"));
+      }
     } finally {
       setIsMissionSaving(false);
     }
@@ -1038,12 +1026,16 @@ export default function HeroJourneyMissionsPage() {
               },
               ...(canManageHero
                 ? [
-                    {
-                      value: "edit",
-                      label: t("actions.edit"),
-                      icon: <PencilLine className="h-4 w-4" />,
-                      onClick: () => void openEditMission(row.id),
-                    },
+                    ...(isHeroMissionEditable(row.status)
+                      ? [
+                          {
+                            value: "edit",
+                            label: t("actions.edit"),
+                            icon: <PencilLine className="h-4 w-4" />,
+                            onClick: () => void openEditMission(row.id),
+                          },
+                        ]
+                      : []),
                     {
                       value: "publish",
                       label: t("actions.publish"),
@@ -1378,14 +1370,14 @@ export default function HeroJourneyMissionsPage() {
         footer={
           selectedMission && canManageHero ? (
             <>
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  selectedMission && void openEditMission(selectedMission.id)
-                }
-              >
-                {t("actions.edit")}
-              </Button>
+              {isHeroMissionEditable(selectedMission.status) ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => void openEditMission(selectedMission.id)}
+                >
+                  {t("actions.edit")}
+                </Button>
+              ) : null}
               <Button
                 variant="danger"
                 onClick={() =>
@@ -1451,8 +1443,6 @@ export default function HeroJourneyMissionsPage() {
           )}
           stageOptions={stageOptions}
           gradeOptions={gradeOptions}
-          sectionOptions={sectionOptions}
-          classroomOptions={classroomOptions}
           subjectOptions={subjectOptions}
           assessmentOptions={assessmentOptions}
           optionsLoading={isMissionOptionsLoading}

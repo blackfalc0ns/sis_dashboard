@@ -758,25 +758,6 @@ export default function Sidebar({
                                           childNavigationHref && (
                                           <Loader2 className="w-3 h-3 animate-spin shrink-0" />
                                         )}
-                                        {child.badge &&
-                                          (() => {
-                                            const count = child.badge();
-                                            if (count === 0) return null;
-
-                                            const badgeClass =
-                                              child.key ===
-                                              "admissions-decisions"
-                                                ? "bg-amber-100 text-amber-700 border border-amber-200"
-                                                : "bg-primary-100 text-primary-700 border border-primary-200";
-
-                                            return (
-                                              <span
-                                                className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold rounded-full ${badgeClass}`}
-                                              >
-                                                {count > 99 ? "99+" : count}
-                                              </span>
-                                            );
-                                          })()}
                                       </GuardedLink>
                                     )}
 

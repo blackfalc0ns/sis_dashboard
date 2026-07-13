@@ -44,10 +44,9 @@ export default function HeroJourneyMissionActions({
           className={iconOnly ? "h-9 w-9 p-0" : ""}
           title={t("actions.edit")}
           aria-label={t("actions.edit")}
-          leftIcon={<PencilLine className="h-4 w-4" />}
           onClick={() => onEdit(mission.id)}
         >
-          {iconOnly ? null : t("actions.edit")}
+          <PencilLine className="h-4 w-4" />
         </Button>
       ) : null}
       <Button
@@ -56,18 +55,16 @@ export default function HeroJourneyMissionActions({
         className={iconOnly ? "h-9 w-9 p-0" : ""}
         title={t("actions.delete")}
         aria-label={t("actions.delete")}
-        leftIcon={<Trash2 className="h-4 w-4" />}
         onClick={() => onDelete(mission.id)}
         disabled={deletingMissionId === mission.id}
       >
-        {iconOnly ? null : t("actions.delete")}
+        <Trash2 className="h-4 w-4" />{" "}
       </Button>
       <Button
         size={iconOnly ? "sm" : "md"}
         className={iconOnly ? "h-9 w-9 p-0" : ""}
         title={t("actions.publish")}
         aria-label={t("actions.publish")}
-        leftIcon={<Power className="h-4 w-4" />}
         onClick={() => onPublish(mission.id)}
         disabled={
           isPublishing ||
@@ -75,18 +72,17 @@ export default function HeroJourneyMissionActions({
           mission.status === "archived"
         }
       >
-        {iconOnly ? null : t("actions.publish")}
+        <Power className="h-4 w-4" />
       </Button>
       <Button
         size={iconOnly ? "sm" : "md"}
         className={iconOnly ? "h-9 w-9 p-0" : ""}
         title={t("actions.archive")}
         aria-label={t("actions.archive")}
-        leftIcon={<Archive className="h-4 w-4" />}
         onClick={() => onArchive(mission.id)}
-        disabled={isPublishing || mission.status !== "published"}
+        disabled={isPublishing || mission.status === "archived"}
       >
-        {iconOnly ? null : t("actions.archive")}
+        <Archive className="h-4 w-4" />
       </Button>
     </>
   );
