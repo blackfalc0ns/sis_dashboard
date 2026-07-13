@@ -59,6 +59,7 @@ const missionFixture = (
 function renderMission(
   mission: HeroJourneyMission | null,
   onSubmit = vi.fn(),
+  onClose = vi.fn(),
 ) {
   const result = render(
     <HeroJourneyMissionFormModal
@@ -74,12 +75,33 @@ function renderMission(
       onLoadLessons={vi.fn().mockResolvedValue([
         { value: "lesson-1", label: "Lesson", subjectId: SUBJECT_ID },
       ])}
-      onClose={vi.fn()}
+      onClose={onClose}
       onSubmit={onSubmit}
     />,
   );
 
-  return { ...result, onSubmit };
+  return { ...result, onSubmit, onClose };
+}
+
+function goToStep(step: number) {
+  for (let index = 0; index < step; index += 1) {
+    fireEvent.click(
+      screen.getByRole("button", { name: "heroJourney.missionForm.next" }),
+    );
+  }
+}
+
+function prepareCreateBasics() {
+  fireEvent.change(
+    screen.getByLabelText("heroJourney.missionForm.labels.titleEn"),
+    { target: { value: "Create mission" } },
+  );
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: "heroJourney.missionForm.labels.stage *",
+    }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Stage" }));
 }
 
 describe("HeroJourneyMissionFormModal", () => {
@@ -92,12 +114,15 @@ describe("HeroJourneyMissionFormModal", () => {
     expect(
       screen.getByLabelText("heroJourney.missionForm.labels.briefEn"),
     ).not.toBeDisabled();
+    goToStep(1);
     expect(
       screen.getByLabelText("heroJourney.missionForm.labels.requiredLevel"),
     ).toBeDisabled();
     expect(
       screen.getByLabelText("heroJourney.missionForm.labels.rewardXp"),
     ).toBeDisabled();
+
+    goToStep(1);
     expect(
       screen.getByRole("button", {
         name: "heroJourney.missionForm.actions.addObjective",
@@ -134,11 +159,12 @@ describe("HeroJourneyMissionFormModal", () => {
   });
 
   it("keeps Grade and Subject while removing unrelated scope controls", () => {
-    renderMission(null);
+    renderMission(missionFixture());
 
     expect(
       screen.getByLabelText("heroJourney.missionForm.labels.grade"),
     ).toBeInTheDocument();
+    goToStep(1);
     expect(
       screen.getByLabelText("heroJourney.missionForm.labels.subject"),
     ).toBeInTheDocument();
@@ -152,6 +178,7 @@ describe("HeroJourneyMissionFormModal", () => {
 
   it("renders and submits the complete objective editor", () => {
     const { onSubmit } = renderMission(missionFixture());
+    goToStep(2);
     const objective = within(screen.getByTestId("mission-objective-card"));
 
     expect(
@@ -192,6 +219,7 @@ describe("HeroJourneyMissionFormModal", () => {
       ),
       { target: { value: "Updated subtitle" } },
     );
+    goToStep(1);
     fireEvent.click(screen.getByRole("button", { name: "common.save" }));
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -210,6 +238,7 @@ describe("HeroJourneyMissionFormModal", () => {
 
   it("allows clearing an objective assessment explicitly", () => {
     const { onSubmit } = renderMission(missionFixture());
+    goToStep(2);
     const objective = within(screen.getByTestId("mission-objective-card"));
 
     fireEvent.click(
@@ -222,6 +251,7 @@ describe("HeroJourneyMissionFormModal", () => {
         name: "heroJourney.missionForm.options.noAssessment",
       }),
     );
+    goToStep(1);
     fireEvent.click(screen.getByRole("button", { name: "common.save" }));
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -235,12 +265,15 @@ describe("HeroJourneyMissionFormModal", () => {
   it("leaves backend-defaulted numeric fields empty during create", () => {
     renderMission(null);
 
+    prepareCreateBasics();
+    goToStep(1);
     expect(
       screen.getByLabelText("heroJourney.missionForm.labels.requiredLevel"),
     ).toHaveValue(null);
     expect(
       screen.getByLabelText("heroJourney.missionForm.labels.rewardXp"),
     ).toHaveValue(null);
+    goToStep(1);
     expect(
       screen.getByLabelText("heroJourney.missionForm.labels.objectiveOrder"),
     ).toHaveValue(null);
@@ -248,6 +281,7 @@ describe("HeroJourneyMissionFormModal", () => {
 
   it("allows draft updates to remove their final objective", () => {
     renderMission(missionFixture());
+    goToStep(2);
 
     expect(
       screen.getByRole("button", {
@@ -258,6 +292,8 @@ describe("HeroJourneyMissionFormModal", () => {
 
   it("keeps one objective during create", () => {
     renderMission(null);
+    prepareCreateBasics();
+    goToStep(2);
 
     expect(
       screen.getByRole("button", {
@@ -273,6 +309,7 @@ describe("HeroJourneyMissionFormModal", () => {
       screen.getByLabelText("heroJourney.missionForm.labels.titleEn"),
       { target: { value: "Renamed mission" } },
     );
+    goToStep(3);
     fireEvent.click(screen.getByRole("button", { name: "common.save" }));
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -284,11 +321,13 @@ describe("HeroJourneyMissionFormModal", () => {
   it("submits an empty objective list when a draft's final objective is removed", () => {
     const { onSubmit } = renderMission(missionFixture());
 
+    goToStep(2);
     fireEvent.click(
       screen.getByRole("button", {
         name: "heroJourney.missionForm.actions.removeObjective",
       }),
     );
+    goToStep(1);
     fireEvent.click(screen.getByRole("button", { name: "common.save" }));
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -305,6 +344,7 @@ describe("HeroJourneyMissionFormModal", () => {
       }),
     );
 
+    goToStep(1);
     fireEvent.click(
       screen.getByLabelText("heroJourney.missionForm.labels.subject"),
     );
@@ -313,11 +353,159 @@ describe("HeroJourneyMissionFormModal", () => {
         name: "heroJourney.missionForm.placeholders.noSubject",
       }),
     );
+    goToStep(2);
     fireEvent.click(screen.getByRole("button", { name: "common.save" }));
 
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({ linkedLessonRef: null }),
       expect.any(Set),
     );
+  });
+
+  it("moves through basics, links, objectives, and read-only review", () => {
+    const { onSubmit } = renderMission(missionFixture());
+
+    expect(
+      screen.getByText("heroJourney.missionForm.steps.basics.title"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("heroJourney.missionForm.labels.titleEn"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("heroJourney.missionForm.labels.subject"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "heroJourney.missionForm.next" }),
+    );
+    expect(
+      screen.getByLabelText("heroJourney.missionForm.labels.subject"),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "heroJourney.missionForm.next" }),
+    );
+    expect(screen.getByTestId("mission-objective-card")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "heroJourney.missionForm.next" }),
+    );
+    expect(
+      screen.getByText("heroJourney.missionForm.steps.review.title"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "common.save" })).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("heroJourney.missionForm.labels.titleEn"),
+    ).not.toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("does not leave Basics when stage and titles are missing", () => {
+    renderMission(null);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "heroJourney.missionForm.next" }),
+    );
+
+    expect(
+      screen.getByText("heroJourney.missionForm.errors.stageRequired"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("heroJourney.missionForm.labels.titleEn"),
+    ).toBeInTheDocument();
+  });
+
+  it("preserves values when navigating Back", () => {
+    renderMission(missionFixture());
+
+    fireEvent.change(
+      screen.getByLabelText("heroJourney.missionForm.labels.titleEn"),
+      { target: { value: "Wizard title" } },
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "heroJourney.missionForm.next" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "heroJourney.missionForm.back" }),
+    );
+
+    expect(
+      screen.getByLabelText("heroJourney.missionForm.labels.titleEn"),
+    ).toHaveValue("Wizard title");
+  });
+
+  it("blocks Review when an objective order is invalid", () => {
+    renderMission(missionFixture());
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "heroJourney.missionForm.next" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "heroJourney.missionForm.next" }),
+    );
+    fireEvent.change(
+      screen.getByLabelText("heroJourney.missionForm.labels.objectiveOrder"),
+      { target: { value: "0" } },
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "heroJourney.missionForm.next" }),
+    );
+
+    expect(
+      screen.getByText("heroJourney.missionForm.errors.objectiveOrderInvalid"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("mission-objective-card")).toBeInTheDocument();
+  });
+
+  it("confirms dirty close and allows staying or discarding", () => {
+    const { onClose } = renderMission(missionFixture());
+
+    fireEvent.change(
+      screen.getByLabelText("heroJourney.missionForm.labels.titleEn"),
+      { target: { value: "Changed" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "common.cancel" }));
+
+    expect(
+      screen.getByText("heroJourney.missionForm.unsavedChangesTitle"),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "heroJourney.missionForm.stay" }),
+    );
+    expect(onClose).not.toHaveBeenCalled();
+    expect(
+      screen.getByLabelText("heroJourney.missionForm.labels.titleEn"),
+    ).toHaveValue("Changed");
+
+    fireEvent.click(screen.getByRole("button", { name: "common.cancel" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "heroJourney.missionForm.discard" }),
+    );
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes cleanly without confirmation when nothing changed", () => {
+    const { onClose } = renderMission(missionFixture());
+
+    fireEvent.click(screen.getByRole("button", { name: "common.cancel" }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByText("heroJourney.missionForm.unsavedChangesTitle"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("guards the modal close button after a field changes", () => {
+    renderMission(missionFixture());
+
+    fireEvent.change(
+      screen.getByLabelText("heroJourney.missionForm.labels.titleEn"),
+      { target: { value: "Changed" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+
+    expect(
+      screen.getByText("heroJourney.missionForm.unsavedChangesTitle"),
+    ).toBeInTheDocument();
   });
 });

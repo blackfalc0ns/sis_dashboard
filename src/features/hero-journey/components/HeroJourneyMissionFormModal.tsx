@@ -1,30 +1,31 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Plus, RefreshCw, Trash2 } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { Button, Input, Modal, Select } from "@/components/ui";
+import { Plus, RefreshCw, Save, Trash2 } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { Button, ConfirmDialog, Input, Modal, Select } from "@/components/ui";
+import WizardStepper from "@/features/academics/timetable/components/WizardStepper";
 import type { SelectOption } from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
 import type { HeroJourneyBadge, HeroJourneyMission } from "../types";
+import { HERO_MISSION_OBJECTIVE_TYPES } from "../services/heroJourneyMissionContract";
 import type {
-  HeroJourneyMissionObjectivePayload,
-  HeroJourneyMissionPayload,
-} from "../services/heroJourneyService";
+  HeroMissionEditableField,
+  HeroMissionFormCandidate,
+  HeroMissionObjectiveCandidate,
+} from "../services/heroJourneyMissionContract";
 
 type RelatedSelectOption = SelectOption & {
   stageId?: string;
   gradeId?: string;
   gradeIds?: string[];
-  sectionId?: string;
-  classroomId?: string;
   subjectId?: string;
   scopeType?: string;
   scopeId?: string;
 };
 
 type HeroJourneyMissionFormPayload = Omit<
-  HeroJourneyMissionPayload,
+  HeroMissionFormCandidate,
   "academicYearId" | "yearId" | "termId"
 >;
 
@@ -36,8 +37,6 @@ interface HeroJourneyMissionFormModalProps {
   termLabel: string;
   stageOptions: RelatedSelectOption[];
   gradeOptions: RelatedSelectOption[];
-  sectionOptions: RelatedSelectOption[];
-  classroomOptions: RelatedSelectOption[];
   subjectOptions: RelatedSelectOption[];
   assessmentOptions: RelatedSelectOption[];
   optionsLoading?: boolean;
@@ -49,34 +48,40 @@ interface HeroJourneyMissionFormModalProps {
   onRefreshOptions?: () => void;
   loading?: boolean;
   onClose: () => void;
-  onSubmit: (payload: HeroJourneyMissionFormPayload) => Promise<void> | void;
+  onSubmit: (
+    payload: HeroJourneyMissionFormPayload,
+    dirtyFields: ReadonlySet<HeroMissionEditableField>,
+  ) => Promise<void> | void;
 }
 
-const blankObjective = (): HeroJourneyMissionObjectivePayload => ({
-  type: "task",
+const blankObjective = (): HeroMissionObjectiveCandidate => ({
+  type: "manual",
   titleEn: "",
   titleAr: "",
-  sortOrder: 1,
+  subtitleEn: "",
+  subtitleAr: "",
+  linkedLessonRef: "",
+  linkedAssessmentId: null,
   isRequired: true,
 });
 
 const missionObjectivesForForm = (
   mission: HeroJourneyMission | null,
-): HeroJourneyMissionObjectivePayload[] => {
+): HeroMissionObjectiveCandidate[] => {
   const objectives = mission?.objectives || [];
   if (objectives.length === 0) {
     return [blankObjective()];
   }
 
-  return objectives.map((objective, index) => ({
-    type: objective.type || "task",
+  return objectives.map((objective) => ({
+    type: objective.type || "manual",
     titleEn: objective.titleEn || "",
     titleAr: objective.titleAr || "",
     subtitleEn: objective.subtitleEn,
     subtitleAr: objective.subtitleAr,
     linkedAssessmentId: objective.linkedAssessmentId,
     linkedLessonRef: objective.linkedLessonRef,
-    sortOrder: objective.sortOrder ?? index + 1,
+    sortOrder: objective.sortOrder,
     isRequired: objective.isRequired ?? true,
     metadata: objective.metadata,
   }));
@@ -116,6 +121,23 @@ function FormSection({
   );
 }
 
+function ReviewItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+      <div className="text-xs font-medium text-gray-500">{label}</div>
+      <div className="mt-1 whitespace-pre-wrap text-sm text-gray-900">
+        {value || "—"}
+      </div>
+    </div>
+  );
+}
+
 export default function HeroJourneyMissionFormModal({
   isOpen,
   mission,
@@ -124,8 +146,6 @@ export default function HeroJourneyMissionFormModal({
   termLabel,
   stageOptions,
   gradeOptions,
-  sectionOptions,
-  classroomOptions,
   subjectOptions,
   assessmentOptions,
   optionsLoading = false,
@@ -138,27 +158,18 @@ export default function HeroJourneyMissionFormModal({
 }: HeroJourneyMissionFormModalProps) {
   const tCommon = useTranslations("common");
   const t = useTranslations("heroJourney.missionForm");
+  const locale = useLocale();
   const missionMetadata = mission?.metadata as
     | {
         academicScope?: {
           gradeId?: string;
-          sectionId?: string;
-          classroomId?: string;
           gradeLabel?: string;
-          sectionLabel?: string;
-          classroomLabel?: string;
         };
       }
     | undefined;
   const [stageId, setStageId] = useState(mission?.stageId || "");
   const [gradeId, setGradeId] = useState(
     mission?.gradeId || missionMetadata?.academicScope?.gradeId || "",
-  );
-  const [sectionId, setSectionId] = useState(
-    mission?.sectionId || missionMetadata?.academicScope?.sectionId || "",
-  );
-  const [classroomId, setClassroomId] = useState(
-    mission?.classroomId || missionMetadata?.academicScope?.classroomId || "",
   );
   const [subjectId, setSubjectId] = useState(mission?.subjectId || "");
   const [linkedAssessmentId, setLinkedAssessmentId] = useState(
@@ -172,9 +183,13 @@ export default function HeroJourneyMissionFormModal({
   const [briefEn, setBriefEn] = useState(mission?.briefEn || "");
   const [briefAr, setBriefAr] = useState(mission?.briefAr || "");
   const [requiredLevel, setRequiredLevel] = useState(
-    String(mission?.requiredLevel || 1),
+    typeof mission?.requiredLevel === "number"
+      ? String(mission.requiredLevel)
+      : "",
   );
-  const [rewardXp, setRewardXp] = useState(String(mission?.rewardXp || 0));
+  const [rewardXp, setRewardXp] = useState(
+    typeof mission?.rewardXp === "number" ? String(mission.rewardXp) : "",
+  );
   const [badgeRewardId, setBadgeRewardId] = useState(
     mission?.badgeRewardId || "",
   );
@@ -188,8 +203,13 @@ export default function HeroJourneyMissionFormModal({
     typeof mission?.positionY === "number" ? String(mission.positionY) : "",
   );
   const [objectives, setObjectives] = useState<
-    HeroJourneyMissionObjectivePayload[]
+    HeroMissionObjectiveCandidate[]
   >(missionObjectivesForForm(mission));
+  const [dirtyFields, setDirtyFields] = useState<
+    Set<HeroMissionEditableField>
+  >(new Set());
+  const [activeStep, setActiveStep] = useState(0);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lessonOptions, setLessonOptions] = useState<RelatedSelectOption[]>([]);
   const [lessonsLoading, setLessonsLoading] = useState(false);
@@ -199,13 +219,6 @@ export default function HeroJourneyMissionFormModal({
   const [hasResolvedLinkedLessonScope, setHasResolvedLinkedLessonScope] =
     useState(false);
   const selectedStage = stageOptions.find((option) => option.value === stageId);
-  const selectedGrade = gradeOptions.find((option) => option.value === gradeId);
-  const selectedSection = sectionOptions.find(
-    (option) => option.value === sectionId,
-  );
-  const selectedClassroom = classroomOptions.find(
-    (option) => option.value === classroomId,
-  );
   const selectedStageTokens = [
     stageId,
     selectedStage?.label,
@@ -216,26 +229,10 @@ export default function HeroJourneyMissionFormModal({
   const relatedGradeOptions = gradeOptions.filter(
     (option) => !stageId || option.stageId === stageId,
   );
-  const relatedSectionOptions = sectionOptions.filter(
-    (option) => !gradeId || option.gradeId === gradeId,
-  );
-  const relatedClassroomOptions = classroomOptions.filter(
-    (option) => !sectionId || option.sectionId === sectionId,
-  );
   const visibleGradeOptions = withSelectedOption(
     relatedGradeOptions,
     gradeId,
     missionMetadata?.academicScope?.gradeLabel || t("placeholders.selectedGrade"),
-  );
-  const visibleSectionOptions = withSelectedOption(
-    relatedSectionOptions,
-    sectionId,
-    missionMetadata?.academicScope?.sectionLabel || t("placeholders.selectedSection"),
-  );
-  const visibleClassroomOptions = withSelectedOption(
-    relatedClassroomOptions,
-    classroomId,
-    missionMetadata?.academicScope?.classroomLabel || t("placeholders.selectedClassroom"),
   );
   const relatedSubjectOptions = subjectOptions.filter(
     (option) => {
@@ -273,8 +270,6 @@ export default function HeroJourneyMissionFormModal({
     const selectedScopes = [
       { type: "stage", id: stageId },
       { type: "grade", id: gradeId },
-      { type: "section", id: sectionId },
-      { type: "classroom", id: classroomId },
     ];
 
     return selectedScopes.some(
@@ -300,47 +295,53 @@ export default function HeroJourneyMissionFormModal({
     badgeRewardId,
     mission?.badgeRewardNameEn ||
       mission?.badgeRewardSlug ||
-      t("placeholders.selectedBadge"),
+    t("placeholders.selectedBadge"),
   );
+  const objectiveTypeOptions = HERO_MISSION_OBJECTIVE_TYPES.map((type) => ({
+    value: type,
+    label: t(`objectiveTypes.${type}`),
+  }));
+  const objectiveAssessmentOptions = (assessmentId?: string | null) => [
+    { value: "__none__", label: t("options.noAssessment") },
+    ...withSelectedOption(
+      relatedAssessmentOptions,
+      assessmentId || "",
+      t("placeholders.selectedAssessment"),
+    ),
+  ];
+  const isEditing = Boolean(mission);
+  const isPublished = mission?.status === "published";
+  const protectedEditFieldsDisabled = Boolean(isPublished);
+
+  const markDirty = (...fields: HeroMissionEditableField[]) => {
+    setDirtyFields((current) => {
+      const next = new Set(current);
+      fields.forEach((field) => next.add(field));
+      return next;
+    });
+  };
 
   const handleStageChange = (nextStageId: string) => {
     setStageId(nextStageId);
     setGradeId("");
-    setSectionId("");
-    setClassroomId("");
     setSubjectId("");
     setLinkedLessonRef("");
     setLinkedAssessmentId("");
     setLessonOptions([]);
     setLessonsError(null);
     setHasResolvedLinkedLessonScope(false);
+    markDirty("stageId", "subjectId", "linkedLessonRef", "linkedAssessmentId");
   };
 
   const handleGradeChange = (nextGradeId: string) => {
     setGradeId(nextGradeId);
-    setSectionId("");
-    setClassroomId("");
     setSubjectId("");
     setLinkedLessonRef("");
     setLinkedAssessmentId("");
     setLessonOptions([]);
     setLessonsError(null);
     setHasResolvedLinkedLessonScope(false);
-  };
-
-  const handleSectionChange = (nextSectionId: string) => {
-    setSectionId(nextSectionId);
-    setClassroomId("");
-    setLinkedLessonRef("");
-    setLinkedAssessmentId("");
-    setHasResolvedLinkedLessonScope(false);
-  };
-
-  const handleClassroomChange = (nextClassroomId: string) => {
-    setClassroomId(nextClassroomId);
-    setLinkedLessonRef("");
-    setLinkedAssessmentId("");
-    setHasResolvedLinkedLessonScope(false);
+    markDirty("subjectId", "linkedLessonRef", "linkedAssessmentId");
   };
 
   const handleSubjectChange = (nextSubjectId: string) => {
@@ -350,39 +351,8 @@ export default function HeroJourneyMissionFormModal({
     setLessonOptions([]);
     setLessonsError(null);
     setHasResolvedLinkedLessonScope(false);
+    markDirty("subjectId", "linkedLessonRef", "linkedAssessmentId");
   };
-
-  useEffect(() => {
-    if (!selectedAssessment) {
-      return;
-    }
-
-    const assessmentScopeType = selectedAssessment.scopeType?.toLowerCase();
-    const nextSectionId =
-      selectedAssessment.sectionId ||
-      (assessmentScopeType === "section" ? selectedAssessment.scopeId : "");
-    const nextClassroomId =
-      selectedAssessment.classroomId ||
-      (assessmentScopeType === "classroom" ? selectedAssessment.scopeId : "");
-    const classroomSectionId =
-      classroomOptions.find((option) => option.value === nextClassroomId)
-        ?.sectionId || "";
-    const resolvedSectionId = nextSectionId || classroomSectionId;
-
-    if ((sectionId || !resolvedSectionId) && (classroomId || !nextClassroomId)) {
-      return;
-    }
-
-    queueMicrotask(() => {
-      if (!sectionId && resolvedSectionId) {
-        setSectionId(resolvedSectionId);
-      }
-
-      if (!classroomId && nextClassroomId) {
-        setClassroomId(nextClassroomId);
-      }
-    });
-  }, [classroomId, classroomOptions, sectionId, selectedAssessment]);
 
   useEffect(() => {
     if (!gradeId || !subjectId) {
@@ -492,24 +462,30 @@ export default function HeroJourneyMissionFormModal({
 
   const updateObjective = (
     index: number,
-    patch: Partial<HeroJourneyMissionObjectivePayload>,
+    patch: Partial<HeroMissionObjectiveCandidate>,
   ) => {
     setObjectives((current) =>
       current.map((objective, currentIndex) =>
         currentIndex === index ? { ...objective, ...patch } : objective,
       ),
     );
+    markDirty("objectives");
   };
 
   const removeObjective = (index: number) => {
-    setObjectives((current) =>
-      current.length === 1
-        ? current
-        : current.filter((_objective, currentIndex) => currentIndex !== index),
-    );
+    setObjectives((current) => {
+      if (!mission && current.length === 1) {
+        return current;
+      }
+
+      return current.filter(
+        (_objective, currentIndex) => currentIndex !== index,
+      );
+    });
+    markDirty("objectives");
   };
 
-  const handleSubmit = () => {
+  const validateNumericMissionFields = (): boolean => {
     const numericFields = [
       requiredLevel,
       rewardXp,
@@ -523,39 +499,89 @@ export default function HeroJourneyMissionFormModal({
       )
     ) {
       setError(t("errors.integerField"));
-      return;
+      return false;
     }
 
     if (requiredLevel.trim() && Number(requiredLevel) < 1) {
       setError(t("errors.requiredLevelInvalid"));
-      return;
+      return false;
     }
 
     if (rewardXp.trim() && Number(rewardXp) < 0) {
       setError(t("errors.rewardXpInvalid"));
-      return;
+      return false;
     }
 
+    return true;
+  };
+
+  const validateObjectiveOrders = (): boolean => {
     if (
       objectives.some(
         (objective) =>
           objective.sortOrder !== undefined &&
           objective.sortOrder !== null &&
-          (!Number.isInteger(objective.sortOrder) || objective.sortOrder < 1),
+          (!Number.isInteger(Number(objective.sortOrder)) ||
+            Number(objective.sortOrder) < 1),
       )
     ) {
       setError(t("errors.objectiveOrderInvalid"));
+      return false;
+    }
+
+    return true;
+  };
+
+  const validateStep = (step: number): boolean => {
+    if (step === 0) {
+      if (!stageId.trim()) {
+        setError(t("errors.stageRequired"));
+        return false;
+      }
+
+      if (!titleEn.trim() && !titleAr.trim()) {
+        setError(t("errors.titleRequired"));
+        return false;
+      }
+    }
+
+    if (step === 1 && !validateNumericMissionFields()) return false;
+
+    if (step === 2 && !validateObjectiveOrders()) return false;
+
+    setError(null);
+    return true;
+  };
+
+  const handleNext = () => {
+    if (!validateStep(activeStep)) return;
+    setActiveStep((current) => Math.min(current + 1, 3));
+  };
+
+  const handleBack = () => {
+    setError(null);
+    setActiveStep((current) => Math.max(current - 1, 0));
+  };
+
+  const handleClose = () => {
+    if (dirtyFields.size > 0) {
+      setShowUnsavedDialog(true);
       return;
     }
 
-    const cleanObjectives = objectives
-      .map((objective, index) => ({
-        ...objective,
-        titleEn: objective.titleEn?.trim() || undefined,
-        titleAr: objective.titleAr?.trim() || undefined,
-        sortOrder: objective.sortOrder ?? index + 1,
-      }))
-      .filter((objective) => objective.titleEn || objective.titleAr);
+    onClose();
+  };
+
+  const handleDiscardChanges = () => {
+    setShowUnsavedDialog(false);
+    setDirtyFields(new Set());
+    onClose();
+  };
+
+  const handleSubmit = () => {
+    if (!validateStep(0) || !validateStep(1) || !validateStep(2)) {
+      return;
+    }
 
     if (!stageId.trim()) {
       setError(t("errors.stageRequired"));
@@ -567,78 +593,104 @@ export default function HeroJourneyMissionFormModal({
       return;
     }
 
-    if (cleanObjectives.length === 0) {
+    if (!mission && objectives.length === 0) {
       setError(t("errors.objectiveRequired"));
       return;
     }
 
     onSubmit({
       stageId: stageId.trim(),
-      subjectId: subjectId.trim() || undefined,
-      linkedAssessmentId: linkedAssessmentId.trim() || undefined,
-      linkedLessonRef: linkedLessonRef.trim() || undefined,
-      titleEn: titleEn.trim() || undefined,
-      titleAr: titleAr.trim() || undefined,
-      briefEn: briefEn.trim() || undefined,
-      briefAr: briefAr.trim() || undefined,
-      requiredLevel: requiredLevel ? Number(requiredLevel) : undefined,
-      rewardXp: rewardXp ? Number(rewardXp) : undefined,
-      badgeRewardId: badgeRewardId || undefined,
-      sortOrder: sortOrder ? Number(sortOrder) : undefined,
-      positionX: positionX ? Number(positionX) : undefined,
-      positionY: positionY ? Number(positionY) : undefined,
+      subjectId: subjectId || null,
+      linkedAssessmentId: linkedAssessmentId || null,
+      linkedLessonRef: linkedLessonRef || null,
+      titleEn: titleEn || null,
+      titleAr: titleAr || null,
+      briefEn: briefEn || null,
+      briefAr: briefAr || null,
+      requiredLevel: requiredLevel || undefined,
+      rewardXp: rewardXp || undefined,
+      badgeRewardId: badgeRewardId || null,
+      sortOrder: sortOrder || undefined,
+      positionX: positionX || null,
+      positionY: positionY || null,
       metadata: {
         ...(mission?.metadata || {}),
         academicScope: {
-          stageId: stageId.trim(),
+          ...missionMetadata?.academicScope,
           gradeId: gradeId.trim() || undefined,
-          sectionId: sectionId.trim() || undefined,
-          classroomId: classroomId.trim() || undefined,
-          gradeLabel: selectedGrade?.label,
-          sectionLabel: selectedSection?.label,
-          classroomLabel: selectedClassroom?.label,
         },
       },
-      objectives: cleanObjectives,
-    });
+      objectives,
+    }, dirtyFields);
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={mission ? t("editTitle") : t("createTitle")}
-      size="xl"
-      footer={
-        <>
-          {onRefreshOptions ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onRefreshOptions}
-              disabled={loading || optionsLoading}
-              loading={optionsLoading}
-              leftIcon={<RefreshCw className="h-4 w-4" />}
-            >
-              {tCommon("refresh")}
-            </Button>
-          ) : null}
-          <Button variant="secondary" onClick={onClose} disabled={loading}>
-            {tCommon("cancel")}
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            loading={loading}
-            disabled={loading || optionsLoading}
-          >
-            {mission
-              ? tCommon("save", { defaultMessage: "Save" })
-              : t("createTitle")}
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-5">
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={handleClose}
+        title={mission ? t("editTitle") : t("createTitle")}
+        size="xl"
+        footer={
+          <div className="flex w-full items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              {onRefreshOptions ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={onRefreshOptions}
+                  disabled={loading || optionsLoading}
+                  loading={optionsLoading}
+                  leftIcon={<RefreshCw className="h-4 w-4" />}
+                >
+                  {tCommon("refresh")}
+                </Button>
+              ) : null}
+              <Button variant="secondary" onClick={handleClose} disabled={loading}>
+                {tCommon("cancel")}
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              {activeStep > 0 ? (
+                <Button variant="secondary" onClick={handleBack} disabled={loading}>
+                  {t("back")}
+                </Button>
+              ) : null}
+              {activeStep < 3 ? (
+                <Button
+                  onClick={handleNext}
+                  disabled={loading || optionsLoading}
+                >
+                  {t("next")}
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSubmit}
+                  loading={loading}
+                  disabled={loading || optionsLoading}
+                  leftIcon={<Save className="h-4 w-4" />}
+                >
+                  {tCommon("save", { defaultMessage: "Save" })}
+                </Button>
+              )}
+            </div>
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          <WizardStepper
+            steps={[
+              { title: t("steps.basics.title"), subtitle: t("steps.basics.subtitle") },
+              { title: t("steps.links.title"), subtitle: t("steps.links.subtitle") },
+              { title: t("steps.objectives.title"), subtitle: t("steps.objectives.subtitle") },
+              { title: t("steps.review.title"), subtitle: t("steps.review.subtitle") },
+            ]}
+            activeStep={activeStep}
+            locale={locale}
+          />
+
+          {activeStep === 0 ? (
+          <>
         <FormSection
           title={t("sections.basics.title")}
           description={t("sections.basics.description")}
@@ -662,7 +714,7 @@ export default function HeroJourneyMissionFormModal({
               }
               searchable
               required
-              disabled={optionsLoading}
+              disabled={optionsLoading || isEditing}
             />
             <Select
               label={t("labels.grade")}
@@ -678,53 +730,11 @@ export default function HeroJourneyMissionFormModal({
                   : t("placeholders.selectGrade")
               }
               searchable
-              disabled={optionsLoading || !stageId}
+              disabled={optionsLoading || !stageId || isEditing}
               noOptionsText={
                 stageId
                   ? t("placeholders.noGradeItems")
                   : t("placeholders.selectStageFirst")
-              }
-            />
-            <Select
-              label={t("labels.section")}
-              value={sectionId}
-              options={[
-                { value: "", label: t("placeholders.noSection") },
-                ...visibleSectionOptions,
-              ]}
-              onChange={handleSectionChange}
-              placeholder={
-                optionsLoading
-                  ? t("placeholders.loadingSections")
-                  : t("placeholders.selectSection")
-              }
-              searchable
-              disabled={optionsLoading || !gradeId}
-              noOptionsText={
-                gradeId
-                  ? t("placeholders.noSectionItems")
-                  : t("placeholders.selectGradeFirst")
-              }
-            />
-            <Select
-              label={t("labels.classroom")}
-              value={classroomId}
-              options={[
-                { value: "", label: t("placeholders.noClassroom") },
-                ...visibleClassroomOptions,
-              ]}
-              onChange={handleClassroomChange}
-              placeholder={
-                optionsLoading
-                  ? t("placeholders.loadingClassrooms")
-                  : t("placeholders.selectClassroom")
-              }
-              searchable
-              disabled={optionsLoading || !sectionId}
-              noOptionsText={
-                sectionId
-                  ? t("placeholders.noClassroomItems")
-                  : t("placeholders.selectSectionFirst")
               }
             />
           </div>
@@ -733,12 +743,20 @@ export default function HeroJourneyMissionFormModal({
             <Input
               label={t("labels.titleEn")}
               value={titleEn}
-              onChange={(event) => setTitleEn(event.target.value)}
+              maxLength={255}
+              onChange={(event) => {
+                setTitleEn(event.target.value);
+                markDirty("titleEn");
+              }}
             />
             <Input
               label={t("labels.titleAr")}
               value={titleAr}
-              onChange={(event) => setTitleAr(event.target.value)}
+              maxLength={255}
+              onChange={(event) => {
+                setTitleAr(event.target.value);
+                markDirty("titleAr");
+              }}
               dir="rtl"
             />
           </div>
@@ -747,17 +765,30 @@ export default function HeroJourneyMissionFormModal({
             <TextArea
               label={t("labels.briefEn")}
               value={briefEn}
-              onChange={(event) => setBriefEn(event.target.value)}
+              maxLength={2000}
+              onChange={(event) => {
+                setBriefEn(event.target.value);
+                markDirty("briefEn");
+              }}
             />
             <TextArea
               label={t("labels.briefAr")}
               value={briefAr}
-              onChange={(event) => setBriefAr(event.target.value)}
+              maxLength={2000}
+              onChange={(event) => {
+                setBriefAr(event.target.value);
+                markDirty("briefAr");
+              }}
               dir="rtl"
             />
           </div>
         </FormSection>
 
+          </>
+          ) : null}
+
+          {activeStep === 1 ? (
+          <>
         <FormSection
           title={t("sections.links.title")}
           description={t("sections.links.description")}
@@ -777,7 +808,7 @@ export default function HeroJourneyMissionFormModal({
                   : t("placeholders.selectSubject")
               }
               searchable
-              disabled={optionsLoading}
+              disabled={optionsLoading || protectedEditFieldsDisabled}
             />
             <Select
               label={t("labels.linkedLesson")}
@@ -786,7 +817,10 @@ export default function HeroJourneyMissionFormModal({
                 { value: "", label: t("placeholders.noLesson") },
                 ...visibleLessonOptions,
               ]}
-              onChange={setLinkedLessonRef}
+              onChange={(value) => {
+                setLinkedLessonRef(value);
+                markDirty("linkedLessonRef");
+              }}
               placeholder={
                 optionsLoading || lessonsLoading || isResolvingLinkedLessonScope
                   ? t("placeholders.loadingLessons")
@@ -798,7 +832,8 @@ export default function HeroJourneyMissionFormModal({
                 lessonsLoading ||
                 isResolvingLinkedLessonScope ||
                 !gradeId ||
-                !subjectId
+                !subjectId ||
+                protectedEditFieldsDisabled
               }
               noOptionsText={
                 !gradeId
@@ -815,14 +850,19 @@ export default function HeroJourneyMissionFormModal({
                 { value: "", label: t("placeholders.noAssessment") },
                 ...visibleAssessmentOptions,
               ]}
-              onChange={setLinkedAssessmentId}
+              onChange={(value) => {
+                setLinkedAssessmentId(value);
+                markDirty("linkedAssessmentId");
+              }}
               placeholder={
                 optionsLoading
                   ? t("placeholders.loadingAssessments")
                   : t("placeholders.selectAssessment")
               }
               searchable
-              disabled={optionsLoading || !subjectId}
+              disabled={
+                optionsLoading || !subjectId || protectedEditFieldsDisabled
+              }
               noOptionsText={
                 subjectId
                   ? t("placeholders.noAssessmentItems")
@@ -846,31 +886,48 @@ export default function HeroJourneyMissionFormModal({
               label={t("labels.requiredLevel")}
               type="number"
               value={requiredLevel}
-              onChange={(event) => setRequiredLevel(event.target.value)}
+              onChange={(event) => {
+                setRequiredLevel(event.target.value);
+                markDirty("requiredLevel");
+              }}
+              disabled={protectedEditFieldsDisabled}
             />
             <Input
               label={t("labels.rewardXp")}
               type="number"
               value={rewardXp}
-              onChange={(event) => setRewardXp(event.target.value)}
+              onChange={(event) => {
+                setRewardXp(event.target.value);
+                markDirty("rewardXp");
+              }}
+              disabled={protectedEditFieldsDisabled}
             />
             <Input
               label={t("labels.sortOrder")}
               type="number"
               value={sortOrder}
-              onChange={(event) => setSortOrder(event.target.value)}
+              onChange={(event) => {
+                setSortOrder(event.target.value);
+                markDirty("sortOrder");
+              }}
             />
             <Input
               label={t("labels.mapX")}
               type="number"
               value={positionX}
-              onChange={(event) => setPositionX(event.target.value)}
+              onChange={(event) => {
+                setPositionX(event.target.value);
+                markDirty("positionX");
+              }}
             />
             <Input
               label={t("labels.mapY")}
               type="number"
               value={positionY}
-              onChange={(event) => setPositionY(event.target.value)}
+              onChange={(event) => {
+                setPositionY(event.target.value);
+                markDirty("positionY");
+              }}
             />
             <Select
               label={t("labels.badgeReward")}
@@ -880,8 +937,12 @@ export default function HeroJourneyMissionFormModal({
                 { value: "", label: t("placeholders.noBadge") },
                 ...visibleBadgeOptions,
               ]}
-              onChange={setBadgeRewardId}
+              onChange={(value) => {
+                setBadgeRewardId(value);
+                markDirty("badgeRewardId");
+              }}
               searchable
+              disabled={protectedEditFieldsDisabled}
             />
           </div>
           <p className="mt-3 text-xs leading-5 text-gray-500">
@@ -895,6 +956,11 @@ export default function HeroJourneyMissionFormModal({
           </div>
         ) : null}
 
+          </>
+          ) : null}
+
+          {activeStep === 2 ? (
+          <>
         <FormSection
           title={t("sections.objectives.title")}
           description={t("sections.objectives.description")}
@@ -905,12 +971,14 @@ export default function HeroJourneyMissionFormModal({
               variant="secondary"
               size="sm"
               leftIcon={<Plus className="h-4 w-4" />}
-              onClick={() =>
+              onClick={() => {
                 setObjectives((current) => [
                   ...current,
-                  { ...blankObjective(), sortOrder: current.length + 1 },
-                ])
-              }
+                  blankObjective(),
+                ]);
+                markDirty("objectives");
+              }}
+              disabled={protectedEditFieldsDisabled}
             >
               {t("actions.addObjective")}
             </Button>
@@ -920,37 +988,129 @@ export default function HeroJourneyMissionFormModal({
             {objectives.map((objective, index) => (
               <div
                 key={index}
-                className="grid grid-cols-1 gap-3 rounded-lg bg-gray-50 p-3 md:grid-cols-[1fr_1fr_110px_44px]"
+                data-testid="mission-objective-card"
+                className="grid grid-cols-1 gap-4 rounded-lg bg-gray-50 p-3 md:grid-cols-2 xl:grid-cols-3"
               >
+                <Select
+                  label={t("labels.objectiveType")}
+                  value={objective.type || "manual"}
+                  options={objectiveTypeOptions}
+                  onChange={(value) => updateObjective(index, { type: value })}
+                  disabled={protectedEditFieldsDisabled}
+                />
                 <Input
                   label={t("labels.objectiveTitleEn")}
                   value={objective.titleEn || ""}
+                  maxLength={255}
                   onChange={(event) =>
                     updateObjective(index, { titleEn: event.target.value })
                   }
+                  disabled={protectedEditFieldsDisabled}
                 />
                 <Input
                   label={t("labels.objectiveTitleAr")}
                   value={objective.titleAr || ""}
+                  maxLength={255}
                   onChange={(event) =>
                     updateObjective(index, { titleAr: event.target.value })
                   }
                   dir="rtl"
+                  disabled={protectedEditFieldsDisabled}
+                />
+                <TextArea
+                  label={t("labels.objectiveSubtitleEn")}
+                  value={objective.subtitleEn || ""}
+                  maxLength={500}
+                  onChange={(event) =>
+                    updateObjective(index, {
+                      subtitleEn: event.target.value,
+                    })
+                  }
+                  disabled={protectedEditFieldsDisabled}
+                />
+                <TextArea
+                  label={t("labels.objectiveSubtitleAr")}
+                  value={objective.subtitleAr || ""}
+                  maxLength={500}
+                  onChange={(event) =>
+                    updateObjective(index, {
+                      subtitleAr: event.target.value,
+                    })
+                  }
+                  dir="rtl"
+                  disabled={protectedEditFieldsDisabled}
+                />
+                <Input
+                  label={t("labels.objectiveLessonRef")}
+                  value={objective.linkedLessonRef || ""}
+                  maxLength={255}
+                  onChange={(event) =>
+                    updateObjective(index, {
+                      linkedLessonRef: event.target.value,
+                    })
+                  }
+                  disabled={protectedEditFieldsDisabled}
+                />
+                <Select
+                  label={t("labels.objectiveAssessment")}
+                  value={objective.linkedAssessmentId || "__none__"}
+                  options={objectiveAssessmentOptions(
+                    objective.linkedAssessmentId,
+                  )}
+                  onChange={(value) =>
+                    updateObjective(index, {
+                      linkedAssessmentId: value === "__none__" ? null : value,
+                    })
+                  }
+                  searchable
+                  disabled={protectedEditFieldsDisabled}
                 />
                 <Input
                   label={t("labels.objectiveOrder")}
                   type="number"
-                  value={String(objective.sortOrder || index + 1)}
+                  min={1}
+                  step={1}
+                  value={
+                    objective.sortOrder === undefined ||
+                    objective.sortOrder === null
+                      ? ""
+                      : String(objective.sortOrder)
+                  }
                   onChange={(event) =>
                     updateObjective(index, {
-                      sortOrder: Number(event.target.value),
+                      sortOrder:
+                        event.target.value === ""
+                          ? undefined
+                          : event.target.value,
                     })
                   }
+                  disabled={protectedEditFieldsDisabled}
                 />
+                <label
+                  htmlFor={`objective-${index}-required`}
+                  className="flex min-h-10 items-center gap-2 self-end rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700"
+                >
+                  <input
+                    id={`objective-${index}-required`}
+                    type="checkbox"
+                    checked={objective.isRequired !== false}
+                    onChange={(event) =>
+                      updateObjective(index, {
+                        isRequired: event.target.checked,
+                      })
+                    }
+                    disabled={protectedEditFieldsDisabled}
+                    className="h-4 w-4 cursor-pointer rounded border-gray-300 text-primary focus:ring-primary disabled:cursor-not-allowed"
+                  />
+                  <span>{t("labels.objectiveRequired")}</span>
+                </label>
                 <button
                   type="button"
                   onClick={() => removeObjective(index)}
-                  disabled={objectives.length === 1}
+                  disabled={
+                    protectedEditFieldsDisabled ||
+                    (!mission && objectives.length === 1)
+                  }
                   className="mt-6 inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40"
                   title={t("actions.removeObjective")}
                   aria-label={t("actions.removeObjective")}
@@ -962,12 +1122,162 @@ export default function HeroJourneyMissionFormModal({
           </div>
         </FormSection>
 
+          </>
+          ) : null}
+
+          {activeStep === 3 ? (
+          <>
+            <FormSection
+              title={t("sections.review.title")}
+              description={t("sections.review.description")}
+            >
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <ReviewItem label={t("labels.academicYear")} value={academicYearLabel} />
+                <ReviewItem label={t("labels.term")} value={termLabel} />
+                <ReviewItem
+                  label={t("labels.stage")}
+                  value={selectedStage?.label || stageId}
+                />
+                <ReviewItem
+                  label={t("labels.grade")}
+                  value={
+                    visibleGradeOptions.find((option) => option.value === gradeId)
+                      ?.label || gradeId
+                  }
+                />
+                <ReviewItem label={t("labels.titleEn")} value={titleEn} />
+                <ReviewItem label={t("labels.titleAr")} value={titleAr} />
+                <ReviewItem label={t("labels.briefEn")} value={briefEn} />
+                <ReviewItem label={t("labels.briefAr")} value={briefAr} />
+                <ReviewItem
+                  label={t("labels.subject")}
+                  value={
+                    relatedSubjectOptions.find((option) => option.value === subjectId)
+                      ?.label || subjectId
+                  }
+                />
+                <ReviewItem
+                  label={t("labels.linkedLesson")}
+                  value={
+                    visibleLessonOptions.find(
+                      (option) => option.value === linkedLessonRef,
+                    )?.label || linkedLessonRef
+                  }
+                />
+                <ReviewItem
+                  label={t("labels.linkedAssessment")}
+                  value={
+                    visibleAssessmentOptions.find(
+                      (option) => option.value === linkedAssessmentId,
+                    )?.label || linkedAssessmentId
+                  }
+                />
+                <ReviewItem label={t("labels.requiredLevel")} value={requiredLevel} />
+                <ReviewItem label={t("labels.rewardXp")} value={rewardXp} />
+                <ReviewItem
+                  label={t("labels.badgeReward")}
+                  value={
+                    visibleBadgeOptions.find((option) => option.value === badgeRewardId)
+                      ?.label || badgeRewardId
+                  }
+                />
+                <ReviewItem label={t("labels.mapX")} value={positionX} />
+                <ReviewItem label={t("labels.mapY")} value={positionY} />
+                <ReviewItem label={t("labels.sortOrder")} value={sortOrder} />
+              </div>
+            </FormSection>
+
+            <FormSection
+              title={t("sections.objectives.title")}
+              description={t("sections.objectives.description")}
+            >
+              <div className="space-y-3">
+                {objectives.map((objective, index) => (
+                  <div
+                    key={index}
+                    className="rounded-lg border border-gray-200 bg-gray-50 p-3"
+                  >
+                    <div className="mb-3 flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-gray-900">
+                        {t("labels.objectiveTitle", { index: index + 1 })}
+                      </h4>
+                      <span className="text-xs text-gray-500">
+                        {t(`objectiveTypes.${objective.type || "manual"}`)}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <ReviewItem
+                        label={t("labels.objectiveTitleEn")}
+                        value={objective.titleEn || ""}
+                      />
+                      <ReviewItem
+                        label={t("labels.objectiveTitleAr")}
+                        value={objective.titleAr || ""}
+                      />
+                      <ReviewItem
+                        label={t("labels.objectiveSubtitleEn")}
+                        value={objective.subtitleEn || ""}
+                      />
+                      <ReviewItem
+                        label={t("labels.objectiveSubtitleAr")}
+                        value={objective.subtitleAr || ""}
+                      />
+                      <ReviewItem
+                        label={t("labels.objectiveLessonRef")}
+                        value={objective.linkedLessonRef || ""}
+                      />
+                      <ReviewItem
+                        label={t("labels.objectiveAssessment")}
+                        value={
+                          relatedAssessmentOptions.find(
+                            (option) =>
+                              option.value === objective.linkedAssessmentId,
+                          )?.label || objective.linkedAssessmentId || ""
+                        }
+                      />
+                      <ReviewItem
+                        label={t("labels.objectiveOrder")}
+                        value={
+                          objective.sortOrder === undefined ||
+                          objective.sortOrder === null
+                            ? ""
+                            : String(objective.sortOrder)
+                        }
+                      />
+                      <ReviewItem
+                        label={t("labels.objectiveRequired")}
+                        value={
+                          objective.isRequired === false
+                            ? t("review.no")
+                            : t("review.yes")
+                        }
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </FormSection>
+          </>
+          ) : null}
+
         {error ? (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
           </div>
         ) : null}
-      </div>
-    </Modal>
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        isOpen={showUnsavedDialog}
+        onClose={() => setShowUnsavedDialog(false)}
+        onConfirm={handleDiscardChanges}
+        title={t("unsavedChangesTitle")}
+        description={t("unsavedChangesDesc")}
+        confirmLabel={t("discard")}
+        cancelLabel={t("stay")}
+        severity="warning"
+      />
+    </>
   );
 }

@@ -9703,6 +9703,7 @@
       "selectAcademicContext": "اختر العام الدراسي والفصل لتحميل مهام رحلة البطل.",
       "selectAcademicContextBeforeCreate": "اختر العام الدراسي والفصل قبل إنشاء مهمة.",
       "selectAcademicContextBeforeSave": "اختر العام الدراسي والفصل قبل حفظ المهمة.",
+      "saveMissionFailed": "تعذر حفظ المهمة.",
       "confirmDeleteMission": "هل تريد حذف هذه المهمة؟ لا يمكن التراجع عن ذلك.",
       "confirmDeleteBadge": "هل تريد حذف هذه الشارة؟ قد تمنع المهام المرتبطة بها عملية الحذف.",
       "editPlaceholder": "وضع التحرير الحالي مجرد عنصر تجريبي آمن حتى يتم ربط تعديل المهام بالخلفية.",
@@ -9733,6 +9734,28 @@
         "objectives": {
           "title": "الأهداف",
           "description": "أضف هدفًا واحدًا على الأقل حتى يكون للمهمة معيار إكمال واضح."
+        },
+        "review": {
+          "title": "مراجعة المهمة",
+          "description": "تحقق من بيانات المهمة والأهداف كاملة قبل الحفظ."
+        }
+      },
+      "steps": {
+        "basics": {
+          "title": "الأساسيات",
+          "subtitle": "السياق والنص"
+        },
+        "links": {
+          "title": "الروابط والمكافآت",
+          "subtitle": "المنهج ونقاط الخبرة"
+        },
+        "objectives": {
+          "title": "الأهداف",
+          "subtitle": "معايير الإكمال"
+        },
+        "review": {
+          "title": "مراجعة",
+          "subtitle": "تأكيد وحفظ"
         }
       },
       "labels": {
@@ -9757,7 +9780,22 @@
         "badgeReward": "شارة المكافأة",
         "objectiveTitleEn": "عنوان الهدف (EN)",
         "objectiveTitleAr": "عنوان الهدف (AR)",
-        "objectiveOrder": "الترتيب"
+        "objectiveOrder": "الترتيب",
+        "objectiveType": "نوع الهدف",
+        "objectiveSubtitleEn": "العنوان الفرعي للهدف (EN)",
+        "objectiveSubtitleAr": "العنوان الفرعي للهدف (AR)",
+        "objectiveLessonRef": "مرجع درس الهدف",
+        "objectiveAssessment": "تقييم الهدف",
+        "objectiveRequired": "هدف إلزامي",
+        "objectiveTitle": "الهدف {index}"
+      },
+      "objectiveTypes": {
+        "manual": "يدوي",
+        "lesson": "درس",
+        "quiz": "اختبار قصير",
+        "assessment": "تقييم",
+        "task": "مهمة",
+        "custom": "مخصص"
       },
       "placeholders": {
         "loadingStages": "جارٍ تحميل المراحل...",
@@ -9797,6 +9835,9 @@
         "noBadge": "بدون شارة",
         "selectedBadge": "الشارة المحددة"
       },
+      "options": {
+        "noAssessment": "بدون تقييم"
+      },
       "helper": {
         "mapCoordinates": "استخدم قيمًا من 0 إلى 100 لتحديد مكان المهمة على خريطة البطل. اتركها فارغة لاستخدام الموضع الافتراضي من الخادم."
       },
@@ -9804,15 +9845,40 @@
         "addObjective": "إضافة هدف",
         "removeObjective": "حذف الهدف"
       },
+      "next": "التالي",
+      "back": "السابق",
+      "unsavedChangesTitle": "هل تريد تجاهل التغييرات غير المحفوظة؟",
+      "unsavedChangesDesc": "لديك تغييرات غير محفوظة. هل تريد تجاهلها وإغلاق النموذج؟",
+      "discard": "تجاهل",
+      "stay": "البقاء",
+      "review": {
+        "yes": "نعم",
+        "no": "لا"
+      },
       "errors": {
         "stageRequired": "المرحلة مطلوبة.",
         "titleRequired": "يجب إدخال عنوان واحد للمهمة على الأقل.",
-        "objectiveRequired": "يجب إدخال عنوان هدف واحد على الأقل.",
+        "objectiveRequired": "يجب إضافة هدف واحد على الأقل.",
         "integerField": "يجب أن يكون المستوى ونقاط الخبرة والترتيب وإحداثيات الخريطة أعدادًا صحيحة.",
         "requiredLevelInvalid": "يجب ألا يقل المستوى المطلوب عن 1.",
         "rewardXpInvalid": "لا يمكن أن تكون نقاط الخبرة سالبة.",
         "objectiveOrderInvalid": "يجب أن يكون ترتيب الهدف عددًا صحيحًا موجبًا.",
-        "loadLessonsFailed": "تعذر تحميل دروس الصف والمادة المحددين."
+        "loadLessonsFailed": "تعذر تحميل دروس الصف والمادة المحددين.",
+        "academicYearRequired": "اختر عامًا دراسيًا قبل حفظ المهمة.",
+        "academicYearConflict": "قيم العام الدراسي غير متطابقة.",
+        "invalidUuid": "أحد المراجع المحددة غير صالح.",
+        "termRequired": "الفصل الدراسي مطلوب.",
+        "missionTitleRequired": "يجب إدخال عنوان واحد للمهمة على الأقل.",
+        "maxLengthExceeded": "تجاوز حقل نصي واحد أو أكثر الطول المسموح.",
+        "integerRequired": "يجب أن تكون القيم الرقمية أعدادًا صحيحة.",
+        "minimumValue": "قيمة رقمية واحدة أو أكثر أقل من الحد المسموح.",
+        "objectivesRequired": "يجب إضافة هدف واحد على الأقل.",
+        "invalidObjectiveType": "نوع أحد الأهداف غير مدعوم.",
+        "invalidObjectiveOrder": "يجب أن يكون ترتيب الهدف عددًا صحيحًا موجبًا.",
+        "duplicateObjectiveOrder": "يجب أن تكون قيم ترتيب الأهداف فريدة.",
+        "invalidBoolean": "قيمة إلزام أحد الأهداف غير صالحة.",
+        "metadataInvalid": "يجب أن تكون بيانات المهمة أو الهدف كائن JSON.",
+        "missionArchived": "لا يمكن تحرير المهام المؤرشفة."
       }
     },
     "badgeForm": {

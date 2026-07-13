@@ -9702,6 +9702,7 @@
       "selectAcademicContext": "Select an academic year and term to load Hero missions.",
       "selectAcademicContextBeforeCreate": "Select an academic year and term before creating a mission.",
       "selectAcademicContextBeforeSave": "Select an academic year and term before saving a mission.",
+      "saveMissionFailed": "Unable to save the mission.",
       "confirmDeleteMission": "Delete this mission? This cannot be undone.",
       "confirmDeleteBadge": "Delete this badge? Missions using it may block deletion.",
       "editPlaceholder": "Edit mode is a safe placeholder until backend mission editing is connected.",
@@ -9732,6 +9733,28 @@
         "objectives": {
           "title": "Objectives",
           "description": "Add at least one objective so the mission has a measurable completion target."
+        },
+        "review": {
+          "title": "Review mission",
+          "description": "Check the complete mission and objective payload before saving."
+        }
+      },
+      "steps": {
+        "basics": {
+          "title": "Basics",
+          "subtitle": "Context and copy"
+        },
+        "links": {
+          "title": "Links & rewards",
+          "subtitle": "Curriculum and XP"
+        },
+        "objectives": {
+          "title": "Objectives",
+          "subtitle": "Completion targets"
+        },
+        "review": {
+          "title": "Review",
+          "subtitle": "Confirm and save"
         }
       },
       "labels": {
@@ -9756,7 +9779,22 @@
         "badgeReward": "Badge reward",
         "objectiveTitleEn": "Objective title (EN)",
         "objectiveTitleAr": "Objective title (AR)",
-        "objectiveOrder": "Order"
+        "objectiveOrder": "Order",
+        "objectiveType": "Objective type",
+        "objectiveSubtitleEn": "Objective subtitle (EN)",
+        "objectiveSubtitleAr": "Objective subtitle (AR)",
+        "objectiveLessonRef": "Objective lesson reference",
+        "objectiveAssessment": "Objective assessment",
+        "objectiveRequired": "Required objective",
+        "objectiveTitle": "Objective {index}"
+      },
+      "objectiveTypes": {
+        "manual": "Manual",
+        "lesson": "Lesson",
+        "quiz": "Quiz",
+        "assessment": "Assessment",
+        "task": "Task",
+        "custom": "Custom"
       },
       "placeholders": {
         "loadingStages": "Loading stages...",
@@ -9796,6 +9834,9 @@
         "noBadge": "No badge",
         "selectedBadge": "Selected badge"
       },
+      "options": {
+        "noAssessment": "No assessment"
+      },
       "helper": {
         "mapCoordinates": "Use 0-100 values to place the mission on the Hero map. Leave blank when the backend should use its default position."
       },
@@ -9803,15 +9844,40 @@
         "addObjective": "Add objective",
         "removeObjective": "Remove objective"
       },
+      "next": "Next",
+      "back": "Back",
+      "unsavedChangesTitle": "Discard unsaved changes?",
+      "unsavedChangesDesc": "You have unsaved changes. Do you want to discard them and close the form?",
+      "discard": "Discard",
+      "stay": "Stay",
+      "review": {
+        "yes": "Yes",
+        "no": "No"
+      },
       "errors": {
         "stageRequired": "Stage is required.",
         "titleRequired": "At least one mission title is required.",
-        "objectiveRequired": "At least one objective title is required.",
+        "objectiveRequired": "At least one objective is required.",
         "integerField": "Level, XP, order, and map coordinates must be whole numbers.",
         "requiredLevelInvalid": "Required level must be at least 1.",
         "rewardXpInvalid": "Reward XP cannot be negative.",
         "objectiveOrderInvalid": "Objective order must be a positive whole number.",
-        "loadLessonsFailed": "Unable to load lessons for the selected grade and subject."
+        "loadLessonsFailed": "Unable to load lessons for the selected grade and subject.",
+        "academicYearRequired": "Select an academic year before saving the mission.",
+        "academicYearConflict": "Academic year values do not match.",
+        "invalidUuid": "One of the selected references is invalid.",
+        "termRequired": "Term is required.",
+        "missionTitleRequired": "At least one mission title is required.",
+        "maxLengthExceeded": "One or more text fields exceed the allowed length.",
+        "integerRequired": "Numeric values must be whole numbers.",
+        "minimumValue": "One or more numeric values are below the allowed minimum.",
+        "objectivesRequired": "At least one objective is required.",
+        "invalidObjectiveType": "An objective has an unsupported type.",
+        "invalidObjectiveOrder": "Objective order must be a positive whole number.",
+        "duplicateObjectiveOrder": "Objective order values must be unique.",
+        "invalidBoolean": "An objective required value is invalid.",
+        "metadataInvalid": "Mission or objective metadata must be a JSON object.",
+        "missionArchived": "Archived missions cannot be edited."
       }
     },
     "badgeForm": {
