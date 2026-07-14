@@ -100,6 +100,26 @@ function copyEntries(entries: AttendanceEntry[]): AttendanceEntry[] {
   return entries.map((entry) => ({ ...entry }));
 }
 
+function buildRosterPreviewEntries(roster: RosterStudent[]): AttendanceEntry[] {
+  return roster.flatMap((student) => {
+    if (!student.currentStatus) {
+      return [];
+    }
+
+    return [{
+      id: student.entryId || `preview:${student.id}`,
+      sessionId: "",
+      studentId: student.id,
+      status: student.currentStatus,
+      minutesLate: student.lateMinutes ?? undefined,
+      minutesEarlyLeave: student.earlyLeaveMinutes ?? undefined,
+      excuseReason: student.excuseReason ?? undefined,
+      note: student.note ?? undefined,
+      updatedAt: "",
+    }];
+  });
+}
+
 export function useRollCallSessionWorkspace(
   selection: RollCallSelection,
 ): RollCallSessionWorkspace {
@@ -171,7 +191,12 @@ export function useRollCallSessionWorkspace(
       periodKey: previewSelection.periodId,
     })
       .then((nextRoster) => {
-        if (generation === previewGeneration.current) setRoster(nextRoster);
+        if (generation === previewGeneration.current) {
+          const previewEntries = buildRosterPreviewEntries(nextRoster);
+          setRoster(nextRoster);
+          setEntries(previewEntries);
+          setOriginalEntries(copyEntries(previewEntries));
+        }
       })
       .catch((error: unknown) => {
         if (generation === previewGeneration.current) {

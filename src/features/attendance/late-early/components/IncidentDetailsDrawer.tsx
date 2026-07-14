@@ -111,7 +111,11 @@ export default function IncidentDetailsDrawer({
           <div className="text-sm space-y-1" style={{ color: "var(--text-primary)" }}>
             <div>{t("threshold")}: {typeof incident.threshold === "number" ? incident.threshold : "-"}</div>
             <div>{t("comparison")}: {relationLabel}</div>
-            <div title={incident.policyScopeSummary}>{t("policySource")}: {incident.policyScopeSummary}</div>
+            <div title={incident.policyScopeSummary}>
+              {t("policySource")}: {incident.policyContext === "UNAVAILABLE"
+                ? t("policyUnavailable")
+                : t("currentPolicyEstimate", { policy: incident.policyScopeSummary })}
+            </div>
             {incident.isViolation && typeof incident.threshold === "number" && (
               <div className="flex items-start gap-2 mt-2 p-2 rounded" style={{ backgroundColor: "var(--color-accent-50)", color: "var(--color-accent-700)" }}>
                 <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5" />

@@ -88,6 +88,16 @@ vi.mock("@/features/behavior/shared/hooks/useBehaviorYearTermContext", () => ({
   useBehaviorYearTermContext: () => mockContext,
 }));
 
+const grantedPermissions = new Set<string>();
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({
+    user: {
+      activeMembership: { permissions: Array.from(grantedPermissions) },
+    },
+    isLoading: false,
+  }),
+}));
+
 // Mock toast
 const mockShowSuccess = vi.fn();
 const mockShowError = vi.fn();
@@ -100,31 +110,7 @@ vi.mock("@/components/ui/toast/Toast", () => ({
 
 // Mock api service
 vi.mock("@/features/behavior/services/behaviorApiService", () => ({
-  listBehaviorRecords: vi.fn(() => Promise.resolve({
-    items: [
-      {
-        id: "rec-1",
-        studentId: "student-1",
-        categoryId: "cat-1",
-        status: "draft",
-        points: 5,
-        occurredAt: "2026-06-15T00:00:00.000Z",
-        type: "positive",
-        titleEn: "Draft Record",
-      },
-      {
-        id: "rec-2",
-        studentId: "student-2",
-        categoryId: "cat-2",
-        status: "approved",
-        points: -10,
-        occurredAt: "2026-06-16T00:00:00.000Z",
-        type: "negative",
-        titleEn: "Approved Record",
-      },
-    ],
-    total: 2,
-  })),
+  listBehaviorRecords: vi.fn(),
   listBehaviorCategories: vi.fn(() => Promise.resolve({ items: [] })),
   createBehaviorRecord: vi.fn(),
   updateBehaviorRecord: vi.fn(),
@@ -133,7 +119,36 @@ vi.mock("@/features/behavior/services/behaviorApiService", () => ({
 describe("BehaviorRecordsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(listBehaviorRecords).mockResolvedValue({
+      items: [
+        {
+          id: "rec-1",
+          studentId: "student-1",
+          categoryId: "cat-1",
+          status: "draft",
+          points: 5,
+          occurredAt: "2026-06-15T00:00:00.000Z",
+          type: "positive",
+          titleEn: "Draft Record",
+        },
+        {
+          id: "rec-2",
+          studentId: "student-2",
+          categoryId: "cat-2",
+          status: "approved",
+          points: -10,
+          occurredAt: "2026-06-16T00:00:00.000Z",
+          type: "negative",
+          titleEn: "Approved Record",
+        },
+      ],
+      total: 2,
+    } as BehaviorRecordListResponse);
     mockContext.isReadOnly = false;
+    grantedPermissions.clear();
+    grantedPermissions.add("behavior.records.create");
+    grantedPermissions.add("behavior.records.manage");
+    grantedPermissions.add("behavior.records.review");
   });
 
   it("renders records table with correct data", async () => {
@@ -155,6 +170,18 @@ describe("BehaviorRecordsPage", () => {
     });
 
     expect(screen.getByText("behavior.table.occurredAt")).toBeInTheDocument();
+  });
+
+  it("hides record creation when the user lacks the backend create permission", async () => {
+    grantedPermissions.delete("behavior.records.create");
+
+    render(<BehaviorRecordsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Draft Record")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole("button", { name: "behavior.actions.newRecord" })).not.toBeInTheDocument();
   });
 
   it("filters bar date selection triggers loading with occurredFrom and occurredTo", async () => {

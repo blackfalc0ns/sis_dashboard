@@ -7,7 +7,9 @@ import {
   getClassroomBehaviorSummary,
   getStudentBehaviorSummary,
   listBehaviorRecords,
+  rejectBehaviorRecord,
 } from "@/features/behavior/services/behaviorApiService";
+import type { BehaviorReviewRecord } from "@/features/behavior/types";
 
 vi.mock("@/lib/api", () => ({
   apiDelete: vi.fn(),
@@ -80,6 +82,25 @@ describe("behaviorApiService", () => {
     expect(mockedApiDelete).toHaveBeenCalledWith("/behavior/categories/category-1");
     expect(mockedApiPost).toHaveBeenCalledWith("/behavior/records/record-1/cancel", {
       cancellationReasonEn: "Duplicate",
+    });
+  });
+
+  it("returns a rejected review record without a record wrapper", async () => {
+    const rejectedRecord = {
+      id: "record-1",
+      status: "rejected",
+      summaries: {},
+      behaviorPointLedgerEntries: [],
+    } as unknown as BehaviorReviewRecord;
+    mockedApiPost.mockResolvedValue(rejectedRecord);
+
+    const result: BehaviorReviewRecord = await rejectBehaviorRecord("record-1", {
+      reviewNoteEn: "Insufficient evidence",
+    });
+
+    expect(result).toBe(rejectedRecord);
+    expect(mockedApiPost).toHaveBeenCalledWith("/behavior/records/record-1/reject", {
+      reviewNoteEn: "Insufficient evidence",
     });
   });
 });

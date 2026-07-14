@@ -39,6 +39,13 @@ describe("attendanceRollCallService", () => {
           nameEn: "Sara Ali",
           nameAr: "سارة علي",
           admissionNo: "S-001",
+          enrollmentId: "enrollment-1",
+          currentStatus: "LATE",
+          entryId: "entry-1",
+          lateMinutes: 12,
+          earlyLeaveMinutes: null,
+          excuseReason: null,
+          note: "Traffic delay",
         },
       ],
     });
@@ -57,6 +64,13 @@ describe("attendanceRollCallService", () => {
         nameEn: "Sara Ali",
         studentNumber: "S-001",
         photoUrl: undefined,
+        enrollmentId: "enrollment-1",
+        currentStatus: "LATE",
+        entryId: "entry-1",
+        lateMinutes: 12,
+        earlyLeaveMinutes: null,
+        excuseReason: null,
+        note: "Traffic delay",
       },
     ]);
 

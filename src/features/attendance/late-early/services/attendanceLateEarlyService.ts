@@ -1,4 +1,5 @@
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
+import { isApiError } from "@/lib/api-error";
 import type { Incident, LateEarlyFilters } from "../types";
 import type { AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
 import { fetchPolicies } from "@/features/attendance/policies/services/attendancePolicyService";
@@ -126,8 +127,9 @@ function mapIncident(item: unknown, fallback: { yearId: string; termId: string }
     type,
     minutes,
     threshold: undefined,
-    isViolation: false,
+    isViolation: null,
     policyScopeSummary: "",
+    policyContext: "UNAVAILABLE",
     sessionStatus: getString(object, ["submittedAt"])
       ? "SUBMITTED"
       : undefined,
@@ -138,7 +140,7 @@ function mapIncident(item: unknown, fallback: { yearId: string; termId: string }
 function applyClientFilters(incidents: Incident[], filters: Partial<LateEarlyFilters>) {
   return incidents.filter((incident) => {
     if (filters.type && filters.type !== "ALL" && incident.type !== filters.type) return false;
-    if (filters.onlyViolations && !incident.isViolation) return false;
+    if (filters.onlyViolations && incident.isViolation !== true) return false;
     if (typeof filters.minutesMin === "number" && incident.minutes < filters.minutesMin) return false;
     if (typeof filters.minutesMax === "number" && incident.minutes > filters.minutesMax) return false;
     if (filters.periodId && incident.periodId !== filters.periodId) return false;
@@ -173,7 +175,15 @@ export async function fetchIncidents(params: FetchIncidentsParams): Promise<Inci
 
   if (incidents.length === 0) return [];
 
-  const policies = await fetchPolicies(params.yearId, params.termId);
+  let policies;
+  try {
+    policies = await fetchPolicies(params.yearId, params.termId);
+  } catch (error) {
+    if (isApiError(error) && error.status === 403) {
+      return applyClientFilters(incidents, params);
+    }
+    throw error;
+  }
   const enrichedIncidents = incidents.map((incident) => {
     const policy = resolveEffectiveAttendancePolicy(policies, incident.date, {
       stageId: incident.stageId,
@@ -181,22 +191,16 @@ export async function fetchIncidents(params: FetchIncidentsParams): Promise<Inci
       sectionId: incident.sectionId,
       classroomId: incident.classroomId,
     });
-    const thresholdState = getThresholdState(
-      incident.type,
-      incident.minutes,
-      policy || {
-        lateThresholdMinutes: 15,
-        earlyLeaveThresholdMinutes: 15,
-      },
-    );
+    if (!policy) return incident;
+
+    const thresholdState = getThresholdState(incident.type, incident.minutes, policy);
 
     return {
       ...incident,
       threshold: thresholdState.threshold,
       isViolation: thresholdState.isReached,
-      policyScopeSummary: policy
-        ? `${policy.scopeType} - ${policy.nameEn || policy.nameAr}`
-        : "SCHOOL - default",
+      policyScopeSummary: `${policy.scopeType} - ${policy.nameEn || policy.nameAr}`,
+      policyContext: "ESTIMATED_CURRENT" as const,
     };
   });
 

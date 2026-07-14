@@ -43,7 +43,6 @@ export interface BehaviorCategory {
   sortOrder: number;
   createdAt?: string;
   updatedAt?: string;
-  inUse?: boolean;
 }
 
 export interface BehaviorCategoryCreatePayload {
@@ -276,13 +275,6 @@ export interface BehaviorRecordRejectPayload {
 }
 
 /** POST /behavior/records/:id/reject → response */
-export interface BehaviorRejectResponse {
-  record: {
-    id: string;
-    status: BehaviorStatus;
-  };
-}
-
 export interface BehaviorRecordListFilters {
   academicYearId?: string;
   termId?: string;
@@ -324,16 +316,51 @@ export interface BehaviorRecordListResponse {
 // ─── Review Queue ──────────────────────────────────────────────────────────
 export interface BehaviorReviewQueueItem {
   id: string;
-  recordId?: string;
-  studentId?: string;
-  studentName?: string;
-  categoryId?: string;
-  categoryName?: string;
-  type?: BehaviorType;
-  status: BehaviorStatus;
-  points?: number;
-  occurredAt?: string;
-  submittedAt?: string;
+  studentId: string;
+  categoryId: string | null;
+  type: BehaviorType;
+  severity: BehaviorSeverity;
+  status: Exclude<BehaviorStatus, "draft">;
+  points: number;
+  occurredAt: string;
+  submittedAt: string | null;
+  summaries: {
+    student: { id: string; displayName: string } | null;
+    category: {
+      id: string;
+      nameEn: string | null;
+      nameAr: string | null;
+    } | null;
+  };
+}
+
+/** Full review presenter returned by review actions and review-item lookup. */
+export interface BehaviorReviewRecord extends Omit<BehaviorReviewQueueItem, "summaries"> {
+  academicYearId: string;
+  termId: string | null;
+  enrollmentId: string | null;
+  titleEn: string | null;
+  titleAr: string | null;
+  noteEn: string | null;
+  noteAr: string | null;
+  createdById: string;
+  submittedById: string | null;
+  reviewedById: string | null;
+  reviewedAt: string | null;
+  reviewNoteEn: string | null;
+  reviewNoteAr: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  summaries: BehaviorReviewQueueItem["summaries"] & {
+    enrollment: Record<string, unknown> | null;
+    academicYear: Record<string, unknown> | null;
+    term: Record<string, unknown> | null;
+    createdBy: Record<string, unknown> | null;
+    submittedBy: Record<string, unknown> | null;
+    reviewedBy: Record<string, unknown> | null;
+  };
+  behaviorPointLedgerEntries: Array<Record<string, unknown>>;
 }
 
 export interface BehaviorReviewQueueFilters {
@@ -445,11 +472,11 @@ export interface BehaviorOverviewTopCategory {
 
 export interface BehaviorOverviewRecentItem {
   id: string;
-  status: string;
+  status: BehaviorStatus;
   type: BehaviorType;
-  severity: string;
+  severity: BehaviorSeverity;
   studentId: string;
-  categoryId: string;
+  categoryId: string | null;
   points: number;
   occurredAt: string;
   submittedAt: string | null;
@@ -521,14 +548,14 @@ export interface BehaviorStudentSummaryResponse {
   };
   categoryBreakdown: Array<{
     categoryId: string;
-    code: string;
-    nameEn: string;
-    nameAr: string;
-    type: BehaviorType;
+    code: string | null;
+    nameEn: string | null;
+    nameAr: string | null;
+    type: BehaviorType | null;
     records: BehaviorRecordSummary;
     points: { totalPoints: number };
   }>;
-  timeline: BehaviorRecord[];
+  timeline: BehaviorOverviewRecentItem[];
   ledger: unknown[];
 }
 
@@ -546,7 +573,67 @@ export interface BehaviorClassroomSummaryFilters {
 
 /** GET /behavior/classrooms/:classroomId/summary → response */
 export interface BehaviorClassroomSummaryResponse {
-  students: unknown[];
-  categoryBreakdown: unknown[];
-  recentActivity: unknown[];
+  classroom: {
+    id: string;
+    name: string;
+    nameAr: string | null;
+    code: string | null;
+    section: { id: string; name: string; nameAr: string | null; code: string | null } | null;
+    grade: { id: string; name: string; nameAr: string | null; code: string | null } | null;
+    stage: { id: string; name: string; nameAr: string | null; code: string | null } | null;
+  };
+  scope: {
+    academicYearId: string | null;
+    termId: string | null;
+    studentId: string | null;
+    classroomId: string;
+    occurredFrom: string | null;
+    occurredTo: string | null;
+  };
+  students: {
+    totalEnrolledStudents: number;
+    studentsWithBehaviorRecords: number;
+    studentsWithPoints: number;
+  };
+  records: BehaviorRecordSummary;
+  severity: Record<BehaviorSeverity, number>;
+  points: {
+    totalPoints: number;
+    positivePoints: number;
+    negativePoints: number;
+    averagePointsPerStudent: number;
+  };
+  review: {
+    pendingReview: number;
+    reviewed: number;
+    approvalRate: number;
+    rejectionRate: number;
+  };
+  categoryBreakdown: Array<{
+    categoryId: string;
+    code: string | null;
+    nameEn: string | null;
+    nameAr: string | null;
+    type: BehaviorType | null;
+    records: BehaviorRecordSummary;
+    points: { totalPoints: number };
+  }>;
+  studentSummaries: Array<{
+    student: BehaviorOverviewTopStudent["student"];
+    records: BehaviorRecordSummary;
+    review: {
+      pendingReview: number;
+      reviewed: number;
+      approvalRate: number;
+      rejectionRate: number;
+    };
+    points: {
+      totalPoints: number;
+      positivePoints: number;
+      negativePoints: number;
+      awardEntries: number;
+      penaltyEntries: number;
+    };
+  }>;
+  recentActivity: BehaviorOverviewRecentItem[];
 }

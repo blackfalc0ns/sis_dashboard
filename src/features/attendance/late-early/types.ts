@@ -1,5 +1,6 @@
 ﻿export type IncidentType = "LATE" | "EARLY_LEAVE";
 export type IncidentFilterType = "ALL" | IncidentType;
+export type IncidentPolicyContext = "ESTIMATED_CURRENT" | "UNAVAILABLE";
 
 export interface LateEarlyScopeIds {
   stageId?: string;
@@ -36,8 +37,9 @@ export interface Incident {
   type: IncidentType;
   minutes: number;
   threshold?: number;
-  isViolation: boolean;
+  isViolation: boolean | null;
   policyScopeSummary: string;
+  policyContext: IncidentPolicyContext;
   sessionStatus?: "DRAFT" | "SUBMITTED";
   updatedAt: string;
 }

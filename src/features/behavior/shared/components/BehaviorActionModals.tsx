@@ -82,6 +82,7 @@ const SEVERITY_OPTIONS: { value: BehaviorSeverity; label: string }[] = [
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
+  { value: "critical", label: "Critical" },
 ];
 
 // ─── Category modal ─────────────────────────────────────────────────────────
@@ -223,7 +224,6 @@ function CategoryModal({
             label={t("category.code")}
             value={form.code}
             onChange={(e) => set("code", e.target.value)}
-            disabled={isEdit && category?.inUse === true}
             required
           />
           <Select
@@ -231,7 +231,6 @@ function CategoryModal({
             value={form.type}
             onChange={(v) => setType(v as BehaviorType)}
             options={TYPE_OPTIONS}
-            disabled={isEdit && category?.inUse === true}
           />
           <Input label={t("category.nameEn")} value={form.nameEn} onChange={(e) => set("nameEn", e.target.value)} required />
           <Input label={t("category.nameAr")} value={form.nameAr} onChange={(e) => set("nameAr", e.target.value)} required dir="rtl" />

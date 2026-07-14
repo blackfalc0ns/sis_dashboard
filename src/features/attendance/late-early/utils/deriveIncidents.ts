@@ -130,8 +130,9 @@ function toIncident(
     type,
     minutes,
     threshold: thresholdState.threshold,
-    isViolation: thresholdState.isReached,
+    isViolation: policy ? thresholdState.isReached : null,
     policyScopeSummary: policy ? `${policy.scopeType} - ${policy.nameEn || policy.nameAr}` : "SCHOOL - default",
+    policyContext: policy ? "ESTIMATED_CURRENT" : "UNAVAILABLE",
     sessionStatus: session.status,
     updatedAt: entry.updatedAt,
   };

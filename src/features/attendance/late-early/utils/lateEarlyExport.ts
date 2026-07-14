@@ -31,7 +31,7 @@ export function exportLateEarly(
         "النوع": record.type === "LATE" ? "تأخير" : "مغادرة مبكرة",
         "الدقائق": record.minutes,
         "الحد": typeof record.threshold === "number" ? record.threshold : "-",
-        "مخالفة": record.isViolation ? "نعم" : "لا",
+        "مخالفة": record.isViolation === null ? "غير معروف" : record.isViolation ? "نعم" : "لا",
       };
     }
 
@@ -46,7 +46,7 @@ export function exportLateEarly(
       Type: record.type === "LATE" ? "Late" : "Early Leave",
       Minutes: record.minutes,
       Threshold: typeof record.threshold === "number" ? record.threshold : "-",
-      Violation: record.isViolation ? "Yes" : "No",
+      Violation: record.isViolation === null ? "Unknown" : record.isViolation ? "Yes" : "No",
     };
   });
 

@@ -64,7 +64,7 @@ export default function AbsencesFiltersDrawer({
     const resetFilters: AbsencesFilters = {
       scopeType: "SCHOOL",
       status: "ALL",
-      granularities: ["PERIOD"],
+      granularities: ["DAILY", "PERIOD"],
       onlyUnexcused: false,
       search: "",
     };

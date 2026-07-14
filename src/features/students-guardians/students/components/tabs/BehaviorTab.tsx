@@ -8,7 +8,10 @@ import { DataTable, type Column } from "@/components/ui/data-table";
 import { useTranslations, useLocale } from "next-intl";
 import * as behaviorApi from "@/features/behavior/services/behaviorApiService";
 import { behaviorUiError } from "@/features/behavior/services/behaviorErrors";
-import { validateRecordContent } from "@/features/behavior/shared/utils/behaviorUiRules";
+import {
+  canSubmitStudentBehaviorRecord,
+  validateRecordContent,
+} from "@/features/behavior/shared/utils/behaviorUiRules";
 import BehaviorDetailDrawer from "@/features/behavior/shared/components/BehaviorDetailDrawer";
 import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import Modal from "@/components/ui/modal/Modal";
@@ -18,7 +21,6 @@ import Select, { type SelectOption } from "@/components/ui/input/Select";
 import DatePicker from "@/components/ui/input/DatePicker";
 import EmptyState from "@/components/ui/empty-state/EmptyState";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
-import type { BehaviorRecordCreatePayload } from "@/features/behavior/types";
 import type {
   BehaviorSummary,
   BehaviorRecord,
@@ -205,6 +207,8 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
     if (e) e.preventDefault();
     setModalError(null);
 
+    if (!yearId) return;
+
     const titleEnTrimmed = titleEn.trim() || undefined;
     const titleArTrimmed = titleAr.trim() || undefined;
     const noteEnTrimmed = noteEn.trim() || undefined;
@@ -238,7 +242,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
 
     try {
       const record = await behaviorApi.createBehaviorRecord({
-        academicYearId: yearId || undefined,
+        academicYearId: yearId,
         termId: termId || undefined,
         studentId: student.id,
         categoryId: selectedCategoryId,
@@ -250,7 +254,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
         type: selectedCat?.type,
         severity: selectedCat?.defaultSeverity,
         points: selectedCat?.defaultPoints,
-      } as unknown as BehaviorRecordCreatePayload);
+      });
 
       // Immediately submit the draft
       await behaviorApi.submitBehaviorRecord(record.id);
@@ -470,7 +474,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
             <Button
               variant="primary"
               onClick={() => void handleSubmitRecord()}
-              disabled={!selectedCategoryId || isSubmitting}
+              disabled={!canSubmitStudentBehaviorRecord(yearId, selectedCategoryId, isSubmitting)}
             >
               {isSubmitting ? (
                 <>

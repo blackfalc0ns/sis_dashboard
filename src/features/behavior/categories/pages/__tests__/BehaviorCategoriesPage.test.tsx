@@ -40,6 +40,18 @@ vi.mock("@/features/behavior/shared/hooks/useBehaviorYearTermContext", () => ({
   useBehaviorYearTermContext: () => mockContext,
 }));
 
+let canManageCategories = true;
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({
+    user: {
+      activeMembership: {
+        permissions: canManageCategories ? ["behavior.categories.manage"] : [],
+      },
+    },
+    isLoading: false,
+  }),
+}));
+
 // Mock toast
 const mockShowSuccess = vi.fn();
 const mockShowError = vi.fn();
@@ -101,6 +113,7 @@ describe("BehaviorCategoriesPage - Category Deletion", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockContext.isReadOnly = false;
+    canManageCategories = true;
     vi.mocked(listBehaviorCategories).mockResolvedValue({
       items: mockCategories,
       total: 2,
@@ -143,6 +156,18 @@ describe("BehaviorCategoriesPage - Category Deletion", () => {
 
     const deleteButtons = screen.queryAllByText("actions.delete");
     expect(deleteButtons).toHaveLength(0);
+  });
+
+  it("does not render category actions without the backend manage permission", async () => {
+    canManageCategories = false;
+    render(<BehaviorCategoriesPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Respect Others")).toBeInTheDocument();
+    });
+
+    expect(screen.queryAllByText("actions.delete")).toHaveLength(0);
+    expect(screen.queryByRole("button", { name: "actions.newCategory" })).not.toBeInTheDocument();
   });
 
   it("opens confirmation modal when delete is clicked and calls delete api on confirm", async () => {

@@ -83,13 +83,22 @@ export default function LateEarlyTable({ incidents, isReadOnly, onView, onEditMi
       key: "violation",
       label: t("violation"),
       render: (_value: unknown, row: Incident) => {
-        const bg = row.isViolation ? "var(--color-accent-100)" : "var(--color-success-100)";
-        const fg = row.isViolation ? "var(--color-accent-700)" : "var(--color-success-700)";
+        const isUnknown = row.isViolation === null;
+        const bg = isUnknown
+          ? "var(--color-neutral-100)"
+          : row.isViolation
+            ? "var(--color-accent-100)"
+            : "var(--color-success-100)";
+        const fg = isUnknown
+          ? "var(--color-neutral-700)"
+          : row.isViolation
+            ? "var(--color-accent-700)"
+            : "var(--color-success-700)";
 
         return (
           <div className="flex flex-col gap-1">
             <span className="inline-flex w-fit px-2 py-1 rounded text-xs font-semibold" style={{ backgroundColor: bg, color: fg }}>
-              {row.isViolation ? t("yes") : t("no")}
+              {isUnknown ? t("unknown") : row.isViolation ? t("yes") : t("no")}
             </span>
             {row.isViolation && typeof row.threshold === "number" && (
               <span className="inline-flex items-center gap-1 text-xs" style={{ color: "var(--color-accent-700)" }}>

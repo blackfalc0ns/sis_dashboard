@@ -156,6 +156,16 @@ function mapRosterStudent(item: unknown): RosterStudent {
     nameEn,
     studentNumber: getString(object, ["studentNumber", "admissionNo", "studentCode", "code"], id),
     photoUrl: getOptionalString(object, ["photoUrl", "avatarUrl"]),
+    enrollmentId: getOptionalString(object, ["enrollmentId"]),
+    currentStatus:
+      typeof object.currentStatus === "string"
+        ? normalizeEntryStatus(object.currentStatus)
+        : null,
+    entryId: getOptionalString(object, ["entryId"]) ?? null,
+    lateMinutes: getNumber(object, ["lateMinutes"]) ?? null,
+    earlyLeaveMinutes: getNumber(object, ["earlyLeaveMinutes"]) ?? null,
+    excuseReason: getOptionalString(object, ["excuseReason"]) ?? null,
+    note: getOptionalString(object, ["note"]) ?? null,
   };
 }
 

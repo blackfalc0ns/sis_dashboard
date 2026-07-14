@@ -3,8 +3,11 @@ import {
   canApproveOrRejectBehaviorRecord,
   canCancelBehaviorRecord,
   canEditBehaviorRecord,
+  canSubmitStudentBehaviorRecord,
   canSubmitBehaviorRecord,
   getBehaviorCategoryPointsPreview,
+  getBehaviorReviewCategoryLabel,
+  getBehaviorReviewStudentLabel,
   normalizeBehaviorPointsForType,
   normalizeCategoryCode,
   validateCategoryCode,
@@ -18,7 +21,7 @@ import {
   shouldCreatePointLedger,
   validateDateRange,
 } from "../behaviorUiRules";
-import type { BehaviorCategory, BehaviorRecord } from "../../../types";
+import type { BehaviorCategory, BehaviorRecord, BehaviorReviewQueueItem } from "../../../types";
 
 const baseRecord: BehaviorRecord = {
   id: "record-1",
@@ -55,6 +58,50 @@ const categories: BehaviorCategory[] = [
 ];
 
 describe("behavior UI rules", () => {
+  it("renders review queue labels from backend summaries with localized fallbacks", () => {
+    const item = {
+      id: "review-1",
+      studentId: "student-1",
+      categoryId: "category-1",
+      type: "positive",
+      severity: "low",
+      status: "submitted",
+      points: 5,
+      occurredAt: "2026-06-25T08:00:00.000Z",
+      submittedAt: "2026-06-25T09:00:00.000Z",
+      summaries: {
+        student: { id: "student-1", displayName: "Mona Ali" },
+        category: {
+          id: "category-1",
+          nameEn: "Helping others",
+          nameAr: "مساعدة الآخرين",
+        },
+      },
+    } satisfies BehaviorReviewQueueItem;
+
+    expect(getBehaviorReviewStudentLabel(item)).toBe("Mona Ali");
+    expect(getBehaviorReviewCategoryLabel(item, "en")).toBe("Helping others");
+    expect(getBehaviorReviewCategoryLabel(item, "ar")).toBe("مساعدة الآخرين");
+  });
+
+  it("falls back to review queue IDs when backend summaries are unavailable", () => {
+    const item = {
+      id: "review-1",
+      studentId: "student-1",
+      categoryId: null,
+      type: "negative",
+      severity: "medium",
+      status: "submitted",
+      points: -3,
+      occurredAt: "2026-06-25T08:00:00.000Z",
+      submittedAt: null,
+      summaries: { student: null, category: null },
+    } satisfies BehaviorReviewQueueItem;
+
+    expect(getBehaviorReviewStudentLabel(item)).toBe("student-1");
+    expect(getBehaviorReviewCategoryLabel(item, "en")).toBe("—");
+  });
+
   it("allows edit only while a record is draft", () => {
     expect(canEditBehaviorRecord({ ...baseRecord, status: "draft" })).toBe(true);
     expect(canEditBehaviorRecord({ ...baseRecord, status: "submitted" })).toBe(false);
@@ -215,6 +262,7 @@ describe("behavior UI rules", () => {
       expect(validateRecordTermDate("2026-06-25", { startDate: "2026-06-01", endDate: "2026-06-30" })).toBe(true);
       expect(validateRecordTermDate("2026-06-01", { startDate: "2026-06-01", endDate: "2026-06-30" })).toBe(true);
       expect(validateRecordTermDate("2026-06-30", { startDate: "2026-06-01", endDate: "2026-06-30" })).toBe(true);
+      expect(validateRecordTermDate("2026-06-30T23:59:59.999Z", { startDate: "2026-06-01", endDate: "2026-06-30" })).toBe(true);
       expect(validateRecordTermDate("2026-05-31", { startDate: "2026-06-01", endDate: "2026-06-30" })).toBe(false);
       expect(validateRecordTermDate("2026-07-01", { startDate: "2026-06-01", endDate: "2026-06-30" })).toBe(false);
       expect(validateRecordTermDate(new Date("2026-06-15"), { startDate: "2026-06-01", endDate: "2026-06-30" })).toBe(true);
@@ -223,6 +271,15 @@ describe("behavior UI rules", () => {
       expect(validateRecordTermDate("2026-06-15", { startDate: "2026-06-01", endDate: "invalid" })).toBe(false);
       expect(validateRecordTermDate("2026-06-15", undefined)).toBe(true);
       expect(validateRecordTermDate("2026-06-15")).toBe(true);
+    });
+  });
+
+  describe("canSubmitStudentBehaviorRecord", () => {
+    it("requires an academic year and category while idle", () => {
+      expect(canSubmitStudentBehaviorRecord("year-1", "category-1", false)).toBe(true);
+      expect(canSubmitStudentBehaviorRecord(null, "category-1", false)).toBe(false);
+      expect(canSubmitStudentBehaviorRecord("year-1", "", false)).toBe(false);
+      expect(canSubmitStudentBehaviorRecord("year-1", "category-1", true)).toBe(false);
     });
   });
 

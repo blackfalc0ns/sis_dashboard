@@ -291,13 +291,17 @@ export default function AttendanceLateEarlyPage() {
             : "Early Leave",
       minutes: incident.minutes,
       threshold: incident.threshold ?? "",
-      violation: incident.isViolation
+      violation: incident.isViolation === null
         ? locale === "ar"
-          ? "نعم"
-          : "Yes"
-        : locale === "ar"
-          ? "لا"
-          : "No",
+          ? "غير معروف"
+          : "Unknown"
+        : incident.isViolation
+          ? locale === "ar"
+            ? "نعم"
+            : "Yes"
+          : locale === "ar"
+            ? "لا"
+            : "No",
       sessionStatus: incident.sessionStatus || "",
     }));
 

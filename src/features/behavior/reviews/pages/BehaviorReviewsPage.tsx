@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import DataTable from "@/components/ui/data-table/DataTable";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
@@ -9,6 +9,7 @@ import DatePicker from "@/components/ui/input/DatePicker";
 import Button from "@/components/ui/button/Button";
 import { X } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useBehaviorYearTermContext } from "@/features/behavior/shared/hooks/useBehaviorYearTermContext";
 import { listBehaviorReviewQueue } from "@/features/behavior/services/behaviorApiService";
 import { behaviorUiError } from "@/features/behavior/services/behaviorErrors";
@@ -20,6 +21,10 @@ import {
   BehaviorCategorySearchSelect,
   BehaviorCreatedBySearchSelect,
 } from "@/features/behavior/shared/components/BehaviorSearchSelects";
+import {
+  getBehaviorReviewCategoryLabel,
+  getBehaviorReviewStudentLabel,
+} from "@/features/behavior/shared/utils/behaviorUiRules";
 import type {
   BehaviorRecord,
   BehaviorReviewQueueFilters,
@@ -36,7 +41,10 @@ function StatePanel({ title }: { title: string }) {
 
 export default function BehaviorReviewsPage() {
   const t = useTranslations("behavior");
+  const locale = useLocale();
   const { yearId, termId, isReadOnly } = useBehaviorYearTermContext();
+  const { hasPermission } = usePermissions();
+  const canReview = !isReadOnly && hasPermission("behavior.records.review");
 
   const [reviewItems, setReviewItems] = useState<BehaviorReviewQueueItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -73,13 +81,14 @@ export default function BehaviorReviewsPage() {
   }, [loadReviewQueue]);
 
   const handleApprove = (item: BehaviorReviewQueueItem) => {
+    if (!canReview) return;
     const rec: BehaviorRecord = {
       id: item.id,
-      studentId: item.studentId ?? "",
+      studentId: item.studentId,
       categoryId: item.categoryId ?? "",
       status: item.status,
-      points: item.points ?? 0,
-      occurredAt: item.occurredAt ?? "",
+      points: item.points,
+      occurredAt: item.occurredAt,
       type: item.type,
     };
     setModalTarget({ record: rec });
@@ -87,13 +96,15 @@ export default function BehaviorReviewsPage() {
   };
 
   const handleReject = (item: BehaviorReviewQueueItem) => {
+    if (!canReview) return;
     const rec: BehaviorRecord = {
       id: item.id,
-      studentId: item.studentId ?? "",
+      studentId: item.studentId,
       categoryId: item.categoryId ?? "",
       status: item.status,
-      points: item.points ?? 0,
-      occurredAt: item.occurredAt ?? "",
+      points: item.points,
+      occurredAt: item.occurredAt,
+      type: item.type,
     };
     setModalTarget({ record: rec });
     setModalMode("reject-record");
@@ -117,7 +128,7 @@ export default function BehaviorReviewsPage() {
       searchable: true,
       render: (_: unknown, row: BehaviorReviewQueueItem) => (
         <span style={{ color: "var(--text-primary)" }}>
-          {row.studentName ?? row.studentId ?? "—"}
+          {getBehaviorReviewStudentLabel(row)}
         </span>
       ),
     },
@@ -127,7 +138,7 @@ export default function BehaviorReviewsPage() {
       searchable: true,
       render: (_: unknown, row: BehaviorReviewQueueItem) => (
         <span style={{ color: "var(--text-primary)" }}>
-          {row.categoryName ?? row.categoryId ?? "—"}
+          {getBehaviorReviewCategoryLabel(row, locale)}
         </span>
       ),
     },
@@ -157,7 +168,7 @@ export default function BehaviorReviewsPage() {
       sortable: false,
       render: (_: unknown, row: BehaviorReviewQueueItem) => (
         <div className="flex items-center gap-2">
-          {!isReadOnly && row.status === "submitted" && (
+          {canReview && row.status === "submitted" && (
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); handleApprove(row); }}

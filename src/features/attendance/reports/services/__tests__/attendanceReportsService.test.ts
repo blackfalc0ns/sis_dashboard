@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiGet } from "@/lib/api";
+import { ApiError } from "@/lib/api-error";
+import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
+import { fetchAbsenceRecords } from "@/features/attendance/absences/services/attendanceAbsencesService";
+import { fetchExcuseRequests } from "@/features/attendance/excuses/services/attendanceExcusesService";
+import { fetchIncidents } from "@/features/attendance/late-early/services/attendanceLateEarlyService";
+import { fetchRoster, fetchSessions } from "@/features/attendance/roll-call/services/attendanceRollCallService";
 import {
   fetchAttendanceReportSummary,
   fetchDerivedDailyAbsences,
@@ -36,6 +42,12 @@ vi.mock("@/features/attendance/excuses/services/attendanceExcusesService", () =>
 }));
 
 const mockedApiGet = vi.mocked(apiGet);
+const mockedFetchStructureTree = vi.mocked(fetchStructureTree);
+const mockedFetchAbsenceRecords = vi.mocked(fetchAbsenceRecords);
+const mockedFetchExcuseRequests = vi.mocked(fetchExcuseRequests);
+const mockedFetchIncidents = vi.mocked(fetchIncidents);
+const mockedFetchRoster = vi.mocked(fetchRoster);
+const mockedFetchSessions = vi.mocked(fetchSessions);
 
 describe("attendanceReportsService", () => {
   beforeEach(() => {
@@ -43,6 +55,26 @@ describe("attendanceReportsService", () => {
   });
 
   it("loads backend aggregate report endpoints with backend query params", async () => {
+    mockedFetchAbsenceRecords.mockImplementation(async (params) =>
+      params.granularities.includes("DAILY")
+        ? [
+            {
+              id: "daily-absence-1",
+              yearId: "year-1",
+              termId: "term-1",
+              date: "2026-02-10",
+              studentId: "student-1",
+              studentNumber: "S-001",
+              studentNameAr: "Student 1",
+              studentNameEn: "Student 1",
+              scopeType: "CLASSROOM",
+              granularity: "DAILY",
+              status: "ABSENT",
+              updatedAt: "2026-02-10T08:00:00.000Z",
+            },
+          ]
+        : [],
+    );
     mockedApiGet
       .mockResolvedValueOnce({
         totalEntries: 10,
@@ -128,6 +160,9 @@ describe("attendanceReportsService", () => {
       },
     });
     expect(mockedApiGet).toHaveBeenCalledTimes(3);
+    expect(report.absenceRecords).toEqual([
+      expect.objectContaining({ id: "daily-absence-1", granularity: "DAILY" }),
+    ]);
     expect(report.overview.cards.find((card) => card.key === "attendanceRate")?.value).toBe(80);
     expect(report.trend.points).toEqual([
       expect.objectContaining({ dateFrom: "2026-02-10", attendanceRate: 80 }),
@@ -191,5 +226,46 @@ describe("attendanceReportsService", () => {
         classroomId: "classroom-1",
       },
     });
+  });
+
+  it("uses report aggregates when auxiliary attendance permissions are forbidden", async () => {
+    const forbidden = new ApiError("Forbidden", 403, "FORBIDDEN");
+    mockedFetchStructureTree.mockRejectedValue(forbidden);
+    mockedFetchSessions.mockRejectedValue(forbidden);
+    mockedFetchRoster.mockRejectedValue(forbidden);
+    mockedFetchAbsenceRecords.mockRejectedValue(forbidden);
+    mockedFetchIncidents.mockRejectedValue(forbidden);
+    mockedFetchExcuseRequests.mockRejectedValue(forbidden);
+    mockedApiGet
+      .mockResolvedValueOnce({
+        totalEntries: 10,
+        presentCount: 8,
+        absentCount: 1,
+        lateCount: 1,
+        earlyLeaveCount: 0,
+        excusedCount: 0,
+        attendanceRate: 0.8,
+        affectedStudentsCount: 2,
+      })
+      .mockResolvedValueOnce({ items: [] })
+      .mockResolvedValueOnce({ items: [] });
+
+    const report = await fetchAttendanceReportSummary({
+      yearId: "year-1",
+      termId: "term-1",
+      dateFrom: "2026-02-01",
+      dateTo: "2026-02-28",
+      scopeType: "SCHOOL",
+      scopeIds: {},
+      attendanceStatus: "ALL",
+      excuseStatus: "ALL",
+      incidentType: "ALL",
+    });
+
+    expect(report.overview.cards.find((card) => card.key === "attendanceRate")?.value).toBe(80);
+    expect(report.attendanceRows).toEqual([]);
+    expect(report.absenceRecords).toEqual([]);
+    expect(report.incidents).toEqual([]);
+    expect(report.excuseRequests).toEqual([]);
   });
 });

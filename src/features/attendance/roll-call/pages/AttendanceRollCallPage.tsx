@@ -1140,10 +1140,19 @@ export default function AttendanceRollCallPage() {
     );
   } else if (!session && roster.length > 0) {
     workspaceContent = (
-      <AttendanceWorkspaceState
-        title={t("workspace.openSession")}
-        description={t("workspace.openSessionDescription")}
-        action={
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
+        <div
+          className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+          style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background-secondary)" }}
+        >
+          <div>
+            <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
+              {t("workspace.openSession")}
+            </h3>
+            <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+              {t("workspace.openSessionDescription")}
+            </p>
+          </div>
           <Button
             variant="primary"
             onClick={handleOpenSession}
@@ -1151,8 +1160,18 @@ export default function AttendanceRollCallPage() {
           >
             {t("workspace.openSession")}
           </Button>
-        }
-      />
+        </div>
+        <div className="min-h-0 flex-1">
+          <RosterTable
+            roster={filteredRoster}
+            entries={entries}
+            policy={policy}
+            onEntryChange={handleEntryChange}
+            isReadOnly={true}
+            searchQuery={filters.search}
+          />
+        </div>
+      </div>
     );
   } else if (session) {
     workspaceContent = (

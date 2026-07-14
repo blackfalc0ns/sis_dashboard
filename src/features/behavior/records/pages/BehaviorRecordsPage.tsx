@@ -24,6 +24,7 @@ import type {
   BehaviorRecordSummary,
 } from "@/features/behavior/types";
 import { useDebounce } from "@/hooks/useDebounce";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const DEFAULT_FILTERS: BehaviorFilters = {
   scopeType: "SCHOOL",
@@ -34,6 +35,10 @@ export default function BehaviorRecordsPage() {
   const t = useTranslations("behavior");
   const isMobile = useMediaQuery("(max-width: 768px)");
   const { yearId, termId, terms, isReadOnly } = useBehaviorYearTermContext();
+  const { hasPermission } = usePermissions();
+  const canCreate = !isReadOnly && hasPermission("behavior.records.create");
+  const canManage = !isReadOnly && hasPermission("behavior.records.manage");
+  const canReview = !isReadOnly && hasPermission("behavior.records.review");
   const { showError } = useToast();
 
   const [records, setRecords] = useState<BehaviorRecord[]>([]);
@@ -100,6 +105,9 @@ export default function BehaviorRecordsPage() {
       setSelectedRecord(record);
       return;
     }
+    if (action === "submit" && !canCreate) return;
+    if ((action === "edit" || action === "cancel") && !canManage) return;
+    if ((action === "approve" || action === "reject") && !canReview) return;
     const modeMap: Record<string, BehaviorModalMode> = {
       edit: "edit-record",
       submit: "submit-record",
@@ -121,6 +129,7 @@ export default function BehaviorRecordsPage() {
   };
 
   const openNewModal = () => {
+    if (!canCreate) return;
     setModalTarget({
       academicYearId: yearId ?? undefined,
       termId: termId ?? undefined,
@@ -199,7 +208,7 @@ export default function BehaviorRecordsPage() {
         <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
           {t("sections.records")}
         </h2>
-        {!isReadOnly && (
+        {canCreate && (
           <Button
             variant="primary"
             size="sm"
@@ -218,7 +227,9 @@ export default function BehaviorRecordsPage() {
         error={error}
         onRowClick={setSelectedRecord}
         onAction={handleTableAction}
-        isReadOnly={isReadOnly}
+        canCreate={canCreate}
+        canManage={canManage}
+        canReview={canReview}
       />
 
       {/* Detail drawer */}
@@ -227,7 +238,9 @@ export default function BehaviorRecordsPage() {
         isOpen={!!selectedRecord}
         onClose={() => setSelectedRecord(null)}
         onAction={handleDrawerAction}
-        isReadOnly={isReadOnly}
+        canCreate={canCreate}
+        canManage={canManage}
+        canReview={canReview}
       />
 
       {/* Action modals */}

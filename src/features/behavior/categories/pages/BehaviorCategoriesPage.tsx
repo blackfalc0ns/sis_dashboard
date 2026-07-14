@@ -26,6 +26,7 @@ import type {
   BehaviorType,
 } from "@/features/behavior/types";
 import { useDebounce } from "@/hooks/useDebounce";
+import { usePermissions } from "@/hooks/usePermissions";
 
 function StatePanel({ title }: { title: string }) {
   return (
@@ -39,6 +40,8 @@ export default function BehaviorCategoriesPage() {
   const t = useTranslations("behavior");
   const locale = useLocale();
   const { isReadOnly } = useBehaviorYearTermContext();
+  const { hasPermission } = usePermissions();
+  const canManage = !isReadOnly && hasPermission("behavior.categories.manage");
   const { showSuccess, showError } = useToast();
 
   const [categories, setCategories] = useState<BehaviorCategory[]>([]);
@@ -182,7 +185,7 @@ export default function BehaviorCategoriesPage() {
       sortable: false,
       render: (_: unknown, row: BehaviorCategory) => (
         <div className="flex items-center justify-end gap-2">
-          {!isReadOnly && (
+          {canManage && (
             <>
               <button
                 onClick={(e) => {
@@ -274,7 +277,7 @@ export default function BehaviorCategoriesPage() {
         <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
           {t("sections.categories")}
         </h2>
-        {!isReadOnly && (
+        {canManage && (
           <Button
             variant="primary"
             size="sm"

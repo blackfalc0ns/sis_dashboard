@@ -146,6 +146,35 @@ describe("useRollCallSessionWorkspace", () => {
     expect(result.current.isDirty).toBe(false);
   });
 
+  it("exposes existing attendance state in the non-mutating roster preview", async () => {
+    mockedFetchRoster.mockResolvedValue([
+      {
+        ...student,
+        currentStatus: "LATE",
+        entryId: "entry-1",
+        lateMinutes: 12,
+        earlyLeaveMinutes: null,
+        excuseReason: null,
+        note: "Traffic delay",
+      },
+    ]);
+
+    const { result } = renderHook(() => useRollCallSessionWorkspace(selection));
+
+    await waitFor(() => expect(result.current.entries).toEqual([
+      expect.objectContaining({
+        id: "entry-1",
+        sessionId: "",
+        studentId: "student-1",
+        status: "LATE",
+        minutesLate: 12,
+        note: "Traffic delay",
+      }),
+    ]));
+    expect(result.current.session).toBeNull();
+    expect(mockedGetOrCreateSession).not.toHaveBeenCalled();
+  });
+
   it("ignores stale roster preview responses", async () => {
     const older = deferred<RosterStudent[]>();
     const newer = deferred<RosterStudent[]>();

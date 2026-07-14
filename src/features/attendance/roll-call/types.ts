@@ -66,6 +66,13 @@ export interface RosterStudent {
   nameEn: string;
   studentNumber: string;
   photoUrl?: string;
+  enrollmentId?: string;
+  currentStatus?: AttendanceStatus | null;
+  entryId?: string | null;
+  lateMinutes?: number | null;
+  earlyLeaveMinutes?: number | null;
+  excuseReason?: string | null;
+  note?: string | null;
 }
 
 export interface SessionWithEntries {

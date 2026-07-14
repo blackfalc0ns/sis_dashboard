@@ -3,7 +3,7 @@
 import type { AttachmentMeta } from "../roll-call/types";
 
 export type AttendanceIncidentType = "ABSENT" | "LATE" | "EARLY_LEAVE" | "EXCUSED" | "UNMARKED";
-export type AttendanceGranularity = "PERIOD" | "DAILY_DERIVED";
+export type AttendanceGranularity = "DAILY" | "PERIOD" | "DAILY_DERIVED";
 
 export interface AbsenceScopeFilter {
   scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION" | "CLASSROOM";

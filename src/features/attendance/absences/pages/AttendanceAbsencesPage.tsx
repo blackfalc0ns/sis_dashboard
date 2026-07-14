@@ -80,11 +80,10 @@ export default function AttendanceAbsencesPage() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [searchInput, setSearchInput] = useState("");
 
-  // Filters - Updated to single status and PERIOD only
   const [filters, setFilters] = useState<AbsencesFilters>({
     scopeType: "SCHOOL",
     status: "ALL",
-    granularities: ["PERIOD"], // Fixed to PERIOD only
+    granularities: ["DAILY", "PERIOD"],
     onlyUnexcused: false,
     search: "",
   });
@@ -168,7 +167,7 @@ export default function AttendanceAbsencesPage() {
     setFilters({
       scopeType: "SCHOOL",
       status: "ALL",
-      granularities: ["PERIOD"],
+      granularities: ["DAILY", "PERIOD"],
       onlyUnexcused: false,
       search: "",
     });

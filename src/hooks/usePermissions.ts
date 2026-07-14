@@ -31,6 +31,13 @@ export type PermissionKey =
   | "attendance.rollcall.unsubmit"
   | "attendance.excuses.approve"
   | "attendance.lateEarly.editMinutes"
+  | "behavior.records.view"
+  | "behavior.records.create"
+  | "behavior.records.manage"
+  | "behavior.records.review"
+  | "behavior.categories.view"
+  | "behavior.categories.manage"
+  | "behavior.overview.view"
   | "settings.overview.view"
   | "settings.branding.view"
   | "settings.branding.manage"
@@ -213,6 +220,10 @@ export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
     "academics-curriculum": "academics.curriculum.view",
     "academics-lesson-plans": "academics.lesson_plans.view",
     "academics-homework": "homework.assignments.view",
+    "behavior-overview": "behavior.overview.view",
+    "behavior-reviews": "behavior.records.view",
+    "behavior-records": "behavior.records.view",
+    "behavior-categories": "behavior.categories.view",
     "nedaa-settings": "dismissal.settings.view",
     "nedaa-operations": "dismissal.requests.view",
     "nedaa-gates": "dismissal.gates.view",

@@ -153,6 +153,10 @@ export default function AbsenceDetailsPanel({
                       ? locale === "ar"
                         ? "يومي (مشتق)"
                         : "Daily (Derived)"
+                      : record.granularity === "DAILY"
+                        ? locale === "ar"
+                          ? "يومي"
+                          : "Daily"
                       : locale === "ar"
                         ? "حصة"
                         : "Period"}
@@ -247,7 +251,7 @@ export default function AbsenceDetailsPanel({
           </div>
         </div>
 
-        {record.granularity === "PERIOD" && !isReadOnly && (
+        {record.granularity !== "DAILY_DERIVED" && !isReadOnly && (
           <div
             className="flex items-center gap-3 p-4 border-t shrink-0"
             style={{ borderColor: "var(--border-color)" }}

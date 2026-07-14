@@ -23,7 +23,7 @@ import type {
   BehaviorRecordListResponse,
   BehaviorRecordRejectPayload,
   BehaviorRecordUpdatePayload,
-  BehaviorRejectResponse,
+  BehaviorReviewRecord,
   BehaviorReviewQueueFilters,
   BehaviorReviewQueueItem,
   BehaviorReviewQueueResponse,
@@ -81,7 +81,7 @@ export interface FetchBehaviorRecordsParams {
 }
 
 export interface CreateBehaviorRecordPayload {
-  academicYearId?: string;
+  academicYearId: string;
   termId?: string;
   studentId: string;
   enrollmentId?: string;
@@ -236,8 +236,8 @@ export async function approveBehaviorRecord(
 export async function rejectBehaviorRecord(
   id: string,
   payload: BehaviorRecordRejectPayload,
-): Promise<BehaviorRejectResponse> {
-  return apiPost<BehaviorRejectResponse>(`${BASE}/records/${id}/reject`, payload);
+): Promise<BehaviorReviewRecord> {
+  return apiPost<BehaviorReviewRecord>(`${BASE}/records/${id}/reject`, payload);
 }
 
 /** GET /behavior/records (typed list) */

@@ -71,9 +71,10 @@ function normalizeGranularity(
 ): AttendanceGranularity {
   const explicitGranularity = String(granularity || "").toUpperCase();
   if (explicitGranularity === "DAILY_DERIVED") return "DAILY_DERIVED";
+  if (explicitGranularity === "DAILY") return "DAILY";
   if (explicitGranularity === "PERIOD") return "PERIOD";
   return String(mode || "PERIOD").toUpperCase() === "DAILY"
-    ? "DAILY_DERIVED"
+    ? "DAILY"
     : "PERIOD";
 }
 
@@ -211,7 +212,10 @@ export function computeAbsencesKPIs(records: AbsenceRecord[]): AbsencesKPIs {
     excusedCount: records.filter((record) => record.status === "EXCUSED" || record.excuse).length,
     lateCount: records.filter((record) => record.status === "LATE").length,
     earlyLeaveCount: records.filter((record) => record.status === "EARLY_LEAVE").length,
-    dailyAbsentCount: records.filter((record) => record.granularity === "DAILY_DERIVED" && record.status === "ABSENT").length,
+    dailyAbsentCount: records.filter(
+      (record) =>
+        record.granularity !== "PERIOD" && record.status === "ABSENT",
+    ).length,
   };
 }
 

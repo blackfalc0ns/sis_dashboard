@@ -28,7 +28,7 @@ export function exportAbsencesToExcel(
           "اسم الطالب": r.studentNameAr,
           "الصف": r.gradeNameAr || r.gradeNameEn || "-",
           "الشعبة": r.sectionNameAr || r.sectionNameEn || "-",
-          "النوع": r.granularity === "DAILY_DERIVED" ? "يومي" : getStatusLabelAr(r.status),
+          "النوع": r.granularity === "DAILY_DERIVED" ? "يومي مشتق" : r.granularity === "DAILY" ? "يومي" : "حصة",
           "الحصة": r.periodNameAr || r.periodNameEn ||
             (r.periodIndex ? `P${r.periodIndex}` : r.periodKey || "-"),
           "الدقائق": r.minutesLate || r.minutesEarlyLeave || "-",
@@ -40,7 +40,7 @@ export function exportAbsencesToExcel(
           "Student Name": r.studentNameEn,
           "Grade": r.gradeNameAr || r.gradeNameEn || "-",
           "Section": r.sectionNameAr || r.sectionNameEn || "-",
-          "Type": r.granularity === "DAILY_DERIVED" ? "Daily" : getStatusLabelEn(r.status),
+          "Type": r.granularity === "DAILY_DERIVED" ? "Daily Derived" : r.granularity === "DAILY" ? "Daily" : "Period",
           "Period": r.periodNameEn || r.periodNameAr ||
             (r.periodIndex ? `P${r.periodIndex}` : r.periodKey || "-"),
           "Minutes": r.minutesLate || r.minutesEarlyLeave || "-",
@@ -58,34 +58,4 @@ export function exportAbsencesToExcel(
     data,
     filename: fileName,
   });
-}
-
-function getStatusLabelAr(status: string): string {
-  switch (status) {
-    case "ABSENT":
-      return "غائب";
-    case "LATE":
-      return "متأخر";
-    case "EARLY_LEAVE":
-      return "مغادرة مبكرة";
-    case "EXCUSED":
-      return "غياب بعذر";
-    default:
-      return status;
-  }
-}
-
-function getStatusLabelEn(status: string): string {
-  switch (status) {
-    case "ABSENT":
-      return "Absent";
-    case "LATE":
-      return "Late";
-    case "EARLY_LEAVE":
-      return "Early Leave";
-    case "EXCUSED":
-      return "Excused";
-    default:
-      return status;
-  }
 }

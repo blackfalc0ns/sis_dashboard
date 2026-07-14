@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
+import { ApiError } from "@/lib/api-error";
 import {
   fetchIncidents,
   updateIncidentMinutes,
@@ -134,6 +135,46 @@ describe("attendanceLateEarlyService", () => {
         isViolation: true,
         policyScopeSummary: "SCHOOL - Default",
         sessionStatus: "SUBMITTED",
+      }),
+    ]);
+  });
+
+  it("keeps incidents readable when policy access is forbidden", async () => {
+    mockedApiGet
+      .mockResolvedValueOnce({
+        items: [
+          {
+            id: "late-1",
+            academicYearId: "year-1",
+            termId: "term-1",
+            date: "2026-02-10",
+            studentId: "student-1",
+            status: "LATE",
+            lateMinutes: 12,
+            sourceSessionId: "session-1",
+            updatedAt: "2026-02-10T08:00:00.000Z",
+          },
+        ],
+      })
+      .mockRejectedValueOnce(
+        new ApiError("Forbidden", 403, "FORBIDDEN"),
+      );
+
+    await expect(
+      fetchIncidents({
+        yearId: "year-1",
+        termId: "term-1",
+        scopeType: "SCHOOL",
+        scopeIds: {},
+        type: "LATE",
+        onlyViolations: false,
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        id: "late-1",
+        threshold: undefined,
+        isViolation: null,
+        policyContext: "UNAVAILABLE",
       }),
     ]);
   });

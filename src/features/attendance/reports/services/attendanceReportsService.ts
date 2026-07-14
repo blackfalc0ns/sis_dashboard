@@ -1,5 +1,6 @@
 import { mockStudents } from "@/data/mockStudents";
 import { apiGet } from "@/lib/api";
+import { isApiError } from "@/lib/api-error";
 import {
   fetchStructureTree,
   type Classroom,
@@ -167,6 +168,28 @@ function buildStructureMaps(stages: Stage[], grades: Grade[], sections: Section[
     gradesById: new Map(grades.map((item) => [item.id, item])),
     sectionsById: new Map(sections.map((item) => [item.id, item])),
     classroomsById: new Map(classrooms.map((item) => [item.id, item])),
+  };
+}
+
+async function fallbackWhenForbidden<T>(
+  load: () => Promise<T>,
+  fallback: T,
+): Promise<T> {
+  try {
+    return await load();
+  } catch (error) {
+    if (isApiError(error) && error.status === 403) return fallback;
+    throw error;
+  }
+}
+
+function createEmptyBaseAttendanceData() {
+  const structure = { stages: [], grades: [], sections: [], classrooms: [] };
+  return {
+    structure,
+    maps: buildStructureMaps([], [], [], []),
+    filteredSessions: [] as AttendanceSession[],
+    attendanceRows: [] as ReportsAttendanceRow[],
   };
 }
 
@@ -1048,15 +1071,21 @@ export async function fetchAttendanceReportSummary(
       },
     }),
   ]);
-  const base = await loadBaseAttendanceData(params);
+  const base = await fallbackWhenForbidden(
+    () => loadBaseAttendanceData(params),
+    createEmptyBaseAttendanceData(),
+  );
 
   const previousRange = shiftRange(params.dateFrom, params.dateTo);
   const previousBase = previousRange.dateFrom && previousRange.dateTo
-    ? await loadBaseAttendanceData({ ...params, ...previousRange })
+    ? await fallbackWhenForbidden(
+        () => loadBaseAttendanceData({ ...params, ...previousRange }),
+        createEmptyBaseAttendanceData(),
+      )
     : { attendanceRows: [] as ReportsAttendanceRow[] };
 
   const [absenceRecords, incidents, excuseRequests, missingCounts] = await Promise.all([
-    fetchAbsenceRecords({
+    fallbackWhenForbidden(() => fetchAbsenceRecords({
       yearId: params.yearId,
       termId: params.termId,
       dateFrom: params.dateFrom,
@@ -1064,7 +1093,7 @@ export async function fetchAttendanceReportSummary(
       scopeType: params.scopeType,
       scopeIds: params.scopeIds,
       status: "ALL",
-      granularities: ["PERIOD"],
+      granularities: ["DAILY", "PERIOD"],
       onlyUnexcused: false,
       search: "",
     }).then((rows) =>
@@ -1076,8 +1105,8 @@ export async function fetchAttendanceReportSummary(
         if (params.incidentType === "EARLY_LEAVE") return row.status === "EARLY_LEAVE";
         return true;
       })
-    ),
-    fetchIncidents({
+    ), [] as AbsenceRecord[]),
+    fallbackWhenForbidden(() => fetchIncidents({
       yearId: params.yearId,
       termId: params.termId,
       dateFrom: params.dateFrom,
@@ -1091,8 +1120,8 @@ export async function fetchAttendanceReportSummary(
       search: "",
       onlyViolations: false,
       sessionStatus: "SUBMITTED",
-    }).then((rows) => rows.filter((row) => !params.studentId || row.studentId === params.studentId)),
-    fetchExcuseRequests({
+    }).then((rows) => rows.filter((row) => !params.studentId || row.studentId === params.studentId)), [] as Incident[]),
+    fallbackWhenForbidden(() => fetchExcuseRequests({
       yearId: params.yearId,
       termId: params.termId,
       dateFrom: params.dateFrom,
@@ -1101,7 +1130,7 @@ export async function fetchAttendanceReportSummary(
       type: "ALL",
       search: "",
       hasAttachment: "ALL",
-    }).then((rows) => rows.filter((row) => !params.studentId || row.studentId === params.studentId)),
+    }).then((rows) => rows.filter((row) => !params.studentId || row.studentId === params.studentId)), [] as ExcuseRequest[]),
     buildMissingAttendanceCounts(base.filteredSessions, base.attendanceRows, params.yearId, params.termId, params.studentId),
   ]);
 

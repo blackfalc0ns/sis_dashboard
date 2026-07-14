@@ -68,7 +68,9 @@ interface BehaviorTableProps {
   error?: string | null;
   onRowClick?: (record: BehaviorRecord) => void;
   onAction?: (action: BehaviorTableAction, record: BehaviorRecord) => void;
-  isReadOnly?: boolean;
+  canCreate?: boolean;
+  canManage?: boolean;
+  canReview?: boolean;
 }
 
 export default function BehaviorTable({
@@ -77,7 +79,9 @@ export default function BehaviorTable({
   error,
   onRowClick,
   onAction,
-  isReadOnly,
+  canCreate = false,
+  canManage = false,
+  canReview = false,
 }: BehaviorTableProps) {
   const t = useTranslations("behavior");
   const locale = useLocale();
@@ -172,7 +176,7 @@ export default function BehaviorTable({
           </Tooltip>
 
           {/* Edit — only draft */}
-          {canEditBehaviorRecord(row) && !isReadOnly && (
+          {canEditBehaviorRecord(row) && canManage && (
             <Tooltip title={t("actions.edit")} arrow>
               <button
                 onClick={(e) => { e.stopPropagation(); onAction?.("edit", row); }}
@@ -185,7 +189,7 @@ export default function BehaviorTable({
           )}
 
           {/* Submit — only draft */}
-          {canSubmitBehaviorRecord(row) && !isReadOnly && (
+          {canSubmitBehaviorRecord(row) && canCreate && (
             <Tooltip title={t("actions.submit")} arrow>
               <button
                 onClick={(e) => { e.stopPropagation(); onAction?.("submit", row); }}
@@ -198,7 +202,7 @@ export default function BehaviorTable({
           )}
 
           {/* Approve — only submitted */}
-          {canCancelBehaviorRecord(row) && !isReadOnly && (
+          {canCancelBehaviorRecord(row) && canManage && (
             <Tooltip title={t("actions.cancel")} arrow>
               <button
                 onClick={(e) => { e.stopPropagation(); onAction?.("cancel", row); }}
@@ -210,7 +214,7 @@ export default function BehaviorTable({
             </Tooltip>
           )}
 
-          {canApproveOrRejectBehaviorRecord(row) && !isReadOnly && (
+          {canApproveOrRejectBehaviorRecord(row) && canReview && (
             <Tooltip title={t("actions.approve")} arrow>
               <button
                 onClick={(e) => { e.stopPropagation(); onAction?.("approve", row); }}
@@ -223,7 +227,7 @@ export default function BehaviorTable({
           )}
 
           {/* Reject — only submitted */}
-          {canApproveOrRejectBehaviorRecord(row) && !isReadOnly && (
+          {canApproveOrRejectBehaviorRecord(row) && canReview && (
             <Tooltip title={t("actions.reject")} arrow>
               <button
                 onClick={(e) => { e.stopPropagation(); onAction?.("reject", row); }}

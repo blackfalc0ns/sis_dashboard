@@ -121,7 +121,7 @@ export default function AbsencesTable({
       key: "period",
       label: t("period"),
       render: (_: unknown, row: AbsenceRecord) => {
-        if (row.granularity === "DAILY_DERIVED") {
+        if (row.granularity !== "PERIOD") {
           return <span style={{ color: "var(--color-neutral-400)" }} className="text-sm">-</span>;
         }
         return (

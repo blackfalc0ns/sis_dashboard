@@ -1,4 +1,26 @@
-import type { BehaviorCategory, BehaviorRecord, BehaviorStatus, BehaviorType } from "../../types";
+import type {
+  BehaviorCategory,
+  BehaviorRecord,
+  BehaviorReviewQueueItem,
+  BehaviorStatus,
+  BehaviorType,
+} from "../../types";
+
+export function getBehaviorReviewStudentLabel(reviewItem: BehaviorReviewQueueItem): string {
+  return reviewItem.summaries.student?.displayName || reviewItem.studentId;
+}
+
+export function getBehaviorReviewCategoryLabel(
+  reviewItem: BehaviorReviewQueueItem,
+  locale: string,
+): string {
+  const category = reviewItem.summaries.category;
+  if (!category) return reviewItem.categoryId ?? "—";
+
+  const localizedName = locale === "ar" ? category.nameAr : category.nameEn;
+  const fallbackName = locale === "ar" ? category.nameEn : category.nameAr;
+  return localizedName || fallbackName || reviewItem.categoryId || "—";
+}
 
 export function canEditBehaviorRecord(record: BehaviorRecord): boolean {
   return record.status === "draft";
@@ -118,7 +140,17 @@ export function validateRecordTermDate(
     return false;
   }
 
+  start.setUTCHours(0, 0, 0, 0);
+  end.setUTCHours(23, 59, 59, 999);
   return date >= start && date <= end;
+}
+
+export function canSubmitStudentBehaviorRecord(
+  academicYearId: string | null | undefined,
+  categoryId: string | null | undefined,
+  isSubmitting: boolean,
+): boolean {
+  return Boolean(academicYearId && categoryId) && !isSubmitting;
 }
 
 export function validatePointsOverride(

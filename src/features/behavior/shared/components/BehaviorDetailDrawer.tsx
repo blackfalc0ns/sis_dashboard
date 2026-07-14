@@ -64,6 +64,9 @@ interface BehaviorDetailDrawerProps {
   onClose: () => void;
   onAction?: (action: BehaviorTableAction, record: BehaviorRecord) => void;
   isReadOnly?: boolean;
+  canCreate?: boolean;
+  canManage?: boolean;
+  canReview?: boolean;
 }
 
 export default function BehaviorDetailDrawer({
@@ -72,6 +75,9 @@ export default function BehaviorDetailDrawer({
   onClose,
   onAction,
   isReadOnly,
+  canCreate = false,
+  canManage = false,
+  canReview = false,
 }: BehaviorDetailDrawerProps) {
   const t = useTranslations("behavior");
   const locale = useLocale();
@@ -260,12 +266,12 @@ export default function BehaviorDetailDrawer({
           </div>
 
           {/* Footer actions */}
-          {!isReadOnly && (
+          {!isReadOnly && (canCreate || canManage || canReview) && (
             <div
               className="flex items-center gap-2 px-6 py-4 border-t"
               style={{ borderColor: "var(--border-color)" }}
             >
-              {canEditBehaviorRecord(record) && (
+              {canManage && canEditBehaviorRecord(record) && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -275,7 +281,7 @@ export default function BehaviorDetailDrawer({
                   {t("actions.edit")}
                 </Button>
               )}
-              {canSubmitBehaviorRecord(record) && (
+              {canCreate && canSubmitBehaviorRecord(record) && (
                 <Button
                   variant="primary"
                   size="sm"
@@ -285,7 +291,7 @@ export default function BehaviorDetailDrawer({
                   {t("actions.submit")}
                 </Button>
               )}
-              {canCancelBehaviorRecord(record) && (
+              {canManage && canCancelBehaviorRecord(record) && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -295,7 +301,7 @@ export default function BehaviorDetailDrawer({
                   {t("actions.cancel")}
                 </Button>
               )}
-              {canApproveOrRejectBehaviorRecord(record) && (
+              {canReview && canApproveOrRejectBehaviorRecord(record) && (
                 <>
                   <Button
                     variant="primary"
