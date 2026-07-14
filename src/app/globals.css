@@ -138,6 +138,28 @@ body {
   }
 }
 
+@keyframes app-download-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes app-download-icon-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.85) rotate(-5deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0);
+  }
+}
+
 @keyframes onboarding-step-content-enter {
   from {
     opacity: 0;
@@ -149,7 +171,33 @@ body {
   }
 }
 
+.app-download-background {
+  background:
+    radial-gradient(circle at 12% 18%, color-mix(in oklab, var(--primary-color) 16%, transparent), transparent 30%),
+    radial-gradient(circle at 88% 82%, color-mix(in oklab, var(--accent-color) 18%, transparent), transparent 28%),
+    linear-gradient(135deg, var(--color-primary-50), var(--surface-color) 52%, var(--accent-50));
+}
+
+.app-download-card {
+  border: 1px solid color-mix(in oklab, var(--primary-color) 14%, white);
+  background: color-mix(in oklab, var(--surface-color) 92%, transparent);
+  box-shadow: 0 24px 60px color-mix(in oklab, var(--primary-dark) 18%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.app-download-icon {
+  background: linear-gradient(135deg, var(--primary-color), var(--hover-color));
+  box-shadow: 0 14px 30px color-mix(in oklab, var(--primary-color) 34%, transparent);
+}
+
 @media (prefers-reduced-motion: no-preference) {
+  .app-download-card {
+    animation: app-download-enter 420ms ease-out both;
+  }
+
+  .app-download-icon {
+    animation: app-download-icon-enter 520ms 100ms ease-out both;
+  }
   .onboarding-enter {
     animation: onboarding-enter 400ms ease-out both;
   }

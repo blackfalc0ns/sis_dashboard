@@ -38,13 +38,13 @@ export function AppDownloadScreen({
   return (
     <main
       dir={locale === "ar" ? "rtl" : "ltr"}
-      className="grid min-h-screen place-items-center bg-gradient-to-br from-sky-50 via-white to-violet-100 px-4 py-8"
+      className="app-download-background grid min-h-screen place-items-center px-4 py-8"
     >
       <section
         aria-labelledby="app-download-title"
-        className="w-full max-w-lg rounded-3xl border border-white/70 bg-white/90 p-8 text-center shadow-2xl backdrop-blur sm:p-12"
+        className="app-download-card w-full max-w-lg rounded-3xl p-8 text-center sm:p-12"
       >
-        <div className="mx-auto grid size-20 place-items-center rounded-3xl bg-gradient-to-br from-primary to-violet-600 text-white shadow-lg">
+        <div className="app-download-icon mx-auto grid size-20 place-items-center rounded-3xl text-white shadow-lg">
           <AudienceIcon aria-hidden="true" className="size-10" />
         </div>
         <p className="mt-7 text-sm font-semibold text-primary">{t("eyebrow")}</p>

@@ -34,6 +34,8 @@ describe("AppDownloadScreen", () => {
     expect(
       screen.getByRole("heading", { name: "Student App" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("main")).toHaveClass("app-download-background");
+    expect(screen.getByRole("region")).toHaveClass("app-download-card");
     expect(screen.getByRole("link", { name: "android" })).toHaveAttribute(
       "target",
       "_blank",
