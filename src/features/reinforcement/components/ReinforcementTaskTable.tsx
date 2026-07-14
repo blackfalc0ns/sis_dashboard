@@ -66,14 +66,14 @@ const sourceLabel = (source: unknown, t: Translator) => {
 
 const rewardLabel = (task: ReinforcementTask, t: Translator) => {
   const rewardType =
-    typeof task.rewardType === "string" && VALID_REWARD_TYPES.has(task.rewardType)
-      ? task.rewardType
+    typeof task.reward.type === "string" && VALID_REWARD_TYPES.has(task.reward.type)
+      ? task.reward.type
       : undefined;
   const typeLabel = rewardType
     ? t(`rewardType.${rewardType}`)
     : t("tasks.table.reward", { defaultValue: "-" });
 
-  return `${typeLabel}${task.rewardValue ? ` / ${task.rewardValue}` : ""}`;
+  return `${typeLabel}${task.reward.value !== null ? ` / ${task.reward.value}` : ""}`;
 };
 
 export default function ReinforcementTaskTable({
@@ -106,7 +106,7 @@ export default function ReinforcementTaskTable({
     },
     { key: "source", label: t("tasks.table.source"), render: (value) => sourceLabel(value, t) },
     { key: "status", label: t("tasks.table.status"), render: (value) => statusLabel(value, t) },
-    { key: "rewardType", label: t("tasks.table.reward"), render: (_value, task) => rewardLabel(task, t) },
+    { key: "reward", label: t("tasks.table.reward"), render: (_value, task) => rewardLabel(task, t) },
     {
       key: "dueDate",
       label: t("tasks.table.dueDate"),

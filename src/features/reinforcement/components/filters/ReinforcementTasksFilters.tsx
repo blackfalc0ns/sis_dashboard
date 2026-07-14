@@ -212,6 +212,7 @@ export default function ReinforcementTasksFilters({
               { value: "all", label: t("filters.allStatuses") },
               { value: "cancelled", label: t("status.cancelled") },
               { value: "in_progress", label: t("status.in_progress") },
+              { value: "under_review", label: t("status.under_review") },
               { value: "completed", label: t("status.completed") },
               { value: "not_completed", label: t("status.not_completed") },
             ]}

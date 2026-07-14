@@ -25,7 +25,6 @@ import type {
   BehaviorRecordUpdatePayload,
   BehaviorReviewRecord,
   BehaviorReviewQueueFilters,
-  BehaviorReviewQueueItem,
   BehaviorReviewQueueResponse,
   BehaviorStudentSummaryFilters,
   BehaviorStudentSummaryResponse,
@@ -261,8 +260,8 @@ export async function listBehaviorReviewQueue(
 /** GET /behavior/review-queue/:id */
 export async function getBehaviorReviewQueueItem(
   id: string,
-): Promise<BehaviorReviewQueueItem> {
-  return apiGet<BehaviorReviewQueueItem>(`${BASE}/review-queue/${id}`);
+): Promise<BehaviorReviewRecord> {
+  return apiGet<BehaviorReviewRecord>(`${BASE}/review-queue/${id}`);
 }
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────

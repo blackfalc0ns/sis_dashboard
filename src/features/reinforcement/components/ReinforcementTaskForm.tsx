@@ -67,7 +67,9 @@ export function buildReinforcementTaskPayload(
   const fallbackTitle = draft.titleEn.trim() || draft.titleAr.trim();
   const descriptionEn = optionalString(draft.descriptionEn);
   const descriptionAr = optionalString(draft.descriptionAr);
-  const rewardValue = optionalString(draft.rewardValue);
+  const rewardValue = draft.rewardValue.trim()
+    ? Number(draft.rewardValue)
+    : undefined;
   const rewardLabelEn = optionalString(draft.rewardLabelEn);
   const rewardLabelAr = optionalString(draft.rewardLabelAr);
 
@@ -83,7 +85,7 @@ export function buildReinforcementTaskPayload(
     ...(descriptionAr ? { descriptionAr } : {}),
     source: draft.source,
     rewardType: draft.rewardType,
-    ...(rewardValue ? { rewardValue } : {}),
+    ...(rewardValue !== undefined ? { rewardValue } : {}),
     ...(rewardLabelEn ? { rewardLabelEn } : {}),
     ...(rewardLabelAr ? { rewardLabelAr } : {}),
     dueDate: draft.dueDate,
@@ -313,6 +315,8 @@ export default function ReinforcementTaskForm({
             ]}
           />
           <Input
+            type="number"
+            min={0}
             label={t("tasks.form.rewardValue")}
             value={draft.rewardValue}
             onChange={(event) =>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { Award, AlertTriangle, TrendingUp, Plus, AlertCircle } from "lucide-react";
+import { Award, AlertTriangle, TrendingUp, Plus, AlertCircle, ShieldAlert } from "lucide-react";
 import { Student } from "@/features/students-guardians/students/types";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { DataTable, type Column } from "@/components/ui/data-table";
@@ -11,6 +11,7 @@ import { behaviorUiError } from "@/features/behavior/services/behaviorErrors";
 import {
   canSubmitStudentBehaviorRecord,
   validateRecordContent,
+  validateRecordTermDate,
 } from "@/features/behavior/shared/utils/behaviorUiRules";
 import BehaviorDetailDrawer from "@/features/behavior/shared/components/BehaviorDetailDrawer";
 import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
@@ -21,6 +22,7 @@ import Select, { type SelectOption } from "@/components/ui/input/Select";
 import DatePicker from "@/components/ui/input/DatePicker";
 import EmptyState from "@/components/ui/empty-state/EmptyState";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import { usePermissions } from "@/hooks/usePermissions";
 import type {
   BehaviorSummary,
   BehaviorRecord,
@@ -81,7 +83,16 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
   const tBehavior = useTranslations("behavior");
   const locale = useLocale();
   const isRTL = locale === "ar";
-  const { yearId, termId } = useStudentsGuardiansYearTermContext();
+  const { yearId, termId, terms } = useStudentsGuardiansYearTermContext();
+  const { hasPermission, isPermissionsReady } = usePermissions();
+  const canViewBehavior = isPermissionsReady && hasPermission("behavior.records.view");
+  const canCreateBehavior =
+    canViewBehavior &&
+    hasPermission("behavior.records.create") &&
+    hasPermission("behavior.categories.view");
+  const selectedTerm = terms.find((term) => term.id === termId);
+  const minDate = selectedTerm?.startDate ? new Date(selectedTerm.startDate) : undefined;
+  const maxDate = selectedTerm?.endDate ? new Date(selectedTerm.endDate) : undefined;
 
   // ── Summary state ──────────────────────────────────────────────────────────
   const [summary, setSummary] = useState<BehaviorSummary | null>(null);
@@ -116,13 +127,16 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
 
   // ── Load summary ───────────────────────────────────────────────────────────
   const loadSummary = useCallback(async () => {
+    if (!canViewBehavior) return;
     setIsLoadingSummary(true);
     setSummaryError(null);
     try {
       const data = await behaviorApi.fetchStudentBehaviorSummary(student.id, {
-        includeTimeline: true,
-        includeCategoryBreakdown: true,
-        includeLedger: true,
+        academicYearId: yearId ?? undefined,
+        termId: termId ?? undefined,
+        includeTimeline: false,
+        includeCategoryBreakdown: false,
+        includeLedger: false,
       });
       setSummary(data);
     } catch (err) {
@@ -133,14 +147,17 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
     } finally {
       setIsLoadingSummary(false);
     }
-  }, [student.id]);
+  }, [canViewBehavior, student.id, termId, yearId]);
 
   const loadRecords = useCallback(async () => {
+    if (!canViewBehavior) return;
     setIsLoadingRecords(true);
     setRecordsError(null);
     try {
       const studentRecords = await behaviorApi.fetchBehaviorRecords({
         studentId: student.id,
+        academicYearId: yearId ?? undefined,
+        termId: termId ?? undefined,
       });
       setRecords(studentRecords);
     } catch (err) {
@@ -151,16 +168,17 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
     } finally {
       setIsLoadingRecords(false);
     }
-  }, [student.id]);
+  }, [canViewBehavior, student.id, termId, yearId]);
 
   useEffect(() => {
-    loadSummary();
-    loadRecords();
-  }, [loadRecords, loadSummary]);
+    if (!isPermissionsReady || !canViewBehavior) return;
+    void loadSummary();
+    void loadRecords();
+  }, [canViewBehavior, isPermissionsReady, loadRecords, loadSummary]);
 
   // ── Load categories when modal type changes ────────────────────────────────
   useEffect(() => {
-    if (!isModalOpen) return;
+    if (!isModalOpen || !canCreateBehavior) return;
 
     let mounted = true;
     setIsLoadingCategories(true);
@@ -183,7 +201,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
     return () => {
       mounted = false;
     };
-  }, [recordType, isModalOpen]);
+  }, [canCreateBehavior, recordType, isModalOpen]);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const openModal = () => {
@@ -207,7 +225,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
     if (e) e.preventDefault();
     setModalError(null);
 
-    if (!yearId) return;
+    if (!canCreateBehavior || !yearId) return;
 
     const titleEnTrimmed = titleEn.trim() || undefined;
     const titleArTrimmed = titleAr.trim() || undefined;
@@ -236,6 +254,11 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
         setModalError(tBehavior("errors.categoryTypeMismatch"));
         return;
       }
+    }
+
+    if (!occurredAt || !selectedTerm || !validateRecordTermDate(occurredAt, selectedTerm)) {
+      setModalError(tBehavior("errors.occurredAtOutsideTerm"));
+      return;
     }
 
     setIsSubmitting(true);
@@ -273,7 +296,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
   const categoryOptions = useMemo<SelectOption[]>(() => {
     return categories.map((cat) => ({
       value: cat.id,
-      label: `${isRTL ? cat.nameAr : cat.nameEn} ${cat.defaultPoints ? `(${cat.defaultPoints} pts)` : ""}`,
+      label: `${localizePair(isRTL, cat.nameEn, cat.nameAr) || cat.code} ${cat.defaultPoints ? `(${cat.defaultPoints} pts)` : ""}`,
     }));
   }, [categories, isRTL]);
 
@@ -350,6 +373,24 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
   const openIncidents = summary?.review.pendingReview ?? 0;
 
   // ── Render ─────────────────────────────────────────────────────────────────
+  if (!isPermissionsReady) {
+    return <div className="flex justify-center py-16"><PartialLoader size={32} /></div>;
+  }
+
+  if (!canViewBehavior) {
+    return (
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-900">
+        <div className="flex items-start gap-3">
+          <ShieldAlert className="mt-0.5 h-5 w-5" aria-hidden="true" />
+          <div>
+            <h2 className="font-semibold">{tBehavior("states.accessDenied.title")}</h2>
+            <p className="mt-1 text-sm">{tBehavior("states.accessDenied.description")}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Error banner */}
@@ -417,13 +458,15 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
               </Button>
             </div>
 
-            <Button
-              type="button"
-              onClick={openModal}
-              leftIcon={<Plus className="w-4 h-4" />}
-            >
-              {tBehavior("actions.newRecord")}
-            </Button>
+            {canCreateBehavior && (
+              <Button
+                type="button"
+                onClick={openModal}
+                leftIcon={<Plus className="w-4 h-4" />}
+              >
+                {tBehavior("actions.newRecord")}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -568,6 +611,8 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
                 value={occurredAt}
                 onChange={setOccurredAt}
                 disabled={isSubmitting}
+                minDate={minDate}
+                maxDate={maxDate}
               />
             </div>
           </div>

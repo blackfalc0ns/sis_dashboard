@@ -135,6 +135,24 @@ describe("BehaviorCategoriesPage - Category Deletion", () => {
     expect(screen.getByText("category.code")).toBeInTheDocument();
   });
 
+  it("falls back to the available category name when the localized name is null", async () => {
+    const response: BehaviorCategoryListResponse = {
+      items: [{
+        ...mockCategories[0],
+        nameEn: null,
+        nameAr: "السلوك",
+        descriptionEn: null,
+        descriptionAr: null,
+      }],
+      total: 1,
+    };
+    vi.mocked(listBehaviorCategories).mockResolvedValue(response);
+
+    render(<BehaviorCategoriesPage />);
+
+    expect(await screen.findByText("السلوك")).toBeInTheDocument();
+  });
+
   it("renders delete buttons for active categories if not read-only", async () => {
     render(<BehaviorCategoriesPage />);
 

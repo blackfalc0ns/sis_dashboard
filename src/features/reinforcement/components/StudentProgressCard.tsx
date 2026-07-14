@@ -3,22 +3,13 @@
 import { BookOpen, Coins, ListChecks } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import type {
-  ReinforcementTask,
+  ReinforcementCompactTask,
   StudentReinforcementProgress,
   XpSummary,
 } from "../types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
-
-const asRecord = (value: unknown): Record<string, unknown> | undefined =>
-  isRecord(value) ? value : undefined;
-
-const asRecordArray = (value: unknown): Record<string, unknown>[] =>
-  Array.isArray(value) ? value.filter(isRecord) : [];
-
-const asString = (value: unknown): string | undefined =>
-  typeof value === "string" && value.trim() ? value : undefined;
 
 const toLabel = (key: string): string =>
   key
@@ -44,19 +35,21 @@ const localizedValue = (value: unknown, t: Translator): string => {
 };
 
 const fieldLabel = (key: string, t: Translator): string =>
-  t.has(`progressFields.${key}`) ? t(`progressFields.${key}`) : toLabel(key);
+  typeof t.has === "function" && t.has(`progressFields.${key}`)
+    ? t(`progressFields.${key}`)
+    : toLabel(key);
 
 const xpValue = (value: unknown, t: Translator): string =>
   `${toValue(value)} ${t("xp.unit")}`;
 
-const localizedTaskTitle = (task: ReinforcementTask, locale: string): string =>
+const localizedTaskTitle = (task: ReinforcementCompactTask, locale: string): string =>
   locale === "ar"
     ? task.titleAr || task.titleEn || task.id
     : task.titleEn || task.titleAr || task.id;
 
 const translatedStatusLabel = (status: unknown, t: Translator): string => {
   const value = typeof status === "string" ? status : "";
-  return value && t.has(`status.${value}`)
+  return value && typeof t.has === "function" && t.has(`status.${value}`)
     ? t(`status.${value}`)
     : value
       ? toLabel(value)
@@ -66,80 +59,23 @@ const translatedStatusLabel = (status: unknown, t: Translator): string => {
 const normalizeProgressSummary = (
   progress: StudentReinforcementProgress,
 ): Record<string, unknown> | undefined => {
-  if (isRecord(progress.summary) && Object.keys(progress.summary).length > 0) {
-    return progress.summary;
-  }
-
-  const assignments = asRecord(progress.assignments);
-  const submissions = asRecord(progress.submissions);
   const summary: Record<string, unknown> = {};
 
-  Object.entries(assignments ?? {}).forEach(([key, value]) => {
+  Object.entries(progress.assignments).forEach(([key, value]) => {
     summary[key] = value;
   });
 
-  Object.entries(submissions ?? {}).forEach(([key, value]) => {
+  Object.entries(progress.submissions).forEach(([key, value]) => {
     summary[`submissions.${key}`] = value;
   });
 
   return Object.keys(summary).length > 0 ? summary : undefined;
 };
 
-const normalizeTasks = (
-  progress: StudentReinforcementProgress,
-): ReinforcementTask[] => {
-  if (!Array.isArray(progress.tasks)) return [];
-
-  return progress.tasks
-    .map((item) => {
-      const row = asRecord(item);
-      if (!row) return undefined;
-
-      const nestedTask = asRecord(row.task);
-      const taskRecord = nestedTask ?? row;
-      const taskId = asString(taskRecord.id) || asString(row.taskId);
-
-      if (!taskId) return undefined;
-
-      return {
-        ...taskRecord,
-        id: taskId,
-        titleEn:
-          asString(taskRecord.titleEn) || asString(taskRecord.title) || taskId,
-        titleAr:
-          asString(taskRecord.titleAr) ||
-          asString(taskRecord.titleEn) ||
-          asString(taskRecord.title) ||
-          taskId,
-        source: asString(taskRecord.source) || "system",
-        rewardType: asString(taskRecord.rewardType) || "xp",
-        status: asString(row.status) || asString(taskRecord.status),
-        dueDate: asString(taskRecord.dueDate),
-        assignmentId: asString(row.assignmentId),
-        progress: typeof row.progress === "number" ? row.progress : undefined,
-        assignedAt: asString(row.assignedAt),
-        startedAt: asString(row.startedAt),
-        completedAt: asString(row.completedAt),
-        cancelledAt: asString(row.cancelledAt),
-      } as ReinforcementTask;
-    })
-    .filter((task): task is ReinforcementTask => Boolean(task));
-};
-
 const normalizeXpSummary = (
   progress: StudentReinforcementProgress,
-): XpSummary | undefined => {
-  if (
-    isRecord(progress.xpSummary) &&
-    Object.keys(progress.xpSummary).length > 0
-  ) {
-    return progress.xpSummary as XpSummary;
-  }
-
-  const xp = asRecord(progress.xp);
-  if (!xp) return undefined;
-
-  const ledgerEntries = asRecordArray(xp.recentLedgerEntries);
+): XpSummary => {
+  const ledgerEntries = progress.xp.recentLedgerEntries;
   const earnedXp = ledgerEntries
     .filter((entry) => typeof entry.amount === "number" && entry.amount > 0)
     .reduce((total, entry) => total + (entry.amount as number), 0);
@@ -150,10 +86,10 @@ const normalizeXpSummary = (
   );
 
   return {
-    totalXp: typeof xp.totalXp === "number" ? xp.totalXp : undefined,
+    totalXp: progress.xp.totalXp,
     earnedXp: earnedXp || undefined,
     spentXp: spentXp || undefined,
-    balance: typeof xp.totalXp === "number" ? xp.totalXp : undefined,
+    balance: progress.xp.totalXp,
     ledgerCount: ledgerEntries.length || undefined,
   };
 };
@@ -218,7 +154,7 @@ function XpSummaryBlock({ xpSummary }: { xpSummary?: XpSummary }) {
         {rows.map(([key, value]) => (
           <div key={key as string} className="rounded-lg bg-gray-50 px-3 py-3">
             <div className="text-xs font-medium uppercase text-gray-500">
-              {xpT.has(`summary.${key as string}`)
+              {typeof xpT.has === "function" && xpT.has(`summary.${key as string}`)
                 ? xpT(`summary.${key as string}`)
                 : fieldLabel(key as string, t)}
             </div>
@@ -238,8 +174,7 @@ function XpSourceBreakdownBlock({
   progress: StudentReinforcementProgress;
 }) {
   const t = useTranslations("reinforcement");
-  const xp = asRecord(progress.xp);
-  const sourceRows = asRecordArray(xp?.bySourceType).filter(
+  const sourceRows = progress.xp.bySourceType.filter(
     (row) => Number(row.count ?? 0) > 0 || Number(row.totalXp ?? 0) > 0,
   );
 
@@ -255,7 +190,7 @@ function XpSourceBreakdownBlock({
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {sourceRows.map((row) => {
-          const sourceType = asString(row.sourceType) || "system";
+          const sourceType = row.sourceType || "system";
 
           return (
             <div key={sourceType} className="rounded-lg bg-gray-50 px-3 py-3">
@@ -285,8 +220,7 @@ function RecentLedgerEntriesBlock({
 }) {
   const locale = useLocale();
   const t = useTranslations("reinforcement");
-  const xp = asRecord(progress.xp);
-  const entries = asRecordArray(xp?.recentLedgerEntries);
+  const entries = progress.xp.recentLedgerEntries;
 
   if (entries.length === 0) return null;
 
@@ -300,17 +234,16 @@ function RecentLedgerEntriesBlock({
       </div>
       <div className="divide-y divide-gray-100">
         {entries.slice(0, 5).map((entry, index) => {
-          const sourceType = asString(entry.sourceType) || "system";
-          const occurredAt =
-            asString(entry.occurredAt) || asString(entry.createdAt);
+          const sourceType = entry.sourceType || "system";
+          const occurredAt = entry.occurredAt || entry.createdAt;
           const reason =
             locale === "ar"
-              ? asString(entry.reasonAr) || asString(entry.reason)
-              : asString(entry.reason) || asString(entry.reasonAr);
+              ? entry.reasonAr || entry.reason
+              : entry.reason || entry.reasonAr;
 
           return (
             <div
-              key={asString(entry.id) || `${sourceType}-${index}`}
+              key={entry.id || `${sourceType}-${index}`}
               className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0">
@@ -356,7 +289,7 @@ export default function StudentProgressCard({
 }: StudentProgressCardProps) {
   const locale = useLocale();
   const t = useTranslations("reinforcement");
-  const tasks = normalizeTasks(progress);
+  const tasks = progress.tasks;
   const summary = normalizeProgressSummary(progress);
   const xpSummary = normalizeXpSummary(progress);
 
@@ -392,24 +325,24 @@ export default function StudentProgressCard({
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {tasks.slice(0, 10).map((task) => (
+            {tasks.slice(0, 10).map((row) => (
               <div
-                key={task.id}
+                key={row.assignmentId}
                 className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-gray-900">
-                    {localizedTaskTitle(task, locale)}
+                    {localizedTaskTitle(row.task, locale)}
                   </div>
                   <div className="mt-1 text-xs text-gray-500">
-                    {translatedStatusLabel(task.status, t) || task.id}
+                    {translatedStatusLabel(row.status, t) || row.taskId}
                   </div>
                 </div>
-                {task.dueDate ? (
+                {row.task.dueDate ? (
                   <div className="text-xs text-gray-500">
                     {new Intl.DateTimeFormat(locale, {
                       dateStyle: "medium",
-                    }).format(new Date(task.dueDate))}
+                    }).format(new Date(row.task.dueDate))}
                   </div>
                 ) : null}
               </div>

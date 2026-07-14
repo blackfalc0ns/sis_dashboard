@@ -32,10 +32,10 @@ export interface BehaviorFilters {
 export interface BehaviorCategory {
   id: string;
   code: string;
-  nameEn: string;
-  nameAr: string;
-  descriptionEn?: string;
-  descriptionAr?: string;
+  nameEn: string | null;
+  nameAr: string | null;
+  descriptionEn: string | null;
+  descriptionAr: string | null;
   type: BehaviorType;
   defaultSeverity: BehaviorSeverity;
   defaultPoints: number;
@@ -100,14 +100,48 @@ export interface BehaviorCategoryListResponse {
   total?: number;
 }
 
+export interface BehaviorTerm {
+  id: string;
+  academicYearId: string;
+  nameEn: string;
+  nameAr: string;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+}
+
+export interface BehaviorEnrollment {
+  id: string;
+  studentId: string;
+  academicYearId: string;
+  termId: string;
+  classroomId: string;
+  status: string;
+  classroom?: {
+    id: string;
+    nameEn: string;
+    nameAr: string;
+    section?: {
+      id: string;
+      nameEn: string;
+      nameAr: string;
+      grade?: {
+        id: string;
+        nameEn: string;
+        nameAr: string;
+      };
+    };
+  };
+}
+
 // ─── Record ────────────────────────────────────────────────────────────────
 export interface BehaviorRecord {
   id: string;
   academicYearId?: string;
-  termId?: string;
+  termId: string | null;
   studentId: string;
-  enrollmentId?: string;
-  categoryId: string;
+  enrollmentId: string | null;
+  categoryId: string | null;
   categoryName?: string;
   titleEn?: string;
   titleAr?: string;
@@ -133,7 +167,7 @@ export interface BehaviorRecord {
     displayName: string;
     status: string;
   };
-  category?: BehaviorCategory;
+  category: BehaviorCategory | null;
   academicYear?: {
     id: string;
     nameEn: string;
@@ -142,38 +176,8 @@ export interface BehaviorRecord {
     endDate: string;
     isActive: boolean;
   };
-  term?: {
-    id: string;
-    academicYearId: string;
-    nameEn: string;
-    nameAr: string;
-    startDate: string;
-    endDate: string;
-    isActive: boolean;
-  };
-  enrollment?: {
-    id: string;
-    studentId: string;
-    academicYearId: string;
-    termId: string;
-    classroomId: string;
-    status: string;
-    classroom?: {
-      id: string;
-      nameEn: string;
-      nameAr: string;
-      section?: {
-        id: string;
-        nameEn: string;
-        nameAr: string;
-        grade?: {
-          id: string;
-          nameEn: string;
-          nameAr: string;
-        };
-      };
-    };
-  };
+  term: BehaviorTerm | null;
+  enrollment: BehaviorEnrollment | null;
   createdBy?: {
     id: string;
     firstName: string;

@@ -12067,6 +12067,7 @@
       "submitted": "Submitted",
       "approved": "Approved",
       "rejected": "Rejected",
+      "cancelled": "Cancelled",
       "dateFrom": "Date from",
       "dateTo": "Date to",
       "reset": "Reset",
@@ -12114,6 +12115,10 @@
       },
       "error": {
         "title": "Failed to load data"
+      },
+      "accessDenied": {
+        "title": "Access denied",
+        "description": "You do not have permission to view student behavior records."
       }
     },
     "drawer": {

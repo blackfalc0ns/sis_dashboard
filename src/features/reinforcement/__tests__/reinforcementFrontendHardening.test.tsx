@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import ReinforcementTaskTable from "@/features/reinforcement/components/ReinforcementTaskTable";
+import ClassroomSummaryPanel from "@/features/reinforcement/components/ClassroomSummaryPanel";
+import StudentProgressCard from "@/features/reinforcement/components/StudentProgressCard";
 import ReinforcementTemplateTable from "@/features/reinforcement/components/ReinforcementTemplateTable";
 import { buildReinforcementTemplatePayload } from "@/features/reinforcement/components/ReinforcementTemplateForm";
 import {
@@ -137,6 +139,7 @@ describe("Sprint 5A reinforcement frontend hardening", () => {
       proofType: "document",
     });
     expect(payload.targets[0]).not.toHaveProperty("assignmentId");
+    expect(payload.rewardValue).toBe(5);
   });
 
   it("maps task stages with stable sort order", () => {
@@ -162,9 +165,13 @@ describe("Sprint 5A reinforcement frontend hardening", () => {
       titleEn: "Leadership",
       titleAr: "قيادة",
       source: "teacher",
-      rewardType: "xp",
-      rewardValue: 10,
-      status: "in_progress",
+      reward: {
+        type: "xp",
+        value: 10,
+        labelEn: null,
+        labelAr: null,
+      },
+      status: "under_review",
       targets: [],
       stages: [],
     };
@@ -180,7 +187,7 @@ describe("Sprint 5A reinforcement frontend hardening", () => {
 
     expect(screen.getByText("Leadership")).toBeInTheDocument();
     expect(screen.getByText("source.teacher")).toBeInTheDocument();
-    expect(screen.getByText("In progress")).toBeInTheDocument();
+    expect(screen.getByText("Under review")).toBeInTheDocument();
     expect(screen.getByText("rewardType.xp / 10")).toBeInTheDocument();
     expect(screen.queryByText("actions.duplicate")).not.toBeInTheDocument();
   });
@@ -191,7 +198,12 @@ describe("Sprint 5A reinforcement frontend hardening", () => {
       titleEn: "Cancelled task",
       titleAr: "ملغاة",
       source: "teacher",
-      rewardType: "xp",
+      reward: {
+        type: "xp",
+        value: null,
+        labelEn: null,
+        labelAr: null,
+      },
       status: "cancelled",
       targets: [],
       stages: [],
@@ -209,6 +221,132 @@ describe("Sprint 5A reinforcement frontend hardening", () => {
     expect(screen.getByText("Cancelled task")).toBeInTheDocument();
     expect(screen.getByText("Cancelled")).toBeInTheDocument();
     expect(screen.queryByText("actions.cancel")).not.toBeInTheDocument();
+  });
+
+  it("renders the backend student progress response without legacy fields", () => {
+    render(
+      <StudentProgressCard
+        progress={{
+          student: {
+            id: "student-1",
+            firstName: "Student",
+            lastName: "One",
+            name: "Student One",
+            nameAr: null,
+            code: null,
+            admissionNo: null,
+          },
+          enrollment: null,
+          assignments: {
+            total: 2,
+            notCompleted: 0,
+            inProgress: 0,
+            underReview: 1,
+            completed: 1,
+            cancelled: 0,
+            completionRate: 50,
+          },
+          tasks: [
+            {
+              taskId: "task-1",
+              assignmentId: "assignment-1",
+              status: "under_review",
+              progress: 50,
+              assignedAt: "2026-07-01T00:00:00.000Z",
+              startedAt: null,
+              completedAt: null,
+              cancelledAt: null,
+              task: {
+                id: "task-1",
+                academicYearId: "year-1",
+                termId: "term-1",
+                subjectId: null,
+                titleEn: "Reading task",
+                titleAr: "Reading task",
+                source: "teacher",
+                status: "in_progress",
+                dueDate: null,
+                assignedById: null,
+                assignedByName: null,
+                createdAt: "2026-07-01T00:00:00.000Z",
+                updatedAt: "2026-07-01T00:00:00.000Z",
+              },
+            },
+          ],
+          submissions: {
+            submitted: 1,
+            approved: 0,
+            rejected: 0,
+            pendingReview: 1,
+          },
+          xp: {
+            totalXp: 25,
+            bySourceType: [],
+            recentLedgerEntries: [],
+          },
+          recentReviews: [],
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Reading task")).toBeInTheDocument();
+    expect(screen.getAllByText("25").length).toBeGreaterThan(0);
+  });
+
+  it("renders the backend classroom summary response without legacy fields", () => {
+    render(
+      <ClassroomSummaryPanel
+        summary={{
+          classroom: {
+            classroomId: "classroom-1",
+            classroomName: "Class A",
+            sectionId: "section-1",
+            sectionName: "Section A",
+            gradeId: "grade-1",
+            gradeName: "Grade 1",
+            stageId: "stage-1",
+            stageName: "Primary",
+          },
+          studentsCount: 1,
+          assignments: {
+            total: 2,
+            notCompleted: 0,
+            inProgress: 1,
+            underReview: 0,
+            completed: 1,
+            cancelled: 0,
+            completionRate: 50,
+          },
+          reviewQueue: {
+            submitted: 0,
+            approved: 1,
+            rejected: 0,
+            pendingReview: 0,
+          },
+          xp: {
+            totalXp: 25,
+            studentsWithXp: 1,
+            averageXp: 25,
+            bySourceType: [],
+          },
+          topStudents: [],
+          students: [
+            {
+              studentId: "student-1",
+              name: "Student One",
+              totalXp: 25,
+              assignmentsTotal: 2,
+              assignmentsCompleted: 1,
+              completionRate: 50,
+              pendingReviews: 0,
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Student One")).toBeInTheDocument();
+    expect(screen.getAllByText("25").length).toBeGreaterThan(0);
   });
 
   it("renders template enum labels and empty state", () => {

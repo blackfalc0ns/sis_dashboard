@@ -16,9 +16,12 @@ import {
   duplicateReinforcementTask,
   getReinforcementTask,
 } from "../services/reinforcementTasksService";
+import { getReinforcementFilterOptions } from "../services/reinforcementFilterOptionsService";
+import { getReinforcementTaskTargetLabel } from "../utils/reinforcementTaskPresentation";
 import type {
   CancelReinforcementTaskPayload,
   DuplicateReinforcementTaskPayload,
+  ReinforcementFilterOptions,
   ReinforcementTask,
 } from "../types";
 
@@ -27,6 +30,7 @@ interface ReinforcementTaskDetailPageProps {
 }
 
 const statusLabels: Record<string, { en: string; ar: string }> = {
+  under_review: { en: "Under review", ar: "قيد المراجعة" },
   cancelled: { en: "Cancelled", ar: "ملغي" },
   completed: { en: "Completed", ar: "مكتمل" },
   in_progress: { en: "In progress", ar: "قيد التنفيذ" },
@@ -94,6 +98,8 @@ export default function ReinforcementTaskDetailPage({
   const { isLoading: authLoading } = useAuth();
   const { hasPermission } = usePermissions();
   const [task, setTask] = useState<ReinforcementTask | null>(null);
+  const [filterOptions, setFilterOptions] =
+    useState<ReinforcementFilterOptions>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
@@ -106,7 +112,18 @@ export default function ReinforcementTaskDetailPage({
     setLoading(true);
     setError(null);
     try {
-      setTask(await getReinforcementTask(taskId));
+      const nextTask = await getReinforcementTask(taskId);
+      setTask(nextTask);
+      try {
+        setFilterOptions(
+          await getReinforcementFilterOptions({
+            academicYearId: nextTask.academicYearId,
+            termId: nextTask.termId,
+          }),
+        );
+      } catch {
+        setFilterOptions({});
+      }
     } catch (nextError) {
       const message =
         nextError instanceof Error ? nextError.message : t("common.error");
@@ -212,8 +229,8 @@ export default function ReinforcementTaskDetailPage({
               {[
                 ["status", statusLabels[String(task.status)]?.[locale === "ar" ? "ar" : "en"] || task.status],
                 ["source", task.source ? t(`source.${String(task.source).toLowerCase()}`, { defaultMessage: String(task.source) }) : "-"],
-                ["rewardType", (task.reward as Record<string, unknown>)?.type
-                  ? t(`rewardType.${String((task.reward as Record<string, unknown>).type).toLowerCase()}`, { defaultMessage: String((task.reward as Record<string, unknown>).type) })
+                ["rewardType", task.reward.type
+                  ? t(`rewardType.${task.reward.type}`, { defaultMessage: task.reward.type })
                   : "-"],
                 ["dueDate", task.dueDate
                   ? new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", { dateStyle: "medium" }).format(new Date(task.dueDate))
@@ -246,7 +263,7 @@ export default function ReinforcementTaskDetailPage({
           )}
 
           {/* Reward details */}
-          {(task.reward as Record<string, unknown>) && (
+          {task.reward && (
             <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
               <h2 className="text-base font-semibold text-gray-900">
                 {t("tasks.form.reward")}
@@ -257,8 +274,8 @@ export default function ReinforcementTaskDetailPage({
                     {t("tasks.form.rewardType")}
                   </div>
                   <div className="mt-1 text-sm font-semibold text-gray-900">
-                    {(task.reward as Record<string, unknown>)?.type
-                      ? t(`rewardType.${String((task.reward as Record<string, unknown>).type).toLowerCase()}`, { defaultMessage: String((task.reward as Record<string, unknown>).type) })
+                    {task.reward.type
+                      ? t(`rewardType.${task.reward.type}`, { defaultMessage: task.reward.type })
                       : "-"}
                   </div>
                 </div>
@@ -267,8 +284,8 @@ export default function ReinforcementTaskDetailPage({
                     {t("tasks.form.rewardValue")}
                   </div>
                   <div className="mt-1 text-sm font-semibold text-gray-900">
-                    {(task.reward as Record<string, unknown>)?.value != null
-                      ? String((task.reward as Record<string, unknown>).value)
+                    {task.reward.value != null
+                      ? String(task.reward.value)
                       : "-"}
                   </div>
                 </div>
@@ -278,8 +295,8 @@ export default function ReinforcementTaskDetailPage({
                   </div>
                   <div className="mt-1 text-sm font-semibold text-gray-900">
                     {locale === "ar"
-                      ? String((task.reward as Record<string, unknown>)?.labelAr || (task.reward as Record<string, unknown>)?.labelEn || "-")
-                      : String((task.reward as Record<string, unknown>)?.labelEn || (task.reward as Record<string, unknown>)?.labelAr || "-")}
+                      ? task.reward.labelAr || task.reward.labelEn || "-"
+                      : task.reward.labelEn || task.reward.labelAr || "-"}
                   </div>
                 </div>
                 {task.assignedByName && (
@@ -348,12 +365,17 @@ export default function ReinforcementTaskDetailPage({
                 <span className="text-sm text-gray-500">{t("common.empty")}</span>
               ) : (
                 (task.targets || []).map((target, idx) => {
-                  const t_target = target as Record<string, unknown>;
-                  const targetLabel = String(t_target.nameEn || t_target.nameAr || t_target.scopeKey || t_target.scopeId || t_target.studentId || t_target.classroomId || "-");
-                  const scopeLabel = t_target.scopeType ? t(`assignmentScope.${String(t_target.scopeType).toLowerCase()}`, { defaultMessage: String(t_target.scopeType) }) : "";
+                  const targetLabel = getReinforcementTaskTargetLabel(
+                    target,
+                    filterOptions,
+                    locale === "ar" ? "ar" : "en",
+                  );
+                  const scopeLabel = t(`assignmentScope.${target.scopeType}`, {
+                    defaultMessage: target.scopeType,
+                  });
                   return (
                     <span
-                      key={String(t_target.id || `${t_target.scopeType}:${t_target.scopeKey || idx}`)}
+                      key={target.id || `${target.scopeType}:${target.scopeKey || idx}`}
                       className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary"
                     >
                       {scopeLabel ? <span className="text-xs text-primary/60">{scopeLabel}:</span> : null}

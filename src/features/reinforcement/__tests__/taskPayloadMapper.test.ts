@@ -135,6 +135,30 @@ describe("reinforcement task payload contracts", () => {
     ]);
   });
 
+  it("does not forward a non-numeric reward value to the backend", () => {
+    const payload = {
+      titleEn: "Reading task",
+      titleAr: "Reading task",
+      source: "teacher",
+      rewardType: "badge",
+      rewardValue: "Reading Star",
+      dueDate: "2026-07-21",
+      targets: [{ scopeType: "student", scopeId: "student-1" }],
+      stages: [
+        {
+          sortOrder: 1,
+          titleEn: "Read",
+          titleAr: "Read",
+          proofType: "none",
+        },
+      ],
+    } as unknown as CreateReinforcementTaskPayload;
+
+    expect(serializeCreateReinforcementTaskPayload(payload)).not.toHaveProperty(
+      "rewardValue",
+    );
+  });
+
   it("omits empty, nullish, and all query values", () => {
     expect(
       buildReinforcementQueryString({

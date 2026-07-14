@@ -25,8 +25,13 @@ import type { BehaviorCategory, BehaviorRecord, BehaviorReviewQueueItem } from "
 
 const baseRecord: BehaviorRecord = {
   id: "record-1",
+  termId: null,
   studentId: "student-1",
+  enrollmentId: null,
   categoryId: "category-1",
+  category: null,
+  term: null,
+  enrollment: null,
   status: "draft",
   points: 0,
   occurredAt: "2026-06-25T08:00:00.000Z",
@@ -36,6 +41,8 @@ const categories: BehaviorCategory[] = [
   {
     id: "positive-category",
     code: "POS",
+    descriptionEn: null,
+    descriptionAr: null,
     nameEn: "Helping",
     nameAr: "مساعدة",
     type: "positive",
@@ -47,6 +54,8 @@ const categories: BehaviorCategory[] = [
   {
     id: "negative-category",
     code: "NEG",
+    descriptionEn: null,
+    descriptionAr: null,
     nameEn: "Late",
     nameAr: "تأخير",
     type: "negative",

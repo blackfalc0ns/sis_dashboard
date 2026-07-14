@@ -37,6 +37,7 @@ export default function BehaviorFiltersBar({
     { value: "submitted", label: t("submitted") },
     { value: "approved", label: t("approved") },
     { value: "rejected", label: t("rejected") },
+    { value: "cancelled", label: t("cancelled") },
   ];
 
   return (

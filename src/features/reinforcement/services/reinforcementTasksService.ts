@@ -36,8 +36,9 @@ const textFromUnknown = (value: unknown): string | undefined =>
 const optionalRewardValue = (
   value?: CreateReinforcementTaskPayload["rewardValue"],
 ): CreateReinforcementTaskPayload["rewardValue"] | undefined => {
-  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
-  return optionalText(value);
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
 };
 
 const normalizeTargetScope = (

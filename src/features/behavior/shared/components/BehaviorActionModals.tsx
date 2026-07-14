@@ -309,11 +309,16 @@ function RecordModal({
         }))
       );
       setCategoryOptions(
-        categoriesRes.items.map((c) => ({
-          value: c.id,
-          label: `${c.code} - ${locale === "ar" ? c.nameAr : c.nameEn}`,
-          searchText: `${c.code} ${c.nameEn} ${c.nameAr}`,
-        }))
+        categoriesRes.items.map((category) => {
+          const localizedName = locale === "ar"
+            ? category.nameAr || category.nameEn
+            : category.nameEn || category.nameAr;
+          return {
+            value: category.id,
+            label: localizedName ? `${category.code} - ${localizedName}` : category.code,
+            searchText: `${category.code} ${category.nameEn ?? ""} ${category.nameAr ?? ""}`,
+          };
+        })
       );
       setCategories(categoriesRes.items);
     }).catch(console.error);
@@ -342,24 +347,22 @@ function RecordModal({
     }
 
     const selectedCategory = categories.find((c) => c.id === form.categoryId);
-    if (!selectedCategory) {
-      showError(t("errors.categoryInactive"));
-      return;
-    }
+    const requiresCategoryValidation = !isEdit || Boolean(form.categoryId);
+    if (requiresCategoryValidation) {
+      if (!selectedCategory?.isActive) {
+        showError(t("errors.categoryInactive"));
+        return;
+      }
 
-    if (!selectedCategory.isActive) {
-      showError(t("errors.categoryInactive"));
-      return;
-    }
+      if (!validateRecordCategory(selectedCategory, selectedCategory.type)) {
+        showError(t("errors.categoryTypeMismatch"));
+        return;
+      }
 
-    if (!validateRecordCategory(selectedCategory, selectedCategory.type)) {
-      showError(t("errors.categoryTypeMismatch"));
-      return;
-    }
-
-    if (!validateRecordPoints(selectedCategory.type, selectedCategory.defaultPoints)) {
-      showError(t("errors.invalidPoints"));
-      return;
+      if (!validateRecordPoints(selectedCategory.type, selectedCategory.defaultPoints)) {
+        showError(t("errors.invalidPoints"));
+        return;
+      }
     }
 
     if (!form.occurredAt || !validateRecordTermDate(form.occurredAt, currentTerm)) {
@@ -390,9 +393,9 @@ function RecordModal({
           noteEn: form.noteEn || undefined,
           noteAr: form.noteAr || undefined,
           occurredAt: form.occurredAt.toISOString(),
-          type: selectedCategory.type,
-          severity: selectedCategory.defaultSeverity,
-          points: selectedCategory.defaultPoints,
+          type: selectedCategory!.type,
+          severity: selectedCategory!.defaultSeverity,
+          points: selectedCategory!.defaultPoints,
         });
         showSuccess(t("messages.recordCreated"));
       }

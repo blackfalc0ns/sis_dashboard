@@ -5,6 +5,7 @@ import {
   deleteBehaviorCategory,
   getBehaviorOverview,
   getClassroomBehaviorSummary,
+  getBehaviorReviewQueueItem,
   getStudentBehaviorSummary,
   listBehaviorRecords,
   rejectBehaviorRecord,
@@ -21,6 +22,45 @@ vi.mock("@/lib/api", () => ({
 const mockedApiDelete = vi.mocked(apiDelete);
 const mockedApiGet = vi.mocked(apiGet);
 const mockedApiPost = vi.mocked(apiPost);
+
+const submittedReviewRecord: BehaviorReviewRecord = {
+  id: "record-1",
+  academicYearId: "year-1",
+  termId: "term-1",
+  studentId: "student-1",
+  enrollmentId: null,
+  categoryId: "category-1",
+  type: "negative",
+  severity: "medium",
+  status: "submitted",
+  points: -3,
+  titleEn: null,
+  titleAr: null,
+  noteEn: "Needs review",
+  noteAr: null,
+  occurredAt: "2026-03-01T10:00:00.000Z",
+  createdById: "user-1",
+  submittedById: "user-1",
+  submittedAt: "2026-03-01T10:05:00.000Z",
+  reviewedById: null,
+  reviewedAt: null,
+  reviewNoteEn: null,
+  reviewNoteAr: null,
+  metadata: null,
+  createdAt: "2026-03-01T10:00:00.000Z",
+  updatedAt: "2026-03-01T10:05:00.000Z",
+  summaries: {
+    student: { id: "student-1", displayName: "Ali Hassan" },
+    category: { id: "category-1", nameEn: "Conduct", nameAr: null },
+    enrollment: null,
+    academicYear: {},
+    term: {},
+    createdBy: {},
+    submittedBy: {},
+    reviewedBy: null,
+  },
+  behaviorPointLedgerEntries: [],
+};
 
 describe("behaviorApiService", () => {
   beforeEach(() => {
@@ -86,12 +126,13 @@ describe("behaviorApiService", () => {
   });
 
   it("returns a rejected review record without a record wrapper", async () => {
-    const rejectedRecord = {
-      id: "record-1",
+    const rejectedRecord: BehaviorReviewRecord = {
+      ...submittedReviewRecord,
       status: "rejected",
-      summaries: {},
-      behaviorPointLedgerEntries: [],
-    } as unknown as BehaviorReviewRecord;
+      reviewedById: "reviewer-1",
+      reviewedAt: "2026-03-01T11:00:00.000Z",
+      reviewNoteEn: "Insufficient evidence",
+    };
     mockedApiPost.mockResolvedValue(rejectedRecord);
 
     const result: BehaviorReviewRecord = await rejectBehaviorRecord("record-1", {
@@ -102,5 +143,14 @@ describe("behaviorApiService", () => {
     expect(mockedApiPost).toHaveBeenCalledWith("/behavior/records/record-1/reject", {
       reviewNoteEn: "Insufficient evidence",
     });
+  });
+
+  it("types review detail as the complete review presenter", async () => {
+    mockedApiGet.mockResolvedValue(submittedReviewRecord);
+
+    const result: BehaviorReviewRecord = await getBehaviorReviewQueueItem("record-1");
+
+    expect(result).toBe(submittedReviewRecord);
+    expect(mockedApiGet).toHaveBeenCalledWith("/behavior/review-queue/record-1");
   });
 });

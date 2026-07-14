@@ -131,7 +131,7 @@ export default function BehaviorCategoriesPage() {
           className={locale === "ar" ? "text-right" : "text-left"}
           style={{ color: "var(--text-primary)" }}
         >
-          {locale === "ar" ? row.nameAr : row.nameEn}
+          {(locale === "ar" ? row.nameAr || row.nameEn : row.nameEn || row.nameAr) || row.code}
         </div>
       ),
     },

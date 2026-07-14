@@ -84,8 +84,13 @@ export default function BehaviorReviewsPage() {
     if (!canReview) return;
     const rec: BehaviorRecord = {
       id: item.id,
+      termId: null,
       studentId: item.studentId,
-      categoryId: item.categoryId ?? "",
+      enrollmentId: null,
+      categoryId: item.categoryId,
+      category: null,
+      term: null,
+      enrollment: null,
       status: item.status,
       points: item.points,
       occurredAt: item.occurredAt,
@@ -99,8 +104,13 @@ export default function BehaviorReviewsPage() {
     if (!canReview) return;
     const rec: BehaviorRecord = {
       id: item.id,
+      termId: null,
       studentId: item.studentId,
-      categoryId: item.categoryId ?? "",
+      enrollmentId: null,
+      categoryId: item.categoryId,
+      category: null,
+      term: null,
+      enrollment: null,
       status: item.status,
       points: item.points,
       occurredAt: item.occurredAt,

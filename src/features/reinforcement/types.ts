@@ -15,6 +15,7 @@ export type ReinforcementTargetScope =
 export type ReinforcementTaskStatus =
   | "not_completed"
   | "in_progress"
+  | "under_review"
   | "completed"
   | "cancelled";
 
@@ -132,21 +133,30 @@ export interface ReinforcementTargetPayload {
   scopeId: string;
 }
 
-export interface ReinforcementTaskTarget extends ReinforcementTargetPayload {
-  nameEn?: string;
-  nameAr?: string;
-  audienceCount?: number;
-  stageId?: string;
-  gradeId?: string;
-  sectionId?: string;
-  classroomId?: string;
+export interface ReinforcementTaskTarget {
+  id: string;
+  scopeType: ReinforcementTargetScope;
+  scopeKey: string;
+  stageId: string | null;
+  gradeId: string | null;
+  sectionId: string | null;
+  classroomId: string | null;
+  studentId: string | null;
   [key: string]: unknown;
+}
+
+export interface ReinforcementTaskReward {
+  type: ReinforcementRewardType | null;
+  value: number | null;
+  labelEn: string | null;
+  labelAr: string | null;
 }
 
 export interface ReinforcementAssignmentSummary {
   total?: number;
   completed?: number;
   inProgress?: number;
+  underReview?: number;
   notCompleted?: number;
   cancelled?: number;
   [key: string]: unknown;
@@ -163,14 +173,11 @@ export interface ReinforcementTask {
   descriptionEn?: string;
   descriptionAr?: string;
   source: ReinforcementSource;
-  rewardType: ReinforcementRewardType;
-  rewardValue?: number | string;
-  rewardLabelEn?: string;
-  rewardLabelAr?: string;
+  reward: ReinforcementTaskReward;
   dueDate?: string;
   assignedById?: string;
   assignedByName?: string;
-  status?: ReinforcementTaskStatus | string;
+  status: ReinforcementTaskStatus;
   targets?: ReinforcementTaskTarget[];
   stages?: ReinforcementStage[];
   assignmentSummary?: ReinforcementAssignmentSummary;
@@ -189,7 +196,7 @@ export interface ListReinforcementTasksParams {
   sectionId?: string;
   gradeId?: string;
   stageId?: string;
-  status?: ReinforcementTaskStatus | string;
+  status?: ReinforcementTaskStatus;
   source?: string;
   targetScope?: ReinforcementTargetScope | string;
   scope?: ReinforcementTargetScope | string;
@@ -215,7 +222,7 @@ export interface CreateReinforcementTaskPayload {
   descriptionAr?: string;
   source: ReinforcementSource;
   rewardType: ReinforcementRewardType;
-  rewardValue?: number | string;
+  rewardValue?: number | null;
   rewardLabelEn?: string;
   rewardLabelAr?: string;
   dueDate: string;
@@ -269,6 +276,18 @@ export interface ReinforcementFilterOptions {
   scopeTargets?: Partial<
     Record<ReinforcementTargetScope, ReinforcementScopeOption[]>
   >;
+  [key: string]: unknown;
+}
+
+export interface ReinforcementNamedOption {
+  id: string;
+  value?: string;
+  studentId?: string;
+  name?: string;
+  nameEn?: string;
+  nameAr?: string;
+  firstName?: string;
+  lastName?: string;
   [key: string]: unknown;
 }
 
@@ -359,9 +378,11 @@ export interface XpLedgerEntry {
   studentId: string;
   enrollmentId?: string;
   amount: number;
-  reason?: string;
-  reasonAr?: string;
+  reason?: string | null;
+  reasonAr?: string | null;
+  sourceType?: string;
   sourceId?: string;
+  occurredAt?: string;
   createdAt?: string;
   [key: string]: unknown;
 }
@@ -501,31 +522,149 @@ export interface ReinforcementOverviewResponse {
 
 export interface StudentReinforcementProgressParams {
   academicYearId?: string;
+  yearId?: string;
   termId?: string;
+  dateFrom?: string;
+  dateTo?: string;
   [key: string]: string | number | boolean | undefined;
 }
 
+export interface ReinforcementAssignmentStatusSummary {
+  total: number;
+  notCompleted: number;
+  inProgress: number;
+  underReview: number;
+  completed: number;
+  cancelled: number;
+  completionRate: number;
+}
+
+export interface ReinforcementReviewStatusSummary {
+  submitted: number;
+  approved: number;
+  rejected: number;
+  pendingReview: number;
+}
+
+export interface ReinforcementCompactTask {
+  id: string;
+  academicYearId: string;
+  termId: string;
+  subjectId: string | null;
+  titleEn: string;
+  titleAr: string;
+  source: ReinforcementSource;
+  status: ReinforcementTaskStatus;
+  dueDate: string | null;
+  assignedById: string | null;
+  assignedByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StudentReinforcementTaskRow {
+  taskId: string;
+  assignmentId: string;
+  status: ReinforcementTaskStatus;
+  progress: number;
+  assignedAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  task: ReinforcementCompactTask;
+}
+
+export interface ReinforcementProgressStudent {
+  id: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  name: string | null;
+  nameAr: string | null;
+  code: string | null;
+  admissionNo: string | null;
+}
+
+export interface ReinforcementProgressEnrollment {
+  enrollmentId: string;
+  classroomId: string;
+  sectionId: string;
+  gradeId: string;
+  stageId: string;
+}
+
+export interface ReinforcementXpSourceSummary {
+  sourceType: string;
+  count: number;
+  totalXp: number;
+}
+
+export interface ReinforcementProgressXp {
+  totalXp: number;
+  bySourceType: ReinforcementXpSourceSummary[];
+  recentLedgerEntries: XpLedgerEntry[];
+}
+
+export interface ReinforcementRecentReview {
+  id: string;
+  submissionId: string;
+  assignmentId: string;
+  taskId: string;
+  stageId: string;
+  outcome: string;
+  note: string | null;
+  noteAr: string | null;
+  reviewedById: string;
+  reviewedAt: string;
+}
+
 export interface StudentReinforcementProgress {
-  studentId: string;
-  summary?: Record<string, unknown>;
-  tasks?: ReinforcementTask[];
-  xpSummary?: XpSummary;
-  [key: string]: unknown;
+  student: ReinforcementProgressStudent;
+  enrollment: ReinforcementProgressEnrollment | null;
+  assignments: ReinforcementAssignmentStatusSummary;
+  tasks: StudentReinforcementTaskRow[];
+  submissions: ReinforcementReviewStatusSummary;
+  xp: ReinforcementProgressXp;
+  recentReviews: ReinforcementRecentReview[];
 }
 
 export interface ClassroomReinforcementSummaryParams {
   academicYearId?: string;
+  yearId?: string;
   termId?: string;
+  dateFrom?: string;
+  dateTo?: string;
   [key: string]: string | number | boolean | undefined;
 }
 
-export interface ClassroomReinforcementSummary {
+export interface ReinforcementClassroomInfo {
   classroomId: string;
-  summary?: Record<string, unknown>;
-  tasks?: ReinforcementTask[];
-  students?: unknown[];
-  xpSummary?: XpSummary;
-  [key: string]: unknown;
+  classroomName: string;
+  sectionId: string;
+  sectionName: string;
+  gradeId: string;
+  gradeName: string;
+  stageId: string;
+  stageName: string;
+}
+
+export interface ReinforcementClassroomStudent {
+  studentId: string;
+  name: string;
+  totalXp: number;
+  assignmentsTotal: number;
+  assignmentsCompleted: number;
+  completionRate: number;
+  pendingReviews: number;
+}
+
+export interface ClassroomReinforcementSummary {
+  classroom: ReinforcementClassroomInfo;
+  studentsCount: number;
+  assignments: ReinforcementAssignmentStatusSummary;
+  reviewQueue: ReinforcementReviewStatusSummary;
+  xp: OverviewXp;
+  topStudents: OverviewTopStudent[];
+  students: ReinforcementClassroomStudent[];
 }
 
 // ─── Review Types ────────────────────────────────────────────────────────────
