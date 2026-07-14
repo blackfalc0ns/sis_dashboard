@@ -16,7 +16,6 @@ import MainLoader from "@/components/ui/loaders/MainLoader";
 export default function StudentsGuardiansDashboardContainer() {
   const {
     yearId,
-    termId,
     isLoading: isContextLoading,
     error: contextError,
   } = useStudentsGuardiansYearTermContext();
@@ -35,7 +34,7 @@ export default function StudentsGuardiansDashboardContainer() {
       };
     }
 
-    if (!yearId || !termId) {
+    if (!yearId) {
       setAllStudents([]);
       setLoadError(null);
       setIsLoading(false);
@@ -54,10 +53,8 @@ export default function StudentsGuardiansDashboardContainer() {
       setLoadError(null);
 
       try {
-        const students = await studentsService.fetchStudentsWithEnrollmentForContext(
-          yearId,
-          termId,
-        );
+        const students =
+          await studentsService.fetchStudentsWithEnrollmentForContext(yearId);
         if (!isCancelled) {
           setAllStudents(students);
         }
@@ -75,7 +72,7 @@ export default function StudentsGuardiansDashboardContainer() {
     return () => {
       isCancelled = true;
     };
-  }, [isContextLoading, termId, yearId]);
+  }, [isContextLoading, yearId]);
 
   // Calculate statistics
   const stats = useMemo(
@@ -93,7 +90,7 @@ export default function StudentsGuardiansDashboardContainer() {
     return <MainLoader />;
   }
 
-  if (contextError || loadError || !yearId || !termId) {
+  if (contextError || loadError || !yearId) {
     return (
       <div className="bg-white rounded-xl p-10 text-center shadow-sm">
         <p className="text-sm text-red-600">

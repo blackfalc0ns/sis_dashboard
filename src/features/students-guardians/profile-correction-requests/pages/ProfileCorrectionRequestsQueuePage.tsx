@@ -11,6 +11,8 @@ import type {
 import { fetchProfileCorrectionRequests } from "@/features/students-guardians/profile-correction-requests/services/profileCorrectionRequestsApiService";
 import { Select, Button, DataTable, type Column } from "@/components/ui";
 import { useTranslations } from "next-intl";
+import ProfileCorrectionStatusBadge from "@/features/students-guardians/profile-correction-requests/components/ProfileCorrectionStatusBadge";
+import { formatDateTime } from "@/utils/formatters/dateTime";
 
 export default function ProfileCorrectionRequestsQueuePage() {
   const router = useRouter();
@@ -20,8 +22,9 @@ export default function ProfileCorrectionRequestsQueuePage() {
   const permissions = usePermissions();
   const { canViewProfileCorrectionRequests } =
     getStudentsGuardiansCapabilities(permissions);
-  const [status, setStatus] =
-    useState<ProfileCorrectionRequestStatus | "all">("PENDING");
+  const [status, setStatus] = useState<ProfileCorrectionRequestStatus | "all">(
+    "PENDING",
+  );
   const [studentId, setStudentId] = useState("");
   const [requests, setRequests] = useState<ProfileCorrectionRequestListItem[]>(
     [],
@@ -127,7 +130,9 @@ export default function ProfileCorrectionRequestsQueuePage() {
           <div className="font-medium text-gray-900">
             {request.studentName || request.studentId}
           </div>
-          <div className="text-xs text-gray-500">{request.studentId}</div>
+          <div className="text-xs text-gray-500">
+            {request.studentNumber || request.studentId}
+          </div>
         </div>
       ),
     },
@@ -135,7 +140,10 @@ export default function ProfileCorrectionRequestsQueuePage() {
       key: "status",
       label: t("column_status"),
       render: (_, request) => (
-        <span>{t(`status_${request.status.toLowerCase()}`)}</span>
+        <ProfileCorrectionStatusBadge
+          status={request.status}
+          label={t(`status_${request.status.toLowerCase()}`)}
+        />
       ),
     },
     {
@@ -145,6 +153,8 @@ export default function ProfileCorrectionRequestsQueuePage() {
     {
       key: "requestedAt",
       label: t("column_requested"),
+      render: (_, request) =>
+        request.requestedAt ? formatDateTime(request.requestedAt, lang) : "—",
     },
     {
       key: "actions",
@@ -177,7 +187,7 @@ export default function ProfileCorrectionRequestsQueuePage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <p className="text-sm font-semibold text-primary">
           {t("students_guardians")}

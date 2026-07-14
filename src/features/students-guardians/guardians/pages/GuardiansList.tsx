@@ -4,6 +4,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { useDebounce } from "use-debounce";
 import { useRouter, useParams } from "next/navigation";
 import {
   Users,
@@ -20,15 +21,21 @@ import {
   XCircle,
   Lock,
 } from "lucide-react";
-import { Button, DataTable, EmptyState, FilterPanel, Input, Modal, Select } from "@/components/ui";
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  FilterPanel,
+  Input,
+  Modal,
+  Select,
+} from "@/components/ui";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
-import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import { StudentGuardian } from "@/features/students-guardians/students/types";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import AddGuardianModal, {
   type GuardianFormData,
 } from "@/features/students-guardians/students/components/modals/AddGuardianModal";
-import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
 import GuardianAccountLinkModal from "@/features/students-guardians/guardians/components/GuardianAccountLinkModal";
@@ -41,6 +48,8 @@ import {
 } from "@/features/students-guardians/shared/utils/studentsGuardiansExport";
 import { formatGuardiansForExport } from "@/features/students-guardians/shared/utils/studentsGuardiansExportFormatters";
 
+const guardianRelationOptions = ["father", "mother", "guardian", "other"];
+
 export default function GuardiansList() {
   const t = useTranslations("students_guardians.guardians_list");
   const locale = useLocale();
@@ -50,83 +59,16 @@ export default function GuardiansList() {
     getStudentsGuardiansCapabilities(permissions);
   const params = useParams();
   const lang = (params.lang as string) || "en";
-  const {
-    yearId,
-    termId,
-    isLoading: isContextLoading,
-    error: contextError,
-  } =
-    useStudentsGuardiansYearTermContext();
-
   const [guardians, setGuardians] = useState<StudentGuardian[]>([]);
-  const [scopedGuardianIds, setScopedGuardianIds] = useState<Set<string>>(
-    new Set(),
-  );
-  const [isPageLoading, setIsPageLoading] = useState(true);
+  const [isPageLoading, setIsPageLoading] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    if (isContextLoading) {
-      return () => {
-        isCancelled = true;
-      };
-    }
-
-    void Promise.resolve().then(async () => {
-      if (isCancelled) {
-        return;
-      }
-
-      setIsPageLoading(true);
-      setPageError(null);
-
-      try {
-        const guardiansData = await studentsService.fetchAllGuardians();
-
-        if (isCancelled) {
-          return;
-        }
-
-        setGuardians(guardiansData);
-        setScopedGuardianIds(
-          new Set(guardiansData.map((guardian) => guardian.guardianId)),
-        );
-      } catch (error) {
-        if (isCancelled) {
-          return;
-        }
-
-        setGuardians([]);
-        setScopedGuardianIds(new Set());
-        setPageError(
-          error instanceof Error ? error.message : t("loading_error"),
-        );
-      } finally {
-        if (!isCancelled) {
-          setIsPageLoading(false);
-        }
-      }
-    });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [isContextLoading, t, termId, yearId]);
-
-  const guardiansInContext = useMemo(
-    () => guardians.filter((guardian) => scopedGuardianIds.has(guardian.guardianId)),
-    [guardians, scopedGuardianIds],
-  );
 
   // Filters
   const [showFilters, setShowFilters] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [accountLinkGuardian, setAccountLinkGuardian] =
     useState<StudentGuardian | null>(null);
-  const [showCreateGuardianModal, setShowCreateGuardianModal] =
-    useState(false);
+  const [showCreateGuardianModal, setShowCreateGuardianModal] = useState(false);
   const [editingGuardian, setEditingGuardian] =
     useState<StudentGuardian | null>(null);
   const [editGuardianForm, setEditGuardianForm] = useState({
@@ -146,7 +88,7 @@ export default function GuardiansList() {
   const [editGuardianError, setEditGuardianError] = useState<string | null>(
     null,
   );
-  const { values, setValue, replaceValues, reset } = useUrlQueryState<{
+  const { values, setValue, reset } = useUrlQueryState<{
     search: string;
     relation: string;
   }>({
@@ -162,37 +104,37 @@ export default function GuardiansList() {
 
   const searchQuery = values.search;
   const relationFilter = values.relation;
+  const [debouncedSearch] = useDebounce(searchQuery, 300);
 
   useEffect(() => {
     let isCancelled = false;
 
-    if (isContextLoading) {
-      return () => {
-        isCancelled = true;
-      };
-    }
-
     void Promise.resolve().then(async () => {
+      if (isCancelled) {
+        return;
+      }
+
+      setIsPageLoading(true);
       setPageError(null);
 
       try {
         const guardiansData = await studentsService.fetchAllGuardians({
-          search: searchQuery,
+          ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
+          ...(relationFilter !== "all" ? { relation: relationFilter } : {}),
         });
 
         if (!isCancelled) {
           setGuardians(guardiansData);
-          setScopedGuardianIds(
-            new Set(guardiansData.map((guardian) => guardian.guardianId)),
-          );
         }
       } catch (error) {
         if (!isCancelled) {
-          setGuardians([]);
-          setScopedGuardianIds(new Set());
           setPageError(
             error instanceof Error ? error.message : t("loading_error"),
           );
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsPageLoading(false);
         }
       }
     });
@@ -200,49 +142,21 @@ export default function GuardiansList() {
     return () => {
       isCancelled = true;
     };
-  }, [isContextLoading, searchQuery, t]);
+  }, [debouncedSearch, relationFilter, t]);
 
-  // Filter guardians
-  const filteredGuardians = useMemo(() => {
-    return guardiansInContext.filter((guardian) => {
-      const matchesSearch =
-        searchQuery === "" ||
-        guardian.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        guardian.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        guardian.phone_primary.includes(searchQuery) ||
-        guardian.national_id.includes(searchQuery);
-
-      const matchesRelation =
-        relationFilter === "all" || guardian.relation === relationFilter;
-
-      return matchesSearch && matchesRelation;
-    });
-  }, [guardiansInContext, searchQuery, relationFilter]);
+  const filteredGuardians = guardians;
 
   // Calculate KPIs
   const kpis = useMemo(() => {
-    const total = guardiansInContext.length;
-    const primary = guardiansInContext.filter((g) => g.is_primary).length;
-    const canPickup = guardiansInContext.filter((g) => g.can_pickup).length;
-    const receiveNotifications = guardiansInContext.filter(
+    const total = guardians.length;
+    const primary = guardians.filter((g) => g.is_primary).length;
+    const canPickup = guardians.filter((g) => g.can_pickup).length;
+    const receiveNotifications = guardians.filter(
       (g) => g.can_receive_notifications,
     ).length;
 
     return { total, primary, canPickup, receiveNotifications };
-  }, [guardiansInContext]);
-
-  // Get unique relations
-  const uniqueRelations = useMemo(() => {
-    const relations = new Set<string>();
-    guardiansInContext.forEach((g) => relations.add(g.relation));
-    return Array.from(relations).sort();
-  }, [guardiansInContext]);
-
-  useEffect(() => {
-    if (relationFilter !== "all" && !uniqueRelations.includes(relationFilter)) {
-      replaceValues({ relation: null });
-    }
-  }, [relationFilter, replaceValues, uniqueRelations]);
+  }, [guardians]);
 
   const hasActiveFilters = searchQuery !== "" || relationFilter !== "all";
 
@@ -286,10 +200,7 @@ export default function GuardiansList() {
   const handleCreateGuardian = async (guardianData: GuardianFormData) => {
     try {
       setPageError(null);
-      const {
-        selectedStudents,
-        ...guardianFields
-      } = guardianData;
+      const { selectedStudents, ...guardianFields } = guardianData;
       const payload = {
         ...guardianFields,
         phone_primary: guardianFields.phone_primary ?? undefined,
@@ -312,12 +223,10 @@ export default function GuardiansList() {
         }
       }
 
-      setGuardians((currentGuardians) => [createdGuardian, ...currentGuardians]);
-      setScopedGuardianIds((currentIds) => {
-        const nextIds = new Set(currentIds);
-        nextIds.add(createdGuardian.guardianId);
-        return nextIds;
-      });
+      setGuardians((currentGuardians) => [
+        createdGuardian,
+        ...currentGuardians,
+      ]);
 
       if (failedLinks.length > 0) {
         throw new Error(
@@ -474,7 +383,10 @@ export default function GuardiansList() {
       sortable: false,
       render: (_: unknown, row: { [key: string]: unknown }) => (
         <div className="flex items-center gap-2">
-          <Button type="button" variant="ghost" size="sm"
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
             onClick={(e) => {
               e.stopPropagation();
               handleRowClick(row as unknown as StudentGuardian);
@@ -484,7 +396,10 @@ export default function GuardiansList() {
           >
             <Eye className="w-4 h-4" />
           </Button>
-          <Button type="button" variant="ghost" size="sm"
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
             onClick={(e) =>
               handleEditGuardianClick(e, row as unknown as StudentGuardian)
             }
@@ -493,7 +408,10 @@ export default function GuardiansList() {
           >
             <Edit className="w-4 h-4" />
           </Button>
-          <Button type="button" variant="ghost" size="sm"
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
             onClick={(e) =>
               handleAccountLinkClick(e, row as unknown as StudentGuardian)
             }
@@ -512,16 +430,12 @@ export default function GuardiansList() {
     },
   ];
 
-  if (isContextLoading || isPageLoading) {
-    return <MainLoader />;
-  }
-
-  if (contextError || pageError) {
+  if (pageError && guardians.length === 0) {
     return (
       <div className="p-4 sm:p-6">
         <div className="bg-white rounded-xl p-10 text-center shadow-sm">
           <p className="text-sm text-red-600">
-            {contextError || pageError || t("loading_error")}
+            {pageError || t("loading_error")}
           </p>
         </div>
       </div>
@@ -615,12 +529,17 @@ export default function GuardiansList() {
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Button type="button" leftIcon={<Plus className="w-4 h-4" />}
+              <Button
+                type="button"
+                leftIcon={<Plus className="w-4 h-4" />}
                 onClick={() => setShowCreateGuardianModal(true)}
               >
                 {t("actions.create_guardian")}
               </Button>
-              <Button type="button" variant="secondary" leftIcon={<Download className="w-4 h-4" />}
+              <Button
+                type="button"
+                variant="secondary"
+                leftIcon={<Download className="w-4 h-4" />}
                 onClick={() => setShowExportModal(true)}
               >
                 {t("export")}
@@ -632,13 +551,19 @@ export default function GuardiansList() {
           <div className="pt-4 border-t border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Select
-                  label={t("relation")}
-                  value={relationFilter}
-                  onChange={(value) => {
-                    setValue("relation", value, "push");
-                  }}
-                  options={[{ value: "all", label: t("all_relations") }, ...uniqueRelations.map((relation) => ({ value: relation, label: relation.charAt(0).toUpperCase() + relation.slice(1) }))]}
-                />
+                label={t("relation")}
+                value={relationFilter}
+                onChange={(value) => {
+                  setValue("relation", value, "push");
+                }}
+                options={[
+                  { value: "all", label: t("all_relations") },
+                  ...guardianRelationOptions.map((relation) => ({
+                    value: relation,
+                    label: relation.charAt(0).toUpperCase() + relation.slice(1),
+                  })),
+                ]}
+              />
             </div>
           </div>
         }
@@ -646,10 +571,12 @@ export default function GuardiansList() {
         onToggleFilters={() => setShowFilters(!showFilters)}
         clearAction={
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">
-              {t("active_filters")}
-            </span>
-            <Button type="button" variant="secondary" size="sm" leftIcon={<X className="w-3 h-3" />}
+            <span className="text-sm text-gray-600">{t("active_filters")}</span>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              leftIcon={<X className="w-3 h-3" />}
               onClick={clearFilters}
             >
               {t("clear_all")}
@@ -662,12 +589,27 @@ export default function GuardiansList() {
       />
 
       {/* Guardians Table */}
-      {filteredGuardians.length === 0 ? (
-        <EmptyState icon={<Users className="w-12 h-12" />} title={t("no_guardians")} message={hasActiveFilters ? t("try_adjusting") : t("no_guardians_message")} action={hasActiveFilters ? <Button type="button" onClick={clearFilters}>{t("clear_filters")}</Button> : undefined} className="bg-white rounded-xl shadow-sm" />
+      {!isPageLoading && filteredGuardians.length === 0 ? (
+        <EmptyState
+          icon={<Users className="w-12 h-12" />}
+          title={t("no_guardians")}
+          message={
+            hasActiveFilters ? t("try_adjusting") : t("no_guardians_message")
+          }
+          action={
+            hasActiveFilters ? (
+              <Button type="button" onClick={clearFilters}>
+                {t("clear_filters")}
+              </Button>
+            ) : undefined
+          }
+          className="bg-white rounded-xl shadow-sm"
+        />
       ) : (
         <DataTable
           columns={columns}
           data={filteredGuardians as unknown as Record<string, unknown>[]}
+          isLoading={isPageLoading}
           showPagination={true}
           itemsPerPage={20}
           searchQuery={searchQuery}
@@ -682,13 +624,14 @@ export default function GuardiansList() {
         />
       )}
 
-      <Modal isOpen={Boolean(editingGuardian)} onClose={() => setEditingGuardian(null)} title={t("actions.edit")} size="lg">
+      <Modal
+        isOpen={Boolean(editingGuardian)}
+        onClose={() => setEditingGuardian(null)}
+        title={t("actions.edit")}
+        size="lg"
+      >
         {editingGuardian && (
-          <form
-            onSubmit={handleEditGuardianSubmit}
-            className="space-y-4"
-          >
-
+          <form onSubmit={handleEditGuardianSubmit} className="space-y-4">
             {editGuardianError && (
               <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                 {editGuardianError}
@@ -856,10 +799,7 @@ export default function GuardiansList() {
               >
                 {t("actions.cancel")}
               </Button>
-              <Button
-                type="submit"
-                loading={isSavingGuardian}
-              >
+              <Button type="submit" loading={isSavingGuardian}>
                 {t("actions.save")}
               </Button>
             </div>

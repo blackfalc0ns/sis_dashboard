@@ -322,15 +322,15 @@ export const menuItems: MenuItem[] = [
     href_ar: "/ar/students-guardians",
     icon: GraduationCap,
     children: [
-      {
-        key: "students-guardians-dashboard",
-        subgroup: "directory",
-        label_en: "Overview",
-        label_ar: "نظرة عامة",
-        href_en: "/en/students-guardians",
-        href_ar: "/ar/students-guardians",
-        icon: LayoutDashboard,
-      },
+      // {
+      //   key: "students-guardians-dashboard",
+      //   subgroup: "directory",
+      //   label_en: "Overview",
+      //   label_ar: "نظرة عامة",
+      //   href_en: "/en/students-guardians",
+      //   href_ar: "/ar/students-guardians",
+      //   icon: LayoutDashboard,
+      // },
       {
         key: "students-list",
         subgroup: "directory",

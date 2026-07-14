@@ -49,7 +49,10 @@ import * as guardiansApiService from "@/features/students-guardians/guardians/se
 import * as studentDocumentsApiService from "@/features/students-guardians/documents/services/studentDocumentsApiService";
 import * as medicalProfileApiService from "@/features/students-guardians/medical/services/medicalProfileApiService";
 import * as studentNotesApiService from "@/features/students-guardians/notes/services/studentNotesApiService";
-import { fetchCurrentEnrollment } from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
+import {
+  fetchCurrentEnrollment,
+  fetchEnrollments,
+} from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
 
 const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -689,34 +692,25 @@ const getStudentsWithEnrollmentImpl = (): StudentWithEnrollmentContext[] =>
 
 const getStudentsWithEnrollmentForContextImpl = (
   academicYearId?: string | null,
-  termId?: string | null,
 ): StudentWithEnrollmentContext[] => {
   return mockStudents
     .map((student) => {
       const enrollment = academicYearId
         ? getEnrollmentByStudentIdAndAcademicYear(student.id, academicYearId)
         : getEnrollmentByStudentId(student.id);
-      const enrollmentTerms = enrollment
-        ? getTermsByEnrollmentId(enrollment.enrollmentId)
-        : [];
       const currentTerm = enrollment
         ? getCurrentTerm(enrollment.enrollmentId)
         : undefined;
-      const selectedTerm =
-        enrollmentTerms.find(
-          (enrollmentTerm) => enrollmentTerm.termRecordId === termId,
-        ) || undefined;
       const ytdPerformance = enrollment
         ? getYearToDateAverages(enrollment.enrollmentId)
         : undefined;
       const contextPerformance =
-        mapTermToPerformance(selectedTerm || currentTerm) || ytdPerformance;
+        mapTermToPerformance(currentTerm) || ytdPerformance;
 
       return {
         ...withResolvedStudentEmail(student),
         enrollment,
         currentTerm,
-        selectedTerm,
         ytdPerformance,
         contextPerformance,
       };
@@ -725,10 +719,7 @@ const getStudentsWithEnrollmentForContextImpl = (
       const matchesAcademicYear =
         !academicYearId ||
         student.enrollment?.academicYearId === academicYearId;
-      const matchesTerm =
-        !termId || student.selectedTerm?.termRecordId === termId;
-
-      return matchesAcademicYear && matchesTerm;
+      return matchesAcademicYear;
     });
 };
 
@@ -762,10 +753,8 @@ const mockStudentsAdapter: StudentsAdapter = {
     Promise.resolve(getGuardianByIdImpl(guardianId)),
   fetchStudentsWithEnrollment: async () =>
     Promise.resolve(getStudentsWithEnrollmentImpl()),
-  fetchStudentsWithEnrollmentForContext: async (academicYearId, termId) =>
-    Promise.resolve(
-      getStudentsWithEnrollmentForContextImpl(academicYearId, termId),
-    ),
+  fetchStudentsWithEnrollmentForContext: async (academicYearId) =>
+    Promise.resolve(getStudentsWithEnrollmentForContextImpl(academicYearId)),
 };
 
 currentStudentsAdapter = mockStudentsAdapter;
@@ -953,22 +942,7 @@ export function getStudentsWithEnrollment(): StudentWithEnrollmentContext[] {
 export async function fetchStudentsWithEnrollment(): Promise<
   StudentWithEnrollmentContext[]
 > {
-  const students = await studentsApiService.fetchStudents();
-  return Promise.all(
-    students.map(async (student) => {
-      try {
-        const enrollment = await fetchCurrentEnrollment({
-          studentId: student.id,
-        });
-        return {
-          ...student,
-          ...(enrollment ? { enrollment } : {}),
-        } as StudentWithEnrollmentContext;
-      } catch {
-        return student as StudentWithEnrollmentContext;
-      }
-    }),
-  );
+  return fetchStudentsWithEnrollmentForContext();
 }
 
 export async function fetchStudentWithEnrollment(
@@ -996,36 +970,30 @@ export async function fetchStudentWithEnrollment(
 
 export function getStudentsWithEnrollmentForContext(
   academicYearId?: string | null,
-  termId?: string | null,
 ): StudentWithEnrollmentContext[] {
   return getStudentsAdapter().getStudentsWithEnrollmentForContext(
     academicYearId,
-    termId,
   );
 }
 
 export async function fetchStudentsWithEnrollmentForContext(
   academicYearId?: string | null,
-  termId?: string | null,
 ): Promise<StudentWithEnrollmentContext[]> {
-  void termId;
-  const students = await studentsApiService.fetchStudents();
-  return Promise.all(
-    students.map(async (student) => {
-      try {
-        const enrollment = await fetchCurrentEnrollment({
-          studentId: student.id,
-          ...(academicYearId ? { academicYearId } : {}),
-        });
-        return {
-          ...student,
-          ...(enrollment ? { enrollment } : {}),
-        } as StudentWithEnrollmentContext;
-      } catch {
-        return student as StudentWithEnrollmentContext;
-      }
+  const [students, enrollments] = await Promise.all([
+    studentsApiService.fetchStudents(),
+    fetchEnrollments({
+      ...(academicYearId ? { academicYearId } : {}),
+      status: "active",
     }),
+  ]);
+  const enrollmentByStudentId = new Map(
+    enrollments.map((enrollment) => [enrollment.studentId, enrollment]),
   );
+
+  return students.map((student) => ({
+    ...student,
+    enrollment: enrollmentByStudentId.get(student.id),
+  }));
 }
 
 export async function fetchStudentDocuments(

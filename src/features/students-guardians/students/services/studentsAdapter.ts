@@ -25,7 +25,6 @@ export interface StudentsAdapter {
   getStudentsWithEnrollment(): StudentWithEnrollmentContext[];
   getStudentsWithEnrollmentForContext(
     academicYearId?: string | null,
-    termId?: string | null,
   ): StudentWithEnrollmentContext[];
   fetchAllGuardians?(): Promise<StudentGuardian[]>;
   fetchAllStudents?(): Promise<Student[]>;
@@ -37,6 +36,5 @@ export interface StudentsAdapter {
   fetchStudentsWithEnrollment?(): Promise<StudentWithEnrollmentContext[]>;
   fetchStudentsWithEnrollmentForContext?(
     academicYearId?: string | null,
-    termId?: string | null,
   ): Promise<StudentWithEnrollmentContext[]>;
 }

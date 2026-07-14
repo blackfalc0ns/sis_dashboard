@@ -5,11 +5,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
+import { useDebounce } from "use-debounce";
 import {
   Users,
   UserCheck,
-  UserX,
-  AlertTriangle,
   Search,
   X,
   Eye,
@@ -29,11 +28,8 @@ import {
   Select,
 } from "@/components/ui";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
-import DateRangeFilter, {
-  DateRangeValue,
-} from "@/features/admissions/shared/DateRangeFilter";
+import type { DateRangeValue } from "@/features/admissions/shared/DateRangeFilter";
 import { getDateFilterBoundaries, isDateInRange } from "@/utils/dateFilters";
-import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import {
   Student,
   StudentStatus,
@@ -41,15 +37,11 @@ import {
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import {
   getStudentDisplayName,
-  getStudentDisplayId,
   getStatusColor,
-  getRiskFlagColor,
-  getStudentClassroom,
 } from "@/features/students-guardians/students/utils/studentUtils";
 import AddNoteModal, {
   NoteFormData,
 } from "@/features/students-guardians/students/components/modals/AddNoteModal";
-import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
 import StudentAccountLinkModal from "@/features/students-guardians/students/components/StudentAccountLinkModal";
@@ -69,67 +61,9 @@ export default function StudentsList() {
   const canManageAccounts = hasPermission("settings.users.manage");
   const params = useParams();
   const lang = (params.lang as string) || "en";
-  const {
-    yearId,
-    termId,
-    isLoading: isContextLoading,
-    error: contextError,
-  } = useStudentsGuardiansYearTermContext();
-
-  const [studentsWithEnrollment, setStudentsWithEnrollment] = useState<
-    studentsService.StudentWithEnrollmentContext[]
-  >([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [isPageLoading, setIsPageLoading] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    if (isContextLoading) {
-      return () => {
-        isCancelled = true;
-      };
-    }
-
-    void Promise.resolve().then(async () => {
-      if (isCancelled) {
-        return;
-      }
-
-      setIsPageLoading(true);
-      setPageError(null);
-
-      try {
-        const data =
-          yearId && termId
-            ? await studentsService.fetchStudentsWithEnrollmentForContext(
-                yearId,
-                termId,
-              )
-            : await studentsService.fetchStudentsWithEnrollment();
-        if (isCancelled) {
-          return;
-        }
-        setStudentsWithEnrollment(data);
-      } catch (error) {
-        if (isCancelled) {
-          return;
-        }
-        setStudentsWithEnrollment([]);
-        setPageError(
-          error instanceof Error ? error.message : t("loading_error"),
-        );
-      } finally {
-        if (!isCancelled) {
-          setIsPageLoading(false);
-        }
-      }
-    });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [isContextLoading, termId, t, yearId]);
 
   // Filters
   const [showFilters, setShowFilters] = useState(false);
@@ -142,14 +76,9 @@ export default function StudentsList() {
   const {
     values: queryValues,
     setValue,
-    setValues,
-    replaceValues,
     reset,
   } = useUrlQueryState<{
     search: string;
-    grade: string;
-    section: string;
-    classroom: string;
     status: string;
     dateRange: string;
     startDate: string;
@@ -157,9 +86,6 @@ export default function StudentsList() {
   }>({
     defaults: {
       search: "",
-      grade: "all",
-      section: "all",
-      classroom: "all",
       status: "all",
       dateRange: "all",
       startDate: "",
@@ -172,13 +98,48 @@ export default function StudentsList() {
   });
 
   const searchQuery = queryValues.search;
-  const gradeFilter = queryValues.grade;
-  const sectionFilter = queryValues.section;
-  const classroomFilter = queryValues.classroom;
   const statusFilter = queryValues.status as StudentStatus | "all";
   const dateRange = queryValues.dateRange as DateRangeValue;
   const customStartDate = queryValues.startDate;
   const customEndDate = queryValues.endDate;
+  const [debouncedSearch] = useDebounce(searchQuery, 300);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    void Promise.resolve().then(async () => {
+      if (isCancelled) {
+        return;
+      }
+
+      setIsPageLoading(true);
+      setPageError(null);
+
+      try {
+        const data = await studentsService.fetchAllStudents({
+          ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
+          ...(statusFilter !== "all" ? { status: statusFilter } : {}),
+        });
+        if (!isCancelled) {
+          setStudents(data);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setPageError(
+            error instanceof Error ? error.message : t("loading_error"),
+          );
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsPageLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [debouncedSearch, statusFilter, t]);
 
   // Filter students
   const filteredStudents = useMemo(() => {
@@ -188,68 +149,15 @@ export default function StudentsList() {
       customEndDate,
     );
 
-    return studentsWithEnrollment.filter((student) => {
-      // Search in both English and Arabic names
-      const studentWithNames = student as Student & {
-        full_name_en?: string;
-        studentName?: string;
-        full_name_ar?: string;
-        studentNameArabic?: string;
-      };
-      const englishName =
-        studentWithNames.full_name_en || studentWithNames.studentName || "";
-      const arabicName =
-        studentWithNames.full_name_ar ||
-        studentWithNames.studentNameArabic ||
-        "";
-      const studentId = getStudentDisplayId(student);
-
-      const matchesSearch =
-        searchQuery === "" ||
-        englishName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        arabicName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        studentId.toLowerCase().includes(searchQuery.toLowerCase());
-
-      // Use enrollment data for grade and section
-      const studentGrade = student.enrollment?.grade || student.gradeRequested;
-      const studentSection = student.enrollment?.section || "";
-      const studentClassroom = student.enrollment?.classroom || "";
-      const matchesGrade =
-        gradeFilter === "all" || studentGrade === gradeFilter;
-
-      const matchesSection =
-        sectionFilter === "all" || studentSection === sectionFilter;
-      const matchesClassroom =
-        classroomFilter === "all" || studentClassroom === classroomFilter;
-
-      const matchesStatus =
-        statusFilter === "all" || student.status === statusFilter;
-
+    return students.filter((student) => {
       const matchesDateRange = isDateInRange(
         student.created_at ?? student.submittedDate,
         filterResult,
       );
 
-      return (
-        matchesSearch &&
-        matchesGrade &&
-        matchesSection &&
-        matchesClassroom &&
-        matchesStatus &&
-        matchesDateRange
-      );
+      return matchesDateRange;
     });
-  }, [
-    studentsWithEnrollment,
-    searchQuery,
-    gradeFilter,
-    sectionFilter,
-    classroomFilter,
-    statusFilter,
-    dateRange,
-    customStartDate,
-    customEndDate,
-  ]);
+  }, [students, dateRange, customStartDate, customEndDate]);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
@@ -259,7 +167,7 @@ export default function StudentsList() {
       customEndDate,
     );
 
-    const studentsInRange = studentsWithEnrollment.filter((s) =>
+    const studentsInRange = students.filter((s) =>
       isDateInRange(s.created_at ?? s.submittedDate, filterResult),
     );
 
@@ -272,90 +180,10 @@ export default function StudentsList() {
       (s) => s.status === "Withdrawn",
     ).length;
 
-    const atRisk = studentsInRange.filter((student) => {
-      const performance = student.contextPerformance || student.ytdPerformance;
-      return Boolean(performance && performance.riskFlags.length > 0);
-    }).length;
+    return { total, active, suspended, withdrawn };
+  }, [students, dateRange, customStartDate, customEndDate]);
 
-    return { total, active, suspended, withdrawn, atRisk };
-  }, [studentsWithEnrollment, dateRange, customStartDate, customEndDate]);
-
-  // Get unique values for filters from enrollment data
-  const uniqueGrades = useMemo(() => {
-    const grades = new Set<string>();
-    studentsWithEnrollment.forEach((s) => {
-      const grade = s.enrollment?.grade || s.gradeRequested;
-      grades.add(grade);
-    });
-    return Array.from(grades).sort();
-  }, [studentsWithEnrollment]);
-
-  const uniqueSections = useMemo(() => {
-    const sections = new Set<string>();
-    studentsWithEnrollment.forEach((s) => {
-      const matchesGrade =
-        gradeFilter === "all" ||
-        (s.enrollment?.grade || s.gradeRequested) === gradeFilter;
-
-      if (matchesGrade && s.enrollment?.section) {
-        sections.add(s.enrollment.section);
-      }
-    });
-    return Array.from(sections).sort();
-  }, [gradeFilter, studentsWithEnrollment]);
-
-  const uniqueClassrooms = useMemo(() => {
-    const classrooms = new Set<string>();
-    studentsWithEnrollment.forEach((s) => {
-      const studentGrade = s.enrollment?.grade || s.gradeRequested;
-      const studentSection = s.enrollment?.section || "";
-
-      const matchesGrade =
-        gradeFilter === "all" || studentGrade === gradeFilter;
-      const matchesSection =
-        sectionFilter === "all" || studentSection === sectionFilter;
-
-      if (matchesGrade && matchesSection && s.enrollment?.classroom) {
-        classrooms.add(s.enrollment.classroom);
-      }
-    });
-    return Array.from(classrooms).sort();
-  }, [gradeFilter, sectionFilter, studentsWithEnrollment]);
-
-  useEffect(() => {
-    if (gradeFilter !== "all" && !uniqueGrades.includes(gradeFilter)) {
-      replaceValues({
-        grade: null,
-        section: null,
-        classroom: null,
-      });
-    }
-  }, [gradeFilter, replaceValues, uniqueGrades]);
-
-  useEffect(() => {
-    if (sectionFilter !== "all" && !uniqueSections.includes(sectionFilter)) {
-      replaceValues({
-        section: null,
-        classroom: null,
-      });
-    }
-  }, [replaceValues, sectionFilter, uniqueSections]);
-
-  useEffect(() => {
-    if (
-      classroomFilter !== "all" &&
-      !uniqueClassrooms.includes(classroomFilter)
-    ) {
-      replaceValues({ classroom: null });
-    }
-  }, [classroomFilter, replaceValues, uniqueClassrooms]);
-
-  const hasActiveFilters =
-    searchQuery !== "" ||
-    gradeFilter !== "all" ||
-    sectionFilter !== "all" ||
-    classroomFilter !== "all" ||
-    statusFilter !== "all";
+  const hasActiveFilters = searchQuery !== "" || statusFilter !== "all";
 
   const clearFilters = () => {
     reset(undefined, "replace");
@@ -414,46 +242,9 @@ export default function StudentsList() {
     setPageError("Bulk upload is not available yet.");
   };
 
-  const getRiskBadges = (
-    performance:
-      | ReturnType<typeof studentsService.getStudentYTDPerformance>
-      | studentsService.StudentWithEnrollmentContext["contextPerformance"]
-      | undefined,
-  ) => {
-    if (!performance || performance.riskFlags.length === 0) return null;
-
-    const getRiskLabel = (flag: string) => {
-      switch (flag) {
-        case "attendance":
-          return t("risk_flags.low_attendance");
-        case "grades":
-          return t("risk_flags.low_grades");
-        case "behavior":
-          return t("risk_flags.behavior_issues");
-        default:
-          return flag;
-      }
-    };
-
-    return (
-      <div className="flex gap-1 flex-wrap">
-        {performance.riskFlags.map((flag) => (
-          <span
-            key={flag}
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getRiskFlagColor(flag)}`}
-          >
-            {getRiskLabel(flag)}
-          </span>
-        ))}
-      </div>
-    );
-  };
-
   const getStatusBadge = (status: StudentStatus) => {
     const statusKey = status.toLowerCase() as
-      | "active"
-      | "withdrawn"
-      | "suspended";
+      "active" | "withdrawn" | "suspended";
     const statusDisplay = t(`status.${statusKey}`);
 
     return (
@@ -466,13 +257,6 @@ export default function StudentsList() {
   };
 
   const columns = [
-    {
-      key: "student_id",
-      label: t("columns.student_id"),
-      searchable: true,
-      render: (_: unknown, row: { [key: string]: unknown }) =>
-        getStudentDisplayId(row as unknown as Student),
-    },
     {
       key: "name",
       label: t("columns.name"),
@@ -497,43 +281,42 @@ export default function StudentsList() {
       },
     },
     {
-      key: "grade",
-      label: t("columns.grade"),
+      key: "dateOfBirth",
+      label: t("columns.date_of_birth"),
       render: (_: unknown, row: { [key: string]: unknown }) => {
-        const student = row as unknown as (typeof studentsWithEnrollment)[0];
-        const grade = student.enrollment?.grade || student.gradeRequested;
+        const student = row as unknown as Student;
+        const dateOfBirth = student.dateOfBirth || student.date_of_birth || "";
+        const grade = dateOfBirth;
         // Translate grade if it's in "Grade X" format
-        if (grade && grade.startsWith("Grade ")) {
-          const gradeNumber = grade.replace("Grade ", "");
+        if (dateOfBirth && dateOfBirth.startsWith("Grade ")) {
+          const gradeNumber = dateOfBirth.replace("Grade ", "");
           return locale === "ar" ? `الصف ${gradeNumber}` : grade;
         }
-        return grade;
+        return dateOfBirth || t("columns.na");
       },
     },
     {
-      key: "section",
-      label: t("columns.section"),
+      key: "gender",
+      label: t("columns.gender"),
       render: (_: unknown, row: { [key: string]: unknown }) => {
-        const student = row as unknown as (typeof studentsWithEnrollment)[0];
-        return student.enrollment?.section || t("columns.na");
+        return (row as unknown as Student).gender || t("columns.na");
       },
     },
     {
-      key: "classroom",
-      label: t("columns.classroom"),
+      key: "nationality",
+      label: t("columns.nationality"),
       render: (_: unknown, row: { [key: string]: unknown }) => {
-        const student = row as unknown as (typeof studentsWithEnrollment)[0];
-        return getStudentClassroom(student);
+        return (row as unknown as Student).nationality || t("columns.na");
       },
     },
     {
-      key: "attendance_percentage",
-      label: t("columns.attendance"),
+      key: "contact",
+      label: t("columns.contact"),
       render: (_: unknown, row: { [key: string]: unknown }) => {
-        const student = row as unknown as (typeof studentsWithEnrollment)[0];
-        return student.contextPerformance || student.ytdPerformance
-          ? `${(student.contextPerformance || student.ytdPerformance)?.attendance}%`
-          : t("columns.na");
+        const contact = (row as unknown as Student).contact;
+        return (
+          contact.student_phone || contact.student_email || t("columns.na")
+        );
       },
     },
     {
@@ -612,16 +395,12 @@ export default function StudentsList() {
     );
   };
 
-  if (isContextLoading || isPageLoading) {
-    return <MainLoader />;
-  }
-
-  if (contextError || pageError) {
+  if (pageError && students.length === 0) {
     return (
       <div className="p-4 sm:p-6">
         <div className="bg-white rounded-xl p-10 text-center shadow-sm">
           <p className="text-sm text-red-600">
-            {contextError || pageError || t("loading_error")}
+            {pageError || t("loading_error")}
           </p>
         </div>
       </div>
@@ -734,62 +513,7 @@ export default function StudentsList() {
           </div>
         }
         filtersSlot={
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <Select
-              label={t("filter_labels.grade")}
-              value={gradeFilter}
-              onChange={(nextGrade) => {
-                setValues(
-                  {
-                    grade: nextGrade,
-                    section: null,
-                    classroom: null,
-                  },
-                  "push",
-                );
-              }}
-              options={[
-                { value: "all", label: t("filter_options.all_grades") },
-                ...uniqueGrades.map((grade) => ({
-                  value: grade,
-                  label: grade,
-                })),
-              ]}
-            />
-            <Select
-              label={t("filter_labels.section")}
-              value={sectionFilter}
-              onChange={(nextSection) => {
-                setValues(
-                  {
-                    section: nextSection,
-                    classroom: null,
-                  },
-                  "push",
-                );
-              }}
-              options={[
-                { value: "all", label: t("filter_options.all_sections") },
-                ...uniqueSections.map((section) => ({
-                  value: section,
-                  label: section,
-                })),
-              ]}
-            />
-            <Select
-              label={t("filter_labels.classroom")}
-              value={classroomFilter}
-              onChange={(value) => {
-                setValue("classroom", value, "push");
-              }}
-              options={[
-                { value: "all", label: t("filter_options.all_classrooms") },
-                ...uniqueClassrooms.map((classroom) => ({
-                  value: classroom,
-                  label: classroom,
-                })),
-              ]}
-            />
+          <div className="grid grid-cols-1 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <Select
               label={t("filter_labels.status")}
               value={statusFilter}
@@ -808,7 +532,7 @@ export default function StudentsList() {
       />
 
       {/* Table */}
-      {filteredStudents.length === 0 ? (
+      {!isPageLoading && filteredStudents.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm">
           <EmptyState
             message={hasActiveFilters ? t("no_match") : t("no_students")}

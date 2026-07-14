@@ -1,5 +1,5 @@
 import { apiWithToken } from "@/lib/api";
-import { fetchCurrentEnrollment } from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
+import { fetchEnrollments } from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
 import * as studentsApiService from "@/features/students-guardians/students/services/studentsApiService";
 import type { StudentsAdapter } from "@/features/students-guardians/students/services/studentsAdapter";
 import type { StudentWithEnrollmentContext } from "@/features/students-guardians/students/services/studentsService";
@@ -37,26 +37,32 @@ const unwrap = async <T>(request: Promise<ApiEnvelope<T> | T>): Promise<T> => {
   return response as T;
 };
 
-const attachCurrentEnrollment = async (
+const attachEnrollments = (
   students: Student[],
-  academicYearId?: string | null,
-): Promise<StudentWithEnrollmentContext[]> =>
-  Promise.all(
-    students.map(async (student) => {
-      try {
-        const enrollment = await fetchCurrentEnrollment({
-          studentId: student.id,
-          ...(academicYearId ? { academicYearId } : {}),
-        });
-        return {
-          ...student,
-          ...(enrollment ? { enrollment } : {}),
-        } as StudentWithEnrollmentContext;
-      } catch {
-        return student as StudentWithEnrollmentContext;
-      }
-    }),
+  enrollments: Awaited<ReturnType<typeof fetchEnrollments>>,
+): StudentWithEnrollmentContext[] => {
+  const enrollmentByStudentId = new Map(
+    enrollments.map((enrollment) => [enrollment.studentId, enrollment]),
   );
+
+  return students.map((student) => ({
+    ...student,
+    enrollment: enrollmentByStudentId.get(student.id),
+  }));
+};
+
+const fetchStudentsWithActiveEnrollments = async (
+  academicYearId?: string | null,
+): Promise<StudentWithEnrollmentContext[]> => {
+  const [students, enrollments] = await Promise.all([
+    studentsApiService.fetchStudents(),
+    fetchEnrollments({
+      ...(academicYearId ? { academicYearId } : {}),
+      status: "active",
+    }),
+  ]);
+  return attachEnrollments(students, enrollments);
+};
 
 export const createStudentsApiAdapter = (
   basePath: string = "/students-guardians/students",
@@ -158,15 +164,9 @@ export const createStudentsApiAdapter = (
         method: "GET",
       }),
     ),
-  fetchStudentsWithEnrollment: async () => {
-    const students = await studentsApiService.fetchStudents();
-    return attachCurrentEnrollment(students);
-  },
-  fetchStudentsWithEnrollmentForContext: async (academicYearId, termId) => {
-    void termId;
-    const students = await studentsApiService.fetchStudents();
-    return attachCurrentEnrollment(students, academicYearId);
-  },
+  fetchStudentsWithEnrollment: () => fetchStudentsWithActiveEnrollments(),
+  fetchStudentsWithEnrollmentForContext: (academicYearId) =>
+    fetchStudentsWithActiveEnrollments(academicYearId),
 });
 
 export const studentsApiAdapter = createStudentsApiAdapter();

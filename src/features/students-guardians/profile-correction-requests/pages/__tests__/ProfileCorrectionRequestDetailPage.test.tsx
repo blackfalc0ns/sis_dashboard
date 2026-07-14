@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ProfileCorrectionRequestDetailPage from "../ProfileCorrectionRequestDetailPage";
 import {
@@ -27,9 +33,12 @@ let mockCapabilities = {
 };
 
 // Mock permissions
-vi.mock("@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities", () => ({
-  getStudentsGuardiansCapabilities: () => mockCapabilities,
-}));
+vi.mock(
+  "@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities",
+  () => ({
+    getStudentsGuardiansCapabilities: () => mockCapabilities,
+  }),
+);
 
 vi.mock("@/hooks/usePermissions", () => ({
   usePermissions: () => ({
@@ -38,19 +47,25 @@ vi.mock("@/hooks/usePermissions", () => ({
 }));
 
 // Mock api service
-vi.mock("@/features/students-guardians/profile-correction-requests/services/profileCorrectionRequestsApiService", () => ({
-  fetchProfileCorrectionRequestById: vi.fn(),
-  approveProfileCorrectionRequest: vi.fn(),
-  rejectProfileCorrectionRequest: vi.fn(),
-}));
+vi.mock(
+  "@/features/students-guardians/profile-correction-requests/services/profileCorrectionRequestsApiService",
+  () => ({
+    fetchProfileCorrectionRequestById: vi.fn(),
+    approveProfileCorrectionRequest: vi.fn(),
+    rejectProfileCorrectionRequest: vi.fn(),
+  }),
+);
 
 const mockRequest = {
   id: "req-1",
   studentId: "STU001",
   studentName: "John Doe",
+  studentNumber: "ST-100",
   status: "PENDING" as const,
   changeCount: 1,
-  requestedAt: "2026-07-02",
+  requestedAt: "2026-07-14T10:00:00.000Z",
+  reason: "My legal name is John.",
+  currentSnapshot: { firstName: "Jon" },
   changes: [
     {
       field: "firstName",
@@ -84,26 +99,35 @@ describe("ProfileCorrectionRequestDetailPage", () => {
     // Check Back button
     const backButton = screen.getByRole("button", { name: /action_back/i });
     expect(backButton).toBeInTheDocument();
-    
+
     // It should render ChevronLeft icon
     const backIcon = backButton.querySelector("svg");
     expect(backIcon).toBeInTheDocument();
 
     // Check student name and changes table
     expect(screen.getByText("John Doe")).toBeInTheDocument();
+    expect(screen.getByText("ST-100")).toBeInTheDocument();
+    expect(screen.getByText("My legal name is John.")).toBeInTheDocument();
+    expect(screen.getByText("detail_student_number")).toBeInTheDocument();
+    expect(screen.getByText("detail_reason")).toBeInTheDocument();
+    expect(screen.getByText("detail_submitted_at")).toBeInTheDocument();
     expect(screen.getByText("First Name")).toBeInTheDocument();
     expect(screen.getByText("Jon")).toBeInTheDocument();
     expect(screen.getByText("John")).toBeInTheDocument();
 
     // Check Reviewer note uses TextArea
-    const textarea = screen.getByRole("textbox", { name: /detail_reviewer_note/i });
+    const textarea = screen.getByRole("textbox", {
+      name: /detail_reviewer_note/i,
+    });
     expect(textarea).toBeInTheDocument();
     expect(textarea.tagName).toBe("TEXTAREA");
 
     // Check Approve and Reject buttons use Button
-    const approveButton = screen.getByRole("button", { name: /action_approve/i });
+    const approveButton = screen.getByRole("button", {
+      name: /action_approve/i,
+    });
     const rejectButton = screen.getByRole("button", { name: /action_reject/i });
-    
+
     expect(approveButton).toBeInTheDocument();
     expect(rejectButton).toBeInTheDocument();
   });
@@ -112,6 +136,7 @@ describe("ProfileCorrectionRequestDetailPage", () => {
     vi.mocked(approveProfileCorrectionRequest).mockResolvedValue({
       ...mockRequest,
       status: "APPROVED",
+      reviewerNote: "Approved note",
     });
 
     await act(async () => {
@@ -122,10 +147,14 @@ describe("ProfileCorrectionRequestDetailPage", () => {
       expect(screen.getByText("John Doe")).toBeInTheDocument();
     });
 
-    const textarea = screen.getByRole("textbox", { name: /detail_reviewer_note/i });
+    const textarea = screen.getByRole("textbox", {
+      name: /detail_reviewer_note/i,
+    });
     fireEvent.change(textarea, { target: { value: "Approved note" } });
 
-    const approveButton = screen.getByRole("button", { name: /action_approve/i });
+    const approveButton = screen.getByRole("button", {
+      name: /action_approve/i,
+    });
     await act(async () => {
       fireEvent.click(approveButton);
     });
@@ -134,13 +163,19 @@ describe("ProfileCorrectionRequestDetailPage", () => {
     expect(approveProfileCorrectionRequest).toHaveBeenCalledWith("req-1", {
       reviewerNote: "Approved note",
     });
-    expect(textarea).toHaveValue("");
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("textbox", { name: /detail_reviewer_note/i }),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("Approved note")).toBeInTheDocument();
   });
 
   it("handles rejecting the profile correction request", async () => {
     vi.mocked(rejectProfileCorrectionRequest).mockResolvedValue({
       ...mockRequest,
       status: "REJECTED",
+      reviewerNote: "Rejected note",
     });
 
     await act(async () => {
@@ -151,7 +186,9 @@ describe("ProfileCorrectionRequestDetailPage", () => {
       expect(screen.getByText("John Doe")).toBeInTheDocument();
     });
 
-    const textarea = screen.getByRole("textbox", { name: /detail_reviewer_note/i });
+    const textarea = screen.getByRole("textbox", {
+      name: /detail_reviewer_note/i,
+    });
     fireEvent.change(textarea, { target: { value: "Rejected note" } });
 
     const rejectButton = screen.getByRole("button", { name: /action_reject/i });
@@ -163,10 +200,15 @@ describe("ProfileCorrectionRequestDetailPage", () => {
     expect(rejectProfileCorrectionRequest).toHaveBeenCalledWith("req-1", {
       reviewerNote: "Rejected note",
     });
-    expect(textarea).toHaveValue("");
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("textbox", { name: /detail_reviewer_note/i }),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("Rejected note")).toBeInTheDocument();
   });
 
-  it("disables review note textarea and action buttons when request is not PENDING", async () => {
+  it("hides review controls when request is not pending", async () => {
     vi.mocked(fetchProfileCorrectionRequestById).mockResolvedValue({
       ...mockRequest,
       status: "APPROVED",
@@ -180,13 +222,15 @@ describe("ProfileCorrectionRequestDetailPage", () => {
       expect(screen.getByText("John Doe")).toBeInTheDocument();
     });
 
-    const textarea = screen.getByRole("textbox", { name: /detail_reviewer_note/i });
-    expect(textarea).toBeDisabled();
-
-    const approveButton = screen.getByRole("button", { name: /action_approve/i });
-    const rejectButton = screen.getByRole("button", { name: /action_reject/i });
-    expect(approveButton).toBeDisabled();
-    expect(rejectButton).toBeDisabled();
+    expect(
+      screen.queryByRole("textbox", { name: /detail_reviewer_note/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /action_approve/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /action_reject/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("disables reviewer note textarea and action buttons when canReviewProfileCorrectionRequests is false", async () => {
@@ -200,10 +244,14 @@ describe("ProfileCorrectionRequestDetailPage", () => {
       expect(screen.getByText("John Doe")).toBeInTheDocument();
     });
 
-    const textarea = screen.getByRole("textbox", { name: /detail_reviewer_note/i });
+    const textarea = screen.getByRole("textbox", {
+      name: /detail_reviewer_note/i,
+    });
     expect(textarea).toBeDisabled();
 
-    const approveButton = screen.getByRole("button", { name: /action_approve/i });
+    const approveButton = screen.getByRole("button", {
+      name: /action_approve/i,
+    });
     const rejectButton = screen.getByRole("button", { name: /action_reject/i });
     expect(approveButton).toBeDisabled();
     expect(rejectButton).toBeDisabled();

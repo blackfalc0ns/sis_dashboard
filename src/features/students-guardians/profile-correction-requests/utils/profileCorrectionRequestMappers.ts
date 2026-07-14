@@ -59,16 +59,20 @@ function readChanges(raw: ApiRecord): ProfileCorrectionRequestedChange[] {
     });
   }
 
-  const currentValues = isRecord(raw.currentValues)
-    ? raw.currentValues
-    : isRecord(raw.current)
-      ? raw.current
-      : {};
-  const requestedValues = isRecord(raw.requestedValues)
-    ? raw.requestedValues
-    : isRecord(raw.requested)
-      ? raw.requested
-      : {};
+  const currentValues = isRecord(raw.currentSnapshot)
+    ? raw.currentSnapshot
+    : isRecord(raw.currentValues)
+      ? raw.currentValues
+      : isRecord(raw.current)
+        ? raw.current
+        : {};
+  const requestedValues = isRecord(raw.requestedChanges)
+    ? raw.requestedChanges
+    : isRecord(raw.requestedValues)
+      ? raw.requestedValues
+      : isRecord(raw.requested)
+        ? raw.requested
+        : {};
 
   return Object.keys(requestedValues).map((field) => ({
     field,
@@ -91,12 +95,30 @@ export function normalizeProfileCorrectionRequestListItem(
 
   return {
     id,
-    studentId: pickString(raw, ["studentId", "student_id"], pickString(student, ["id"])),
-    studentName: pickString(raw, ["studentName", "student_name"], pickString(student, ["name", "full_name_en", "fullName"])),
+    studentId: pickString(
+      raw,
+      ["studentId", "student_id"],
+      pickString(student, ["studentId", "id"]),
+    ),
+    studentName: pickString(
+      raw,
+      ["studentName", "student_name"],
+      pickString(student, ["displayName", "name", "full_name_en", "fullName"]),
+    ),
+    studentNumber: pickString(student, ["studentNumber"]) || undefined,
     status: normalizeStatus(pickString(raw, ["status"], "pending")),
-    requestedAt: pickString(raw, ["requestedAt", "createdAt", "created_at"]),
-    reviewedAt: pickString(raw, ["reviewedAt", "reviewed_at"]),
-    reviewerNote: pickString(raw, ["reviewerNote", "reviewer_note"]),
+    requestedAt: pickString(raw, [
+      "submittedAt",
+      "requestedAt",
+      "createdAt",
+      "created_at",
+    ]),
+    reviewedAt:
+      pickString(raw, ["resolvedAt", "reviewedAt", "reviewed_at"]) || undefined,
+    cancelledAt: pickString(raw, ["cancelledAt"]) || undefined,
+    reviewerNote:
+      pickString(raw, ["reviewerNote", "reviewer_note"]) || undefined,
+    reason: pickString(raw, ["reason"]) || undefined,
     changeCount: changes.length,
   };
 }
@@ -111,5 +133,6 @@ export function normalizeProfileCorrectionRequestDetail(
   return {
     ...normalizeProfileCorrectionRequestListItem(raw),
     changes: readChanges(raw),
+    currentSnapshot: isRecord(raw.currentSnapshot) ? raw.currentSnapshot : null,
   };
 }

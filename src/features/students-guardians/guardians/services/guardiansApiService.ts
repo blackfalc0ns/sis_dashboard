@@ -18,6 +18,7 @@ const STUDENTS_BASE_PATH = "/students-guardians/students";
 
 export interface FetchGuardiansParams {
   search?: string;
+  relation?: string;
 }
 
 export type GuardianPayload = Partial<StudentGuardian>;

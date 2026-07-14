@@ -18,7 +18,6 @@ export default function StudentsByGradeChart() {
   const { height, width, isMobile } = useResponsiveChart();
   const context = useOptionalStudentsGuardiansYearTermContext();
   const yearId = context?.yearId ?? null;
-  const termId = context?.termId ?? null;
   const isContextLoading = context?.isLoading ?? false;
 
   // Get all students
@@ -42,11 +41,8 @@ export default function StudentsByGradeChart() {
       setIsLoading(true);
       try {
         const students =
-          yearId && termId
-            ? await studentsService.fetchStudentsWithEnrollmentForContext(
-                yearId,
-                termId,
-              )
+          yearId
+            ? await studentsService.fetchStudentsWithEnrollmentForContext(yearId)
             : await studentsService.fetchStudentsWithEnrollment();
         if (!isCancelled) {
           setAllStudents(students);
@@ -61,7 +57,7 @@ export default function StudentsByGradeChart() {
     return () => {
       isCancelled = true;
     };
-  }, [isContextLoading, termId, yearId]);
+  }, [isContextLoading, yearId]);
 
   // Calculate grade data
   const gradeData = useMemo(() => {

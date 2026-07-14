@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import StudentsGuardiansYearTermContextBar from "@/features/students-guardians/shared/components/StudentsGuardiansYearTermContextBar";
 import {
   StudentsGuardiansYearTermProvider,
@@ -11,6 +12,10 @@ function StudentsGuardiansLayoutContent({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname().replace(/\/+$/, "");
+  const usesYearOnlyStudentContext =
+    pathname.endsWith("/students-guardians") ||
+    pathname.endsWith("/students-guardians/students");
   const {
     academicYears,
     terms,
@@ -33,6 +38,7 @@ function StudentsGuardiansLayoutContent({
         isLoading={isLoading}
         onAcademicYearChange={setYearId}
         onTermChange={setTermId}
+        showTermSelector={!usesYearOnlyStudentContext}
       />
       {children}
     </div>

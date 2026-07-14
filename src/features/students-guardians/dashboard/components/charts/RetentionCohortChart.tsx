@@ -17,7 +17,6 @@ export default function RetentionCohortChart() {
   const { height, leftMargin } = useResponsiveChart();
   const context = useOptionalStudentsGuardiansYearTermContext();
   const yearId = context?.yearId ?? null;
-  const termId = context?.termId ?? null;
   const isContextLoading = context?.isLoading ?? false;
 
   // Get all students
@@ -41,11 +40,8 @@ export default function RetentionCohortChart() {
       setIsLoading(true);
       try {
         const students =
-          yearId && termId
-            ? await studentsService.fetchStudentsWithEnrollmentForContext(
-                yearId,
-                termId,
-              )
+          yearId
+            ? await studentsService.fetchStudentsWithEnrollmentForContext(yearId)
             : await studentsService.fetchStudentsWithEnrollment();
         if (!isCancelled) {
           setAllStudents(students);
@@ -60,7 +56,7 @@ export default function RetentionCohortChart() {
     return () => {
       isCancelled = true;
     };
-  }, [isContextLoading, termId, yearId]);
+  }, [isContextLoading, yearId]);
 
   // Calculate retention data by academic year
   const retentionData = useMemo(() => {

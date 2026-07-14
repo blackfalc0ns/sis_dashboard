@@ -22,7 +22,6 @@ export default function PassFailRatioChart() {
   const { height } = useResponsiveChart();
   const context = useOptionalStudentsGuardiansYearTermContext();
   const yearId = context?.yearId ?? null;
-  const termId = context?.termId ?? null;
   const isContextLoading = context?.isLoading ?? false;
 
   const [period, setPeriod] = useState<Period>("term");
@@ -57,11 +56,8 @@ export default function PassFailRatioChart() {
       setIsLoading(true);
       try {
         const students =
-          yearId && termId
-            ? await studentsService.fetchStudentsWithEnrollmentForContext(
-                yearId,
-                termId,
-              )
+          yearId
+            ? await studentsService.fetchStudentsWithEnrollmentForContext(yearId)
             : await studentsService.fetchStudentsWithEnrollment();
         if (!isCancelled) {
           setAllStudents(students);
@@ -76,7 +72,7 @@ export default function PassFailRatioChart() {
     return () => {
       isCancelled = true;
     };
-  }, [isContextLoading, termId, yearId]);
+  }, [isContextLoading, yearId]);
 
   // Filter and calculate pass/fail data based on period
   const chartData = useMemo(() => {

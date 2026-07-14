@@ -1,13 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { updateStudentGuardianLink } from "@/features/students-guardians/guardians/services/guardiansApiService";
+import {
+  fetchGuardians,
+  updateStudentGuardianLink,
+} from "@/features/students-guardians/guardians/services/guardiansApiService";
 
 const apiMocks = vi.hoisted(() => ({
   apiPatch: vi.fn(),
+  apiGet: vi.fn(),
 }));
 
 vi.mock("@/lib/api", () => ({
   apiDelete: vi.fn(),
-  apiGet: vi.fn(),
+  apiGet: apiMocks.apiGet,
   apiPatch: apiMocks.apiPatch,
   apiPost: vi.fn(),
 }));
@@ -29,6 +33,7 @@ describe("guardiansApiService", () => {
       can_receive_notifications: true,
     };
     apiMocks.apiPatch.mockReset().mockResolvedValue(guardianResponse);
+    apiMocks.apiGet.mockReset().mockResolvedValue([guardianResponse]);
   });
 
   it("updates the student-guardian relationship through the backend PATCH contract", async () => {
@@ -48,5 +53,13 @@ describe("guardiansApiService", () => {
       guardianId: "guardian-1",
       is_primary: true,
     });
+  });
+
+  it("sends search and relation filters to the guardians collection endpoint", async () => {
+    await fetchGuardians({ search: "Ahmed 5551", relation: "father" });
+
+    expect(apiMocks.apiGet).toHaveBeenCalledWith(
+      "/students-guardians/guardians?search=Ahmed+5551&relation=father",
+    );
   });
 });

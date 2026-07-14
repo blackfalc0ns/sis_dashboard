@@ -21,7 +21,6 @@ export default function AbsenceHeatmap({ data }: AbsenceHeatmapProps) {
   const t = useTranslations("students_guardians.overview");
   const context = useOptionalStudentsGuardiansYearTermContext();
   const yearId = context?.yearId ?? null;
-  const termId = context?.termId ?? null;
   const isContextLoading = context?.isLoading ?? false;
 
   // Get all students
@@ -40,11 +39,8 @@ export default function AbsenceHeatmap({ data }: AbsenceHeatmapProps) {
     void Promise.resolve().then(async () => {
       setIsLoading(true);
       try {
-        if (yearId && termId) {
-          await studentsService.fetchStudentsWithEnrollmentForContext(
-            yearId,
-            termId,
-          );
+        if (yearId) {
+          await studentsService.fetchStudentsWithEnrollmentForContext(yearId);
         } else {
           await studentsService.fetchStudentsWithEnrollment();
         }
@@ -58,7 +54,7 @@ export default function AbsenceHeatmap({ data }: AbsenceHeatmapProps) {
     return () => {
       isCancelled = true;
     };
-  }, [isContextLoading, termId, yearId]);
+  }, [isContextLoading, yearId]);
 
   // Default data if none provided - 6 days starting from Saturday
   // In a real implementation, this would be calculated from filteredStudents
