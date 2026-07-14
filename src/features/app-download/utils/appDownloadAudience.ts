@@ -36,10 +36,7 @@ export const APP_DOWNLOAD_CONFIG: Record<
   },
 };
 
-type AppDownloadUser = Pick<
-  MeResponse,
-  "userType" | "activeMembership"
->;
+type AppDownloadUser = Pick<MeResponse, "userType" | "activeMembership">;
 
 export function getAppDownloadAudience(
   user: AppDownloadUser | null | undefined,

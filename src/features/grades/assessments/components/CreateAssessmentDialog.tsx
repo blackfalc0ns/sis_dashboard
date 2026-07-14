@@ -9,6 +9,7 @@ import type { Assessment, AssessmentType, CreateAssessmentPayload, ExamScopeType
 import type { ScopeEntityOption } from "../../shared/types";
 import { isAssessmentMetadataEditable } from "../../shared/utils/assessmentWorkflow";
 import { getHierarchyOptions, getScopeHierarchyPath } from "../utils/assessmentScopeHierarchy";
+import { formatLocalDateOnly } from "../../shared/utils/dateOnly";
 
 interface SubjectOption {
   id: string;
@@ -136,7 +137,7 @@ export default function CreateAssessmentDialog({
       deliveryMode: initialAssessment?.deliveryMode || "SCORE_ONLY",
       title,
       titleAr,
-      date: date.toISOString().slice(0, 10),
+      date: formatLocalDateOnly(date),
       weight: Number(weight),
       maxScore: Number(maxScore),
     });

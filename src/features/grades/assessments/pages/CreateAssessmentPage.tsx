@@ -13,6 +13,7 @@ import { createAssessment } from "../services/gradesAssessmentsService";
 import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
 import type { AssessmentDeliveryMode, AssessmentType, CreateAssessmentPayload, ExamScopeType, ScopeEntityOption } from "../../shared/types";
 import { useGradesYearTermLayoutContext } from "@/features/grades/hooks/GradesYearTermLayoutContext";
+import { formatLocalDateOnly } from "../../shared/utils/dateOnly";
 
 const defaultDeliveryMode: AssessmentDeliveryMode = "SCORE_ONLY";
 
@@ -139,7 +140,7 @@ export default function CreateAssessmentPage() {
           deliveryMode: defaultDeliveryMode,
           title: "",
           titleAr: "",
-          date: new Date().toISOString().slice(0, 10),
+          date: formatLocalDateOnly(new Date()),
           weight: 15,
           maxScore: 20,
         });
@@ -308,7 +309,7 @@ export default function CreateAssessmentPage() {
             <DatePicker
               label={tDialog("date")}
               value={draft.date ? new Date(draft.date) : null}
-              onChange={(date) => setDraft((current) => (current && date ? { ...current, date: date.toISOString().slice(0, 10) } : current))}
+              onChange={(date) => setDraft((current) => (current && date ? { ...current, date: formatLocalDateOnly(date) } : current))}
             />
             <Input label={tDialog("titleEn")} value={draft.title} onChange={(event) => setDraft((current) => (current ? { ...current, title: event.target.value } : current))} required />
             <Input label={tDialog("titleAr")} value={draft.titleAr} onChange={(event) => setDraft((current) => (current ? { ...current, titleAr: event.target.value } : current))} required />

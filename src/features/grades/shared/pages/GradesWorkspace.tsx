@@ -55,6 +55,10 @@ import {
 import { useGradesYearTermLayoutContext } from "@/features/grades/hooks/GradesYearTermLayoutContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { fetchSubjectAllocations, type SubjectAllocation } from "@/features/academics/subjects/services/subjectsService";
+import {
+  isGradeEntryAvailable,
+  isSubmissionReviewAvailable,
+} from "../utils/assessmentWorkflow";
 
 interface GradesWorkspaceProps {
   view: "overview" | "assessments" | "gradebook";
@@ -177,6 +181,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   const canManageGradeItems = hasPermission("grades.items.manage");
   const canManageQuestions = hasPermission("grades.questions.manage");
   const canViewSubmissions = hasPermission("grades.submissions.view");
+  const canReviewSubmissions = hasPermission("grades.submissions.review");
   const filtersHydratedRef = useRef(false);
   const filtersContextRef = useRef<string | null>(null);
   const showSubjectFilter = true;
@@ -529,14 +534,23 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
         const score = row.scoresByAssessmentId[assessment.id];
         const status = row.statusByAssessmentId[assessment.id];
         const isQuestionBased = assessment.deliveryMode === "QUESTION_BASED";
-        const isDisabled = assessment.isLocked || isReadOnly || !canManageGradeItems;
+        const hasRequiredPermission = isQuestionBased
+          ? canReviewSubmissions
+          : canManageGradeItems;
+        const isAssessmentActionAvailable = isQuestionBased
+          ? isSubmissionReviewAvailable(assessment)
+          : isGradeEntryAvailable(assessment);
+        const isDisabled =
+          isReadOnly ||
+          !hasRequiredPermission ||
+          !isAssessmentActionAvailable;
         const disabledReason = assessment.isLocked
           ? t("workflow.reasons.locked")
           : isReadOnly
             ? t("workflow.reasons.termClosed")
-            : !canManageGradeItems
+            : !hasRequiredPermission
               ? t("workflow.reasons.permission")
-            : undefined;
+              : undefined;
         let label = isQuestionBased ? t("table.openReview") : t("table.missing");
         let cellStyle = {
           borderColor: "var(--warning-bg)",
@@ -589,7 +603,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
           row.totalItems > 0 ? `${row.completedItems}/${row.totalItems}` : "-",
       },
     ];
-  }, [assessments, canManageGradeItems, isReadOnly, locale, openEditGradeDialog, t]);
+  }, [assessments, canManageGradeItems, canReviewSubmissions, isReadOnly, locale, openEditGradeDialog, t]);
 
   const tableRows: GradebookTableRow[] = rows.map((row) => ({
     ...row,

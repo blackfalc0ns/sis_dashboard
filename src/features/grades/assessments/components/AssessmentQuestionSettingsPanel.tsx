@@ -8,6 +8,7 @@ import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTe
 import Button from "@/components/ui/button/Button";
 import type { ValidationErrors, PointsSummary } from "@/features/academics/curriculum/types/types";
 import type { Assessment } from "../types";
+import { formatLocalDateOnly } from "../../shared/utils/dateOnly";
 
 interface AssessmentQuestionSettingsPanelProps {
   assessment: Assessment;
@@ -56,7 +57,7 @@ export default function AssessmentQuestionSettingsPanel({
           <DatePicker
             label={t("assessmentDate")}
             value={assessment.date ? new Date(assessment.date) : null}
-            onChange={(date) => onUpdate({ date: date ? date.toISOString().slice(0, 10) : assessment.date })}
+            onChange={(date) => onUpdate({ date: date ? formatLocalDateOnly(date) : assessment.date })}
             disabled={isMetadataLocked}
           />
 

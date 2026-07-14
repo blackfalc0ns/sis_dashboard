@@ -30,6 +30,8 @@ import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
 import type { Assessment, AssessmentQuestion, AssessmentType } from "../types";
 import { useGradesRouteYearTerm } from "@/features/grades/hooks/useGradesRouteYearTerm";
 import { canEditAssessmentQuestions } from "../utils/assessmentContract";
+import { distributeQuestionPoints } from "../utils/distributeQuestionPoints";
+import { formatLocalDateOnly } from "../../shared/utils/dateOnly";
 
 interface AssessmentQuestionsPageProps {
   assessmentId?: string;
@@ -145,7 +147,7 @@ export default function AssessmentQuestionsPage({
   const titleParam = searchParams.get("title") || "";
   const titleArParam = searchParams.get("titleAr") || "";
   const dateParam =
-    searchParams.get("date") || new Date().toISOString().slice(0, 10);
+    searchParams.get("date") || formatLocalDateOnly(new Date());
   const weightParam = Number(searchParams.get("weight") || "15");
   const maxScoreParam = Number(searchParams.get("maxScore") || "20");
   const isCreateMode = mode === "create";
@@ -642,12 +644,10 @@ export default function AssessmentQuestionsPage({
     const questionCount = questions.length;
     if (maxScore <= 0 || questionCount === 0) return;
 
-    const base = Math.floor(maxScore / questionCount);
-    const remainder = maxScore % questionCount;
-    const updates = questions.map((question, index) => ({
-      questionId: question.id,
-      points: index < remainder ? base + 1 : base,
-    }));
+    const updates = distributeQuestionPoints(
+      maxScore,
+      questions.map((question) => question.id),
+    );
     if (isCreateMode || updates.some((update) => isTemporaryQuestionId(update.questionId))) {
       setQuestions((current) =>
         current.map((question) => {

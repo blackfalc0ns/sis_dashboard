@@ -225,7 +225,7 @@ export function mapBackendAssessmentToAssessment(item: BackendAssessmentResponse
     termId: item.termId ?? "",
     subjectId: item.subjectId ?? item.subject?.id ?? "",
     scopeType: item.scopeType ?? "school",
-    scopeId: item.scopeId ?? "",
+    scopeId: (item.scopeType ?? "school") === "school" ? "" : item.scopeId ?? "",
     sectionId: item.sectionId ?? undefined,
     classroomId: item.classroomId ?? undefined,
     title: names.nameEn || names.name,

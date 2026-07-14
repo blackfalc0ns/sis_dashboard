@@ -40,13 +40,30 @@ export function isAssessmentMetadataEditable(
   return !assessment.isLocked;
 }
 
+function isAssessmentReleased(
+  assessment: Pick<Assessment, "approvalStatus" | "isLocked">,
+): boolean {
+  return (
+    !assessment.isLocked &&
+    (assessment.approvalStatus === "published" || assessment.approvalStatus === "approved")
+  );
+}
+
 export function isGradeEntryAvailable(
   assessment: Pick<Assessment, "approvalStatus" | "isLocked" | "deliveryMode">,
 ): boolean {
   return (
-    !assessment.isLocked &&
     assessment.deliveryMode === "SCORE_ONLY" &&
-    (assessment.approvalStatus === "published" || assessment.approvalStatus === "approved")
+    isAssessmentReleased(assessment)
+  );
+}
+
+export function isSubmissionReviewAvailable(
+  assessment: Pick<Assessment, "approvalStatus" | "isLocked" | "deliveryMode">,
+): boolean {
+  return (
+    assessment.deliveryMode === "QUESTION_BASED" &&
+    isAssessmentReleased(assessment)
   );
 }
 
