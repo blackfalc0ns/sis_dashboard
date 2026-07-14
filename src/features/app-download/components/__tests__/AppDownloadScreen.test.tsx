@@ -1,0 +1,55 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AppDownloadScreen } from "../AppDownloadScreen";
+
+const authMocks = vi.hoisted(() => ({ logout: vi.fn() }));
+
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({ logout: authMocks.logout }),
+}));
+
+vi.mock("next-intl", () => ({
+  useLocale: () => "en",
+  useTranslations: () => (key: string, values?: { appName?: string }) => {
+    const labels: Record<string, string> = {
+      student: "Student App",
+      teacher: "Teacher App",
+      android: "android",
+      ios: "ios",
+      logout: "logout",
+    };
+    return key === "title" ? values?.appName ?? "" : labels[key] ?? key;
+  },
+}));
+
+describe("AppDownloadScreen", () => {
+  beforeEach(() => {
+    authMocks.logout.mockReset();
+  });
+
+  it("shows the student application with safe Android and iOS links", () => {
+    render(<AppDownloadScreen audience="student" />);
+
+    expect(
+      screen.getByRole("heading", { name: "Student App" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "android" })).toHaveAttribute(
+      "target",
+      "_blank",
+    );
+    expect(screen.getByRole("link", { name: "ios" })).toHaveAttribute(
+      "rel",
+      "noopener noreferrer",
+    );
+  });
+
+  it("lets the user log out", async () => {
+    const user = userEvent.setup();
+    render(<AppDownloadScreen audience="teacher" />);
+
+    await user.click(screen.getByRole("button", { name: "logout" }));
+
+    expect(authMocks.logout).toHaveBeenCalledOnce();
+  });
+});

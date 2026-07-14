@@ -12554,5 +12554,17 @@
     "save": "Save",
     "update": "Update",
     "cancel": "Cancel"
+  },
+  "app_download": {
+    "eyebrow": "Your mobile experience",
+    "title": "Get the {appName}",
+    "description": "Download the app to stay connected with your school wherever you are.",
+    "android": "Download for Android",
+    "ios": "Download on the App Store",
+    "logout": "Log out",
+    "student": "Student App",
+    "teacher": "Teacher App",
+    "parent": "Parent App",
+    "dismissal_staff": "Dismissal Staff App"
   }
 }
