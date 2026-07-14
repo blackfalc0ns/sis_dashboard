@@ -1,14 +1,13 @@
 "use client";
 
 import {
-  Apple,
   BookOpen,
-  Download,
   GraduationCap,
   HeartHandshake,
   LogOut,
   ShieldCheck,
 } from "lucide-react";
+import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -53,8 +52,20 @@ export function AppDownloadScreen({
         </h1>
         <p className="mt-3 text-base leading-7 text-slate-600">{t("description", { appName })}</p>
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
-          <StoreLink href={config.androidUrl} label={t("android")} icon={<Download aria-hidden="true" className="size-5" />} />
-          <StoreLink href={config.iosUrl} label={t("ios")} platform="app-store" icon={<Apple aria-hidden="true" className="size-5" />} />
+          <StoreLink
+            href={config.androidUrl}
+            label={t("android")}
+            badgeAlt="Google Play"
+            badgeSrc="/store-badges/google-play.svg"
+            platform="google-play"
+          />
+          <StoreLink
+            href={config.iosUrl}
+            label={t("ios")}
+            badgeAlt="App Store"
+            badgeSrc="/store-badges/app-store.svg"
+            platform="app-store"
+          />
         </div>
         <button
           type="button"
@@ -69,12 +80,13 @@ export function AppDownloadScreen({
   );
 }
 
-function StoreLink({ href, label, icon, platform = "google-play" }: { href: string | null; label: string; icon: React.ReactNode; platform?: "google-play" | "app-store" }) {
-  const className = `app-download-store-link app-download-store-link--${platform} inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2`;
+function StoreLink({ href, label, badgeAlt, badgeSrc, platform }: { href: string | null; label: string; badgeAlt: string; badgeSrc: string; platform: "google-play" | "app-store" }) {
+  const className = `app-download-store-link app-download-store-link--${platform} inline-flex overflow-hidden rounded-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2`;
+  const badge = <Image src={badgeSrc} alt={badgeAlt} width={120} height={40} />;
 
   if (!href) {
-    return <button type="button" disabled className={`${className} cursor-not-allowed opacity-50`}>{icon}{label}</button>;
+    return <button type="button" disabled className={`${className} cursor-not-allowed opacity-50`}>{badge}</button>;
   }
 
-  return <a href={href} target="_blank" rel="noopener noreferrer" className={className}>{icon}{label}</a>;
+  return <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className={className}>{badge}</a>;
 }

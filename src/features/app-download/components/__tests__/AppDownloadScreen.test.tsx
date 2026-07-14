@@ -43,12 +43,20 @@ describe("AppDownloadScreen", () => {
     expect(screen.getByRole("link", { name: "android" })).toHaveClass(
       "app-download-store-link--google-play",
     );
+    expect(screen.getByAltText("Google Play")).toHaveAttribute(
+      "src",
+      "/store-badges/google-play.svg",
+    );
     expect(screen.getByRole("link", { name: "ios" })).toHaveAttribute(
       "rel",
       "noopener noreferrer",
     );
     expect(screen.getByRole("link", { name: "ios" })).toHaveClass(
       "app-download-store-link--app-store",
+    );
+    expect(screen.getByAltText("App Store")).toHaveAttribute(
+      "src",
+      "/store-badges/app-store.svg",
     );
   });
 

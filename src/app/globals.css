@@ -190,25 +190,9 @@ body {
   box-shadow: 0 14px 30px color-mix(in oklab, var(--primary-color) 34%, transparent);
 }
 
-.app-download-store-link--google-play {
-  border: 1px solid color-mix(in oklab, var(--primary-color) 24%, white);
-  background: var(--white-color);
-  color: var(--primary-dark);
-  box-shadow: 0 8px 20px color-mix(in oklab, var(--primary-dark) 12%, transparent);
-}
-
-.app-download-store-link--google-play:hover {
-  background: var(--color-primary-50);
-}
-
-.app-download-store-link--app-store {
-  background: var(--black-color);
-  color: var(--white-color);
-  box-shadow: 0 8px 20px color-mix(in oklab, var(--black-color) 22%, transparent);
-}
-
-.app-download-store-link--app-store:hover {
-  background: color-mix(in oklab, var(--black-color) 82%, var(--hover-color));
+.app-download-store-link:hover {
+  box-shadow: 0 8px 20px color-mix(in oklab, var(--primary-dark) 16%, transparent);
+  transform: translateY(-1px);
 }
 
 @media (prefers-reduced-motion: no-preference) {
