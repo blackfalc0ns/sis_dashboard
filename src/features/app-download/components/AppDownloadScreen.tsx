@@ -54,7 +54,7 @@ export function AppDownloadScreen({
         <p className="mt-3 text-base leading-7 text-slate-600">{t("description", { appName })}</p>
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
           <StoreLink href={config.androidUrl} label={t("android")} icon={<Download aria-hidden="true" className="size-5" />} />
-          <StoreLink href={config.iosUrl} label={t("ios")} icon={<Apple aria-hidden="true" className="size-5" />} />
+          <StoreLink href={config.iosUrl} label={t("ios")} platform="app-store" icon={<Apple aria-hidden="true" className="size-5" />} />
         </div>
         <button
           type="button"
@@ -69,8 +69,8 @@ export function AppDownloadScreen({
   );
 }
 
-function StoreLink({ href, label, icon }: { href: string | null; label: string; icon: React.ReactNode }) {
-  const className = "inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white transition hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2";
+function StoreLink({ href, label, icon, platform = "google-play" }: { href: string | null; label: string; icon: React.ReactNode; platform?: "google-play" | "app-store" }) {
+  const className = `app-download-store-link app-download-store-link--${platform} inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2`;
 
   if (!href) {
     return <button type="button" disabled className={`${className} cursor-not-allowed opacity-50`}>{icon}{label}</button>;

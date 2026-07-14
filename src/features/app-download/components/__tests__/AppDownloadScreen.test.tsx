@@ -40,9 +40,15 @@ describe("AppDownloadScreen", () => {
       "target",
       "_blank",
     );
+    expect(screen.getByRole("link", { name: "android" })).toHaveClass(
+      "app-download-store-link--google-play",
+    );
     expect(screen.getByRole("link", { name: "ios" })).toHaveAttribute(
       "rel",
       "noopener noreferrer",
+    );
+    expect(screen.getByRole("link", { name: "ios" })).toHaveClass(
+      "app-download-store-link--app-store",
     );
   });
 
