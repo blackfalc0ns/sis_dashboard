@@ -116,7 +116,11 @@ export default function ConversionFunnelChart({
         <ResponsiveContainer width="100%" height="100%">
           <FunnelChart>
             <Tooltip
-              formatter={(value: number | undefined) => value?.toLocaleString() ?? "0"}
+              formatter={(tooltipValue) =>
+                typeof tooltipValue === "number"
+                  ? tooltipValue.toLocaleString()
+                  : String(tooltipValue ?? "0")
+              }
               contentStyle={{
                 backgroundColor: "rgba(255, 255, 255, 0.95)",
                 border: "1px solid #e5e7eb",

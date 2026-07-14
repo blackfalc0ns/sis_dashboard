@@ -89,11 +89,11 @@ export default function AttendanceTrendChart({ points, onPointClick }: Attendanc
                 const point = payload?.[0]?.payload as (ReportsTrendPoint & { displayLabel?: string }) | undefined;
                 return point?.displayLabel || "";
               }}
-              formatter={(value: number | string | undefined, name: string | undefined) => [
-                name === "attendanceRate"
-                  ? `${Number(value || 0).toFixed(1)}%`
-                  : Number(value || 0).toLocaleString(),
-                name === "attendanceRate" ? t("rateSeries") : t("volumeSeries"),
+              formatter={(tooltipValue, seriesName) => [
+                seriesName === "attendanceRate"
+                  ? `${Number(tooltipValue || 0).toFixed(1)}%`
+                  : Number(tooltipValue || 0).toLocaleString(),
+                seriesName === "attendanceRate" ? t("rateSeries") : t("volumeSeries"),
               ]}
             />
             <Bar
