@@ -11,7 +11,9 @@ export function getReadyExcuseScope(
   explicitSelection = true,
   requestType: ExcuseType = "ABSENCE",
 ) {
-  if (!explicitSelection) return null;
+  const acceptsDefaultSchoolScope =
+    requestType === "ABSENCE" && scopeType === "SCHOOL";
+  if (!explicitSelection && !acceptsDefaultSchoolScope) return null;
   if (
     requestType !== "ABSENCE" &&
     (scopeType === "SCHOOL" || scopeType === "STAGE")

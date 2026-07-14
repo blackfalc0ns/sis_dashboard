@@ -2,8 +2,14 @@ import { describe, expect, it } from "vitest";
 import { getReadyExcuseScope } from "./excuseScopeReadiness";
 
 describe("getReadyExcuseScope", () => {
-  it("does not return a request scope before an explicit complete selection", () => {
-    expect(getReadyExcuseScope("SCHOOL", {}, false)).toBeNull();
+  it("accepts the displayed default school scope for a new absence", () => {
+    expect(getReadyExcuseScope("SCHOOL", {}, false, "ABSENCE")).toEqual({
+      scopeType: "SCHOOL",
+      scopeIds: {},
+    });
+  });
+
+  it("does not return an incomplete hierarchical scope", () => {
     expect(getReadyExcuseScope("STAGE", {}, true)).toBeNull();
     expect(
       getReadyExcuseScope("SECTION", { stageId: "stage-1" }, true),
