@@ -10461,7 +10461,7 @@
         "reason": "Reason",
         "sourceId": "Source",
         "source": "Source",
-        "createdAt": "Created at"
+        "occurredAt": "Occurred at"
       },
       "summary": {
         "totalXp": "Total XP",

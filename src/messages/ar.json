@@ -10462,7 +10462,7 @@
         "reason": "السبب",
         "sourceId": "المصدر",
         "source": "المصدر",
-        "createdAt": "تاريخ الإنشاء"
+        "occurredAt": "وقت الحدوث"
       },
       "summary": {
         "totalXp": "إجمالي النقاط",

@@ -118,11 +118,17 @@ export default function ReinforcementXpLedgerPage() {
     setLoading(true);
     setError(null);
     try {
-      // Only call summary API if we have valid academicYearId and termId
-      const hasValidParams = isUUID(summaryParams.academicYearId) && isUUID(summaryParams.termId);
+      const { academicYearId, termId, studentId } = summaryParams;
+      const summaryRequest =
+        academicYearId &&
+        termId &&
+        isUUID(academicYearId) &&
+        isUUID(termId)
+          ? getXpSummary({ academicYearId, termId, studentId })
+          : Promise.resolve(null);
       const [ledgerResponse, nextSummary] = await Promise.all([
         listXpLedger(params),
-        hasValidParams ? getXpSummary(summaryParams) : Promise.resolve(null),
+        summaryRequest,
       ]);
       setEntries(ledgerResponse.items);
       setSummary(nextSummary as XpSummary | null);

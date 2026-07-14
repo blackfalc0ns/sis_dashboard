@@ -79,7 +79,7 @@ export function serializeCreateXpPolicyPayload(
     ...(optionalText(payload.academicYearId)
       ? { academicYearId: optionalText(payload.academicYearId) }
       : {}),
-    ...(optionalText(payload.termId) ? { termId: optionalText(payload.termId) } : {}),
+    termId: payload.termId.trim(),
     scopeType: payload.scopeType,
     ...(optionalText(payload.scopeId) ? { scopeId: optionalText(payload.scopeId) } : {}),
     ...(optionalNumber(payload.dailyCap) !== undefined
@@ -165,7 +165,7 @@ export async function listXpPolicies(
 }
 
 export async function getEffectiveXpPolicy(
-  params?: GetEffectiveXpPolicyParams,
+  params: GetEffectiveXpPolicyParams,
 ): Promise<XpPolicy> {
   const query = buildReinforcementQueryString(params);
   const response = await apiGet<unknown>(
@@ -220,7 +220,7 @@ export async function listXpLedger(
 }
 
 export async function getXpSummary(
-  params?: GetXpSummaryParams,
+  params: GetXpSummaryParams,
 ): Promise<XpSummary> {
   const query = buildReinforcementQueryString(params);
   const response = await apiGet<unknown>(`${XP_SUMMARY_ENDPOINT}${query}`);

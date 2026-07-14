@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import ReinforcementTaskTable from "@/features/reinforcement/components/ReinforcementTaskTable";
 import ClassroomSummaryPanel from "@/features/reinforcement/components/ClassroomSummaryPanel";
 import StudentProgressCard from "@/features/reinforcement/components/StudentProgressCard";
+import XpLedgerTable from "@/features/reinforcement/components/XpLedgerTable";
 import ReinforcementTemplateTable from "@/features/reinforcement/components/ReinforcementTemplateTable";
 import { buildReinforcementTemplatePayload } from "@/features/reinforcement/components/ReinforcementTemplateForm";
 import {
@@ -296,6 +297,53 @@ describe("Sprint 5A reinforcement frontend hardening", () => {
 
     expect(screen.getByText("Reading task")).toBeInTheDocument();
     expect(screen.getAllByText("25").length).toBeGreaterThan(0);
+  });
+
+  it("renders the exact XP ledger presenter shape and occurrence time", () => {
+    render(
+      <XpLedgerTable
+        entries={[
+          {
+            id: "ledger-1",
+            academicYearId: "year-1",
+            termId: "term-1",
+            studentId: "student-1",
+            enrollmentId: "enrollment-1",
+            assignmentId: null,
+            policyId: "policy-1",
+            sourceType: "manual_bonus",
+            sourceId: "manual-1",
+            amount: 10,
+            reason: "Great work",
+            reasonAr: null,
+            actorUserId: "actor-1",
+            occurredAt: "2025-04-29T10:00:00.000Z",
+            student: {
+              id: "student-1",
+              firstName: "Student",
+              lastName: "One",
+              name: "Student One",
+              enrollmentId: "enrollment-1",
+              classroomId: "classroom-1",
+              classroomName: "Classroom 1",
+              sectionId: "section-1",
+              sectionName: "Section 1",
+              gradeId: "grade-1",
+              gradeName: "Grade 1",
+              stageId: "stage-1",
+              stageName: "Stage 1",
+            },
+            createdAt: "2026-04-29T10:00:00.000Z",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Student One")).toBeInTheDocument();
+    expect(screen.getByText("manual_bonus")).toBeInTheDocument();
+    expect(screen.getByText("xp.ledger.occurredAt")).toBeInTheDocument();
+    expect(screen.getByText(/2025/)).toBeInTheDocument();
+    expect(screen.queryByText(/2026/)).not.toBeInTheDocument();
   });
 
   it("renders the backend classroom summary response without legacy fields", () => {

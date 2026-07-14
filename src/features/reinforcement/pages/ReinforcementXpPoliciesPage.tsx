@@ -340,6 +340,10 @@ export default function ReinforcementXpPoliciesPage() {
   };
 
   const lookupEffectivePolicy = async () => {
+    if (!context.termId) {
+      showError(t("xp.validation.termRequired"));
+      return;
+    }
     const selectedStudent = effectiveStudentOptions.find(
       (item) => item.value === effectiveStudentId,
     );

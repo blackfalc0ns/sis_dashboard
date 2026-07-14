@@ -324,16 +324,21 @@ export interface ListXpPoliciesParams {
 
 export interface GetEffectiveXpPolicyParams {
   academicYearId?: string;
-  termId?: string;
+  yearId?: string;
+  termId: string;
   studentId?: string;
   scopeType?: XpPolicyScopeType;
   scopeId?: string;
+  classroomId?: string;
+  sectionId?: string;
+  gradeId?: string;
+  stageId?: string;
   [key: string]: string | number | boolean | undefined;
 }
 
 export interface CreateXpPolicyPayload {
   academicYearId?: string;
-  termId?: string;
+  termId: string;
   scopeType: XpPolicyScopeType;
   scopeId?: string;
   dailyCap?: number | null;
@@ -372,19 +377,46 @@ export interface ManualXpGrantResponse {
 
 export interface XpLedgerEntry {
   id: string;
-  academicYearId?: string;
-  yearId?: string;
-  termId?: string;
+  academicYearId: string;
+  termId: string;
   studentId: string;
-  enrollmentId?: string;
+  enrollmentId: string | null;
+  assignmentId: string | null;
+  policyId: string | null;
+  sourceType: XpSourceType;
+  sourceId: string;
   amount: number;
-  reason?: string | null;
-  reasonAr?: string | null;
-  sourceType?: string;
-  sourceId?: string;
-  occurredAt?: string;
-  createdAt?: string;
-  [key: string]: unknown;
+  reason: string | null;
+  reasonAr: string | null;
+  actorUserId: string | null;
+  occurredAt: string;
+  student: XpLedgerStudent | null;
+  createdAt: string;
+}
+
+export type XpSourceType =
+  | "reinforcement_task"
+  | "hero_mission"
+  | "manual_bonus"
+  | "behavior"
+  | "grade"
+  | "attendance"
+  | "system";
+
+export interface XpLedgerStudent {
+  id: string;
+  firstName: string;
+  lastName: string;
+  name: string;
+  enrollmentId: string | null;
+  classroomId: string | null;
+  classroomName: string | null;
+  sectionId: string | null;
+  sectionName: string | null;
+  gradeId: string | null;
+  gradeName: string | null;
+  stageId: string | null;
+  stageName: string | null;
 }
 
 export interface ListXpLedgerParams {
@@ -400,8 +432,17 @@ export type ListXpLedgerResponse = ReinforcementListResponse<XpLedgerEntry>;
 
 export interface GetXpSummaryParams {
   academicYearId?: string;
-  termId?: string;
+  yearId?: string;
+  termId: string;
   studentId?: string;
+  scopeType?: XpPolicyScopeType;
+  scopeId?: string;
+  classroomId?: string;
+  sectionId?: string;
+  gradeId?: string;
+  stageId?: string;
+  occurredFrom?: string;
+  occurredTo?: string;
   [key: string]: string | number | boolean | undefined;
 }
 

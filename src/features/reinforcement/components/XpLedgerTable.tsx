@@ -36,7 +36,7 @@ export default function XpLedgerTable({
         <table className="min-w-full divide-y divide-gray-100">
           <thead className="bg-gray-50">
             <tr>
-              {["student", "amount", "reason", "source", "createdAt"].map((key) => (
+              {["student", "amount", "reason", "source", "occurredAt"].map((key) => (
                 <th
                   key={key}
                   className="px-4 py-3 text-start text-xs font-semibold uppercase text-gray-500"
@@ -49,22 +49,12 @@ export default function XpLedgerTable({
           <tbody className="divide-y divide-gray-100">
             {entries.map((entry) => {
               const progressHref = getStudentProgressHref?.(entry);
-              // Resolve student name from nested object if available
-              const student = entry.student as Record<string, unknown> | undefined;
-              const studentName = student
-                ? locale === "ar"
-                  ? (student.nameAr as string) || (student.full_name_ar as string) || (student.name as string) || (student.nameEn as string) || entry.studentId
-                  : (student.nameEn as string) || (student.full_name_en as string) || (student.name as string) || (student.nameAr as string) || entry.studentId
-                : entry.studentId;
-
-              // Resolve source label — prefer sourceType translated label, fall back to source name
-              const source = entry.source as Record<string, unknown> | undefined;
-              const sourceType = (entry.sourceType as string) || (entry.type as string);
-              const sourceLabel = source
-                ? locale === "ar"
-                  ? (source.titleAr as string) || (source.titleEn as string) || (source.name as string) || sourceType || "-"
-                  : (source.titleEn as string) || (source.titleAr as string) || (source.name as string) || sourceType || "-"
-                : sourceType || entry.sourceId || "-";
+              const studentName = entry.student?.name || entry.studentId;
+              const sourceKey = `sourceType.${entry.sourceType}`;
+              const sourceLabel =
+                typeof t.has === "function" && t.has(sourceKey)
+                  ? t(sourceKey)
+                  : entry.sourceType;
 
               return (
                 <tr
@@ -100,12 +90,10 @@ export default function XpLedgerTable({
                     {sourceLabel}
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-500">
-                    {entry.createdAt
-                      ? new Intl.DateTimeFormat(locale, {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        }).format(new Date(entry.createdAt))
-                      : "-"}
+                    {new Intl.DateTimeFormat(locale, {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    }).format(new Date(entry.occurredAt))}
                   </td>
                 </tr>
               );

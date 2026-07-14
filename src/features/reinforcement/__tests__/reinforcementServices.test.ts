@@ -279,7 +279,11 @@ describe("Sprint 5A reinforcement service endpoint contracts", () => {
     } satisfies Parameters<typeof grantManualXp>[0] & Record<string, unknown>;
     await grantManualXp(manualGrantPayload);
     await listXpLedger({ yearId: "legacy-year-1", studentId: "student-1" });
-    await getXpSummary({ academicYearId: "year-1", studentId: "student-1" });
+    await getXpSummary({
+      academicYearId: "year-1",
+      termId: "term-1",
+      studentId: "student-1",
+    });
 
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       1,
@@ -328,7 +332,7 @@ describe("Sprint 5A reinforcement service endpoint contracts", () => {
     );
     expect(apiMocks.apiGet).toHaveBeenNthCalledWith(
       4,
-      "/reinforcement/xp/summary?academicYearId=year-1&studentId=student-1",
+      "/reinforcement/xp/summary?academicYearId=year-1&termId=term-1&studentId=student-1",
     );
   });
 });
