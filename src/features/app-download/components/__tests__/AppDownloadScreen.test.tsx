@@ -47,6 +47,9 @@ describe("AppDownloadScreen", () => {
       "src",
       "/store-badges/google-play.svg",
     );
+    expect(screen.getByAltText("Google Play")).not.toHaveAttribute(
+      "data-nimg",
+    );
     expect(screen.getByRole("link", { name: "ios" })).toHaveAttribute(
       "rel",
       "noopener noreferrer",

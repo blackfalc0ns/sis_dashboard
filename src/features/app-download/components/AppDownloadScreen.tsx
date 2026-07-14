@@ -7,7 +7,6 @@ import {
   LogOut,
   ShieldCheck,
 } from "lucide-react";
-import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -82,7 +81,8 @@ export function AppDownloadScreen({
 
 function StoreLink({ href, label, badgeAlt, badgeSrc, platform }: { href: string | null; label: string; badgeAlt: string; badgeSrc: string; platform: "google-play" | "app-store" }) {
   const className = `app-download-store-link app-download-store-link--${platform} inline-flex overflow-hidden rounded-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2`;
-  const badge = <Image src={badgeSrc} alt={badgeAlt} width={120} height={40} />;
+  // eslint-disable-next-line @next/next/no-img-element -- Render supplied SVG store badges directly without image optimization.
+  const badge = <img src={badgeSrc} alt={badgeAlt} width={120} height={40} />;
 
   if (!href) {
     return <button type="button" disabled className={`${className} cursor-not-allowed opacity-50`}>{badge}</button>;
