@@ -25,8 +25,8 @@ function toEffectivePolicy(
     allowExcuses: policy.allowExcuses,
     requireExcuseReason: policy.requireExcuseReason,
     requireAttachmentForExcuse: policy.requireAttachmentForExcuse,
-    lateThresholdMinutes: policy.lateThresholdMinutes,
-    earlyLeaveThresholdMinutes: policy.earlyLeaveThresholdMinutes,
+    lateThresholdMinutes: policy.lateThresholdMinutes ?? 15,
+    earlyLeaveThresholdMinutes: policy.earlyLeaveThresholdMinutes ?? 15,
   };
 }
 

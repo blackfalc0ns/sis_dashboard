@@ -341,9 +341,11 @@ export default function PoliciesListPanel({
       key: "rules",
       label: t("list.rules"),
       render: (_: unknown, row: AttendancePolicy) => {
+        const formatThreshold = (value: number | null) =>
+          value === null ? t("list.notConfigured") : `${value}${t("list.min")}`;
         const rulesSummary = [];
-        rulesSummary.push(`${t("list.late")}: ${row.lateThresholdMinutes}${t("list.min")}`);
-        rulesSummary.push(`${t("list.early")}: ${row.earlyLeaveThresholdMinutes}${t("list.min")}`);
+        rulesSummary.push(`${t("list.late")}: ${formatThreshold(row.lateThresholdMinutes)}`);
+        rulesSummary.push(`${t("list.early")}: ${formatThreshold(row.earlyLeaveThresholdMinutes)}`);
         if (row.autoAbsentAfterMinutes) {
           rulesSummary.push(`${t("list.autoAbsent")}: ${row.autoAbsentAfterMinutes}${t("list.min")}`);
         }
@@ -354,7 +356,7 @@ export default function PoliciesListPanel({
         return (
           <Tooltip title={rulesSummary.join(" • ")} arrow>
             <span className="text-sm text-gray-600 cursor-help">
-              {row.lateThresholdMinutes}/{row.earlyLeaveThresholdMinutes}
+              {formatThreshold(row.lateThresholdMinutes)} / {formatThreshold(row.earlyLeaveThresholdMinutes)}
             </span>
           </Tooltip>
         );

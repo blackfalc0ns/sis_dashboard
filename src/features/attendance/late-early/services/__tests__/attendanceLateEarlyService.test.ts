@@ -73,6 +73,71 @@ describe("attendanceLateEarlyService", () => {
     });
   });
 
+  it("calculates violations from the effective policy and filters by period id", async () => {
+    mockedApiGet
+      .mockResolvedValueOnce({
+        items: [
+          {
+            id: "late-1",
+            academicYearId: "year-1",
+            termId: "term-1",
+            date: "2026-02-10",
+            studentId: "student-1",
+            studentNameEn: "Sara Ali",
+            status: "LATE",
+            lateMinutes: 12,
+            sourceSessionId: "session-1",
+            scopeType: "SCHOOL",
+            scopeKey: "school",
+            periodId: "period-2",
+            periodKey: "period:period-2",
+            periodLabelEn: "Period 2",
+            submittedAt: "2026-02-10T08:00:00.000Z",
+            updatedAt: "2026-02-10T08:00:00.000Z",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        items: [
+          {
+            id: "policy-1",
+            academicYearId: "year-1",
+            termId: "term-1",
+            nameAr: "Default",
+            nameEn: "Default",
+            scopeType: "SCHOOL",
+            scopeKey: "school",
+            lateThresholdMinutes: 10,
+            earlyLeaveThresholdMinutes: 10,
+            effectiveStartDate: "2026-02-01",
+            effectiveEndDate: "2026-02-28",
+            isActive: true,
+          },
+        ],
+      });
+
+    await expect(
+      fetchIncidents({
+        yearId: "year-1",
+        termId: "term-1",
+        scopeType: "SCHOOL",
+        scopeIds: {},
+        type: "LATE",
+        onlyViolations: true,
+        periodId: "period-2",
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        periodId: "period-2",
+        periodKey: "period:period-2",
+        threshold: 10,
+        isViolation: true,
+        policyScopeSummary: "SCHOOL - Default",
+        sessionStatus: "SUBMITTED",
+      }),
+    ]);
+  });
+
   it("uses core correction routes when minutes are edited", async () => {
     mockedApiPost.mockResolvedValueOnce({});
     mockedApiPatch.mockResolvedValueOnce({});

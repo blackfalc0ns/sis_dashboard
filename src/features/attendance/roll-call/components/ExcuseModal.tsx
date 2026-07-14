@@ -17,10 +17,13 @@ const EMPTY_ATTACHMENTS: AttachmentMeta[] = [];
 interface ExcuseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (reason: string, attachments: AttachmentMeta[]) => void | Promise<void>;
+  onSave: (
+    reason: string,
+    attachments: AttachmentMeta[],
+  ) => void | Promise<void>;
   initialReason?: string;
   initialAttachments?: AttachmentMeta[];
-  requireAttachment: boolean;
+  attachmentMode: "OPTIONAL" | "REQUIRED" | "UNSUPPORTED";
   isReadOnly: boolean;
 }
 
@@ -30,7 +33,7 @@ export default function ExcuseModal({
   onSave,
   initialReason = "",
   initialAttachments = EMPTY_ATTACHMENTS,
-  requireAttachment,
+  attachmentMode,
   isReadOnly,
 }: ExcuseModalProps) {
   const t = useTranslations("attendance.rollCall.excuse");
@@ -39,8 +42,13 @@ export default function ExcuseModal({
 
   const [reason, setReason] = useState("");
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([]);
-  const [errors, setErrors] = useState<{ reason?: string; attachments?: string; form?: string }>({});
-  const [previewAttachment, setPreviewAttachment] = useState<AttachmentMeta | null>(null);
+  const [errors, setErrors] = useState<{
+    reason?: string;
+    attachments?: string;
+    form?: string;
+  }>({});
+  const [previewAttachment, setPreviewAttachment] =
+    useState<AttachmentMeta | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -51,11 +59,11 @@ export default function ExcuseModal({
       if (isOpen) {
         setReason(initialReason);
         setAttachments(initialAttachments);
-      setErrors({});
+        setErrors({});
       } else {
         setReason("");
         setAttachments([]);
-      setErrors({});
+        setErrors({});
         setPreviewAttachment(null);
       }
     });
@@ -91,13 +99,14 @@ export default function ExcuseModal({
   };
 
   const handleSave = async () => {
-    const newErrors: { reason?: string; attachments?: string; form?: string } = {};
+    const newErrors: { reason?: string; attachments?: string; form?: string } =
+      {};
 
     if (!reason.trim()) {
       newErrors.reason = t("requiredReason");
     }
 
-    if (requireAttachment && attachments.length === 0) {
+    if (attachmentMode === "REQUIRED" && attachments.length === 0) {
       newErrors.attachments = t("requiredAttachment");
     }
 
@@ -128,7 +137,10 @@ export default function ExcuseModal({
             </p>
           )}
           <div>
-            <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
+            <label
+              style={{ color: "var(--color-gray-700)" }}
+              className="block text-sm font-medium mb-2"
+            >
               {t("reason")} <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -140,8 +152,12 @@ export default function ExcuseModal({
               disabled={isReadOnly}
               rows={4}
               style={{
-                borderColor: errors.reason ? "var(--color-accent-500)" : "var(--color-border)",
-                backgroundColor: isReadOnly ? "var(--color-neutral-50)" : "transparent",
+                borderColor: errors.reason
+                  ? "var(--color-accent-500)"
+                  : "var(--color-border)",
+                backgroundColor: isReadOnly
+                  ? "var(--color-neutral-50)"
+                  : "transparent",
               }}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
                 isReadOnly ? "cursor-not-allowed" : ""
@@ -153,78 +169,108 @@ export default function ExcuseModal({
             )}
           </div>
 
-          <div>
-            <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
-              {t("attachments")}
-              {requireAttachment && <span className="text-red-500"> *</span>}
-            </label>
+          {attachmentMode !== "UNSUPPORTED" && (
+            <div>
+              <label
+                style={{ color: "var(--color-gray-700)" }}
+                className="block text-sm font-medium mb-2"
+              >
+                {t("attachments")}
+                {attachmentMode === "REQUIRED" && (
+                  <span className="text-red-500"> *</span>
+                )}
+              </label>
 
-            {!isReadOnly && (
-              <DragDropUploadArea
-                onFilesSelected={handleFilesSelected}
-                disabled={isSaving}
-                isUploading={isUploading}
-                uploadArea="ATTENDANCE_EXCUSE"
-                helperText={`${tUpload(rules.acceptLabelKey)} - ${Math.round(rules.maxSizeBytes / (1024 * 1024))}MB`}
-                multiple={true}
-              />
-            )}
+              {!isReadOnly && (
+                <DragDropUploadArea
+                  onFilesSelected={handleFilesSelected}
+                  disabled={isSaving}
+                  isUploading={isUploading}
+                  uploadArea="ATTENDANCE_EXCUSE"
+                  helperText={`${tUpload(rules.acceptLabelKey)} - ${Math.round(rules.maxSizeBytes / (1024 * 1024))}MB`}
+                  multiple={true}
+                />
+              )}
 
-            {errors.attachments && (
-              <p className="mt-2 text-sm text-red-600">{errors.attachments}</p>
-            )}
+              {errors.attachments && (
+                <p className="mt-2 text-sm text-red-600">
+                  {errors.attachments}
+                </p>
+              )}
 
-            {attachments.length > 0 && (
-              <div className="mt-3 space-y-2">
-                {attachments.map((att) => (
-                  <div
-                    key={att.id}
-                    style={{
-                      backgroundColor: "var(--color-neutral-50)",
-                      borderColor: "var(--color-border)",
-                    }}
-                    className="flex items-center justify-between gap-3 p-3 rounded-lg border"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setPreviewAttachment(att)}
-                      disabled={isSaving}
-                      className="flex items-center gap-3 flex-1 min-w-0 text-start"
+              {attachments.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {attachments.map((att) => (
+                    <div
+                      key={att.id}
+                      style={{
+                        backgroundColor: "var(--color-neutral-50)",
+                        borderColor: "var(--color-border)",
+                      }}
+                      className="flex items-center justify-between gap-3 p-3 rounded-lg border"
                     >
-                      <FileText style={{ color: "var(--color-neutral-400)" }} className="w-5 h-5 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p style={{ color: "var(--color-gray-900)" }} className="text-sm font-medium truncate">
-                          {att.name}
-                        </p>
-                        <p style={{ color: "var(--color-neutral-500)" }} className="text-xs">
-                          {formatFileSize(att.size)}
-                        </p>
-                      </div>
-                    </button>
-                    {!isReadOnly && (
                       <button
                         type="button"
-                        onClick={() => handleRemoveAttachment(att.id)}
+                        onClick={() => setPreviewAttachment(att)}
                         disabled={isSaving}
-                        style={{ color: "var(--color-neutral-400)" }}
-                        className="transition-colors shrink-0"
+                        className="flex items-center gap-3 flex-1 min-w-0 text-start"
                       >
-                        <X className="w-4 h-4" />
+                        <FileText
+                          style={{ color: "var(--color-neutral-400)" }}
+                          className="w-5 h-5 shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p
+                            style={{ color: "var(--color-gray-900)" }}
+                            className="text-sm font-medium truncate"
+                          >
+                            {att.name}
+                          </p>
+                          <p
+                            style={{ color: "var(--color-neutral-500)" }}
+                            className="text-xs"
+                          >
+                            {formatFileSize(att.size)}
+                          </p>
+                        </div>
                       </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                      {!isReadOnly && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAttachment(att.id)}
+                          disabled={isSaving}
+                          style={{ color: "var(--color-neutral-400)" }}
+                          className="transition-colors shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        <div style={{ borderColor: "var(--color-border)" }} className="flex items-center justify-end gap-3 mt-6 pt-6 border-t">
-          <Button variant="outline" onClick={onClose} disabled={isSaving || isUploading}>
+        <div
+          style={{ borderColor: "var(--color-border)" }}
+          className="flex items-center justify-end gap-3 mt-6 pt-6 border-t"
+        >
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isSaving || isUploading}
+          >
             {tCommon("cancel")}
           </Button>
           {!isReadOnly && (
-            <Button variant="primary" onClick={handleSave} disabled={isSaving || isUploading} loading={isSaving}>
+            <Button
+              variant="primary"
+              onClick={handleSave}
+              disabled={isSaving || isUploading}
+              loading={isSaving}
+            >
               {t("save")}
             </Button>
           )}
@@ -239,4 +285,3 @@ export default function ExcuseModal({
     </>
   );
 }
-

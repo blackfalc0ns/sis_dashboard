@@ -19,7 +19,7 @@ export interface ExcuseRequest {
   studentNameAr: string;
   studentNameEn: string;
   studentNumber?: string;
-  scopeType: ExcuseScopeType;
+  scopeType?: ExcuseScopeType;
   scopeIds?: {
     stageId?: string;
     gradeId?: string;

@@ -190,8 +190,8 @@ export const subjectsForStage = (
       name: allocation.subject.nameEn || allocation.subject.nameAr,
       nameAr: allocation.subject.nameAr,
       nameEn: allocation.subject.nameEn,
-      code: allocation.subject.code ?? undefined,
-      color: allocation.subject.color ?? undefined,
+      code: allocation.subject.code,
+      color: allocation.subject.color,
       isActive: true,
     });
   });

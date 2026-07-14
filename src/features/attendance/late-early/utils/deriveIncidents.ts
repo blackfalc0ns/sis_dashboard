@@ -31,7 +31,7 @@ interface DeriveOptions {
   studentsById: Map<string, StudentLike>;
 }
 
-interface ResolvedScope {
+export interface ResolvedAttendanceScope {
   stageId?: string;
   gradeId?: string;
   sectionId?: string;
@@ -43,7 +43,7 @@ export function resolveSessionScope(
   gradesById: Map<string, Grade>,
   sectionsById: Map<string, Section>,
   classroomsById: Map<string, Classroom>
-): ResolvedScope {
+): ResolvedAttendanceScope {
   return resolveAttendanceHierarchyScope({
     scopeType: session.scopeType,
     scopeIds: session.scopeIds,
@@ -53,14 +53,15 @@ export function resolveSessionScope(
   });
 }
 
-function resolveEffectivePolicy(
+export function resolveEffectiveAttendancePolicy(
   policies: AttendancePolicy[],
   date: string,
-  scope: ResolvedScope
+  scope: ResolvedAttendanceScope,
 ): AttendancePolicy | null {
   const active = policies.filter((policy) => {
     if (!policy.isActive) return false;
-    if (date < policy.effectiveStartDate || date > policy.effectiveEndDate) return false;
+    if (policy.effectiveStartDate && date < policy.effectiveStartDate) return false;
+    if (policy.effectiveEndDate && date > policy.effectiveEndDate) return false;
     return true;
   });
 
@@ -92,7 +93,7 @@ function toIncident(
   entry: AttendanceEntry,
   type: IncidentType,
   minutes: number,
-  scope: ResolvedScope,
+  scope: ResolvedAttendanceScope,
   gradesById: Map<string, Grade>,
   sectionsById: Map<string, Section>,
   classroomsById: Map<string, Classroom>,
@@ -155,7 +156,7 @@ export function deriveIncidentsFromSessions(options: DeriveOptions): Incident[] 
     if (session.mode !== "PERIOD" || !session.periodIndex) continue;
 
     const scope = resolveSessionScope(session, gradesById, sectionsById, classroomsById);
-    const policy = resolveEffectivePolicy(policies, session.date, scope);
+    const policy = resolveEffectiveAttendancePolicy(policies, session.date, scope);
     const sessionEntries = entriesBySession.get(session.id) || [];
 
     for (const entry of sessionEntries) {

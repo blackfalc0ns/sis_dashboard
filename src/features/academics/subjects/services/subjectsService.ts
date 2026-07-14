@@ -5,8 +5,8 @@ export interface Subject {
   name: string; // Display name (backward compatibility)
   nameAr: string;
   nameEn: string;
-  code?: string;
-  color?: string;
+  code: string | null;
+  color: string | null;
   isActive: boolean;
 }
 
@@ -32,47 +32,6 @@ export interface SubjectAllocation {
   createdAt?: string;
   updatedAt?: string;
 }
-
-const allocationsByTerm: Record<string, SubjectAllocation[]> = {
-  "term-1-1": [
-    { gradeId: "grade-1", subjectId: "subj-1", weeklyHours: 5 },
-    { gradeId: "grade-1", subjectId: "subj-2", weeklyHours: 4 },
-    { gradeId: "grade-1", subjectId: "subj-3", weeklyHours: 5 },
-    { gradeId: "grade-2", subjectId: "subj-1", weeklyHours: 6 },
-    { gradeId: "grade-2", subjectId: "subj-2", weeklyHours: 4 },
-  ],
-  "term-2-1": [
-    { gradeId: "grade-1", subjectId: "subj-5", weeklyHours: 5 },
-    { gradeId: "grade-1", subjectId: "subj-6", weeklyHours: 4 },
-  ],
-};
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Carry Over (copy subjects and/or allocations from another term) - MOCK IMPLEMENTATION
-export interface CarryOverSubjectsOptions {
-  fromYearId: string;
-  fromTermId: string;
-  toYearId: string;
-  toTermId: string;
-  options: {
-    copySubjects: boolean;
-    copyAllocations: boolean;
-  };
-}
-
-const carryOverSubjectsAndAllocationsImpl = async (
-  params: CarryOverSubjectsOptions
-): Promise<void> => {
-  await delay(500);
-  const { fromTermId, toTermId, options } = params;
-  
-  if (options.copyAllocations) {
-    // Copy allocations only (subjects must already exist)
-    const sourceAllocations = allocationsByTerm[fromTermId] || [];
-    allocationsByTerm[toTermId] = [...sourceAllocations];
-  }
-};
 
 // Direct API Delegation for Subjects
 export const fetchSubjects = (): Promise<Subject[]> =>
@@ -101,4 +60,3 @@ export const bulkUpsertSubjectAllocations = (
   items: SubjectAllocation[],
 ): Promise<void> =>
   subjectsApiAdapter.bulkUpsertSubjectAllocations(termId, items);
-export const carryOverSubjectsAndAllocations = carryOverSubjectsAndAllocationsImpl;

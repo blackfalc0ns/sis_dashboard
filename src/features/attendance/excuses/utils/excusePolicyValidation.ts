@@ -47,9 +47,12 @@ export function resolveEffectiveExcuseAttendancePolicy(
   scopeType: ExcuseRequest["scopeType"],
   scopeIds?: ExcuseRequest["scopeIds"]
 ): AttendancePolicy | null {
+  if (!scopeType) return null;
+
   const active = policies.filter((policy) => {
     if (!policy.isActive) return false;
-    if (date < policy.effectiveStartDate || date > policy.effectiveEndDate) return false;
+    if (policy.effectiveStartDate && date < policy.effectiveStartDate) return false;
+    if (policy.effectiveEndDate && date > policy.effectiveEndDate) return false;
     return true;
   });
 

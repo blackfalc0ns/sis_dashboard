@@ -5,7 +5,7 @@ import { apiGet } from "@/lib/api";
 import { ApiError } from "@/lib/api-error";
 import PolicyWizardDialog from "../PolicyWizardDialog";
 import type { Term } from "@/features/academics/academic-structure-tree/services/structureService";
-import type { AttendancePolicy } from "../../types";
+import type { AttendancePolicy, PolicyFormData } from "../../types";
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
@@ -34,7 +34,7 @@ const term = {
 
 function renderWizard(options: {
   policy?: AttendancePolicy | null;
-  onSave?: (data: Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+  onSave?: (data: PolicyFormData) => Promise<void>;
 } = {}) {
   return render(
     <PolicyWizardDialog
@@ -173,5 +173,40 @@ describe("PolicyWizardDialog policy errors", () => {
     await user.click(screen.getByText("scope.school"));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     consoleError.mockRestore();
+  });
+
+  it("preserves nullable thresholds and effective dates when editing", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    renderWizard({
+      policy: {
+        ...classroomPolicy,
+        scopeType: "SCHOOL",
+        scopeIds: {},
+        mode: "DAILY",
+        selectedPeriodIds: [],
+        lateThresholdMinutes: null,
+        earlyLeaveThresholdMinutes: null,
+        absentIfMissedPeriodsCount: null,
+        effectiveStartDate: null,
+        effectiveEndDate: null,
+      },
+      onSave,
+    });
+
+    for (let step = 0; step < 4; step += 1) {
+      await user.click(screen.getByRole("button", { name: "next" }));
+    }
+    await user.click(screen.getByRole("button", { name: "save" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lateThresholdMinutes: null,
+        earlyLeaveThresholdMinutes: null,
+        effectiveStartDate: null,
+        effectiveEndDate: null,
+      }),
+    );
   });
 });

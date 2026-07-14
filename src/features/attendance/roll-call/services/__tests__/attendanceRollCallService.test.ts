@@ -84,6 +84,8 @@ describe("attendanceRollCallService", () => {
         scopeKey: "classroom-1",
         mode: "PERIOD",
         periodId: "period-1",
+        periodLabelAr: "الحصة الثانية",
+        periodLabelEn: "Period 2",
         status: "draft",
         createdAt: "2026-02-10T07:00:00.000Z",
         updatedAt: "2026-02-10T07:00:00.000Z",
@@ -100,6 +102,9 @@ describe("attendanceRollCallService", () => {
         scopeIds: { classroomId: "classroom-1" },
         mode: "PERIOD",
         periodId: "period-1",
+        periodIndex: 2,
+        periodNameAr: "اسم قديم",
+        periodNameEn: "Legacy name",
       }),
     ).resolves.toEqual({
       session: expect.objectContaining({
@@ -107,6 +112,9 @@ describe("attendanceRollCallService", () => {
         yearId: "year-1",
         termId: "term-1",
         status: "DRAFT",
+        periodIndex: 2,
+        periodNameAr: "الحصة الثانية",
+        periodNameEn: "Period 2",
       }),
       entries: [],
     });
@@ -121,6 +129,8 @@ describe("attendanceRollCallService", () => {
       mode: "PERIOD",
       periodKey: "period-1",
       periodId: "period-1",
+      periodLabelAr: "اسم قديم",
+      periodLabelEn: "Legacy name",
     });
   });
 

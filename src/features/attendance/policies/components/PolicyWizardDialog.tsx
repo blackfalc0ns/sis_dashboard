@@ -87,8 +87,8 @@ export default function PolicyWizardDialog({
     mode: policy?.mode || "DAILY",
     dailyComputationStrategy: policy?.dailyComputationStrategy || "MANUAL",
     selectedPeriodIds: policy?.selectedPeriodIds || [],
-    lateThresholdMinutes: policy?.lateThresholdMinutes ?? 15,
-    earlyLeaveThresholdMinutes: policy?.earlyLeaveThresholdMinutes ?? 15,
+    lateThresholdMinutes: policy ? policy.lateThresholdMinutes : 15,
+    earlyLeaveThresholdMinutes: policy ? policy.earlyLeaveThresholdMinutes : 15,
     autoAbsentAfterMinutes: policy?.autoAbsentAfterMinutes,
     absentIfMissedPeriodsCount: policy?.absentIfMissedPeriodsCount,
     allowExcuses: policy?.allowExcuses ?? true,
@@ -100,8 +100,8 @@ export default function PolicyWizardDialog({
     notifyOnAbsent: policy?.notifyOnAbsent ?? true,
     notifyOnLate: policy?.notifyOnLate ?? true,
     notifyOnEarlyLeave: policy?.notifyOnEarlyLeave ?? false,
-    effectiveStartDate: policy?.effectiveStartDate || "",
-    effectiveEndDate: policy?.effectiveEndDate || "",
+    effectiveStartDate: policy?.effectiveStartDate ?? null,
+    effectiveEndDate: policy?.effectiveEndDate ?? null,
     isActive: policy?.isActive ?? true,
   });
 
@@ -136,7 +136,7 @@ export default function PolicyWizardDialog({
         selectedPeriodIds: policy.selectedPeriodIds || [],
         lateThresholdMinutes: policy.lateThresholdMinutes,
         earlyLeaveThresholdMinutes: policy.earlyLeaveThresholdMinutes,
-        autoAbsentAfterMinutes: undefined, // Not used anymore
+        autoAbsentAfterMinutes: policy.autoAbsentAfterMinutes,
         absentIfMissedPeriodsCount: policy.absentIfMissedPeriodsCount,
         allowExcuses: policy.allowExcuses,
         requireExcuseReason: policy.requireExcuseReason,
@@ -425,23 +425,29 @@ export default function PolicyWizardDialog({
       }
     } else if (step === 3) {
       // Step 4: Rules
-      if (formData.lateThresholdMinutes < 0) {
+      if (
+        formData.lateThresholdMinutes !== null &&
+        formData.lateThresholdMinutes < 0
+      ) {
         newErrors.lateThresholdMinutes = tValidation("nonNegative");
       }
-      if (formData.earlyLeaveThresholdMinutes < 0) {
+      if (
+        formData.earlyLeaveThresholdMinutes !== null &&
+        formData.earlyLeaveThresholdMinutes < 0
+      ) {
         newErrors.earlyLeaveThresholdMinutes = tValidation("nonNegative");
       }
 
       // Validate absentIfMissedPeriodsCount (required now)
       if (
         formData.mode === "PERIOD" &&
-        (formData.absentIfMissedPeriodsCount === undefined ||
+        (formData.absentIfMissedPeriodsCount == null ||
           formData.absentIfMissedPeriodsCount < 1)
       ) {
         newErrors.absentIfMissedPeriodsCount = tValidation("thresholdRequired");
       } else if (
         formData.mode === "PERIOD" &&
-        formData.absentIfMissedPeriodsCount !== undefined &&
+        formData.absentIfMissedPeriodsCount != null &&
         formData.selectedPeriodIds &&
         formData.absentIfMissedPeriodsCount > formData.selectedPeriodIds.length
       ) {
@@ -454,31 +460,27 @@ export default function PolicyWizardDialog({
       }
     } else if (step === 4) {
       // Step 5: Dates & Review
-      if (!formData.effectiveStartDate) {
-        newErrors.effectiveStartDate = tValidation("required");
-      }
-      if (!formData.effectiveEndDate) {
-        newErrors.effectiveEndDate = tValidation("required");
-      }
       if (formData.effectiveStartDate && formData.effectiveEndDate) {
         if (formData.effectiveStartDate > formData.effectiveEndDate) {
           newErrors.effectiveEndDate = tValidation("startBeforeEnd");
         }
 
-        // Check if dates are within term range
-        if (term) {
-          if (
-            formData.effectiveStartDate < term.startDate ||
-            formData.effectiveStartDate > term.endDate
-          ) {
-            newErrors.effectiveStartDate = tValidation("dateOutOfTerm");
-          }
-          if (
-            formData.effectiveEndDate < term.startDate ||
-            formData.effectiveEndDate > term.endDate
-          ) {
-            newErrors.effectiveEndDate = tValidation("dateOutOfTerm");
-          }
+      }
+
+      if (term && formData.effectiveStartDate) {
+        if (
+          formData.effectiveStartDate < term.startDate ||
+          formData.effectiveStartDate > term.endDate
+        ) {
+          newErrors.effectiveStartDate = tValidation("dateOutOfTerm");
+        }
+      }
+      if (term && formData.effectiveEndDate) {
+        if (
+          formData.effectiveEndDate < term.startDate ||
+          formData.effectiveEndDate > term.endDate
+        ) {
+          newErrors.effectiveEndDate = tValidation("dateOutOfTerm");
         }
       }
     }

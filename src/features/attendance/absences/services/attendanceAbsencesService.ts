@@ -65,8 +65,16 @@ function normalizeStatus(value: unknown): AttendanceIncidentType {
   return String(value || "ABSENT").toUpperCase() as AttendanceIncidentType;
 }
 
-function normalizeGranularity(value: unknown): AttendanceGranularity {
-  return String(value || "PERIOD").toUpperCase() as AttendanceGranularity;
+function normalizeGranularity(
+  granularity: unknown,
+  mode: unknown,
+): AttendanceGranularity {
+  const explicitGranularity = String(granularity || "").toUpperCase();
+  if (explicitGranularity === "DAILY_DERIVED") return "DAILY_DERIVED";
+  if (explicitGranularity === "PERIOD") return "PERIOD";
+  return String(mode || "PERIOD").toUpperCase() === "DAILY"
+    ? "DAILY_DERIVED"
+    : "PERIOD";
 }
 
 function resolveScopeKey(scopeType: ScopeType, scopeIds?: AttendanceScopeIds) {
@@ -143,10 +151,12 @@ function mapAbsenceRecord(item: unknown, fallback: { yearId: string; termId: str
     sectionNameEn: getOptionalString(object, ["sectionNameEn"]),
     classroomNameAr: getOptionalString(object, ["classroomNameAr"]),
     classroomNameEn: getOptionalString(object, ["classroomNameEn"]),
-    granularity: normalizeGranularity(object.granularity),
+    granularity: normalizeGranularity(object.granularity, object.mode),
+    periodId: getOptionalString(object, ["periodId"]),
+    periodKey: getOptionalString(object, ["periodKey"]),
     periodIndex: getNumber(object, ["periodIndex"]),
-    periodNameAr: getOptionalString(object, ["periodNameAr"]),
-    periodNameEn: getOptionalString(object, ["periodNameEn"]),
+    periodNameAr: getOptionalString(object, ["periodNameAr", "periodLabelAr"]),
+    periodNameEn: getOptionalString(object, ["periodNameEn", "periodLabelEn"]),
     status,
     minutesLate: getNumber(object, ["minutesLate", "lateMinutes"]),
     minutesEarlyLeave: getNumber(object, ["minutesEarlyLeave", "earlyLeaveMinutes"]),
@@ -208,10 +218,7 @@ export function computeAbsencesKPIs(records: AbsenceRecord[]): AbsencesKPIs {
 export async function updateExcuse(
   record: AbsenceRecord,
   reason: string,
-  attachments: AttachmentMeta[]
 ): Promise<void> {
-  void attachments;
-
   await apiPatch(`${BASE}/${record.id}/excuse`, {
     correctionReason: reason,
     excuseReason: reason,
@@ -232,23 +239,4 @@ export async function updateEarlyLeaveMinutes(
     correctionReason: "Corrected early leave minutes",
     note: "Corrected early leave minutes",
   });
-}
-
-export function validateExcuse(
-  reason: string,
-  attachments: AttachmentMeta[],
-  requireReason: boolean,
-  requireAttachment: boolean
-): { reasonError?: string; attachmentError?: string } {
-  const errors: { reasonError?: string; attachmentError?: string } = {};
-
-  if (requireReason && !reason.trim()) {
-    errors.reasonError = "Reason is required";
-  }
-
-  if (requireAttachment && attachments.length === 0) {
-    errors.attachmentError = "Attachment is required";
-  }
-
-  return errors;
 }

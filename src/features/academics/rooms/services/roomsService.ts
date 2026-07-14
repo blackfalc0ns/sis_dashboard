@@ -88,21 +88,6 @@ export const fetchRoomDefaultAssignments = (
 ): Promise<RoomDefaultAssignment[]> =>
   roomsApiAdapter.fetchRoomDefaultAssignments(schoolId);
 
-export const createRoomDefaultAssignment = (
-  schoolId: string,
-  payload: Omit<RoomDefaultAssignment, "id" | "schoolId">
-): Promise<RoomDefaultAssignment> =>
-  roomsApiAdapter.createRoomDefaultAssignment(schoolId, payload);
-
-export const updateRoomDefaultAssignment = (
-  assignmentId: string,
-  payload: Partial<Omit<RoomDefaultAssignment, "id" | "schoolId">>
-): Promise<RoomDefaultAssignment> =>
-  roomsApiAdapter.updateRoomDefaultAssignment(assignmentId, payload);
-
-export const deleteRoomDefaultAssignment = (assignmentId: string): Promise<void> =>
-  roomsApiAdapter.deleteRoomDefaultAssignment(assignmentId);
-
 export const createRoom = (
   schoolId: string,
   room: Omit<Room, "id" | "schoolId" | "createdAt" | "updatedAt">
@@ -115,4 +100,3 @@ export const updateRoom = (
 
 export const deleteRoom = (roomId: string): Promise<void> =>
   roomsApiAdapter.deleteRoom(roomId);
-

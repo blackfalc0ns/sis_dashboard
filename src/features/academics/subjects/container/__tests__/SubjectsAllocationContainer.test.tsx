@@ -8,6 +8,7 @@ import {
   fetchSubjects,
 } from "@/features/academics/subjects/services/subjectsService";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
+import { useAcademicContextBarActions } from "@/features/academics/hooks/useAcademicContextBarActions";
 import { usePermissions } from "@/hooks/usePermissions";
 
 const {
@@ -85,6 +86,9 @@ const mockedUseAcademicYearTermLayoutContext = vi.mocked(
   useAcademicYearTermLayoutContext,
 );
 const mockedUsePermissions = vi.mocked(usePermissions);
+const mockedUseAcademicContextBarActions = vi.mocked(
+  useAcademicContextBarActions,
+);
 
 function mockAcademicContext(termStatus: string) {
   mockedUseAcademicYearTermLayoutContext.mockReturnValue({
@@ -285,5 +289,15 @@ describe("SubjectsAllocationContainer", () => {
       );
     });
     expect(screen.getByText("read-only")).toBeInTheDocument();
+  });
+
+  it("does not expose carry-over without backend support", async () => {
+    render(<SubjectsAllocationContainer />);
+
+    await waitFor(() => {
+      expect(mockedUseAcademicContextBarActions).toHaveBeenLastCalledWith({
+        showPromoteCarryOver: false,
+      });
+    });
   });
 });

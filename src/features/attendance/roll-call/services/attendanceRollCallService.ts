@@ -198,8 +198,12 @@ function mapSession(item: unknown, fallback?: Partial<AttendanceSession>): Atten
     mode: normalizeMode(object.mode || fallback?.mode),
     periodId: getOptionalString(object, ["periodId"]) || fallback?.periodId,
     periodIndex: getNumber(object, ["periodIndex"]) ?? fallback?.periodIndex,
-    periodNameAr: getOptionalString(object, ["periodNameAr"]) || fallback?.periodNameAr,
-    periodNameEn: getOptionalString(object, ["periodNameEn"]) || fallback?.periodNameEn,
+    periodNameAr:
+      getOptionalString(object, ["periodNameAr", "periodLabelAr"]) ||
+      fallback?.periodNameAr,
+    periodNameEn:
+      getOptionalString(object, ["periodNameEn", "periodLabelEn"]) ||
+      fallback?.periodNameEn,
     status: normalizeSessionStatus(object.status || fallback?.status),
     createdAt: getString(object, ["createdAt"], fallback?.createdAt || ""),
     updatedAt: getString(object, ["updatedAt"], fallback?.updatedAt || ""),
@@ -260,7 +264,9 @@ export async function fetchEffectivePolicy(
   const policies = await fetchPolicies(yearId, termId);
   const activePolicies = policies.filter((policy) => {
     if (!policy.isActive) return false;
-    return date >= policy.effectiveStartDate && date <= policy.effectiveEndDate;
+    if (policy.effectiveStartDate && date < policy.effectiveStartDate) return false;
+    if (policy.effectiveEndDate && date > policy.effectiveEndDate) return false;
+    return true;
   });
 
   const resolvedScope = resolveAttendanceHierarchyScope({ scopeType, scopeIds });

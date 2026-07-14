@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 export interface MatrixColumn {
   id: string;
   label: string;
-  code?: string;
+  code?: string | null;
   minWidth?: string;
   maxWidth?: string;
 }

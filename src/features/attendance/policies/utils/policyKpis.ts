@@ -76,12 +76,22 @@ function hasNotificationsEnabled(policy: AttendancePolicy): boolean {
  * Check if a date range overlaps with another
  */
 function dateRangesOverlap(
-  start1: string,
-  end1: string,
-  start2: string,
-  end2: string
+  start1: string | null,
+  end1: string | null,
+  start2: string | null,
+  end2: string | null
 ): boolean {
-  return start1 <= end2 && start2 <= end1;
+  return (start1 ?? "") <= (end2 ?? "\uffff") &&
+    (start2 ?? "") <= (end1 ?? "\uffff");
+}
+
+function compareEffectiveStartDescending(
+  a: AttendancePolicy,
+  b: AttendancePolicy,
+): number {
+  return (b.effectiveStartDate ?? "").localeCompare(
+    a.effectiveStartDate ?? "",
+  );
 }
 
 /**
@@ -90,8 +100,9 @@ function dateRangesOverlap(
 function isPolicyEffective(policy: AttendancePolicy, referenceDate: string): boolean {
   return (
     policy.isActive &&
-    policy.effectiveStartDate <= referenceDate &&
-    policy.effectiveEndDate >= referenceDate
+    (!policy.effectiveStartDate ||
+      policy.effectiveStartDate <= referenceDate) &&
+    (!policy.effectiveEndDate || policy.effectiveEndDate >= referenceDate)
   );
 }
 
@@ -116,9 +127,7 @@ function findEffectivePolicyForSection(
   );
   if (sectionPolicies.length > 0) {
     // Return most recent (latest effectiveStartDate)
-    return sectionPolicies.sort(
-      (a, b) => b.effectiveStartDate.localeCompare(a.effectiveStartDate)
-    )[0];
+    return sectionPolicies.sort(compareEffectiveStartDescending)[0];
   }
 
   // 2. Check GRADE level
@@ -126,9 +135,7 @@ function findEffectivePolicyForSection(
     (p) => p.scopeType === "GRADE" && p.scopeIds?.gradeId === section.gradeId
   );
   if (gradePolicies.length > 0) {
-    return gradePolicies.sort(
-      (a, b) => b.effectiveStartDate.localeCompare(a.effectiveStartDate)
-    )[0];
+    return gradePolicies.sort(compareEffectiveStartDescending)[0];
   }
 
   // 3. Check STAGE level (need to find stage from grade)
@@ -138,9 +145,7 @@ function findEffectivePolicyForSection(
     (p) => p.scopeType === "STAGE"
   );
   if (stagePolicies.length > 0) {
-    return stagePolicies.sort(
-      (a, b) => b.effectiveStartDate.localeCompare(a.effectiveStartDate)
-    )[0];
+    return stagePolicies.sort(compareEffectiveStartDescending)[0];
   }
 
   // 4. Check SCHOOL level
@@ -148,9 +153,7 @@ function findEffectivePolicyForSection(
     (p) => p.scopeType === "SCHOOL"
   );
   if (schoolPolicies.length > 0) {
-    return schoolPolicies.sort(
-      (a, b) => b.effectiveStartDate.localeCompare(a.effectiveStartDate)
-    )[0];
+    return schoolPolicies.sort(compareEffectiveStartDescending)[0];
   }
 
   return null;
@@ -240,7 +243,7 @@ function countExpiringSoon(
   const expiryThresholdStr = expiryThreshold.toISOString().split("T")[0];
 
   return effectivePolicies.filter(
-    (p) => p.effectiveEndDate <= expiryThresholdStr
+    (p) => p.effectiveEndDate && p.effectiveEndDate <= expiryThresholdStr
   ).length;
 }
 

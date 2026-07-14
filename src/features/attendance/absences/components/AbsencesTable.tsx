@@ -126,7 +126,8 @@ export default function AbsencesTable({
         }
         return (
           <span style={{ color: "var(--color-gray-700)" }} className="text-sm">
-            {row.periodIndex ? `P${row.periodIndex}` : "-"}
+            {(locale === "ar" ? row.periodNameAr : row.periodNameEn) ||
+              (row.periodIndex ? `P${row.periodIndex}` : row.periodKey || "-")}
           </span>
         );
       },

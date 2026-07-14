@@ -1,6 +1,5 @@
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
 import type {
-  CarryOverSubjectsOptions,
   Subject,
   SubjectAllocation,
 } from "@/features/academics/subjects/services/subjectsService";
@@ -69,15 +68,11 @@ export const createSubjectsApiAdapter = (
     });
   },
 
-  async carryOverSubjectsAndAllocations(params) {
-    await apiPost<void>(`${basePath}/carry-over`, params);
-  },
-
 });
 
 export const subjectsApiAdapter = createSubjectsApiAdapter();
 
-export type { CarryOverSubjectsOptions, Subject, SubjectAllocation };
+export type { Subject, SubjectAllocation };
 
 function subjectFromResponse(response: unknown): Subject {
   if (isObjectRecord(response) && isObjectRecord(response.data)) {

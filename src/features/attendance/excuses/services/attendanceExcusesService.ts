@@ -122,7 +122,10 @@ function mapAttachments(value: unknown): ExcuseRequest["attachments"] {
 function mapRequest(item: unknown, fallback?: { yearId?: string; termId?: string }): ExcuseRequest {
   const object = unwrapObject(item);
   const student = asRecord(object.student);
-  const scopeType = String(object.scopeType || "SCHOOL").toUpperCase() as ExcuseScopeType;
+  const scopeType =
+    typeof object.scopeType === "string"
+      ? (object.scopeType.toUpperCase() as ExcuseScopeType)
+      : undefined;
   const { dateFrom, dateTo } = normalizeDateRange(object);
   const reason = getString(object, ["reason", "reasonEn", "reasonAr"]);
   const studentNameEn = getString(
@@ -153,7 +156,7 @@ function mapRequest(item: unknown, fallback?: { yearId?: string; termId?: string
       getOptionalString(object, ["studentNumber", "admissionNo", "studentCode"]) ||
       getOptionalString(student, ["studentNumber"]),
     scopeType,
-    scopeIds: resolveScopeIds(scopeType, object),
+    scopeIds: scopeType ? resolveScopeIds(scopeType, object) : undefined,
     hasScopeContext:
       typeof object.scopeType === "string" ||
       (!!object.scopeIds && typeof object.scopeIds === "object"),

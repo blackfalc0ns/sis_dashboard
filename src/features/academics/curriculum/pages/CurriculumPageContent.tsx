@@ -13,7 +13,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleCheck,
-  Download,
   GraduationCap,
   RotateCcw,
   Search,
@@ -51,7 +50,9 @@ import {
 import { curriculumUiError } from "@/features/academics/curriculum/services/curriculumErrors";
 import CurriculumOutline from "../components/CurriculumOutline";
 import CurriculumEditor from "../components/CurriculumEditor";
-import LearningContentPanel from "@/features/academics/curriculum/components/LearningContentPanel";
+import CurriculumRightPanel, {
+  curriculumStatusLabelKey,
+} from "@/features/academics/curriculum/components/CurriculumRightPanel";
 import CurriculumActionsMenu from "../components/CurriculumActionsMenu";
 import CreateCurriculumDialog from "../components/CreateCurriculumDialog";
 import {
@@ -80,9 +81,6 @@ import {
 const isDraftNode = (node: { id: string } | null) =>
   node?.id === "new" || !!node?.id.startsWith("new-");
 
-const curriculumStatusLabelKey = (status: Curriculum["status"]) =>
-  `status.${status}` as const;
-
 const preserveEmptyArray = <T,>(previous: T[]) =>
   previous.length === 0 ? previous : [];
 
@@ -98,8 +96,8 @@ const subjectFromAllocation = (
     name: allocation.subject.nameEn || allocation.subject.nameAr,
     nameAr: allocation.subject.nameAr,
     nameEn: allocation.subject.nameEn,
-    code: allocation.subject.code ?? undefined,
-    color: allocation.subject.color ?? undefined,
+    code: allocation.subject.code,
+    color: allocation.subject.color,
     isActive: true,
   };
 };
@@ -133,6 +131,9 @@ const isOverviewStatusFilter = (
 ): status is OverviewStatusFilter =>
   overviewStatusValues.includes(status as OverviewStatusFilter);
 
+const LEFT_PANEL_WIDTH = 280;
+const RIGHT_PANEL_WIDTH = 320;
+
 interface CurriculumOverviewRow {
   key: string;
   grade: Grade;
@@ -164,9 +165,6 @@ export default function CurriculumPageContent({
   const canViewCurriculum = hasPermission("academics.curriculum.view");
   const canManageCurriculum = hasPermission("academics.curriculum.manage");
 
-  // Fixed panel widths
-  const LEFT_PANEL_WIDTH = 280;
-  const RIGHT_PANEL_WIDTH = 320;
   const { academicYearId, termId, termStatus, selectedTerm, isInitializing } =
     useAcademicYearTermLayoutContext();
 
@@ -200,7 +198,6 @@ export default function CurriculumPageContent({
     string | null
   >(null);
 
-  // Filters
   const [selectedGradeId, setSelectedGradeId] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [createDialogScope, setCreateDialogScope] = useState<{
@@ -208,7 +205,6 @@ export default function CurriculumPageContent({
     subjectId: string;
   } | null>(null);
 
-  // Curriculum data
   const [curriculum, setCurriculum] = useState<Curriculum | null>(null);
   const [units, setUnits] = useState<Unit[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -222,7 +218,6 @@ export default function CurriculumPageContent({
     queryState.searchQuery,
   );
 
-  // UI State
   const [selectedNode, setSelectedNode] = useState<{
     type: "unit" | "lesson";
     id: string;
@@ -468,7 +463,6 @@ export default function CurriculumPageContent({
     [syncSearchQueryParam],
   );
 
-  // Load grades and subjects when term changes
   const loadOptionsData = useCallback(async () => {
     if (isInitializing) {
       return;
@@ -635,7 +629,7 @@ export default function CurriculumPageContent({
   }, [academicYearId, overviewListFilters, termId]);
 
   useEffect(() => {
-    if (isCurriculumOverview) {
+    if (isCurriculumOverview || view === "detail") {
       return;
     }
 
@@ -690,6 +684,7 @@ export default function CurriculumPageContent({
     termId,
     updateURL,
     isCurriculumOverview,
+    view,
   ]);
 
   useEffect(() => {
@@ -717,7 +712,6 @@ export default function CurriculumPageContent({
     ? undefined
     : curriculumId;
 
-  // Load curriculum when route scope changes
   const loadCurriculumData = useCallback(async () => {
     const requestId = ++curriculumRequestIdRef.current;
     if (!isCurriculumOverview) {
@@ -1656,118 +1650,53 @@ export default function CurriculumPageContent({
     (lesson) => lesson.id === learningContentLessonId,
   );
 
-  const renderCurriculumDetailsPanel = () => (
-    <div className="p-6 space-y-5">
-      <div className="space-y-2">
-        <h2 className="text-lg font-semibold text-gray-900">
-          {t("details.title")}
-        </h2>
-        {curriculum?.title && (
-          <h3 className="break-words text-base font-semibold text-gray-900">
-            {curriculum.title}
-          </h3>
-        )}
-        {curriculum?.description && (
-          <p className="break-words text-sm leading-6 text-gray-600">
-            {curriculum.description}
-          </p>
-        )}
-      </div>
-
-      <div className="space-y-3 border-t border-gray-200 pt-4">
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="text-gray-500">{t("details.status")}</span>
-          <span className="font-medium text-gray-900">
-            {curriculum ? t(curriculumStatusLabelKey(curriculum.status)) : ""}
-          </span>
-        </div>
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="text-gray-500">{t("details.units")}</span>
-          <span className="font-medium text-gray-900">
-            {curriculum?.unitCount ?? 0}
-          </span>
-        </div>
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="text-gray-500">{t("details.lessons")}</span>
-          <span className="font-medium text-gray-900">
-            {curriculum?.lessonCount ?? 0}
-          </span>
-        </div>
-      </div>
-
-      <div className="space-y-3 border-t border-gray-200 pt-4">
-        <h3 className="text-sm font-semibold text-gray-900">
-          {t("actions.menu")}
-        </h3>
-        <div className="grid gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            fullWidth
-            className="justify-start"
-            disabled={curriculumExportRows.length === 0}
-            onClick={() => setShowExportModal(true)}
-            leftIcon={<Download className="h-4 w-4" />}
-          >
-            {tExport("button")}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            fullWidth
-            className="justify-start"
-            disabled={!canActivate}
-            onClick={() => void handleActivateCurriculum()}
-            leftIcon={<CircleCheck className="h-4 w-4" />}
-          >
-            {t("actions.activate_curriculum")}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            fullWidth
-            className="justify-start"
-            disabled={!canArchive}
-            onClick={() => setConfirmationAction("archive")}
-            leftIcon={<Archive className="h-4 w-4" />}
-          >
-            {t("actions.archive_curriculum")}
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            fullWidth
-            className="justify-start"
-            disabled={!canMutate}
-            onClick={() => setConfirmationAction("delete")}
-            leftIcon={<Trash2 className="h-4 w-4" />}
-          >
-            {t("actions.delete_curriculum")}
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderRightPanelContent = () => {
-    if (curriculum && learningContentLesson) {
-      return (
-        <LearningContentPanel
-          curriculumId={curriculum.id}
-          unitId={learningContentLesson.unitId}
-          lessonId={learningContentLesson.id}
-          isReadOnly={isReadOnly}
-          onClose={() => setLearningContentLessonId(null)}
-        />
-      );
-    }
-
-    return renderCurriculumDetailsPanel();
+  const curriculumOutlineProps = {
+    curriculum: curriculum!,
+    units,
+    lessons,
+    searchQuery: searchInputValue,
+    onSearchQueryChange: handleSearchQueryChange,
+    selectedNode,
+    onSelectNode: handleSelectNode,
+    onRefresh: refreshCurriculum,
+    isReadOnly,
+  };
+  const curriculumEditorProps = {
+    curriculum: curriculum!,
+    units,
+    lessons,
+    selectedNode,
+    termWeeks,
+    onRefresh: refreshCurriculum,
+    onDirtyChange: setHasUnsavedChanges,
+    isReadOnly,
+    onSelectNode: handleSelectNode,
+  };
+  const curriculumRightPanelProps = {
+    details: {
+      curriculum: curriculum!,
+      exportRowCount: curriculumExportRows.length,
+      availability: {
+        canActivate,
+        canArchive,
+        canDelete: canMutate,
+      },
+      actions: {
+        openExport: () => setShowExportModal(true),
+        activate: () => void handleActivateCurriculum(),
+        requestArchive: () => setConfirmationAction("archive"),
+        requestDelete: () => setConfirmationAction("delete"),
+      },
+    },
+    learningContent: {
+      lesson: learningContentLesson,
+      isReadOnly,
+      close: () => setLearningContentLessonId(null),
+    },
   };
 
   return (
     <div className="flex h-screen flex-col">
-      {/* Read-Only Banner */}
       {isReadOnly && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3 flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-yellow-600" />
@@ -1777,7 +1706,6 @@ export default function CurriculumPageContent({
         </div>
       )}
 
-      {/* Filters Bar */}
       {!isCurriculumOverview && (
         <div className="bg-white border-b border-border">
           <button
@@ -1881,7 +1809,6 @@ export default function CurriculumPageContent({
         </div>
       )}
 
-      {/* Empty States */}
       {!isInitializing && !isOptionsLoading && contextError && (
         <div className="flex-1 flex items-center justify-center bg-gray-50">
           <div className="text-center max-w-md px-6">
@@ -2209,64 +2136,38 @@ export default function CurriculumPageContent({
         />
       )}
 
-      {/* Main Content */}
       {!isPageLoading && hasCurriculum && (
         <>
-          {/* Desktop: Fixed Three-Panel Layout */}
           {!isMobile && (
             <div className="hidden lg:flex flex-1 overflow-hidden">
-              {/* Left Panel */}
               <div
                 className="border-r border-l border-border bg-white shrink-0 transition-all duration-300 overflow-hidden"
                 style={{ width: LEFT_PANEL_WIDTH }}
               >
                 <div className="h-full flex flex-col">
                   <div className="flex-1 overflow-auto">
-                    <CurriculumOutline
-                      curriculum={curriculum!}
-                      units={units}
-                      lessons={lessons}
-                      searchQuery={searchInputValue}
-                      onSearchQueryChange={handleSearchQueryChange}
-                      selectedNode={selectedNode}
-                      onSelectNode={handleSelectNode}
-                      onRefresh={refreshCurriculum}
-                      isReadOnly={isReadOnly}
-                    />
+                    <CurriculumOutline {...curriculumOutlineProps} />
                   </div>
                 </div>
               </div>
 
-              {/* Center Panel */}
               <div className="flex-1 bg-gray-50 min-w-0 overflow-auto">
-                <CurriculumEditor
-                  curriculum={curriculum!}
-                  units={units}
-                  lessons={lessons}
-                  selectedNode={selectedNode}
-                  termWeeks={termWeeks}
-                  onRefresh={refreshCurriculum}
-                  onDirtyChange={setHasUnsavedChanges}
-                  isReadOnly={isReadOnly}
-                  onSelectNode={handleSelectNode}
-                />
+                <CurriculumEditor {...curriculumEditorProps} />
               </div>
 
-              {/* Right Panel */}
               <div
                 className="border-l border-r border-border bg-white min-w-[400px] transition-all duration-300 overflow-hidden"
                 style={{ width: RIGHT_PANEL_WIDTH }}
               >
                 <div className="h-full flex flex-col">
                   <div className="flex-1 overflow-auto">
-                    {renderRightPanelContent()}
+                    <CurriculumRightPanel {...curriculumRightPanelProps} />
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Mobile: Drawers */}
           {isMobile && (
             <div className="lg:hidden flex-1 overflow-hidden flex flex-col">
               <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-border">
@@ -2287,20 +2188,9 @@ export default function CurriculumPageContent({
               </div>
 
               <div className="flex-1 overflow-auto bg-gray-50">
-                <CurriculumEditor
-                  curriculum={curriculum!}
-                  units={units}
-                  lessons={lessons}
-                  selectedNode={selectedNode}
-                  termWeeks={termWeeks}
-                  onRefresh={refreshCurriculum}
-                  onDirtyChange={setHasUnsavedChanges}
-                  isReadOnly={isReadOnly}
-                  onSelectNode={handleSelectNode}
-                />
+                <CurriculumEditor {...curriculumEditorProps} />
               </div>
 
-              {/* Left Drawer */}
               <Drawer
                 anchor={isRTL ? "right" : "left"}
                 open={queryState.leftDrawerOpen}
@@ -2323,24 +2213,16 @@ export default function CurriculumPageContent({
                   </div>
                   <div className="flex-1 overflow-auto">
                     <CurriculumOutline
-                      curriculum={curriculum!}
-                      units={units}
-                      lessons={lessons}
-                      searchQuery={searchInputValue}
-                      onSearchQueryChange={handleSearchQueryChange}
-                      selectedNode={selectedNode}
+                      {...curriculumOutlineProps}
                       onSelectNode={(node) => {
                         handleSelectNode(node);
                         handleSetLeftDrawerOpen(false);
                       }}
-                      onRefresh={refreshCurriculum}
-                      isReadOnly={isReadOnly}
                     />
                   </div>
                 </div>
               </Drawer>
 
-              {/* Right Drawer */}
               <Drawer
                 anchor={isRTL ? "left" : "right"}
                 open={queryState.rightDrawerOpen}
@@ -2362,7 +2244,7 @@ export default function CurriculumPageContent({
                     </IconButton>
                   </div>
                   <div className="flex-1 overflow-auto">
-                    {renderRightPanelContent()}
+                    <CurriculumRightPanel {...curriculumRightPanelProps} />
                   </div>
                 </div>
               </Drawer>
@@ -2371,7 +2253,6 @@ export default function CurriculumPageContent({
         </>
       )}
 
-      {/* Dialogs */}
       <CreateCurriculumDialog
         isOpen={showCreateDialog}
         onClose={closeCreateDialog}

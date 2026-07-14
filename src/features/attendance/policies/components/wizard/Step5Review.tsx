@@ -38,7 +38,7 @@ export default function Step5Review({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
-              {t("fields.effectiveStart")} <span className="text-red-500">*</span>
+              {t("fields.effectiveStart")} <span className="font-normal">({t("optional")})</span>
             </label>
             <DatePicker
               value={
@@ -49,7 +49,7 @@ export default function Step5Review({
               onChange={(value) =>
                 onFieldChange(
                   "effectiveStartDate",
-                  value ? value.toISOString().split("T")[0] : ""
+                  value ? value.toISOString().split("T")[0] : null
                 )
               }
               disabled={isReadOnly}
@@ -58,7 +58,7 @@ export default function Step5Review({
           </div>
           <div>
             <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
-              {t("fields.effectiveEnd")} <span className="text-red-500">*</span>
+              {t("fields.effectiveEnd")} <span className="font-normal">({t("optional")})</span>
             </label>
             <DatePicker
               value={
@@ -69,7 +69,7 @@ export default function Step5Review({
               onChange={(value) =>
                 onFieldChange(
                   "effectiveEndDate",
-                  value ? value.toISOString().split("T")[0] : ""
+                  value ? value.toISOString().split("T")[0] : null
                 )
               }
               disabled={isReadOnly}
@@ -204,7 +204,8 @@ export default function Step5Review({
           <div className="flex justify-between">
             <span style={{ color: "var(--color-gray-600)" }}>{t("fields.effectiveDates")}:</span>
             <span style={{ color: "var(--color-gray-900)" }} className="font-medium">
-              {formData.effectiveStartDate} → {formData.effectiveEndDate}
+              {formData.effectiveStartDate || t("noStartLimit")} →{" "}
+              {formData.effectiveEndDate || t("noEndLimit")}
             </span>
           </div>
           <div className="flex justify-between">

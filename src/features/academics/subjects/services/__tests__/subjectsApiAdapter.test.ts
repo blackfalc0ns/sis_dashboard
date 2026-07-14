@@ -111,6 +111,8 @@ describe("subjectsApiAdapter", () => {
       name: "Math",
       nameAr: "Math AR",
       nameEn: "Math",
+      code: null,
+      color: null,
       isActive: true,
     });
     await adapter.updateSubject("subject-1", { isActive: false });
@@ -121,6 +123,8 @@ describe("subjectsApiAdapter", () => {
       name: "Math",
       nameAr: "Math AR",
       nameEn: "Math",
+      code: null,
+      color: null,
       isActive: true,
     });
     expect(mockedApiPatch).toHaveBeenCalledWith(

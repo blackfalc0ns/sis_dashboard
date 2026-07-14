@@ -13,9 +13,9 @@ export interface AttendancePolicy {
   termId: string;
   nameAr: string;
   nameEn: string;
-  descriptionAr?: string;
-  descriptionEn?: string;
-  notes?: string;
+  descriptionAr: string | null;
+  descriptionEn: string | null;
+  notes: string | null;
   scopeType: AttendanceScopeType;
   scopeIds?: {
     stageId?: string;
@@ -26,10 +26,10 @@ export interface AttendancePolicy {
   mode: AttendanceMode;
   dailyComputationStrategy?: DailyComputationStrategy; // Only for DAILY mode
   selectedPeriodIds?: string[]; // For PERIOD mode or DAILY with DERIVED strategy
-  lateThresholdMinutes: number;
-  earlyLeaveThresholdMinutes: number;
-  autoAbsentAfterMinutes?: number; // For DAILY mode
-  absentIfMissedPeriodsCount?: number; // For PERIOD mode
+  lateThresholdMinutes: number | null;
+  earlyLeaveThresholdMinutes: number | null;
+  autoAbsentAfterMinutes: number | null; // For DAILY mode
+  absentIfMissedPeriodsCount: number | null; // For PERIOD mode
   allowExcuses: boolean;
   requireExcuseReason: boolean;
   requireAttachmentForExcuse: boolean;
@@ -39,8 +39,8 @@ export interface AttendancePolicy {
   notifyOnAbsent: boolean;
   notifyOnLate: boolean;
   notifyOnEarlyLeave: boolean;
-  effectiveStartDate: string; // YYYY-MM-DD
-  effectiveEndDate: string; // YYYY-MM-DD
+  effectiveStartDate: string | null; // YYYY-MM-DD, null means unbounded
+  effectiveEndDate: string | null; // YYYY-MM-DD, null means unbounded
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -48,8 +48,29 @@ export interface AttendancePolicy {
 
 export type PolicyFormData = Omit<
   AttendancePolicy,
-  "id" | "createdAt" | "updatedAt"
->;
+  | "id"
+  | "createdAt"
+  | "updatedAt"
+  | "descriptionAr"
+  | "descriptionEn"
+  | "notes"
+  | "lateThresholdMinutes"
+  | "earlyLeaveThresholdMinutes"
+  | "autoAbsentAfterMinutes"
+  | "absentIfMissedPeriodsCount"
+  | "effectiveStartDate"
+  | "effectiveEndDate"
+> & {
+  descriptionAr?: string;
+  descriptionEn?: string;
+  notes?: string;
+  lateThresholdMinutes: number | null;
+  earlyLeaveThresholdMinutes: number | null;
+  autoAbsentAfterMinutes?: number | null;
+  absentIfMissedPeriodsCount?: number | null;
+  effectiveStartDate: string | null;
+  effectiveEndDate: string | null;
+};
 
 export interface PolicyConflict {
   policyId: string;

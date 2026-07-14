@@ -5066,6 +5066,7 @@
       "end_date": "تاريخ النهاية",
       "scope_type": "نوع النطاق",
       "scope_target": "هدف النطاق",
+      "description": "الوصف",
       "notes": "ملاحظات",
       "optional": "اختياري",
       "delete_confirm": {
@@ -7839,6 +7840,9 @@
         "previewAttachment": "معاينة المرفق",
         "previewUnavailable": "المعاينة غير متاحة",
         "previewUnavailableDescription": "هذا المرفق لا يمكن عرضه داخل النظام. يمكنك تنزيله لعرضه.",
+        "scopeUnavailable": "نطاق الحضور غير متاح",
+        "scopeUnavailableDescription": "لا تتضمن استجابة الخادم نطاق الحضور لهذا الطلب.",
+        "editScopeUnavailable": "لا يمكن تعديل الطلب لأن بيانات نطاق الحضور غير متاحة.",
         "openInNewTab": "افتح في علامة تبويب جديدة إذا كنت تواجه مشكلة في عرض المعاينة.",
         "attachmentType": "نوع المرفق",
         "attachmentSize": "حجم المرفق",
@@ -8070,6 +8074,7 @@
         "early": "مبكر",
         "autoAbsent": "غياب تلقائي",
         "missedPeriods": "حصص فائتة",
+        "notConfigured": "غير مُعدّ",
         "incompleteConfigWarning": "هذه السياسة لديها إعداد غير مكتمل"
       },
       "wizard": {
@@ -8081,6 +8086,8 @@
         "stay": "متابعة التعديل",
         "unsavedChangesTitle": "تغييرات غير محفوظة",
         "unsavedChangesDesc": "لديك تغييرات غير محفوظة. هل أنت متأكد من تجاهلها؟",
+        "noStartLimit": "بدون حد لبداية السريان",
+        "noEndLimit": "بدون حد لنهاية السريان",
         "nameValidation": {
           "checking": "جارٍ التحقق من توفر الاسم...",
           "available": "اسما السياسة متاحان.",

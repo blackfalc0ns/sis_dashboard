@@ -41,6 +41,7 @@ export interface CreateCalendarEventRequest {
   academicYearId: string;
   termId: string;
   title: string;
+  description?: string | null;
   notes?: string | null;
   type: CalendarEventType;
   scopeType: CalendarScopeType;

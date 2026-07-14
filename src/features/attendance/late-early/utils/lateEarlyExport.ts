@@ -22,7 +22,8 @@ export function exportLateEarly(
     if (isArabic) {
       return {
         "التاريخ": record.date,
-        "الحصة": `P${record.periodIndex}`,
+        "الحصة": record.periodNameAr || record.periodNameEn ||
+          (record.periodIndex ? `P${record.periodIndex}` : record.periodKey || "-"),
         "رقم الطالب": record.studentNumber || "-",
         "الطالب": record.studentNameAr,
         "الصف": record.gradeNameAr || record.gradeNameEn || "-",
@@ -36,7 +37,8 @@ export function exportLateEarly(
 
     return {
       Date: record.date,
-      Period: `P${record.periodIndex}`,
+      Period: record.periodNameEn || record.periodNameAr ||
+        (record.periodIndex ? `P${record.periodIndex}` : record.periodKey || "-"),
       "Student #": record.studentNumber || "-",
       Student: record.studentNameEn,
       Grade: record.gradeNameEn || record.gradeNameAr || "-",

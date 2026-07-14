@@ -67,18 +67,6 @@ export const createRoomsApiAdapter = (
     return [];
   },
 
-  async createRoomDefaultAssignment() {
-    throw new Error("Room default assignments endpoint is not yet available.");
-  },
-
-  async updateRoomDefaultAssignment() {
-    throw new Error("Room default assignments endpoint is not yet available.");
-  },
-
-  async deleteRoomDefaultAssignment() {
-    return undefined;
-  },
-
   async createRoom(schoolId, room) {
     void schoolId;
     const payload = toRoomPayload(room);

@@ -217,6 +217,60 @@ describe("attendancePolicyService", () => {
     );
   });
 
+  it("uses the default excuse policy when the effective policy is null", async () => {
+    mockedApiGet.mockResolvedValueOnce({
+      policy: null,
+      requestedScope: { scopeType: "SCHOOL", scopeKey: "school" },
+      matchedScope: null,
+    });
+
+    await expect(
+      resolveEffectiveExcusePolicy(
+        "year-1",
+        "term-1",
+        "SCHOOL",
+        {},
+        "2026-02-10",
+      ),
+    ).resolves.toEqual({
+      allowExcuses: true,
+      requireExcuseReason: false,
+      requireAttachmentForExcuse: false,
+      lateThresholdMinutes: 15,
+      earlyLeaveThresholdMinutes: 15,
+    });
+  });
+
+  it("preserves nullable thresholds and effective dates from the backend", async () => {
+    mockedApiGet.mockResolvedValueOnce({
+      items: [
+        {
+          id: "policy-nullable",
+          academicYearId: "year-1",
+          termId: "term-1",
+          nameAr: "سياسة اختيارية",
+          nameEn: "Optional policy",
+          scopeType: "SCHOOL",
+          mode: "DAILY",
+          lateThresholdMinutes: null,
+          earlyLeaveThresholdMinutes: null,
+          effectiveStartDate: null,
+          effectiveEndDate: null,
+          isActive: true,
+        },
+      ],
+    });
+
+    await expect(fetchPolicies("year-1", "term-1")).resolves.toEqual([
+      expect.objectContaining({
+        lateThresholdMinutes: null,
+        earlyLeaveThresholdMinutes: null,
+        effectiveStartDate: null,
+        effectiveEndDate: null,
+      }),
+    ]);
+  });
+
   it("sends optional list filters without adding undefined query values", async () => {
     mockedApiGet.mockResolvedValueOnce({ items: [] });
 

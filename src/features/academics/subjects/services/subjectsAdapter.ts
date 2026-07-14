@@ -1,5 +1,4 @@
 import type {
-  CarryOverSubjectsOptions,
   Subject,
   SubjectAllocation,
 } from "@/features/academics/subjects/services/subjectsService";
@@ -17,5 +16,4 @@ export interface SubjectsAdapter {
     filters?: { gradeId?: string; subjectId?: string },
   ): Promise<SubjectAllocation[]>;
   bulkUpsertSubjectAllocations(termId: string, items: SubjectAllocation[]): Promise<void>;
-  carryOverSubjectsAndAllocations(params: CarryOverSubjectsOptions): Promise<void>;
 }

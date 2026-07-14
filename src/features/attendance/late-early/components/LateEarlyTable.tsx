@@ -24,7 +24,8 @@ export default function LateEarlyTable({ incidents, isReadOnly, onView, onEditMi
       label: t("period"),
       render: (_value: unknown, row: Incident) => (
         <span>
-          P{row.periodIndex} {locale === "ar" ? row.periodNameAr || "" : row.periodNameEn || ""}
+          {(locale === "ar" ? row.periodNameAr : row.periodNameEn) ||
+            (row.periodIndex ? `P${row.periodIndex}` : row.periodKey || "-")}
         </span>
       ),
     },

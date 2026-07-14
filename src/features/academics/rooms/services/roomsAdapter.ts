@@ -4,15 +4,6 @@ import type { RoomDefaultAssignment } from "@/features/academics/rooms/services/
 export interface RoomsAdapter {
   fetchRooms(schoolId: string): Promise<Room[]>;
   fetchRoomDefaultAssignments(schoolId: string): Promise<RoomDefaultAssignment[]>;
-  createRoomDefaultAssignment(
-    schoolId: string,
-    payload: Omit<RoomDefaultAssignment, "id" | "schoolId">
-  ): Promise<RoomDefaultAssignment>;
-  updateRoomDefaultAssignment(
-    assignmentId: string,
-    payload: Partial<Omit<RoomDefaultAssignment, "id" | "schoolId">>
-  ): Promise<RoomDefaultAssignment>;
-  deleteRoomDefaultAssignment(assignmentId: string): Promise<void>;
   createRoom(
     schoolId: string,
     room: Omit<Room, "id" | "schoolId" | "createdAt" | "updatedAt">

@@ -9,10 +9,11 @@ import Button from "@/components/ui/button/Button";
 import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
 import type { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { LateEarlyFilters } from "../types";
+import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
 
 interface LateEarlyFiltersBarProps {
   filters: LateEarlyFilters;
-  periods: Array<{ index: number; nameAr: string; nameEn: string }>;
+  periods: TimetablePeriod[];
   stages: Stage[];
   grades: Grade[];
   sections: Section[];
@@ -38,7 +39,7 @@ export default function LateEarlyFiltersBar({
   const locale = useLocale();
 
   const periodOptions = periods.map((period) => ({
-    value: String(period.index),
+    value: period.id,
     label: locale === "ar" ? period.nameAr : period.nameEn,
   }));
 
@@ -136,8 +137,8 @@ export default function LateEarlyFiltersBar({
         <div className="lg:col-span-3">
           {periodOptions.length > 0 && (
             <Select
-              value={typeof filters.periodIndex === "number" ? String(filters.periodIndex) : ""}
-              onChange={(value) => onFiltersChange({ periodIndex: value ? Number(value) : undefined })}
+              value={filters.periodId || ""}
+              onChange={(value) => onFiltersChange({ periodId: value || undefined })}
               options={[{ value: "", label: t("allPeriods") }, ...periodOptions]}
               selectSize="sm"
             />

@@ -22,7 +22,6 @@ import type {
 import SubjectsList from "../components/SubjectsList";
 import AllocationMatrix from "../components/AllocationMatrix";
 import SubjectDialog from "../components/SubjectDialog";
-import CarryOverDialog from "../components/CarryOverDialog";
 
 interface SubjectsAllocationViewProps {
   academicYearId: string;
@@ -41,20 +40,17 @@ interface SubjectsAllocationViewProps {
   activeTab: "subjects" | "matrix";
   showSubjectDialog: boolean;
   editingSubject: Subject | null;
-  showCarryOverDialog: boolean;
   isReadOnly: boolean;
   onTabChange: (tab: "subjects" | "matrix") => void;
   onAddSubject: () => void;
   onEditSubject: (subject: Subject) => void;
   onSubjectSuccess: () => void;
-  onCarryOverSuccess: () => void;
   onAllocationsChange: (allocations: SubjectAllocation[]) => void;
   onDirtyChange: (isDirty: boolean) => void;
   onSaveError: (error: unknown) => void;
   onRefresh: () => Promise<void>;
   onRetry: () => Promise<void>;
   onCloseSubjectDialog: () => void;
-  onCloseCarryOverDialog: () => void;
 }
 
 export default function SubjectsAllocationView({
@@ -74,20 +70,17 @@ export default function SubjectsAllocationView({
   activeTab,
   showSubjectDialog,
   editingSubject,
-  showCarryOverDialog,
   isReadOnly,
   onTabChange,
   onAddSubject,
   onEditSubject,
   onSubjectSuccess,
-  onCarryOverSuccess,
   onAllocationsChange,
   onDirtyChange,
   onSaveError,
   onRefresh,
   onRetry,
   onCloseSubjectDialog,
-  onCloseCarryOverDialog,
 }: SubjectsAllocationViewProps) {
   const t = useTranslations("academics.subjects");
   const tEmpty = useTranslations("academics.module_empty_states");
@@ -267,16 +260,6 @@ export default function SubjectsAllocationView({
         existingSubjects={subjects}
       />
 
-      {/* Carry Over Dialog */}
-      <CarryOverDialog
-        isOpen={showCarryOverDialog}
-        onClose={onCloseCarryOverDialog}
-        onSuccess={onCarryOverSuccess}
-        academicYears={academicYears}
-        currentYearId={academicYearId}
-        currentTermId={termId}
-        isReadOnly={isReadOnly}
-      />
     </div>
   );
 }

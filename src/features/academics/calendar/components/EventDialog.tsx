@@ -19,7 +19,6 @@ import {
   deleteEvent,
 } from "@/features/academics/calendar/services/calendarService";
 import { getCalendarErrorMessage } from "@/features/academics/calendar/services/calendarErrors";
-import { Term } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { CalendarScopeTargetOption } from "@/features/academics/calendar/types";
 
 interface EventDialogProps {
@@ -27,7 +26,6 @@ interface EventDialogProps {
   onClose: () => void;
   onSuccess: () => void;
   event: AcademicEvent | null;
-  term: Term;
   academicYearId: string;
   termId: string;
   prefilledDate: Date | null;
@@ -42,7 +40,6 @@ export default function EventDialog({
   onClose,
   onSuccess,
   event,
-  term,
   academicYearId,
   termId,
   prefilledDate,
@@ -63,6 +60,7 @@ export default function EventDialog({
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [scopeType, setScopeType] = useState<AcademicEvent["scopeType"]>("SCHOOL");
   const [scopeId, setScopeId] = useState("");
+  const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
 
   // UI state
@@ -83,6 +81,7 @@ export default function EventDialog({
         setEndDate(parseCalendarDate(event.endDate));
         setScopeType(event.scopeType);
         setScopeId(event.scopeId || "");
+        setDescription(event.description || "");
         setNotes(event.notes || "");
       } else {
         // Create mode
@@ -95,6 +94,7 @@ export default function EventDialog({
         setEndDate(dateObj);
         setScopeType("SCHOOL");
         setScopeId("");
+        setDescription("");
         setNotes("");
       }
       setErrors({});
@@ -149,6 +149,7 @@ export default function EventDialog({
         endDate: endDate ? formatCalendarDate(endDate) : "",
         scopeType,
         scopeId: scopeType === "SCHOOL" ? undefined : scopeId,
+        description: description.trim(),
         notes: notes.trim(),
       };
 
@@ -402,22 +403,30 @@ export default function EventDialog({
             )}
           </div>
 
-          {/* Notes */}
           <TextArea
-              label={`${t("notes")} (${t("optional")})`}
-              value={notes}
-              onChange={(e) => {
-                setNotes(e.target.value);
-                const newErrors = { ...errors };
-                delete newErrors.notes;
-                setErrors(newErrors);
-              }}
-              maxLength={4000}
-              error={errors.notes}
-              placeholder={t("notes")}
-              disabled={isReadOnly}
-              rows={3}
-            />
+            label={`${t("description")} (${t("optional")})`}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder={t("description")}
+            disabled={isReadOnly}
+            rows={3}
+          />
+
+          <TextArea
+            label={`${t("notes")} (${t("optional")})`}
+            value={notes}
+            onChange={(event) => {
+              setNotes(event.target.value);
+              const newErrors = { ...errors };
+              delete newErrors.notes;
+              setErrors(newErrors);
+            }}
+            maxLength={4000}
+            error={errors.notes}
+            placeholder={t("notes")}
+            disabled={isReadOnly}
+            rows={3}
+          />
         </div>
       </Modal>
 

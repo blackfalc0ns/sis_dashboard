@@ -72,6 +72,9 @@ describe("attendanceExcusesService", () => {
         reasonEn: "Medical appointment",
         dateFrom: "2026-02-10",
         dateTo: "2026-02-10",
+        scopeType: undefined,
+        scopeIds: undefined,
+        hasScopeContext: false,
       }),
     ]);
 

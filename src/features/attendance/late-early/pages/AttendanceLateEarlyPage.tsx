@@ -29,6 +29,7 @@ import {
   type Stage,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
+import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
 import { fetchIncidents, updateIncidentMinutes } from "../services/attendanceLateEarlyService";
 import { exportLateEarly } from "../utils/lateEarlyExport";
 import AttendanceGlobalExportModal from "@/features/attendance/shared/components/AttendanceGlobalExportModal";
@@ -82,7 +83,7 @@ export default function AttendanceLateEarlyPage() {
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
-  const [periods, setPeriods] = useState<Array<{ index: number; nameAr: string; nameEn: string }>>([]);
+  const [periods, setPeriods] = useState<TimetablePeriod[]>([]);
 
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(false);
@@ -265,8 +266,8 @@ export default function AttendanceLateEarlyPage() {
       date: incident.date,
       period:
         locale === "ar"
-          ? incident.periodNameAr || incident.periodIndex
-          : incident.periodNameEn || incident.periodIndex,
+          ? incident.periodNameAr || incident.periodNameEn || incident.periodKey || "-"
+          : incident.periodNameEn || incident.periodNameAr || incident.periodKey || "-",
       studentNumber: incident.studentNumber || "-",
       studentName: locale === "ar" ? incident.studentNameAr : incident.studentNameEn,
       studentNameEn: incident.studentNameEn,

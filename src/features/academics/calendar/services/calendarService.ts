@@ -21,6 +21,7 @@ export interface AcademicEvent {
   endDate: string; // ISO date string (YYYY-MM-DD)
   scopeType: "SCHOOL" | "STAGE" | "GRADE" | "SECTION";
   scopeId?: string; // ID of stage/grade/section if not SCHOOL
+  description?: string;
   notes?: string;
   createdAt: string;
 }

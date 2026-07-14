@@ -36,6 +36,9 @@ describe("attendanceAbsencesService", () => {
           scopeType: "CLASSROOM",
           scopeKey: "classroom-1",
           status: "ABSENT",
+          mode: "DAILY",
+          periodId: null,
+          periodKey: "daily",
           sourceSessionId: "session-1",
           updatedAt: "2026-02-10T07:30:00.000Z",
         },
@@ -51,7 +54,7 @@ describe("attendanceAbsencesService", () => {
         scopeType: "CLASSROOM",
         scopeIds: { classroomId: "classroom-1" },
         status: "ALL",
-        granularities: ["PERIOD"],
+        granularities: ["DAILY_DERIVED"],
         onlyUnexcused: false,
         search: "sara",
       }),
@@ -61,6 +64,8 @@ describe("attendanceAbsencesService", () => {
         yearId: "year-1",
         termId: "term-1",
         status: "ABSENT",
+        granularity: "DAILY_DERIVED",
+        periodKey: "daily",
         scopeIds: { classroomId: "classroom-1" },
       }),
     ]);
@@ -142,9 +147,7 @@ describe("attendanceAbsencesService", () => {
 
     mockedApiPatch.mockResolvedValue({});
 
-    await updateExcuse(record, "Medical appointment", [
-      { id: "file-1", name: "medical.pdf", size: 1000, type: "application/pdf", uploadedAt: "" },
-    ]);
+    await updateExcuse(record, "Medical appointment");
     await updateEarlyLeaveMinutes(record, 20);
 
     expect(mockedApiPatch).toHaveBeenNthCalledWith(

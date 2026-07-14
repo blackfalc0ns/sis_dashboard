@@ -1,6 +1,10 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import { isApiError } from "@/lib/api-error";
-import type { AttendancePolicy, AttendanceScopeType } from "../types";
+import type {
+  AttendancePolicy,
+  AttendanceScopeType,
+  PolicyFormData,
+} from "../types";
 import { migratePeriodIds } from "@/features/academics/timetable/types/timetableConfig";
 import { fetchTimetableConfigs } from "@/features/academics/timetable/services/timetableConfigService";
 import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
@@ -74,16 +78,8 @@ function getOptionalString(object: BackendRecord, keys: string[]) {
   return value || undefined;
 }
 
-function getNumber(object: BackendRecord, keys: string[], fallback = 0) {
-  for (const key of keys) {
-    const value = object[key];
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-    if (typeof value === "string" && value.trim()) {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) return parsed;
-    }
-  }
-  return fallback;
+function getNullableString(object: BackendRecord, keys: string[]) {
+  return getOptionalString(object, keys) ?? null;
 }
 
 function getOptionalNumber(object: BackendRecord, keys: string[]) {
@@ -96,6 +92,10 @@ function getOptionalNumber(object: BackendRecord, keys: string[]) {
     }
   }
   return undefined;
+}
+
+function getNullableNumber(object: BackendRecord, keys: string[]) {
+  return getOptionalNumber(object, keys) ?? null;
 }
 
 function getBoolean(object: BackendRecord, keys: string[], fallback = false) {
@@ -189,9 +189,9 @@ function mapPolicy(
     termId,
     nameAr: getString(object, ["nameAr"]),
     nameEn: getString(object, ["nameEn"]),
-    descriptionAr: getOptionalString(object, ["descriptionAr"]),
-    descriptionEn: getOptionalString(object, ["descriptionEn"]),
-    notes: getOptionalString(object, ["notes"]),
+    descriptionAr: getNullableString(object, ["descriptionAr"]),
+    descriptionEn: getNullableString(object, ["descriptionEn"]),
+    notes: getNullableString(object, ["notes"]),
     scopeType,
     scopeIds: resolveScopeIds(scopeType, object),
     mode: String(
@@ -203,16 +203,14 @@ function mapPolicy(
     selectedPeriodIds: Array.isArray(object.selectedPeriodIds)
       ? (object.selectedPeriodIds as string[])
       : [],
-    lateThresholdMinutes: getNumber(object, ["lateThresholdMinutes"], 0),
-    earlyLeaveThresholdMinutes: getNumber(
-      object,
-      ["earlyLeaveThresholdMinutes"],
-      0,
-    ),
-    autoAbsentAfterMinutes: getOptionalNumber(object, [
+    lateThresholdMinutes: getNullableNumber(object, ["lateThresholdMinutes"]),
+    earlyLeaveThresholdMinutes: getNullableNumber(object, [
+      "earlyLeaveThresholdMinutes",
+    ]),
+    autoAbsentAfterMinutes: getNullableNumber(object, [
       "autoAbsentAfterMinutes",
     ]),
-    absentIfMissedPeriodsCount: getOptionalNumber(object, [
+    absentIfMissedPeriodsCount: getNullableNumber(object, [
       "absentIfMissedPeriodsCount",
     ]),
     allowExcuses: getBoolean(
@@ -236,11 +234,14 @@ function mapPolicy(
     notifyOnAbsent: getBoolean(object, ["notifyOnAbsent"], false),
     notifyOnLate: getBoolean(object, ["notifyOnLate"], false),
     notifyOnEarlyLeave: getBoolean(object, ["notifyOnEarlyLeave"], false),
-    effectiveStartDate: getString(object, [
+    effectiveStartDate: getNullableString(object, [
       "effectiveStartDate",
       "effectiveFrom",
     ]),
-    effectiveEndDate: getString(object, ["effectiveEndDate", "effectiveTo"]),
+    effectiveEndDate: getNullableString(object, [
+      "effectiveEndDate",
+      "effectiveTo",
+    ]),
     isActive: getBoolean(object, ["isActive"], true),
     createdAt: getString(object, ["createdAt"]),
     updatedAt: getString(object, ["updatedAt"]),
@@ -291,7 +292,7 @@ function buildPolicyFields(payload: PolicyWriteInput) {
 }
 
 function buildCreatePolicyPayload(
-  payload: Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">,
+  payload: PolicyFormData,
 ) {
   return {
     ...buildPolicyFields(payload),
@@ -415,7 +416,7 @@ export const fetchPolicies = async (
  * Create a new policy
  */
 export const createPolicy = async (
-  payload: Omit<AttendancePolicy, "id" | "createdAt" | "updatedAt">,
+  payload: PolicyFormData,
 ): Promise<AttendancePolicy> => {
   const response = await apiPost<unknown>(
     BASE,
@@ -482,24 +483,25 @@ export async function resolveEffectiveExcusePolicy(
       date: dateISO,
     },
   });
-  const selectedPolicy = mapPolicy(unwrapPolicy(response), { yearId, termId });
+  const envelope = asRecord(response);
 
-  if (selectedPolicy) {
+  if (!envelope.policy) {
     return {
-      allowExcuses: selectedPolicy.allowExcuses,
-      requireExcuseReason: selectedPolicy.requireExcuseReason,
-      requireAttachmentForExcuse: selectedPolicy.requireAttachmentForExcuse,
-      lateThresholdMinutes: selectedPolicy.lateThresholdMinutes,
-      earlyLeaveThresholdMinutes: selectedPolicy.earlyLeaveThresholdMinutes,
+      allowExcuses: true,
+      requireExcuseReason: false,
+      requireAttachmentForExcuse: false,
+      lateThresholdMinutes: 15,
+      earlyLeaveThresholdMinutes: 15,
     };
   }
 
-  // Fallback if no policy found
+  const selectedPolicy = mapPolicy(envelope.policy, { yearId, termId });
   return {
-    allowExcuses: true,
-    requireExcuseReason: false,
-    requireAttachmentForExcuse: false,
-    lateThresholdMinutes: 15,
-    earlyLeaveThresholdMinutes: 15,
+    allowExcuses: selectedPolicy.allowExcuses,
+    requireExcuseReason: selectedPolicy.requireExcuseReason,
+    requireAttachmentForExcuse: selectedPolicy.requireAttachmentForExcuse,
+    lateThresholdMinutes: selectedPolicy.lateThresholdMinutes ?? 15,
+    earlyLeaveThresholdMinutes:
+      selectedPolicy.earlyLeaveThresholdMinutes ?? 15,
   };
 }

@@ -13,7 +13,9 @@ export interface Incident {
   yearId: string;
   termId: string;
   date: string;
-  periodIndex: number;
+  periodId?: string;
+  periodKey?: string;
+  periodIndex?: number;
   periodNameAr?: string;
   periodNameEn?: string;
   sessionId: string;
@@ -49,7 +51,7 @@ export interface LateEarlyFilters {
   onlyViolations: boolean;
   minutesMin?: number;
   minutesMax?: number;
-  periodIndex?: number;
+  periodId?: string;
   search: string;
   sessionStatus?: "ALL" | "DRAFT" | "SUBMITTED";
 }

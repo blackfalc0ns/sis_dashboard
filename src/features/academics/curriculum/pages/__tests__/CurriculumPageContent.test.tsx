@@ -776,7 +776,9 @@ describe("CurriculumPageContent", () => {
       ],
     });
 
-    render(<CurriculumPageContent view="detail" curriculumId="curriculum-1" />);
+    const { rerender } = render(
+      <CurriculumPageContent view="detail" curriculumId="curriculum-1" />,
+    );
 
     await waitFor(() => {
       expect(getCurriculum).toHaveBeenCalledWith("curriculum-1");
@@ -798,15 +800,40 @@ describe("CurriculumPageContent", () => {
       screen.getByRole("button", { name: "actions.delete_curriculum" }),
     ).toBeInTheDocument();
 
+    routerMocks.replace.mockClear();
     await user.click(screen.getByText("Integers"));
 
     expect(screen.getByRole("region", { name: "title" })).toBeInTheDocument();
     expect(screen.queryByText("Term math plan")).not.toBeInTheDocument();
+    navigationMock.searchParams = new URLSearchParams(window.location.search);
+    rerender(
+      <CurriculumPageContent view="detail" curriculumId="curriculum-1" />,
+    );
+
+    await waitFor(() => {
+      expect(routerMocks.replace).not.toHaveBeenCalledWith(
+        "?year=year-1&term=term-1",
+        { scroll: false },
+      );
+    });
 
     await user.click(screen.getByTitle("close"));
 
     expect(screen.queryByRole("region", { name: "title" })).not.toBeInTheDocument();
     expect(screen.getByText("Term math plan")).toBeInTheDocument();
+
+    routerMocks.replace.mockClear();
+    await user.click(await screen.findByText("Numbers"));
+    navigationMock.searchParams = new URLSearchParams(window.location.search);
+    rerender(
+      <CurriculumPageContent view="detail" curriculumId="curriculum-1" />,
+    );
+
+    expect(window.location.search).toContain("unit=unit-1");
+    expect(routerMocks.replace).not.toHaveBeenCalledWith(
+      "?year=year-1&term=term-1",
+      { scroll: false },
+    );
 
     await user.click(screen.getByRole("button", { name: "All curricula" }));
 

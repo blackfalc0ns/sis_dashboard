@@ -33,15 +33,19 @@ export default function Step4Rules({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
-            {t("fields.lateThreshold")} <span className="text-red-500">*</span>
+            {t("fields.lateThreshold")} <span className="font-normal">({t("optional")})</span>
           </label>
           <div className="relative">
             <Input
               type="number"
-              value={formData.lateThresholdMinutes}
-              onChange={(e) =>
-                onFieldChange("lateThresholdMinutes", parseInt(e.target.value) || 0)
-              }
+              value={formData.lateThresholdMinutes ?? ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                onFieldChange(
+                  "lateThresholdMinutes",
+                  value === "" ? null : Number.parseInt(value, 10),
+                );
+              }}
               min={0}
               disabled={isReadOnly}
               error={errors.lateThresholdMinutes}
@@ -55,18 +59,19 @@ export default function Step4Rules({
 
         <div>
           <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-2">
-            {t("fields.earlyThreshold")} <span className="text-red-500">*</span>
+            {t("fields.earlyThreshold")} <span className="font-normal">({t("optional")})</span>
           </label>
           <div className="relative">
             <Input
               type="number"
-              value={formData.earlyLeaveThresholdMinutes}
-              onChange={(e) =>
+              value={formData.earlyLeaveThresholdMinutes ?? ""}
+              onChange={(e) => {
+                const value = e.target.value;
                 onFieldChange(
                   "earlyLeaveThresholdMinutes",
-                  parseInt(e.target.value) || 0
-                )
-              }
+                  value === "" ? null : Number.parseInt(value, 10),
+                );
+              }}
               min={0}
               disabled={isReadOnly}
               error={errors.earlyLeaveThresholdMinutes}

@@ -1,6 +1,9 @@
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import type { Incident, LateEarlyFilters } from "../types";
 import type { AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
+import { fetchPolicies } from "@/features/attendance/policies/services/attendancePolicyService";
+import { getThresholdState } from "@/features/attendance/shared/policyThresholds";
+import { resolveEffectiveAttendancePolicy } from "../utils/deriveIncidents";
 
 type BackendRecord = Record<string, unknown>;
 
@@ -100,9 +103,11 @@ function mapIncident(item: unknown, fallback: { yearId: string; termId: string }
     yearId: getString(object, ["yearId", "academicYearId"], fallback.yearId),
     termId: getString(object, ["termId"], fallback.termId),
     date: getString(object, ["date", "occurredAt"]).slice(0, 10),
-    periodIndex: getNumber(object, ["periodIndex"]),
-    periodNameAr: getString(object, ["periodNameAr"]),
-    periodNameEn: getString(object, ["periodNameEn"]),
+    periodId: getString(object, ["periodId"]) || undefined,
+    periodKey: getString(object, ["periodKey"]) || undefined,
+    periodIndex: getOptionalNumber(object, ["periodIndex"]),
+    periodNameAr: getString(object, ["periodNameAr", "periodLabelAr"]),
+    periodNameEn: getString(object, ["periodNameEn", "periodLabelEn"]),
     sessionId: getString(object, ["sourceSessionId", "sessionId"]),
     studentId: getString(object, ["studentId"]),
     studentNameAr: getString(object, ["studentNameAr", "nameAr", "studentNameEn"]),
@@ -120,10 +125,12 @@ function mapIncident(item: unknown, fallback: { yearId: string; termId: string }
     classroomNameEn: getString(object, ["classroomNameEn"]),
     type,
     minutes,
-    threshold: getOptionalNumber(object, ["threshold"]),
-    isViolation: typeof object.isViolation === "boolean" ? object.isViolation : false,
-    policyScopeSummary: getString(object, ["policyScopeSummary"], ""),
-    sessionStatus: String(object.sessionStatus || "SUBMITTED").toUpperCase() as Incident["sessionStatus"],
+    threshold: undefined,
+    isViolation: false,
+    policyScopeSummary: "",
+    sessionStatus: getString(object, ["submittedAt"])
+      ? "SUBMITTED"
+      : undefined,
     updatedAt: getString(object, ["updatedAt"], new Date().toISOString()),
   };
 }
@@ -134,7 +141,7 @@ function applyClientFilters(incidents: Incident[], filters: Partial<LateEarlyFil
     if (filters.onlyViolations && !incident.isViolation) return false;
     if (typeof filters.minutesMin === "number" && incident.minutes < filters.minutesMin) return false;
     if (typeof filters.minutesMax === "number" && incident.minutes > filters.minutesMax) return false;
-    if (typeof filters.periodIndex === "number" && incident.periodIndex !== filters.periodIndex) return false;
+    if (filters.periodId && incident.periodId !== filters.periodId) return false;
     if (filters.sessionStatus && filters.sessionStatus !== "ALL" && incident.sessionStatus !== filters.sessionStatus) return false;
     if (filters.search?.trim()) {
       const query = filters.search.trim().toLowerCase();
@@ -160,12 +167,40 @@ export async function fetchIncidents(params: FetchIncidentsParams): Promise<Inci
     }),
   });
 
-  return applyClientFilters(
-    unwrapArray(response)
-      .map((item) => mapIncident(item, params))
-      .filter((incident) => incident.type === "LATE" || incident.type === "EARLY_LEAVE"),
-    params,
-  );
+  const incidents = unwrapArray(response)
+    .map((item) => mapIncident(item, params))
+    .filter((incident) => incident.type === "LATE" || incident.type === "EARLY_LEAVE");
+
+  if (incidents.length === 0) return [];
+
+  const policies = await fetchPolicies(params.yearId, params.termId);
+  const enrichedIncidents = incidents.map((incident) => {
+    const policy = resolveEffectiveAttendancePolicy(policies, incident.date, {
+      stageId: incident.stageId,
+      gradeId: incident.gradeId,
+      sectionId: incident.sectionId,
+      classroomId: incident.classroomId,
+    });
+    const thresholdState = getThresholdState(
+      incident.type,
+      incident.minutes,
+      policy || {
+        lateThresholdMinutes: 15,
+        earlyLeaveThresholdMinutes: 15,
+      },
+    );
+
+    return {
+      ...incident,
+      threshold: thresholdState.threshold,
+      isViolation: thresholdState.isReached,
+      policyScopeSummary: policy
+        ? `${policy.scopeType} - ${policy.nameEn || policy.nameAr}`
+        : "SCHOOL - default",
+    };
+  });
+
+  return applyClientFilters(enrichedIncidents, params);
 }
 
 export async function updateIncidentMinutes(params: UpdateIncidentMinutesParams): Promise<Incident> {

@@ -774,7 +774,6 @@ export default function AcademicCalendarPage() {
           onClose={handleCloseDialog}
           onSuccess={handleEventSuccess}
           event={editingEvent}
-          term={term}
           academicYearId={academicYearId || ""}
           termId={termId || ""}
           prefilledDate={prefilledDate}

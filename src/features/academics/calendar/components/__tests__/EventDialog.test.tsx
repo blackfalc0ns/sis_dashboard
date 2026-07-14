@@ -40,7 +40,6 @@ describe("EventDialog", () => {
     onClose: vi.fn(),
     onSuccess: vi.fn(),
     event: null,
-    term: { id: "t1", yearId: "y1", name: "Term 1", status: "active" as const, startDate: "2024-01-01", endDate: "2024-06-01", isCurrent: true, type: "MAIN" as const, ordinal: 1, _count: { grades: 0 } },
     academicYearId: "y1",
     termId: "t1",
     prefilledDate: null,
@@ -87,5 +86,22 @@ describe("EventDialog", () => {
     });
 
     expect(screen.getByText("الصف الأول")).toBeInTheDocument();
+  });
+
+  it("shows separate description and notes fields when editing", () => {
+    renderComponent({
+      event: {
+        ...existingEvent,
+        description: "Public event details",
+        notes: "Internal planning notes",
+      },
+    });
+
+    expect(screen.getByLabelText("description (optional)")).toHaveValue(
+      "Public event details",
+    );
+    expect(screen.getByLabelText("notes (optional)")).toHaveValue(
+      "Internal planning notes",
+    );
   });
 });

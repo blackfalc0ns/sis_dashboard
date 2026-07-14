@@ -48,12 +48,10 @@ import {
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   resolveEffectiveExcusePolicy,
-  type EffectiveExcusePolicy,
 } from "@/features/attendance/policies/services/attendancePolicyService";
 import { isScopeSelectionComplete } from "@/features/attendance/shared/attendanceScope";
 import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
 import type { AbsenceRecord, AbsencesFilters } from "../types";
-import type { AttachmentMeta } from "@/features/attendance/roll-call/types";
 
 export default function AttendanceAbsencesPage() {
   const t = useTranslations("attendance.absences");
@@ -104,8 +102,6 @@ export default function AttendanceAbsencesPage() {
   const [excuseModalOpen, setExcuseModalOpen] = useState(false);
   const [earlyLeaveModalOpen, setEarlyLeaveModalOpen] = useState(false);
   const [recordToEdit, setRecordToEdit] = useState<AbsenceRecord | null>(null);
-  const [excusePolicy, setExcusePolicy] =
-    useState<EffectiveExcusePolicy | null>(null);
 
   // Reusable reload function
   const reloadRecords = useCallback(async () => {
@@ -204,8 +200,6 @@ export default function AttendanceAbsencesPage() {
         return;
       }
 
-      // Set policy and open modal
-      setExcusePolicy(policy);
       setRecordToEdit(record);
       setExcuseModalOpen(true);
     } catch (error) {
@@ -220,14 +214,11 @@ export default function AttendanceAbsencesPage() {
     setEarlyLeaveModalOpen(true);
   };
 
-  const handleSaveExcuse = async (
-    reason: string,
-    attachments: AttachmentMeta[],
-  ) => {
+  const handleSaveExcuse = async (reason: string) => {
     if (!recordToEdit) return;
 
     try {
-      await updateExcuse(recordToEdit, reason, attachments);
+      await updateExcuse(recordToEdit, reason);
       showSuccess(t("excuseSaved"));
       await reloadRecords();
     } catch (error) {
@@ -364,8 +355,8 @@ export default function AttendanceAbsencesPage() {
       granularity: record.granularity,
       period:
         locale === "ar"
-          ? record.periodNameAr || record.periodIndex || "-"
-          : record.periodNameEn || record.periodIndex || "-",
+          ? record.periodNameAr || record.periodKey || record.periodIndex || "-"
+          : record.periodNameEn || record.periodKey || record.periodIndex || "-",
       minutes: record.minutesLate || record.minutesEarlyLeave || "",
       hasExcuse: record.excuse
         ? locale === "ar"
@@ -576,7 +567,6 @@ export default function AttendanceAbsencesPage() {
         onClose={() => {
           setExcuseModalOpen(false);
           setRecordToEdit(null);
-          setExcusePolicy(null);
         }}
         onSave={handleSaveExcuse}
         initialReason={
@@ -584,8 +574,7 @@ export default function AttendanceAbsencesPage() {
           recordToEdit?.excuse?.reasonEn ||
           ""
         }
-        initialAttachments={recordToEdit?.excuse?.attachments || []}
-        requireAttachment={excusePolicy?.requireAttachmentForExcuse ?? false}
+        attachmentMode="UNSUPPORTED"
         isReadOnly={isReadOnly}
       />
 

@@ -95,6 +95,10 @@ function mapAttachments(attachments: ExcuseRequest["attachments"], decidedBy?: s
 }
 
 export async function applyExcuseToAttendance({ request, decidedBy }: ApplyExcuseParams): Promise<string[]> {
+  if (!request.scopeType) {
+    throw new Error("Cannot apply an excuse without attendance scope context.");
+  }
+
   const policies = await fetchPolicies(request.yearId, request.termId);
   assertExcusePolicyAllowed(request, policies);
 

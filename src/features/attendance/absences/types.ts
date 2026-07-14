@@ -38,6 +38,8 @@ export interface AbsenceRecord {
   classroomNameAr?: string;
   classroomNameEn?: string;
   granularity: AttendanceGranularity;
+  periodId?: string;
+  periodKey?: string;
   periodIndex?: number;
   periodNameAr?: string;
   periodNameEn?: string;

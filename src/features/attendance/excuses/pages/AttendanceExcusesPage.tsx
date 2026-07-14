@@ -157,9 +157,11 @@ export default function AttendanceExcusesPage() {
   }, [reloadRequests]);
 
   useEffect(() => {
+    const requestScopeType = selectedRequest?.scopeType;
     if (
       !selectedRequest ||
       !selectedRequest.hasScopeContext ||
+      !requestScopeType ||
       !termContext.yearId ||
       !termContext.termId
     ) {
@@ -174,7 +176,7 @@ export default function AttendanceExcusesPage() {
         const policy = await resolveEffectiveExcusePolicy(
           termContext.yearId!,
           termContext.termId!,
-          selectedRequest.scopeType,
+          requestScopeType,
           selectedRequest.scopeIds,
           selectedRequest.dateFrom
         );
@@ -400,7 +402,7 @@ export default function AttendanceExcusesPage() {
   };
 
   const handleEditRequest = async (request: ExcuseRequest) => {
-    if (isReadOnly) return;
+    if (isReadOnly || !request.hasScopeContext || !request.scopeType) return;
     try {
       const detailedRequest = await fetchExcuseRequestDetails(request.id);
       setEditingRequest(detailedRequest);

@@ -44,6 +44,7 @@ export function mapCalendarEventDtoToUi(dto: CalendarEventDto): AcademicEvent {
     endDate: dto.endDate.slice(0, 10),
     scopeType: scopeTypeToUi[dto.scope.type],
     scopeId: dto.scope.id || undefined,
+    description: dto.description || undefined,
     notes: dto.notes || undefined,
     createdAt: dto.createdAt,
   };
@@ -60,6 +61,7 @@ export function mapUiEventToCreateRequest(params: {
     academicYearId,
     termId,
     title: event.title,
+    description: event.description || null,
     notes: event.notes || null,
     type: eventTypeToApi[event.type],
     scopeType: scopeTypeToApi[event.scopeType],
@@ -75,6 +77,7 @@ export function mapUiEventToUpdateRequest(
 ): UpdateCalendarEventRequest {
   return {
     title: event.title,
+    description: event.description ?? undefined,
     notes: event.notes ?? undefined,
     type: event.type ? eventTypeToApi[event.type] : undefined,
     scopeType: event.scopeType ? scopeTypeToApi[event.scopeType] : undefined,

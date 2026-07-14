@@ -34,7 +34,7 @@ describe("calendarMappers", () => {
   });
 
   describe("mapUiEventToCreateRequest", () => {
-    it("UI uppercase type maps to backend lowercase type", () => {
+    it("maps UI fields, including description, to the create request", () => {
       const ui: Omit<AcademicEvent, "id" | "termId" | "createdAt"> = {
         title: "Test",
         type: "EXAM",
@@ -43,13 +43,14 @@ describe("calendarMappers", () => {
         endDate: "2024-01-01",
         scopeType: "GRADE",
         scopeId: "g1",
+        description: "Revision week",
       };
 
       const req = mapUiEventToCreateRequest({ academicYearId: "y1", termId: "t1", event: ui });
       expect(req.type).toBe("exam");
       expect(req.scopeType).toBe("grade");
       expect(req.title).toBe("Test");
-      expect(req).not.toHaveProperty("description");
+      expect(req.description).toBe("Revision week");
     });
 
     it("School scope sends scopeId null/undefined", () => {
@@ -87,5 +88,11 @@ describe("calendarMappers", () => {
 
   it("sends an empty notes value so the backend can clear existing notes", () => {
     expect(mapUiEventToUpdateRequest({ notes: "" })).toMatchObject({ notes: "" });
+  });
+
+  it("sends an empty description value so the backend can clear it", () => {
+    expect(mapUiEventToUpdateRequest({ description: "" })).toMatchObject({
+      description: "",
+    });
   });
 });

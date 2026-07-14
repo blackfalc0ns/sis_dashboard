@@ -94,7 +94,10 @@ export default function IncidentDetailsDrawer({
           </div>
           <div className="text-sm space-y-1" style={{ color: "var(--text-primary)" }}>
             <div>{t("date")}: {incident.date}</div>
-            <div>{t("period")}: P{incident.periodIndex}</div>
+            <div>
+              {t("period")}: {incident.periodNameEn || incident.periodNameAr ||
+                (incident.periodIndex ? `P${incident.periodIndex}` : incident.periodKey || "-")}
+            </div>
             <div>{t("type")}: {typeLabel}</div>
             <div>{t("minutes")}: {incident.minutes}</div>
           </div>

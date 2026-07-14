@@ -29,7 +29,8 @@ export function exportAbsencesToExcel(
           "الصف": r.gradeNameAr || r.gradeNameEn || "-",
           "الشعبة": r.sectionNameAr || r.sectionNameEn || "-",
           "النوع": r.granularity === "DAILY_DERIVED" ? "يومي" : getStatusLabelAr(r.status),
-          "الحصة": r.periodIndex ? `P${r.periodIndex}` : "-",
+          "الحصة": r.periodNameAr || r.periodNameEn ||
+            (r.periodIndex ? `P${r.periodIndex}` : r.periodKey || "-"),
           "الدقائق": r.minutesLate || r.minutesEarlyLeave || "-",
           "العذر": r.excuse ? "نعم" : "لا",
         }
@@ -40,7 +41,8 @@ export function exportAbsencesToExcel(
           "Grade": r.gradeNameAr || r.gradeNameEn || "-",
           "Section": r.sectionNameAr || r.sectionNameEn || "-",
           "Type": r.granularity === "DAILY_DERIVED" ? "Daily" : getStatusLabelEn(r.status),
-          "Period": r.periodIndex ? `P${r.periodIndex}` : "-",
+          "Period": r.periodNameEn || r.periodNameAr ||
+            (r.periodIndex ? `P${r.periodIndex}` : r.periodKey || "-"),
           "Minutes": r.minutesLate || r.minutesEarlyLeave || "-",
           "Excuse": r.excuse ? "Yes" : "No",
         };

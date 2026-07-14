@@ -158,8 +158,8 @@ export default function SubjectDialog({
         nameAr: nameAr.trim(),
         nameEn: nameEn.trim(),
         name: nameEn.trim() || nameAr.trim(), // Fallback display name
-        code: finalCode || undefined,
-        color: color || undefined,
+        code: finalCode || null,
+        color: color || null,
         isActive,
       };
 

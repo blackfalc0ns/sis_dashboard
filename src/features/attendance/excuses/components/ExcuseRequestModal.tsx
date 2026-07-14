@@ -201,7 +201,7 @@ export default function ExcuseRequestModal({
         studentNameAr: initialRequest.studentNameAr,
         studentNameEn: initialRequest.studentNameEn,
         studentNumber: initialRequest.studentNumber,
-        scopeType: initialRequest.scopeType,
+        scopeType: initialRequest.scopeType ?? "SCHOOL",
         scopeIds: initialRequest.scopeIds,
         type: initialRequest.type,
         dateFrom: initialRequest.dateFrom,

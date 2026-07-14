@@ -158,11 +158,13 @@ export default function AbsenceDetailsPanel({
                         : "Period"}
                   </p>
                 </div>
-                {record.periodIndex && (
+                {record.granularity === "PERIOD" && (
                   <div>
                     <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("period")}:</span>
                     <p style={{ color: "var(--color-gray-900)" }} className="text-sm">
-                      P{record.periodIndex} - {(locale === "ar" ? record.periodNameAr : record.periodNameEn) || record.periodNameEn || record.periodNameAr || "-"}
+                      {(locale === "ar" ? record.periodNameAr : record.periodNameEn) ||
+                        record.periodNameEn || record.periodNameAr ||
+                        (record.periodIndex ? `P${record.periodIndex}` : record.periodKey || "-")}
                     </p>
                   </div>
                 )}

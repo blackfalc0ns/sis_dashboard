@@ -56,7 +56,6 @@ export default function SubjectsAllocationContainer() {
   // UI State
   const [showSubjectDialog, setShowSubjectDialog] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
-  const [showCarryOverDialog, setShowCarryOverDialog] = useState(false);
   const queryState = useMemo<SubjectsAllocationQueryState>(
     () => ({
       activeTab: searchParams.get("tab") === "matrix" ? "matrix" : "subjects",
@@ -131,17 +130,11 @@ export default function SubjectsAllocationContainer() {
     void loadSubjectAllocationData();
   }, [loadSubjectAllocationData]);
 
-  const handlePromoteCarryOver = useCallback(() => {
-    setShowCarryOverDialog(true);
-  }, []);
-
   const contextBarActions = useMemo(
     () => ({
-      onPromoteCarryOver: handlePromoteCarryOver,
-      showPromoteCarryOver: true,
-      disablePromoteCarryOver: isReadOnly,
+      showPromoteCarryOver: false,
     }),
-    [handlePromoteCarryOver, isReadOnly]
+    [],
   );
 
   useAcademicContextBarActions(contextBarActions);
@@ -216,12 +209,6 @@ export default function SubjectsAllocationContainer() {
     setEditingSubject(null);
   };
 
-  const handleCarryOverSuccess = async () => {
-    await refreshData();
-    setShowCarryOverDialog(false);
-    clearDirty();
-  };
-
   const handleAllocationsChange = useCallback(
     (newAllocations: SubjectAllocation[]) => {
       setAllocations(newAllocations);
@@ -246,10 +233,6 @@ export default function SubjectsAllocationContainer() {
     setEditingSubject(null);
   };
 
-  const handleCloseCarryOverDialog = () => {
-    setShowCarryOverDialog(false);
-  };
-
   // Pass everything to presenter
   return (
     <SubjectsAllocationView
@@ -269,20 +252,17 @@ export default function SubjectsAllocationContainer() {
       activeTab={queryState.activeTab}
       showSubjectDialog={showSubjectDialog}
       editingSubject={editingSubject}
-      showCarryOverDialog={showCarryOverDialog}
       isReadOnly={isReadOnly}
       onTabChange={handleTabChange}
       onAddSubject={handleAddSubject}
       onEditSubject={handleEditSubject}
       onSubjectSuccess={handleSubjectSuccess}
-      onCarryOverSuccess={handleCarryOverSuccess}
       onAllocationsChange={handleAllocationsChange}
       onDirtyChange={handleDirtyChange}
       onSaveError={handleSaveError}
       onRefresh={refreshData}
       onRetry={loadSubjectAllocationData}
       onCloseSubjectDialog={handleCloseSubjectDialog}
-      onCloseCarryOverDialog={handleCloseCarryOverDialog}
     />
   );
 }

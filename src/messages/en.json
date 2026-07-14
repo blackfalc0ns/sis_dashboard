@@ -5065,6 +5065,7 @@
       "end_date": "End Date",
       "scope_type": "Scope Type",
       "scope_target": "Scope Target",
+      "description": "Description",
       "notes": "Notes",
       "optional": "optional",
       "delete_confirm": {
@@ -7844,6 +7845,9 @@
         "previewAttachment": "Preview attachment",
         "previewUnavailable": "Preview unavailable",
         "previewUnavailableDescription": "This attachment does not have a preview URL available yet.",
+        "scopeUnavailable": "Scope unavailable",
+        "scopeUnavailableDescription": "The backend response does not include attendance scope for this request.",
+        "editScopeUnavailable": "Editing is unavailable because this request has no attendance scope context.",
         "openInNewTab": "You can open this file in a new tab if a URL is available.",
         "attachmentType": "File type",
         "attachmentSize": "File size",
@@ -8069,6 +8073,7 @@
         "early": "Early",
         "autoAbsent": "Auto-absent",
         "missedPeriods": "Missed periods",
+        "notConfigured": "Not configured",
         "incompleteConfigWarning": "This policy has incomplete configuration"
       },
       "wizard": {
@@ -8080,6 +8085,8 @@
         "stay": "Keep Editing",
         "unsavedChangesTitle": "Unsaved Changes",
         "unsavedChangesDesc": "You have unsaved changes. Are you sure you want to discard them?",
+        "noStartLimit": "No start limit",
+        "noEndLimit": "No end limit",
         "nameValidation": {
           "checking": "Checking name availability...",
           "available": "Both policy names are available.",

@@ -282,7 +282,7 @@ export default function RosterTable({
         onSave={handleSaveExcuse}
         initialReason={selectedEntry?.excuseReason}
         initialAttachments={selectedEntry?.excuseAttachments}
-        requireAttachment={requireAttachment}
+        attachmentMode={requireAttachment ? "REQUIRED" : "OPTIONAL"}
         isReadOnly={isReadOnly}
       />
     </>
