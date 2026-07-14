@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Gift, Hash } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
@@ -171,6 +172,12 @@ export default function ReinforcementTaskForm({
       next.title = t("validation.titleRequired");
     }
     if (!draft.dueDate) next.dueDate = t("validation.futureDueDateRequired");
+    if (
+      draft.rewardValue.trim() &&
+      (!Number.isFinite(Number(draft.rewardValue)) || Number(draft.rewardValue) < 0)
+    ) {
+      next.rewardValue = t("validation.rewardValueInvalid");
+    }
     if (draft.targets.length === 0)
       next.targets = t("validation.targetRequired");
     if (draft.stages.length === 0) next.stages = t("validation.stageRequired");
@@ -281,11 +288,21 @@ export default function ReinforcementTaskForm({
         </div>
       </section>
 
-      <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">
-          {t("tasks.form.reward")}
-        </h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <section className="overflow-hidden rounded-lg border border-violet-100 bg-white shadow-sm">
+        <div className="flex items-start gap-3 border-b border-violet-100 bg-violet-50/60 px-4 py-3">
+          <span className="mt-0.5 rounded-lg bg-violet-100 p-2 text-violet-700">
+            <Gift className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">
+              {t("tasks.form.reward")}
+            </h2>
+            <p className="mt-0.5 text-sm text-gray-600">
+              {t("tasks.form.rewardDescription")}
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
           <Select
             label={t("tasks.form.source")}
             value={draft.source}
@@ -318,7 +335,10 @@ export default function ReinforcementTaskForm({
             type="number"
             min={0}
             label={t("tasks.form.rewardValue")}
+            helperText={t("tasks.form.rewardValueHint")}
+            leftIcon={<Hash className="h-4 w-4" aria-hidden="true" />}
             value={draft.rewardValue}
+            error={errors.rewardValue}
             onChange={(event) =>
               setDraft({ ...draft, rewardValue: event.target.value })
             }

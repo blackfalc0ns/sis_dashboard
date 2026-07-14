@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, RefreshCw, ShieldAlert } from "lucide-react";
+import { AlertCircle, Gift, RefreshCw, ShieldAlert, Users } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -9,6 +9,7 @@ import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
 import ReinforcementPageHeader from "../components/shared/ReinforcementPageHeader";
+import ReinforcementBadge from "../components/shared/ReinforcementBadge";
 import ReinforcementTaskCancelModal from "../components/ReinforcementTaskCancelModal";
 import ReinforcementTaskDuplicateModal from "../components/ReinforcementTaskDuplicateModal";
 import {
@@ -28,14 +29,6 @@ import type {
 interface ReinforcementTaskDetailPageProps {
   taskId: string;
 }
-
-const statusLabels: Record<string, { en: string; ar: string }> = {
-  under_review: { en: "Under review", ar: "قيد المراجعة" },
-  cancelled: { en: "Cancelled", ar: "ملغي" },
-  completed: { en: "Completed", ar: "مكتمل" },
-  in_progress: { en: "In progress", ar: "قيد التنفيذ" },
-  not_completed: { en: "Not completed", ar: "غير مكتمل" },
-};
 
 const labelFor = (key: string, t: (k: string, opts?: Record<string, string>) => string): string => {
   // Try translation first for known keys
@@ -122,6 +115,7 @@ export default function ReinforcementTaskDetailPage({
           }),
         );
       } catch {
+        // Target names are optional enrichment; task details remain usable with scope keys.
         setFilterOptions({});
       }
     } catch (nextError) {
@@ -227,21 +221,21 @@ export default function ReinforcementTaskDetailPage({
             </h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {[
-                ["status", statusLabels[String(task.status)]?.[locale === "ar" ? "ar" : "en"] || task.status],
-                ["source", task.source ? t(`source.${String(task.source).toLowerCase()}`, { defaultMessage: String(task.source) }) : "-"],
-                ["rewardType", task.reward.type
-                  ? t(`rewardType.${task.reward.type}`, { defaultMessage: task.reward.type })
-                  : "-"],
-                ["dueDate", task.dueDate
+                { key: "status", content: <ReinforcementBadge value={task.status} type="status" /> },
+                { key: "source", content: <ReinforcementBadge value={task.source} type="source" /> },
+                { key: "rewardType", content: task.reward.type
+                  ? <ReinforcementBadge value={task.reward.type} type="rewardType" />
+                  : <span className="text-gray-400">-</span> },
+                { key: "dueDate", content: task.dueDate
                   ? new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", { dateStyle: "medium" }).format(new Date(task.dueDate))
-                  : "-"],
-              ].map(([key, value]) => (
-                <div key={key} className="rounded-lg bg-gray-50 px-3 py-3">
+                  : "-" },
+              ].map(({ key, content }) => (
+                <div key={key} className="rounded-lg border border-gray-100 bg-gray-50/70 px-3 py-3">
                   <div className="text-xs font-medium uppercase text-gray-500">
                     {t(`tasks.detailFields.${key}`)}
                   </div>
-                  <div className="mt-1 text-sm font-semibold text-gray-900">
-                    {String(value || "-")}
+                  <div className="mt-2 text-sm font-semibold text-gray-900">
+                    {content}
                   </div>
                 </div>
               ))}
@@ -264,18 +258,21 @@ export default function ReinforcementTaskDetailPage({
 
           {/* Reward details */}
           {task.reward && (
-            <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
-              <h2 className="text-base font-semibold text-gray-900">
-                {t("tasks.form.reward")}
-              </h2>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <section className="overflow-hidden rounded-lg border border-violet-100 bg-white shadow-sm">
+              <div className="flex items-center gap-2 border-b border-violet-100 bg-violet-50/60 px-4 py-3">
+                <Gift className="h-5 w-5 text-violet-700" aria-hidden="true" />
+                <h2 className="text-base font-semibold text-gray-900">
+                  {t("tasks.form.reward")}
+                </h2>
+              </div>
+              <div className="mt-4 grid gap-3 px-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-lg bg-gray-50 px-3 py-3">
                   <div className="text-xs font-medium uppercase text-gray-500">
                     {t("tasks.form.rewardType")}
                   </div>
-                  <div className="mt-1 text-sm font-semibold text-gray-900">
+                  <div className="mt-2 text-sm font-semibold text-gray-900">
                     {task.reward.type
-                      ? t(`rewardType.${task.reward.type}`, { defaultMessage: task.reward.type })
+                      ? <ReinforcementBadge value={task.reward.type} type="rewardType" />
                       : "-"}
                   </div>
                 </div>
@@ -283,7 +280,7 @@ export default function ReinforcementTaskDetailPage({
                   <div className="text-xs font-medium uppercase text-gray-500">
                     {t("tasks.form.rewardValue")}
                   </div>
-                  <div className="mt-1 text-sm font-semibold text-gray-900">
+                  <div className="mt-1 text-xl font-bold tabular-nums text-gray-900">
                     {task.reward.value != null
                       ? String(task.reward.value)
                       : "-"}
@@ -310,6 +307,7 @@ export default function ReinforcementTaskDetailPage({
                   </div>
                 )}
               </div>
+              <div className="h-4" />
             </section>
           )}
 
@@ -357,9 +355,12 @@ export default function ReinforcementTaskDetailPage({
           ) : null}
 
           <section className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
-            <h2 className="text-base font-semibold text-gray-900">
-              {t("tasks.form.targets")}
-            </h2>
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" aria-hidden="true" />
+              <h2 className="text-base font-semibold text-gray-900">
+                {t("tasks.form.targets")}
+              </h2>
+            </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {(task.targets || []).length === 0 ? (
                 <span className="text-sm text-gray-500">{t("common.empty")}</span>
@@ -376,7 +377,7 @@ export default function ReinforcementTaskDetailPage({
                   return (
                     <span
                       key={target.id || `${target.scopeType}:${target.scopeKey || idx}`}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-sm font-semibold text-primary"
                     >
                       {scopeLabel ? <span className="text-xs text-primary/60">{scopeLabel}:</span> : null}
                       {targetLabel}

@@ -187,8 +187,13 @@ describe("Sprint 5A reinforcement frontend hardening", () => {
 
     expect(screen.getByText("Leadership")).toBeInTheDocument();
     expect(screen.getByText("source.teacher")).toBeInTheDocument();
-    expect(screen.getByText("Under review")).toBeInTheDocument();
-    expect(screen.getByText("rewardType.xp / 10")).toBeInTheDocument();
+    expect(screen.getByText("status.under_review")).toHaveClass("bg-violet-100");
+    expect(screen.getByText("rewardType.xp")).toHaveClass("rounded-full");
+    expect(
+      screen.getAllByText("10").find((element) =>
+        element.classList.contains("font-bold"),
+      ),
+    ).toHaveClass("font-bold");
     expect(screen.queryByText("actions.duplicate")).not.toBeInTheDocument();
   });
 
@@ -219,7 +224,7 @@ describe("Sprint 5A reinforcement frontend hardening", () => {
     );
 
     expect(screen.getByText("Cancelled task")).toBeInTheDocument();
-    expect(screen.getByText("Cancelled")).toBeInTheDocument();
+    expect(screen.getByText("status.cancelled")).toBeInTheDocument();
     expect(screen.queryByText("actions.cancel")).not.toBeInTheDocument();
   });
 

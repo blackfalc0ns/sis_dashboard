@@ -601,7 +601,25 @@ export interface ReinforcementXpSourceSummary {
 export interface ReinforcementProgressXp {
   totalXp: number;
   bySourceType: ReinforcementXpSourceSummary[];
-  recentLedgerEntries: XpLedgerEntry[];
+  recentLedgerEntries: ReinforcementRecentXpLedgerEntry[];
+}
+
+export interface ReinforcementRecentXpLedgerEntry {
+  id: string;
+  academicYearId: string;
+  termId: string;
+  studentId: string;
+  enrollmentId: string;
+  assignmentId: string | null;
+  policyId: string | null;
+  sourceType: string;
+  sourceId: string | null;
+  amount: number;
+  reason: string | null;
+  reasonAr: string | null;
+  actorUserId: string | null;
+  occurredAt: string;
+  createdAt: string;
 }
 
 export interface ReinforcementRecentReview {

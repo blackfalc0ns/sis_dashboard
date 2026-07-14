@@ -36,7 +36,7 @@ const textFromUnknown = (value: unknown): string | undefined =>
 const optionalRewardValue = (
   value?: CreateReinforcementTaskPayload["rewardValue"],
 ): CreateReinforcementTaskPayload["rewardValue"] | undefined => {
-  return typeof value === "number" && Number.isFinite(value)
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
     ? value
     : undefined;
 };

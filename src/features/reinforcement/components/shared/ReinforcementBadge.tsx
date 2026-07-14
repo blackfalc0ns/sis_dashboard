@@ -48,7 +48,9 @@ export default function ReinforcementBadge({
           ? "activeState"
           : type;
     const key = `${namespace}.${value}`;
-    return t.has(key) ? t(key) : fallbackLabel || "-";
+    return typeof t.has !== "function" || t.has(key)
+      ? t(key)
+      : fallbackLabel || "-";
   };
 
   const className = () => {

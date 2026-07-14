@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import DataTable, { type Column } from "@/components/ui/data-table/DataTable";
 import type { ReinforcementRewardType, ReinforcementTask } from "../types";
+import ReinforcementBadge from "./shared/ReinforcementBadge";
 
 interface ReinforcementTaskTableProps {
   tasks: ReinforcementTask[];
@@ -46,14 +47,6 @@ const toLabel = (key: string): string =>
 const hasMessage = (t: Translator, key: string): boolean =>
   typeof t.has === "function" ? t.has(key) : true;
 
-const statusLabel = (status: unknown, t: Translator) => {
-  const value = typeof status === "string" ? status : "";
-  const key = `status.${value}`;
-  if (!value) return "-";
-  if (typeof t.has !== "function") return toLabel(value);
-  return t.has(key) ? t(key) : toLabel(value);
-};
-
 const sourceLabel = (source: unknown, t: Translator) => {
   const value = typeof source === "string" ? source : "";
   const key = `source.${value}`;
@@ -64,16 +57,23 @@ const sourceLabel = (source: unknown, t: Translator) => {
       : "-";
 };
 
-const rewardLabel = (task: ReinforcementTask, t: Translator) => {
+const rewardCell = (task: ReinforcementTask, locale: string) => {
   const rewardType =
     typeof task.reward.type === "string" && VALID_REWARD_TYPES.has(task.reward.type)
       ? task.reward.type
       : undefined;
-  const typeLabel = rewardType
-    ? t(`rewardType.${rewardType}`)
-    : t("tasks.table.reward", { defaultValue: "-" });
+  if (!rewardType) return <span className="text-gray-400">-</span>;
 
-  return `${typeLabel}${task.reward.value !== null ? ` / ${task.reward.value}` : ""}`;
+  return (
+    <div className="flex items-center gap-2 whitespace-nowrap">
+      <ReinforcementBadge value={rewardType} type="rewardType" />
+      {task.reward.value !== null ? (
+        <span className="font-bold tabular-nums text-gray-900">
+          {new Intl.NumberFormat(locale).format(task.reward.value)}
+        </span>
+      ) : null}
+    </div>
+  );
 };
 
 export default function ReinforcementTaskTable({
@@ -105,8 +105,14 @@ export default function ReinforcementTaskTable({
       ),
     },
     { key: "source", label: t("tasks.table.source"), render: (value) => sourceLabel(value, t) },
-    { key: "status", label: t("tasks.table.status"), render: (value) => statusLabel(value, t) },
-    { key: "reward", label: t("tasks.table.reward"), render: (_value, task) => rewardLabel(task, t) },
+    {
+      key: "status",
+      label: t("tasks.table.status"),
+      render: (_value, task) => (
+        <ReinforcementBadge value={task.status} type="status" />
+      ),
+    },
+    { key: "reward", label: t("tasks.table.reward"), render: (_value, task) => rewardCell(task, locale) },
     {
       key: "dueDate",
       label: t("tasks.table.dueDate"),
