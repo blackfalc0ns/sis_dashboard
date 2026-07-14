@@ -3,17 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 import { AppDownloadGate } from "../AppDownloadGate";
 
 const authMocks = vi.hoisted(() => ({
-  auth: { isLoading: false, user: null as unknown },
+  auth: { isLoading: false, user: null as unknown, logout: vi.fn() },
 }));
 
 vi.mock("@/hooks/use-auth", () => ({
   useAuth: () => authMocks.auth,
-}));
-
-vi.mock("../AppDownloadScreen", () => ({
-  AppDownloadScreen: ({ audience }: { audience: string }) => (
-    <div>Download screen for {audience}</div>
-  ),
 }));
 
 function makeUser(userType: string, roleKey = "school.admin") {
@@ -30,7 +24,7 @@ describe("AppDownloadGate", () => {
       </AppDownloadGate>,
     );
 
-    expect(screen.getByText("Download screen for parent")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "title" })).toBeInTheDocument();
     expect(screen.queryByText("Dashboard content")).not.toBeInTheDocument();
   });
 
