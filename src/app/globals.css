@@ -175,7 +175,12 @@ body {
   background:
     radial-gradient(circle at 12% 18%, color-mix(in oklab, var(--primary-color) 16%, transparent), transparent 30%),
     radial-gradient(circle at 88% 82%, color-mix(in oklab, var(--accent-color) 18%, transparent), transparent 28%),
-    linear-gradient(135deg, var(--color-primary-50), var(--surface-color) 52%, var(--accent-50));
+    linear-gradient(
+      135deg,
+      color-mix(in oklab, var(--primary-color) 6%, white),
+      var(--surface-color) 52%,
+      color-mix(in oklab, var(--accent-color) 6%, white)
+    );
 }
 
 .app-download-card {
