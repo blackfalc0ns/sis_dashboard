@@ -205,6 +205,8 @@ export default function RewardRedemptionsPage() {
 
   const params = useMemo(
     () => ({
+      academicYearId: values.academicYearId || undefined,
+      termId: values.termId || undefined,
       status: (values.status || undefined) as RedemptionStatus | undefined,
       search: values.search || undefined,
       requestedFrom: values.requestedFrom || undefined,
@@ -212,7 +214,7 @@ export default function RewardRedemptionsPage() {
       limit: pageSize,
       offset: (page - 1) * pageSize,
     }),
-    [values.status, values.search, values.requestedFrom, values.requestedTo, page, pageSize],
+    [values.academicYearId, values.termId, values.status, values.search, values.requestedFrom, values.requestedTo, page, pageSize],
   );
 
   const refreshList = useCallback(async () => {

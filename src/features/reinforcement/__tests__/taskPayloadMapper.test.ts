@@ -139,6 +139,7 @@ describe("reinforcement task payload contracts", () => {
     "does not forward invalid reward value %s to the backend",
     (rewardValue) => {
       const payload = {
+        termId: "term-1",
         titleEn: "Reading task",
         titleAr: "Reading task",
         source: "teacher",

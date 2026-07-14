@@ -142,9 +142,13 @@ export function serializeManualXpGrantPayload(
     ...(optionalText(payload.academicYearId)
       ? { academicYearId: optionalText(payload.academicYearId) }
       : {}),
-    ...(optionalText(payload.termId) ? { termId: optionalText(payload.termId) } : {}),
+    termId: payload.termId.trim(),
     studentId: payload.studentId,
-    enrollmentId: payload.enrollmentId,
+    ...(payload.enrollmentId === null
+      ? { enrollmentId: null }
+      : optionalText(payload.enrollmentId)
+        ? { enrollmentId: optionalText(payload.enrollmentId) }
+        : {}),
     amount: payload.amount,
     reason: payload.reason,
     ...(optionalText(payload.reasonAr) ? { reasonAr: optionalText(payload.reasonAr) } : {}),

@@ -195,7 +195,15 @@ describe("Sprint 5A reinforcement service endpoint contracts", () => {
     });
     await getReinforcementTask("task-1");
     await duplicateReinforcementTask("task-1", { dueDate: "2026-05-28" });
-    await cancelReinforcementTask("task-1", { reason: "No longer needed" });
+    await cancelReinforcementTask(
+      "task-1",
+      {
+        reason: "No longer needed",
+        reasonAr: "لم تعد مطلوبة",
+      } as Parameters<typeof cancelReinforcementTask>[1] & {
+        reasonAr: string;
+      },
+    );
 
     expect(apiMocks.apiPost).toHaveBeenNthCalledWith(
       1,

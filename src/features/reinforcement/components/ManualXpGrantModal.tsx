@@ -172,6 +172,10 @@ export default function ManualXpGrantModal({
 
   const handleSubmit = async () => {
     const parsedAmount = Number(amount);
+    if (!selection.termId) {
+      setError(t("xp.validation.termRequired"));
+      return;
+    }
     if (!selection.studentId || !selection.enrollmentId) {
       setError(t("xp.validation.studentEnrollmentRequired"));
       return;

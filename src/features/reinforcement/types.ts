@@ -214,7 +214,7 @@ export interface ListReinforcementTasksParams {
 
 export interface CreateReinforcementTaskPayload {
   academicYearId?: string;
-  termId?: string;
+  termId: string;
   subjectId?: string;
   titleEn: string;
   titleAr: string;
@@ -237,8 +237,7 @@ export interface DuplicateReinforcementTaskPayload {
 }
 
 export interface CancelReinforcementTaskPayload {
-  reason: string;
-  reasonAr?: string;
+  reason?: string;
 }
 
 export type ListReinforcementTasksResponse =
@@ -356,9 +355,9 @@ export type ListXpPoliciesResponse = ReinforcementListResponse<XpPolicy>;
 
 export interface ManualXpGrantPayload {
   academicYearId?: string;
-  termId?: string;
+  termId: string;
   studentId: string;
-  enrollmentId: string;
+  enrollmentId?: string | null;
   amount: number;
   reason: string;
   reasonAr?: string;
@@ -1034,9 +1033,13 @@ export interface FulfillRewardRedemptionPayload {
 }
 
 export interface ListRewardRedemptionsParams {
+  academicYearId?: string;
+  termId?: string;
   status?: RedemptionStatus;
   studentId?: string;
   catalogItemId?: string;
+  requestSource?: RedemptionRequestSource;
+  includeTerminal?: boolean;
   search?: string;
   requestedFrom?: string;
   requestedTo?: string;
@@ -1060,6 +1063,10 @@ export interface RewardsOverviewParams {
 export interface StudentRewardsSummaryParams {
   academicYearId?: string;
   termId?: string;
+  includeCatalogEligibility?: boolean;
+  includeHistory?: boolean;
+  dateFrom?: string;
+  dateTo?: string;
   [key: string]: string | number | boolean | undefined;
 }
 

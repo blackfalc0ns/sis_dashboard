@@ -83,7 +83,7 @@ export function serializeCreateReinforcementTaskPayload(
   payload: CreateReinforcementTaskPayload,
 ): CreateReinforcementTaskPayload {
   const academicYearId = optionalText(payload.academicYearId);
-  const termId = optionalText(payload.termId);
+  const termId = payload.termId.trim();
   const subjectId = optionalText(payload.subjectId);
   const descriptionEn = optionalText(payload.descriptionEn);
   const descriptionAr = optionalText(payload.descriptionAr);
@@ -93,7 +93,7 @@ export function serializeCreateReinforcementTaskPayload(
 
   return {
     ...(academicYearId ? { academicYearId } : {}),
-    ...(termId ? { termId } : {}),
+    termId,
     ...(subjectId ? { subjectId } : {}),
     titleEn: payload.titleEn,
     titleAr: payload.titleAr,
@@ -167,7 +167,14 @@ export async function cancelReinforcementTask(
 ): Promise<ReinforcementTask> {
   const response = await apiPost<unknown>(
     `${TASKS_ENDPOINT}/${taskId}/cancel`,
-    payload,
+    serializeCancelReinforcementTaskPayload(payload),
   );
   return unwrapReinforcementItemResponse<ReinforcementTask>(response);
+}
+
+export function serializeCancelReinforcementTaskPayload(
+  payload: CancelReinforcementTaskPayload,
+): CancelReinforcementTaskPayload {
+  const reason = optionalText(payload.reason);
+  return reason ? { reason } : {};
 }

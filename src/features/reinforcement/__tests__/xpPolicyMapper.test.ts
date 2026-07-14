@@ -183,5 +183,22 @@ describe("reinforcement XP payload contracts", () => {
     expect(payload.enrollmentId).toBe("enrollment-1");
     expect(payload.amount).toBe(10);
     expect(serializeManualXpGrantPayload(payload)).not.toHaveProperty("yearId");
+    expect(
+      serializeManualXpGrantPayload({
+        termId: "term-1",
+        studentId: "student-1",
+        enrollmentId: null,
+        amount: 10,
+        reason: "leadership",
+      }),
+    ).toMatchObject({ termId: "term-1", enrollmentId: null });
+    expect(
+      serializeManualXpGrantPayload({
+        termId: "term-1",
+        studentId: "student-1",
+        amount: 10,
+        reason: "leadership",
+      }),
+    ).not.toHaveProperty("enrollmentId");
   });
 });

@@ -23,7 +23,6 @@ export default function ReinforcementTaskCancelModal({
   const locale = useLocale();
   const t = useTranslations("reinforcement");
   const [reason, setReason] = useState("");
-  const [reasonAr, setReasonAr] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -31,7 +30,6 @@ export default function ReinforcementTaskCancelModal({
     if (!isOpen) return;
     Promise.resolve().then(() => {
       setReason("");
-      setReasonAr("");
       setError("");
       setSaving(false);
     });
@@ -46,7 +44,6 @@ export default function ReinforcementTaskCancelModal({
     try {
       await onSubmit({
         reason: reason.trim(),
-        reasonAr: reasonAr.trim() || undefined,
       });
     } finally {
       setSaving(false);
@@ -86,12 +83,6 @@ export default function ReinforcementTaskCancelModal({
             setReason(event.target.value);
             setError("");
           }}
-        />
-        <TextArea
-          label={t("tasks.cancelReasonAr")}
-          value={reasonAr}
-          dir="rtl"
-          onChange={(event) => setReasonAr(event.target.value)}
         />
       </div>
     </Modal>

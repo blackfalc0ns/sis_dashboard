@@ -73,12 +73,15 @@ export function buildReinforcementTaskPayload(
     : undefined;
   const rewardLabelEn = optionalString(draft.rewardLabelEn);
   const rewardLabelAr = optionalString(draft.rewardLabelAr);
+  if (!draft.context.termId) {
+    throw new Error("A term is required to create a reinforcement task.");
+  }
 
   return {
     ...(draft.context.academicYearId
       ? { academicYearId: draft.context.academicYearId }
       : {}),
-    ...(draft.context.termId ? { termId: draft.context.termId } : {}),
+    termId: draft.context.termId,
     ...(draft.context.subjectId ? { subjectId: draft.context.subjectId } : {}),
     titleEn: draft.titleEn.trim() || fallbackTitle,
     titleAr: draft.titleAr.trim() || fallbackTitle,

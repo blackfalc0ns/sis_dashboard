@@ -5,6 +5,20 @@ import { ToastProvider } from "@/components/ui/toast/Toast";
 import type { RewardRedemption } from "../../types";
 import RewardRedemptionsPage from "../RewardRedemptionsPage";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+  }),
+  usePathname: () => "/en/reinforcement/rewards/redemptions",
+  useParams: () => ({ lang: "en" }),
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}));
+
 const authState = vi.hoisted(() => ({
   permissions: [] as string[],
 }));
@@ -250,6 +264,7 @@ async function selectCreateModalOptions(user: ReturnType<typeof userEvent.setup>
 
 describe("RewardRedemptionsPage", () => {
   beforeEach(() => {
+    window.history.replaceState(null, "", "/en/reinforcement/rewards/redemptions");
     authState.permissions = [
       "reinforcement.rewards.redemptions.view",
       "reinforcement.rewards.redemptions.request",
@@ -274,6 +289,25 @@ describe("RewardRedemptionsPage", () => {
     catalogMocks.listRewardCatalog.mockReset();
     filterOptionMocks.getReinforcementFilterOptions.mockReset();
     mockSuccessfulLookups();
+  });
+
+  it("forwards academic year and term URL context to the redemption list", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/en/reinforcement/rewards/redemptions?academicYearId=year-1&termId=term-1",
+    );
+
+    renderPage();
+
+    await waitFor(() =>
+      expect(redemptionMocks.listRewardRedemptions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          academicYearId: "year-1",
+          termId: "term-1",
+        }),
+      ),
+    );
   });
 
   it("shows create and cancel only with request permission", async () => {
