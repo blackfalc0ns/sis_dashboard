@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useLayoutEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Save, Trash2, BookOpen } from "lucide-react";
+import { Save, Trash2 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import TextArea from "@/components/ui/input/TextArea";
@@ -22,7 +22,6 @@ import {
   curriculumFormErrors,
   curriculumUiError,
 } from "@/features/academics/curriculum/services/curriculumErrors";
-import LearningContentPanel from "./LearningContentPanel";
 
 interface CurriculumEditorProps {
   curriculum: Curriculum;
@@ -33,7 +32,6 @@ interface CurriculumEditorProps {
   onRefresh: () => Promise<void>;
   onDirtyChange: (isDirty: boolean) => void;
   isReadOnly: boolean;
-  gradeId?: string; // For scope-aware holiday checking
   onSelectNode?: (node: { type: "unit" | "lesson"; id: string } | null) => void;
 }
 
@@ -72,7 +70,6 @@ export default function CurriculumEditor({
   onRefresh,
   onDirtyChange,
   isReadOnly,
-  gradeId,
   onSelectNode,
 }: CurriculumEditorProps) {
   const t = useTranslations("academics.curriculum.editor");
@@ -91,7 +88,6 @@ export default function CurriculumEditor({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
-  const [learningContentOpen, setLearningContentOpen] = useState(false);
 
   useLayoutEffect(() => {
     setFieldErrors({});
@@ -272,11 +268,6 @@ export default function CurriculumEditor({
   }
 
   const isNew = selectedNode.id === "new" || selectedNode.id.startsWith("new-");
-  const selectedLesson =
-    selectedNode.type === "lesson" && !isNew
-      ? lessons.find((item) => item.id === selectedNode.id)
-      : null;
-
   return (
     <div className="p-6">
       <div className="">
@@ -296,18 +287,6 @@ export default function CurriculumEditor({
                 <span className="text-sm text-amber-600 font-medium">
                   {t("unsaved_changes")}
                 </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {selectedLesson && (
-                <Button
-                  onClick={() => setLearningContentOpen(true)}
-                  variant="primary"
-                  size="sm"
-                  leftIcon={<BookOpen className="w-4 h-4" />}
-                >
-                  {t("learning_content")}
-                </Button>
               )}
             </div>
           </div>
@@ -403,19 +382,6 @@ export default function CurriculumEditor({
           </div>
         </div>
       </div>
-
-      {/* Learning Content Panel */}
-      {selectedLesson && (
-        <LearningContentPanel
-          curriculumId={curriculum.id}
-          unitId={selectedLesson.unitId}
-          lessonId={selectedLesson.id}
-          isReadOnly={isReadOnly}
-          gradeId={gradeId} // Still passing this for holiday checking downstream
-          open={learningContentOpen}
-          onClose={() => setLearningContentOpen(false)}
-        />
-      )}
 
       <ConfirmDialog
         isOpen={pendingDeleteNode !== null}

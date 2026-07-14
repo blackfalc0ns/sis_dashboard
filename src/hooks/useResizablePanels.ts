@@ -68,7 +68,9 @@ export function useResizablePanels({
 
   const [state, setState] = useState<PanelState>(loadState);
   const containerRef = useRef<HTMLDivElement>(null);
-  const resizingRef = useRef<"left" | "right" | null>(null);
+  const [resizingSide, setResizingSide] = useState<"left" | "right" | null>(
+    null,
+  );
 
   // Save to localStorage
   useEffect(() => {
@@ -95,20 +97,20 @@ export function useResizablePanels({
   }, []);
 
   const handleResizeStart = useCallback((side: "left" | "right") => {
-    resizingRef.current = side;
+    setResizingSide(side);
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
   }, []);
 
   const handleResizeMove = useCallback(
     (e: PointerEvent) => {
-      if (!resizingRef.current || !containerRef.current) return;
+      if (!resizingSide || !containerRef.current) return;
 
       const container = containerRef.current;
       const rect = container.getBoundingClientRect();
       const containerWidth = rect.width;
 
-      if (resizingRef.current === "left") {
+      if (resizingSide === "left") {
         // Calculate new left width
         let newLeftWidth: number;
         if (isRTL) {
@@ -128,7 +130,7 @@ export function useResizablePanels({
         }
 
         setState((prev) => ({ ...prev, leftWidth: newLeftWidth }));
-      } else if (resizingRef.current === "right") {
+      } else if (resizingSide === "right") {
         // Calculate new right width
         let newRightWidth: number;
         if (isRTL) {
@@ -150,11 +152,33 @@ export function useResizablePanels({
         setState((prev) => ({ ...prev, rightWidth: newRightWidth }));
       }
     },
-    [constraints, state.leftWidth, state.rightWidth, isRTL]
+    [constraints, state.leftWidth, state.rightWidth, isRTL, resizingSide],
+  );
+
+  const resizeLeftBy = useCallback(
+    (delta: number) => {
+      setState((previous) => {
+        const containerWidth =
+          containerRef.current?.getBoundingClientRect().width;
+        const centerSafeMaximum = containerWidth
+          ? containerWidth - constraints.centerMin - previous.rightWidth
+          : constraints.leftMax;
+        const maximumWidth = Math.min(constraints.leftMax, centerSafeMaximum);
+
+        return {
+          ...previous,
+          leftWidth: Math.max(
+            constraints.leftMin,
+            Math.min(maximumWidth, previous.leftWidth + delta),
+          ),
+        };
+      });
+    },
+    [constraints.centerMin, constraints.leftMax, constraints.leftMin],
   );
 
   const handleResizeEnd = useCallback(() => {
-    resizingRef.current = null;
+    setResizingSide(null);
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
   }, []);
@@ -164,7 +188,7 @@ export function useResizablePanels({
     const handleMove = (e: PointerEvent) => handleResizeMove(e);
     const handleEnd = () => handleResizeEnd();
 
-    if (resizingRef.current) {
+    if (resizingSide) {
       window.addEventListener("pointermove", handleMove);
       window.addEventListener("pointerup", handleEnd);
       window.addEventListener("pointercancel", handleEnd);
@@ -175,7 +199,7 @@ export function useResizablePanels({
         window.removeEventListener("pointercancel", handleEnd);
       };
     }
-  }, [handleResizeMove, handleResizeEnd]);
+  }, [handleResizeMove, handleResizeEnd, resizingSide]);
 
   return {
     state,
@@ -184,5 +208,6 @@ export function useResizablePanels({
     toggleRightPanel,
     toggleFocusMode,
     handleResizeStart,
+    resizeLeftBy,
   };
 }

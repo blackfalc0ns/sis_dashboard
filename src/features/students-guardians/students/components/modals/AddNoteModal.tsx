@@ -5,6 +5,7 @@ import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button, Modal, Select, TextArea } from "@/components/ui";
 import {
+  NOTE_CATEGORIES,
   NoteCategory,
   NoteVisibility,
 } from "@/features/students-guardians/students/types/note";
@@ -90,12 +91,10 @@ export default function AddNoteModal({
                 category: value as NoteCategory,
               })
             }
-            options={[
-              { value: "general", label: t("general") },
-              { value: "academic", label: t("academic") },
-              { value: "behavioral", label: t("behavioral") },
-              { value: "medical", label: t("medical") },
-            ]}
+            options={NOTE_CATEGORIES.map((category) => ({
+              value: category,
+              label: t(category),
+            }))}
           />
           <p className="mt-1 text-xs text-gray-500">{t("category_help")}</p>
 
@@ -146,14 +145,14 @@ export default function AddNoteModal({
                 variant="ghost"
                 fullWidth
                 className={`justify-start rounded-lg border p-3 text-left ${
-                  formData.visibility === "visible_to_guardian"
+                  formData.visibility === "guardian_visible"
                     ? "border-primary bg-primary/5"
                     : "border-gray-200"
                 }`}
                 onClick={() =>
                   setFormData({
                     ...formData,
-                    visibility: "visible_to_guardian",
+                    visibility: "guardian_visible",
                   })
                 }
               >
@@ -161,18 +160,18 @@ export default function AddNoteModal({
                   <div className="mb-1 flex items-center gap-2">
                     <Eye className="h-4 w-4 text-green-600" />
                     <span className="text-sm font-medium text-gray-900">
-                      {t("visible_to_guardian")}
+                      {t("guardian_visible")}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500">
-                    {t("visible_to_guardian_help")}
+                    {t("guardian_visible_help")}
                   </p>
                 </div>
               </Button>
             </div>
           </div>
 
-          {formData.visibility === "visible_to_guardian" ? (
+          {formData.visibility === "guardian_visible" ? (
             <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
               <div className="flex items-start gap-3">
                 <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />

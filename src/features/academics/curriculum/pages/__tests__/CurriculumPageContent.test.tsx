@@ -7,6 +7,7 @@ import {
   createCurriculum,
   getCurriculum,
   listCurricula,
+  listLessonContent,
 } from "@/features/academics/curriculum/services/curriculumService";
 import CurriculumPageContent from "../CurriculumPageContent";
 
@@ -119,6 +120,7 @@ vi.mock("@/features/academics/curriculum/services/curriculumService", () => ({
   fetchCurriculumForScope: vi.fn(),
   getCurriculum: vi.fn(),
   listCurricula: vi.fn(),
+  listLessonContent: vi.fn().mockResolvedValue([]),
   calculateTermWeeks: vi.fn(() => 0),
 }));
 
@@ -187,6 +189,7 @@ vi.mock("@/components/ui/loaders/PartialLoader", () => ({
 describe("CurriculumPageContent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(listLessonContent).mockResolvedValue([]);
     routerMocks.push.mockClear();
     routerMocks.replace.mockClear();
     guardMocks.params = null;
@@ -744,7 +747,33 @@ describe("CurriculumPageContent", () => {
       },
       unitCount: 2,
       lessonCount: 6,
-      units: [],
+      units: [
+        {
+          id: "unit-1",
+          curriculumId: "curriculum-1",
+          title: "Numbers",
+          description: null,
+          sortOrder: 0,
+          estimatedLessons: 1,
+          lessonCount: 1,
+          createdAt: "2026-01-01",
+          updatedAt: "2026-01-01",
+          lessons: [
+            {
+              id: "lesson-2",
+              curriculumId: "curriculum-1",
+              unitId: "unit-1",
+              title: "Integers",
+              description: null,
+              objectives: [],
+              sortOrder: 0,
+              estimatedMinutes: 45,
+              createdAt: "2026-01-01",
+              updatedAt: "2026-01-01",
+            },
+          ],
+        },
+      ],
     });
 
     render(<CurriculumPageContent view="detail" curriculumId="curriculum-1" />);
@@ -768,6 +797,16 @@ describe("CurriculumPageContent", () => {
     expect(
       screen.getByRole("button", { name: "actions.delete_curriculum" }),
     ).toBeInTheDocument();
+
+    await user.click(screen.getByText("Integers"));
+
+    expect(screen.getByRole("region", { name: "title" })).toBeInTheDocument();
+    expect(screen.queryByText("Term math plan")).not.toBeInTheDocument();
+
+    await user.click(screen.getByTitle("close"));
+
+    expect(screen.queryByRole("region", { name: "title" })).not.toBeInTheDocument();
+    expect(screen.getByText("Term math plan")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "All curricula" }));
 

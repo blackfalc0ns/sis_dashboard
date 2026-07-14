@@ -29,6 +29,8 @@ import { useDebouncedCallback } from "use-debounce";
 import AcademicsGlobalExportModal from "@/features/academics/shared/components/export/AcademicsGlobalExportModal";
 import { useToast } from "@/components/ui/toast/Toast";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useResizablePanels } from "@/hooks/useResizablePanels";
+import PanelResizeHandle from "@/components/ui/panel/PanelResizeHandle";
 import {
   type AcademicsExportFormat,
   exportAcademicsData,
@@ -46,6 +48,7 @@ type TreeNodeRef = {
 export default function AcademicStructurePage() {
   const t = useTranslations("academics.structure");
   const tExport = useTranslations("academics.export");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
   const isRTL = locale === "ar";
   const router = useRouter();
@@ -58,6 +61,24 @@ export default function AcademicStructurePage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showTreeDrawer, setShowTreeDrawer] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const {
+    state: panelState,
+    containerRef,
+    handleResizeStart,
+    resizeLeftBy,
+  } = useResizablePanels({
+    defaultLeftWidth: 400,
+    defaultRightWidth: 0,
+    constraints: {
+      leftMin: 280,
+      leftMax: 640,
+      rightMin: 0,
+      rightMax: 0,
+      centerMin: 480,
+    },
+    storageKey: "academic-structure-panel-widths",
+    isRTL,
+  });
   const confirmDiscardChanges = useCallback(
     () => confirm(t("details.discard_dialog.message")),
     [t],
@@ -490,7 +511,7 @@ export default function AcademicStructurePage() {
       )}
 
       {!hasNoStructure && (
-        <div className="flex-1 flex overflow-hidden">
+        <div ref={containerRef} className="flex-1 flex overflow-hidden">
           <div className="lg:hidden fixed bottom-4 left-4 z-50">
             <button
               onClick={() => setShowTreeDrawer(true)}
@@ -501,7 +522,10 @@ export default function AcademicStructurePage() {
             </button>
           </div>
 
-          <div className="hidden lg:block w-100 border-r border-l border-border bg-white overflow-hidden">
+          <div
+            className="hidden lg:block flex-none border-r border-l border-border bg-white overflow-hidden"
+            style={{ width: panelState.leftWidth }}
+          >
             <StructureTree
               stages={stages}
               grades={grades}
@@ -548,6 +572,15 @@ export default function AcademicStructurePage() {
                 supportsEditAndReorder ? dragReorderClassroom : async () => {}
               }
               isReadOnly={isReadOnly}
+            />
+          </div>
+
+          <div className="hidden lg:flex">
+            <PanelResizeHandle
+              ariaLabel={tCommon("resizePanel")}
+              isRTL={isRTL}
+              onResizeStart={() => handleResizeStart("left")}
+              onResizeBy={resizeLeftBy}
             />
           </div>
 

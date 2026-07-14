@@ -5,13 +5,22 @@
  * Note Category
  * Categories for student notes
  */
-export type NoteCategory = "academic" | "behavioral" | "medical" | "general";
+export const NOTE_CATEGORIES = [
+  "behavior",
+  "academic",
+  "attendance",
+  "general",
+] as const;
+
+export type NoteCategory = (typeof NOTE_CATEGORIES)[number];
 
 /**
  * Note Visibility
  * Who can see the note
  */
-export type NoteVisibility = "visible_to_guardian" | "internal";
+export const NOTE_VISIBILITIES = ["internal", "guardian_visible"] as const;
+
+export type NoteVisibility = (typeof NOTE_VISIBILITIES)[number];
 
 /**
  * Student Note

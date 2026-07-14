@@ -2,12 +2,14 @@
 
 interface PanelResizeHandleProps {
   onResizeStart: () => void;
+  onResizeBy: (delta: number) => void;
   ariaLabel: string;
   isRTL?: boolean;
 }
 
 export default function PanelResizeHandle({
   onResizeStart,
+  onResizeBy,
   ariaLabel,
   isRTL = false,
 }: PanelResizeHandleProps) {
@@ -22,25 +24,24 @@ export default function PanelResizeHandle({
         onResizeStart();
       }}
       onKeyDown={(e) => {
-        // Allow keyboard resize with arrow keys
         if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
           e.preventDefault();
-          // Could implement keyboard resize here
+          const direction = e.key === "ArrowRight" ? 1 : -1;
+          onResizeBy(direction * (isRTL ? -16 : 16));
         }
       }}
       className={`
         relative w-1 bg-transparent hover:bg-primary/20 active:bg-primary/30
         cursor-col-resize transition-colors group
-        flex-shrink-0
+        flex-shrink-0 focus-visible:outline-none focus-visible:ring-2
+        focus-visible:ring-primary/40 focus-visible:bg-primary/20
       `}
       style={{
         touchAction: "none",
       }}
     >
-      {/* Wider hit area */}
       <div className="absolute inset-y-0 -inset-x-2" />
-      
-      {/* Visual indicator on hover */}
+
       <div
         className={`
           absolute inset-y-0 ${isRTL ? "right-0" : "left-0"}

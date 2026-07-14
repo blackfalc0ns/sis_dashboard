@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import { Plus, Eye, EyeOff, Edit2 } from "lucide-react";
 import type {
+  NoteCategory,
+  NoteVisibility,
   Student,
   StudentNote,
 } from "@/features/students-guardians/students/types";
+import { NOTE_CATEGORIES } from "@/features/students-guardians/students/types/note";
 import {
   Button,
   DataTable,
@@ -27,8 +30,12 @@ interface NotesTabProps {
 
 export default function NotesTab({ student }: NotesTabProps) {
   const t = useTranslations("students_guardians.profile.notes");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [visibilityFilter, setVisibilityFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<NoteCategory | "all">(
+    "all",
+  );
+  const [visibilityFilter, setVisibilityFilter] = useState<
+    NoteVisibility | "all"
+  >("all");
   const [showFilters, setShowFilters] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingNote, setEditingNote] = useState<StudentNote | null>(null);
@@ -92,7 +99,11 @@ export default function NotesTab({ student }: NotesTabProps) {
     if (!editingNote) return;
 
     try {
-      await studentsService.updateStudentNote(student.id, editingNote.id, noteData);
+      await studentsService.updateStudentNote(
+        student.id,
+        editingNote.id,
+        noteData,
+      );
       setEditingNote(null);
       setNotesRevision((current) => current + 1);
       setFeedback(t("note_updated_successfully"));
@@ -106,31 +117,25 @@ export default function NotesTab({ student }: NotesTabProps) {
     }
   };
 
-  const getCategoryBadge = (category: string) => {
-    const colors: Record<string, string> = {
+  const getCategoryBadge = (category: NoteCategory) => {
+    const colors: Record<NoteCategory, string> = {
+      behavior: "bg-purple-100 text-purple-700",
       academic: "bg-blue-100 text-blue-700",
-      behavioral: "bg-purple-100 text-purple-700",
-      medical: "bg-red-100 text-red-700",
+      attendance: "bg-emerald-100 text-emerald-700",
       general: "bg-gray-100 text-gray-700",
     };
-
-    const categoryKey = category as
-      | "academic"
-      | "behavioral"
-      | "medical"
-      | "general";
 
     return (
       <span
         className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${colors[category]}`}
       >
-        {t(categoryKey)}
+        {t(category)}
       </span>
     );
   };
 
-  const getVisibilityBadge = (visibility: string) => {
-    if (visibility === "visible_to_guardian") {
+  const getVisibilityBadge = (visibility: NoteVisibility) => {
+    if (visibility === "guardian_visible") {
       return (
         <span className="inline-flex items-center gap-1 text-xs text-green-600">
           <Eye className="h-3 w-3" />
@@ -164,7 +169,7 @@ export default function NotesTab({ student }: NotesTabProps) {
     {
       key: "category",
       label: t("category"),
-      render: (value: unknown) => getCategoryBadge(value as string),
+      render: (value: unknown) => getCategoryBadge(value as NoteCategory),
     },
     {
       key: "note",
@@ -180,7 +185,7 @@ export default function NotesTab({ student }: NotesTabProps) {
     {
       key: "visibility",
       label: t("visibility"),
-      render: (value: unknown) => getVisibilityBadge(value as string),
+      render: (value: unknown) => getVisibilityBadge(value as NoteVisibility),
     },
     {
       key: "created_by",
@@ -250,24 +255,28 @@ export default function NotesTab({ student }: NotesTabProps) {
             <Select
               label={t("category")}
               value={categoryFilter}
-              onChange={setCategoryFilter}
+              onChange={(value) =>
+                setCategoryFilter(value as NoteCategory | "all")
+              }
               options={[
                 { value: "all", label: t("all_categories") },
-                { value: "academic", label: t("academic") },
-                { value: "behavioral", label: t("behavioral") },
-                { value: "medical", label: t("medical") },
-                { value: "general", label: t("general") },
+                ...NOTE_CATEGORIES.map((category) => ({
+                  value: category,
+                  label: t(category),
+                })),
               ]}
             />
             <Select
               label={t("visibility")}
               value={visibilityFilter}
-              onChange={setVisibilityFilter}
+              onChange={(value) =>
+                setVisibilityFilter(value as NoteVisibility | "all")
+              }
               options={[
                 { value: "all", label: t("all_notes") },
                 {
-                  value: "visible_to_guardian",
-                  label: t("visible_to_guardian"),
+                  value: "guardian_visible",
+                  label: t("guardian_visible"),
                 },
                 { value: "internal", label: t("internal") },
               ]}

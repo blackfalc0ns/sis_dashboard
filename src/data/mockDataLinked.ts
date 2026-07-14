@@ -2729,16 +2729,16 @@ export const mockStudentNotes: StudentNote[] = mockStudents.flatMap(
 
     for (let i = 0; i < noteCount; i++) {
       const categories: StudentNote["category"][] = [
+        "behavior",
         "academic",
-        "behavioral",
-        "medical",
+        "attendance",
         "general",
       ];
       const category = seededPick(`${student.id}-cat-${i}`, categories);
       const visibility: StudentNote["visibility"] =
         seededNumber(`${student.id}-vis-${i}`, 0, 1) > 0
           ? "internal"
-          : "visible_to_guardian";
+          : "guardian_visible";
 
       const noteTexts = {
         academic: [
@@ -2746,15 +2746,15 @@ export const mockStudentNotes: StudentNote[] = mockStudents.flatMap(
           "Needs additional support in reading comprehension",
           "Outstanding performance in science projects",
         ],
-        behavioral: [
+        behavior: [
           "Shows great leadership skills in group activities",
           "Very respectful and cooperative with peers",
           "Actively participates in class discussions",
         ],
-        medical: [
-          "Reminder: Student has mild asthma, inhaler available",
-          "No medical concerns this term",
-          "Regular check-ups completed",
+        attendance: [
+          "Excellent attendance record this term",
+          "Attendance follow-up is required",
+          "Punctuality has improved this month",
         ],
         general: [
           "Parent meeting scheduled for next week",

@@ -18,13 +18,9 @@ vi.mock("next-intl", () => ({
 }));
 
 vi.mock("@mui/material", () => ({
-  Drawer: ({ children, open }: { children: React.ReactNode; open: boolean }) =>
-    open ? <div>{children}</div> : null,
   IconButton: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
     <button type="button" {...props}>{children}</button>
   ),
-  useMediaQuery: () => false,
-  useTheme: () => ({ breakpoints: { down: () => "" } }),
 }));
 
 vi.mock("@/hooks/usePermissions", () => ({
@@ -89,6 +85,26 @@ const contentItem: LessonContentItem = {
 };
 
 describe("LearningContentPanel", () => {
+  it("exposes a close action for the inline panel", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    vi.mocked(listLessonContent).mockResolvedValue([]);
+
+    render(
+      <LearningContentPanel
+        curriculumId="curriculum-1"
+        unitId="unit-1"
+        lessonId="lesson-1"
+        isReadOnly={false}
+        onClose={onClose}
+      />,
+    );
+
+    expect(await screen.findByText("title")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "close" }));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it("shows backend field errors inline and preserves content values", async () => {
     const user = userEvent.setup();
     vi.mocked(listLessonContent).mockResolvedValue([]);
@@ -106,7 +122,6 @@ describe("LearningContentPanel", () => {
         unitId="unit-1"
         lessonId="lesson-1"
         isReadOnly={false}
-        open
         onClose={vi.fn()}
       />,
     );
@@ -138,7 +153,6 @@ describe("LearningContentPanel", () => {
         unitId="unit-1"
         lessonId="lesson-1"
         isReadOnly={false}
-        open
         onClose={vi.fn()}
       />,
     );

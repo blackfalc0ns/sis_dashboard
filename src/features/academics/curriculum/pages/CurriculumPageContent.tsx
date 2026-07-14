@@ -51,6 +51,7 @@ import {
 import { curriculumUiError } from "@/features/academics/curriculum/services/curriculumErrors";
 import CurriculumOutline from "../components/CurriculumOutline";
 import CurriculumEditor from "../components/CurriculumEditor";
+import LearningContentPanel from "@/features/academics/curriculum/components/LearningContentPanel";
 import CurriculumActionsMenu from "../components/CurriculumActionsMenu";
 import CreateCurriculumDialog from "../components/CreateCurriculumDialog";
 import {
@@ -226,6 +227,9 @@ export default function CurriculumPageContent({
     type: "unit" | "lesson";
     id: string;
   } | null>(null);
+  const [learningContentLessonId, setLearningContentLessonId] = useState<
+    string | null
+  >(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -1148,6 +1152,9 @@ export default function CurriculumPageContent({
     node: { type: "unit" | "lesson"; id: string } | null,
   ) => {
     setSelectedNode(node);
+    setLearningContentLessonId(
+      node?.type === "lesson" && !isDraftNode(node) ? node.id : null,
+    );
 
     if (isDraftNode(node)) {
       return;
@@ -1645,6 +1652,10 @@ export default function CurriculumPageContent({
     setCreateDialogScope(null);
   };
 
+  const learningContentLesson = lessons.find(
+    (lesson) => lesson.id === learningContentLessonId,
+  );
+
   const renderCurriculumDetailsPanel = () => (
     <div className="p-6 space-y-5">
       <div className="space-y-2">
@@ -1737,6 +1748,22 @@ export default function CurriculumPageContent({
       </div>
     </div>
   );
+
+  const renderRightPanelContent = () => {
+    if (curriculum && learningContentLesson) {
+      return (
+        <LearningContentPanel
+          curriculumId={curriculum.id}
+          unitId={learningContentLesson.unitId}
+          lessonId={learningContentLesson.id}
+          isReadOnly={isReadOnly}
+          onClose={() => setLearningContentLessonId(null)}
+        />
+      );
+    }
+
+    return renderCurriculumDetailsPanel();
+  };
 
   return (
     <div className="flex h-screen flex-col">
@@ -2221,7 +2248,6 @@ export default function CurriculumPageContent({
                   onRefresh={refreshCurriculum}
                   onDirtyChange={setHasUnsavedChanges}
                   isReadOnly={isReadOnly}
-                  gradeId={selectedGradeId}
                   onSelectNode={handleSelectNode}
                 />
               </div>
@@ -2233,7 +2259,7 @@ export default function CurriculumPageContent({
               >
                 <div className="h-full flex flex-col">
                   <div className="flex-1 overflow-auto">
-                    {renderCurriculumDetailsPanel()}
+                    {renderRightPanelContent()}
                   </div>
                 </div>
               </div>
@@ -2270,7 +2296,6 @@ export default function CurriculumPageContent({
                   onRefresh={refreshCurriculum}
                   onDirtyChange={setHasUnsavedChanges}
                   isReadOnly={isReadOnly}
-                  gradeId={selectedGradeId}
                   onSelectNode={handleSelectNode}
                 />
               </div>
@@ -2337,7 +2362,7 @@ export default function CurriculumPageContent({
                     </IconButton>
                   </div>
                   <div className="flex-1 overflow-auto">
-                    {renderCurriculumDetailsPanel()}
+                    {renderRightPanelContent()}
                   </div>
                 </div>
               </Drawer>

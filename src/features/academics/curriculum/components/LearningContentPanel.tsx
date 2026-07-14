@@ -1,14 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { X, FileText, Link as LinkIcon, Trash2, ArrowUp, ArrowDown, Download } from "lucide-react";
-import {
-  Drawer,
-  IconButton,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
+import { IconButton } from "@mui/material";
 import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import Input from "@/components/ui/input/Input";
@@ -44,8 +39,6 @@ interface LearningContentPanelProps {
   unitId: string;
   lessonId: string;
   isReadOnly: boolean;
-  gradeId?: string;
-  open: boolean;
   onClose: () => void;
 }
 
@@ -93,14 +86,9 @@ export default function LearningContentPanel({
   unitId,
   lessonId,
   isReadOnly,
-  open,
   onClose,
 }: LearningContentPanelProps) {
   const t = useTranslations("academics.curriculum.learningContent");
-  const locale = useLocale();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const isRTL = locale === "ar";
   const { hasPermission } = usePermissions();
   const canUploadFiles = hasPermission("files.uploads.manage");
 
@@ -145,8 +133,8 @@ export default function LearningContentPanel({
 
   useEffect(() => {
     resetFormToCreate();
-    if (open) void loadItems();
-  }, [curriculumId, lessonId, loadItems, open, resetFormToCreate, unitId]);
+    void loadItems();
+  }, [curriculumId, lessonId, loadItems, resetFormToCreate, unitId]);
 
   const updateFormField = <Field extends Exclude<keyof ContentForm, "id">>(
     field: Field,
@@ -267,26 +255,13 @@ export default function LearningContentPanel({
     }
   };
 
-  const anchor = isMobile ? "bottom" : isRTL ? "left" : "right";
-
   return (
-    <Drawer
-      anchor={anchor}
-      open={open}
-      onClose={onClose}
-      slotProps={{
-        paper: {
-          sx: {
-            width: isMobile ? "100%" : 480,
-            maxWidth: "100%",
-            height: isMobile ? "90vh" : "100%",
-            borderTopLeftRadius: isMobile ? 16 : 0,
-            borderTopRightRadius: isMobile ? 16 : 0,
-          },
-        },
-      }}
-    >
-      <div className="h-full flex flex-col bg-gray-50">
+    <>
+      <div
+        role="region"
+        aria-label={t("title")}
+        className="h-full flex flex-col bg-gray-50"
+      >
         <div className="bg-white border-b border-border px-6 py-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">{t("title")}</h2>
           <IconButton size="small" onClick={onClose} title={t("close")}>
@@ -580,6 +555,6 @@ export default function LearningContentPanel({
         loading={isDeleting}
         severity="danger"
       />
-    </Drawer>
+    </>
   );
 }
