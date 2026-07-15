@@ -41,6 +41,10 @@ import type {
   DashboardTopKpi,
   DashboardViewAlert,
 } from "@/features/dashboard/mappers/dashboardViewMapper";
+import type {
+  DashboardModuleListItem,
+  DashboardModulePage,
+} from "@/features/dashboard/types/dashboardApi.types";
 import { LightModeDropdown } from "@/components/ui";
 
 export type DashboardSectionState<TData> =
@@ -54,6 +58,11 @@ interface SchoolDashboardViewProps {
   isRefreshing: boolean;
   onRefresh: () => void;
   summaryState: DashboardSectionState<DashboardSummaryViewModel>;
+  modules: DashboardModuleListItem[];
+  cachedModules: Record<string, DashboardModulePage>;
+  moduleLoadingStates: Record<string, "loading" | "success" | "error">;
+  moduleErrors: Record<string, string>;
+  onLoadModuleDetails: (moduleKey: string) => void;
 }
 
 interface DashboardHeaderProps {
@@ -67,12 +76,7 @@ interface DashboardHeaderProps {
   t: ReturnType<typeof useTranslations>;
 }
 
-type DashboardTab =
-  | "overview"
-  | "academics"
-  | "admissions"
-  | "communication"
-  | "operations";
+type DashboardTab = "overview" | string;
 
 type DashboardTabDefinition = {
   id: DashboardTab;
@@ -156,11 +160,21 @@ export default function SchoolDashboardView({
   isRefreshing,
   onRefresh,
   summaryState,
+  modules,
+  cachedModules,
+  moduleLoadingStates,
+  moduleErrors,
+  onLoadModuleDetails,
 }: SchoolDashboardViewProps) {
   const pathname = usePathname();
   const locale = useLocale();
   const t = useTranslations("dashboard_new");
   const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
+
+  const dynamicTabs: DashboardTabDefinition[] = [
+    { id: "overview", label: t("tabs.overview") || "Overview" },
+    ...modules.map((m) => ({ id: m.moduleKey, label: m.title })),
+  ];
 
   return (
     <div
@@ -185,13 +199,26 @@ export default function SchoolDashboardView({
 
       <TopKpiGrid locale={locale} summaryState={summaryState} t={t} />
 
-      <DashboardTabs activeTab={activeTab} onTabChange={setActiveTab} t={t} />
+      <DashboardTabs
+        activeTab={activeTab}
+        onTabChange={(tabId) => {
+          setActiveTab(tabId);
+          if (tabId !== "overview") {
+            onLoadModuleDetails(tabId);
+          }
+        }}
+        tabs={dynamicTabs}
+        t={t}
+      />
 
       <DashboardTabContent
         activeTab={activeTab}
         locale={locale}
         pathname={pathname}
         summaryState={summaryState}
+        cachedModules={cachedModules}
+        moduleLoadingStates={moduleLoadingStates}
+        moduleErrors={moduleErrors}
         t={t}
       />
 
@@ -527,10 +554,12 @@ function hasAlertAction(
 function DashboardTabs({
   activeTab,
   onTabChange,
+  tabs,
   t,
 }: {
   activeTab: DashboardTab;
   onTabChange: (tab: DashboardTab) => void;
+  tabs: DashboardTabDefinition[];
   t: ReturnType<typeof useTranslations>;
 }) {
   return (
@@ -540,8 +569,11 @@ function DashboardTabs({
         aria-label={t("dashboard.tabs.aria_label")}
         className="inline-flex min-w-full gap-2 rounded-xl border border-gray-200 bg-white p-1 shadow-sm sm:min-w-0"
       >
-        {dashboardTabs.map((dashboardTab) => {
+        {tabs.map((dashboardTab) => {
           const isActive = dashboardTab.id === activeTab;
+          const label = (typeof t.has === "function" && t.has(`dashboard.tabs.${dashboardTab.id}`))
+            ? t(`dashboard.tabs.${dashboardTab.id}`)
+            : dashboardTab.label;
 
           return (
             <button
@@ -556,7 +588,7 @@ function DashboardTabs({
                   : "text-gray-600 hover:bg-gray-50 hover:text-gray-950"
               }`}
             >
-              {t(`dashboard.tabs.${dashboardTab.id}`)}
+              {label}
             </button>
           );
         })}
@@ -570,14 +602,58 @@ function DashboardTabContent({
   locale,
   pathname,
   summaryState,
+  cachedModules,
+  moduleLoadingStates,
+  moduleErrors,
   t,
 }: {
   activeTab: DashboardTab;
   locale: string;
   pathname: string;
   summaryState: DashboardSectionState<DashboardSummaryViewModel>;
+  cachedModules: Record<string, DashboardModulePage>;
+  moduleLoadingStates: Record<string, "loading" | "success" | "error">;
+  moduleErrors: Record<string, string>;
   t: ReturnType<typeof useTranslations>;
 }) {
+  if (activeTab !== "overview") {
+    const state = moduleLoadingStates[activeTab] || "loading";
+    if (state === "loading") {
+      return (
+        <div className="flex justify-center p-8">
+          <PartialLoader />
+        </div>
+      );
+    }
+    if (state === "error") {
+      return (
+        <section className="rounded-xl border border-red-200 bg-white p-5 shadow-sm">
+          <SectionError
+            title={t("dashboard.modules_unavailable") || "Modules Unavailable"}
+            message={moduleErrors[activeTab] || "Failed to load module details"}
+          />
+        </section>
+      );
+    }
+    const pageData = cachedModules[activeTab];
+    if (!pageData) return null;
+
+    return (
+      <div className="space-y-6">
+        {pageData.overview?.quickStats && (
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {pageData.overview.quickStats.map((stat) => (
+              <article key={stat.key} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <p className="text-sm font-medium text-gray-500">{stat.label}</p>
+                <p className="mt-2 text-3xl font-bold text-gray-950">{stat.value}</p>
+              </article>
+            ))}
+          </section>
+        )}
+      </div>
+    );
+  }
+
   if (summaryState.status === "loading") {
     return <ModuleCardGridSkeleton t={t} />;
   }
@@ -593,6 +669,7 @@ function DashboardTabContent({
     );
   }
 
+  // Fallback support for old default tabs matching
   if (activeTab === "operations") {
     return (
       <ModuleCardGrid

@@ -21,7 +21,13 @@ import {
   fetchDashboardActivityFeed,
   fetchDashboardAlerts,
   fetchDashboardSummary,
+  fetchDashboardModules,
+  fetchDashboardModuleByKey,
 } from "@/features/dashboard/services/dashboardApiService";
+import type {
+  DashboardModuleListItem,
+  DashboardModulePage,
+} from "@/features/dashboard/types/dashboardApi.types";
 import SchoolDashboardView from "../views/SchoolDashboardView";
 import type { DashboardSectionState } from "../views/SchoolDashboardView";
 
@@ -187,6 +193,50 @@ export default function SchoolDashboardContainer() {
     };
   }, [isInitializing, refreshSequence, t]);
 
+  const [modules, setModules] = useState<DashboardModuleListItem[]>([]);
+  const [cachedModules, setCachedModules] = useState<Record<string, DashboardModulePage>>({});
+  const [moduleLoadingStates, setModuleLoadingStates] = useState<Record<string, "loading" | "success" | "error">>({});
+  const [moduleErrors, setModuleErrors] = useState<Record<string, string>>({});
+
+  const loadModuleDetails = useCallback((moduleKey: string) => {
+    if (cachedModules[moduleKey] || moduleLoadingStates[moduleKey] === "loading") {
+      return;
+    }
+
+    setModuleLoadingStates((curr) => ({ ...curr, [moduleKey]: "loading" }));
+
+    fetchDashboardModuleByKey(moduleKey)
+      .then((modulePage) => {
+        setCachedModules((curr) => ({ ...curr, [moduleKey]: modulePage }));
+        setModuleLoadingStates((curr) => ({ ...curr, [moduleKey]: "success" }));
+      })
+      .catch((error: unknown) => {
+        setModuleErrors((curr) => ({ ...curr, [moduleKey]: dashboardErrorMessage(error, t) }));
+        setModuleLoadingStates((curr) => ({ ...curr, [moduleKey]: "error" }));
+      });
+  }, [cachedModules, moduleLoadingStates, t]);
+
+  useEffect(() => {
+    if (isInitializing) {
+      return;
+    }
+
+    let shouldIgnoreResponse = false;
+    fetchDashboardModules()
+      .then((modulesResponse) => {
+        if (!shouldIgnoreResponse) {
+          setModules(modulesResponse);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load dashboard modules", err);
+      });
+
+    return () => {
+      shouldIgnoreResponse = true;
+    };
+  }, [isInitializing, refreshSequence]);
+
   return (
     <SchoolDashboardView
       activityFeedState={dashboardLoadState.activityFeed}
@@ -196,6 +246,11 @@ export default function SchoolDashboardContainer() {
       summaryState={
         isInitializing ? { status: "loading" } : dashboardLoadState.summary
       }
+      modules={modules}
+      cachedModules={cachedModules}
+      moduleLoadingStates={moduleLoadingStates}
+      moduleErrors={moduleErrors}
+      onLoadModuleDetails={loadModuleDetails}
     />
   );
 }

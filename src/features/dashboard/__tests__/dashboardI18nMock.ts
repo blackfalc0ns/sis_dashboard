@@ -181,6 +181,11 @@ function stableTestTranslator(namespace?: string) {
     return translation ?? key;
   };
 
+  translator.has = (key: string) => {
+    const translationKey = namespace ? `${namespace}.${key}` : key;
+    return translationKey in dashboardTranslations;
+  };
+
   testTranslators.set(namespace, translator);
   return translator;
 }

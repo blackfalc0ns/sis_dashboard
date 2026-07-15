@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import "@/features/dashboard/__tests__/dashboardI18nMock";
 import SchoolDashboardContainer from "@/features/dashboard/container/SchoolDashboardContainer";
@@ -6,6 +6,8 @@ import {
   fetchDashboardActivityFeed,
   fetchDashboardAlerts,
   fetchDashboardSummary,
+  fetchDashboardModules,
+  fetchDashboardModuleByKey,
 } from "@/features/dashboard/services/dashboardApiService";
 import {
   dashboardActivityFeedResponse,
@@ -21,6 +23,8 @@ vi.mock("@/features/dashboard/services/dashboardApiService", () => ({
   fetchDashboardSummary: vi.fn(),
   fetchDashboardAlerts: vi.fn(),
   fetchDashboardActivityFeed: vi.fn(),
+  fetchDashboardModules: vi.fn(),
+  fetchDashboardModuleByKey: vi.fn(),
 }));
 
 vi.mock("@/features/onboarding/components/SetupGuideCard", () => ({
@@ -41,12 +45,24 @@ vi.mock("@/components/ui/toast/Toast", () => ({
 const mockedFetchDashboardSummary = vi.mocked(fetchDashboardSummary);
 const mockedFetchDashboardAlerts = vi.mocked(fetchDashboardAlerts);
 const mockedFetchDashboardActivityFeed = vi.mocked(fetchDashboardActivityFeed);
+const mockedFetchDashboardModules = vi.mocked(fetchDashboardModules);
+const mockedFetchDashboardModuleByKey = vi.mocked(fetchDashboardModuleByKey);
 
 describe("SchoolDashboardContainer", () => {
   beforeEach(() => {
     mockedFetchDashboardSummary.mockReset();
     mockedFetchDashboardAlerts.mockReset();
     mockedFetchDashboardActivityFeed.mockReset();
+    mockedFetchDashboardModules.mockReset();
+    mockedFetchDashboardModuleByKey.mockReset();
+    
+    // Set default mock response so existing tests pass
+    mockedFetchDashboardModules.mockResolvedValue([
+      { moduleKey: "academics", title: "Academics" },
+      { moduleKey: "admissions", title: "Admissions" },
+      { moduleKey: "communication", title: "Communication" },
+      { moduleKey: "operations", title: "Operations" },
+    ] as any);
   });
 
   it("renders backend dashboard data when all endpoints succeed", async () => {
@@ -109,6 +125,52 @@ describe("SchoolDashboardContainer", () => {
       dashboardActivityFeedResponse(),
     );
 
+    mockedFetchDashboardModules.mockResolvedValue([
+      { moduleKey: "academics", title: "Academics" },
+      { moduleKey: "operations", title: "Operations" },
+    ] as any);
+
+    mockedFetchDashboardModuleByKey.mockImplementation(async (key) => {
+      if (key === "academics") {
+        return {
+          module: { moduleKey: "academics", title: "Academics" },
+          overview: {
+            quickStats: [
+              { key: "homework", label: "Homework", value: 1, tone: "info" },
+              { key: "grades", label: "Grades", value: 2, tone: "info" }
+            ],
+            risks: [],
+            actions: []
+          },
+          widgets: [],
+          analytics: { charts: [], availableData: [], plannedCharts: [] },
+          sections: [],
+          capabilities: {},
+          emptyState: null,
+          meta: {}
+        } as any;
+      }
+      if (key === "operations") {
+        return {
+          module: { moduleKey: "operations", title: "Operations" },
+          overview: {
+            quickStats: [
+              { key: "reinforcement", label: "Reinforcement", value: 3, tone: "info" }
+            ],
+            risks: [],
+            actions: []
+          },
+          widgets: [],
+          analytics: { charts: [], availableData: [], plannedCharts: [] },
+          sections: [],
+          capabilities: {},
+          emptyState: null,
+          meta: {}
+        } as any;
+      }
+      return null as any;
+    });
+
     render(<SchoolDashboardContainer />);
 
     expect(await screen.findByText("School command center")).toBeInTheDocument();
@@ -119,8 +181,8 @@ describe("SchoolDashboardContainer", () => {
       "aria-selected",
       "true",
     );
-    expect(screen.getByText("Homework")).toBeInTheDocument();
-    expect(screen.getByText("Grades")).toBeInTheDocument();
+    expect(await screen.findByText("Homework")).toBeInTheDocument();
+    expect(await screen.findByText("Grades")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Operations" }));
 
@@ -128,7 +190,7 @@ describe("SchoolDashboardContainer", () => {
       "aria-selected",
       "true",
     );
-    expect(screen.getByText("Reinforcement")).toBeInTheDocument();
+    expect(await screen.findByText("Reinforcement")).toBeInTheDocument();
   });
 
   it("renders dashboard alerts as a single action required panel", async () => {
@@ -320,6 +382,96 @@ describe("SchoolDashboardContainer", () => {
     expect(screen.getByText("Absences marked today")).toBeInTheDocument();
     expect(screen.getByText("Recent activities")).toBeInTheDocument();
     expect(screen.getByText("Attendance session submitted")).toBeInTheDocument();
+  });
+
+  it("fetches dashboard modules on mount and displays them as tabs, switching tab fetches module details", async () => {
+    mockedFetchDashboardSummary.mockResolvedValue(dashboardSummaryResponse());
+    mockedFetchDashboardAlerts.mockResolvedValue(dashboardAlertsResponse());
+    mockedFetchDashboardActivityFeed.mockResolvedValue(dashboardActivityFeedResponse());
+    
+    mockedFetchDashboardModules.mockResolvedValue([
+      {
+        moduleKey: "admissions",
+        source: "admissions",
+        title: "Admissions",
+        description: "Admissions module description",
+        status: "available",
+        iconKey: "users",
+        tone: "info",
+        frontendRoute: "/admissions",
+        sourceRoute: "/admissions",
+        summary: {
+          widgetCount: 1,
+          chartCount: 0,
+          availableChartDataCount: 0,
+          riskCount: 0,
+          actionCount: 0,
+        },
+        capabilities: {
+          widgets: "available",
+          analyticsDefinitions: "deferred",
+          analyticsData: "deferred",
+          drilldowns: "deferred",
+          exports: "deferred",
+          realtime: "deferred",
+        },
+      },
+    ]);
+
+    mockedFetchDashboardModuleByKey.mockResolvedValue({
+      generatedAt: "2026-07-15T09:00:00.000Z",
+      module: {
+        moduleKey: "admissions",
+        source: "admissions",
+        title: "Admissions",
+        description: "Admissions details",
+        status: "available",
+        iconKey: "users",
+        tone: "info",
+        frontendRoute: "/admissions",
+        sourceRoute: "/admissions",
+      },
+      overview: {
+        quickStats: [],
+        risks: [],
+        actions: [],
+      },
+      widgets: [],
+      analytics: {
+        charts: [],
+        availableData: [],
+        plannedCharts: [],
+      },
+      sections: [],
+      capabilities: {
+        widgets: "available",
+        analyticsDefinitions: "deferred",
+        analyticsData: "deferred",
+        drilldowns: "deferred",
+        exports: "deferred",
+        realtime: "deferred",
+      },
+      emptyState: null,
+      meta: {
+        source: "dashboard_module_page",
+        version: "v1",
+        dataFreshness: "live",
+      } as any,
+    });
+
+    render(<SchoolDashboardContainer />);
+
+    // Dynamic Admissions tab should render
+    const admissionsTab = await screen.findByRole("tab", { name: "Admissions" });
+    expect(admissionsTab).toBeInTheDocument();
+
+    // Click on Admissions tab
+    fireEvent.click(admissionsTab);
+
+    // Verify dynamic fetch is called
+    await waitFor(() => {
+      expect(mockedFetchDashboardModuleByKey).toHaveBeenCalledWith("admissions");
+    });
   });
 });
 
