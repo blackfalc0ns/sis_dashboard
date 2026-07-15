@@ -1,21 +1,35 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { apiGet } from "@/lib/api";
+import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/api";
 import {
   dashboardQueryString,
   fetchDashboardActivityFeed,
   fetchDashboardAlerts,
   fetchDashboardSummary,
+  fetchLightModeDropdown,
+  fetchDashboardTodos,
+  createDashboardTodo,
+  updateDashboardTodo,
+  deleteDashboardTodo,
 } from "@/features/dashboard/services/dashboardApiService";
 
 vi.mock("@/lib/api", () => ({
   apiGet: vi.fn(),
+  apiPost: vi.fn(),
+  apiPatch: vi.fn(),
+  apiDelete: vi.fn(),
 }));
 
 const mockedApiGet = vi.mocked(apiGet);
+const mockedApiPost = vi.mocked(apiPost);
+const mockedApiPatch = vi.mocked(apiPatch);
+const mockedApiDelete = vi.mocked(apiDelete);
 
 describe("dashboardApiService", () => {
   beforeEach(() => {
     mockedApiGet.mockReset();
+    mockedApiPost.mockReset();
+    mockedApiPatch.mockReset();
+    mockedApiDelete.mockReset();
   });
 
   it("omits empty query parameters and preserves supported boolean and numeric values", () => {
@@ -76,5 +90,40 @@ describe("dashboardApiService", () => {
 
     await expect(fetchDashboardAlerts()).resolves.toEqual({ alerts: [] });
     await expect(fetchDashboardAlerts()).rejects.toThrow("Forbidden");
+  });
+
+  it("requests light-mode-dropdown and todo CRUD paths", async () => {
+    mockedApiGet
+      .mockResolvedValueOnce({ location: { city: "Cairo" } })
+      .mockResolvedValueOnce({ todos: [] });
+    mockedApiPost.mockResolvedValueOnce({ todoId: "todo-123" });
+    mockedApiPatch.mockResolvedValueOnce({ todoId: "todo-123", status: "completed" });
+    mockedApiDelete.mockResolvedValueOnce({ deleted: true });
+
+    await fetchLightModeDropdown({ date: "2026-07-15", locale: "ar" });
+    await fetchDashboardTodos({ status: "all" });
+    await createDashboardTodo({ date: "2026-07-15", title: "Test Todo" });
+    await updateDashboardTodo("todo-123", { status: "completed" });
+    await deleteDashboardTodo("todo-123");
+
+    expect(mockedApiGet).toHaveBeenNthCalledWith(
+      1,
+      "/dashboard/light-mode-dropdown?locale=ar&date=2026-07-15",
+    );
+    expect(mockedApiGet).toHaveBeenNthCalledWith(
+      2,
+      "/dashboard/light-mode-dropdown/todos?status=all",
+    );
+    expect(mockedApiPost).toHaveBeenCalledWith(
+      "/dashboard/light-mode-dropdown/todos",
+      { date: "2026-07-15", title: "Test Todo" },
+    );
+    expect(mockedApiPatch).toHaveBeenCalledWith(
+      "/dashboard/light-mode-dropdown/todos/todo-123",
+      { status: "completed" },
+    );
+    expect(mockedApiDelete).toHaveBeenCalledWith(
+      "/dashboard/light-mode-dropdown/todos/todo-123",
+    );
   });
 });

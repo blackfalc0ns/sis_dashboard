@@ -1,4 +1,4 @@
-import { apiGet } from "@/lib/api";
+import { apiGet, apiPost, apiPatch, apiDelete } from "@/lib/api";
 import type {
   DashboardActivityFeedQuery,
   DashboardActivityFeedResponse,
@@ -103,4 +103,80 @@ export function fetchDashboardActivityFeed(
       cursor: query.cursor,
     })}`,
   );
+}
+
+export interface FetchLightModeDropdownQuery {
+  locale?: string;
+  timezone?: string;
+  units?: string;
+  date?: string;
+}
+
+export interface FetchTodosQuery {
+  date?: string;
+  status?: "pending" | "completed" | "all";
+  limit?: number;
+  timezone?: string;
+}
+
+export interface CreateTodoBody {
+  date: string;
+  title: string;
+  notes?: string | null;
+  priority?: "low" | "normal" | "high";
+  sortOrder?: number;
+}
+
+export interface UpdateTodoBody {
+  date?: string;
+  title?: string;
+  notes?: string | null;
+  status?: "pending" | "completed";
+  priority?: "low" | "normal" | "high";
+  sortOrder?: number;
+}
+
+export function fetchLightModeDropdown(query: FetchLightModeDropdownQuery = {}) {
+  return fetchDashboardContract<any>(
+    `${DASHBOARD_BASE_PATH}/light-mode-dropdown${dashboardQueryString({
+      locale: query.locale,
+      timezone: query.timezone,
+      units: query.units,
+      date: query.date,
+    })}`,
+  );
+}
+
+export function fetchDashboardTodos(query: FetchTodosQuery = {}) {
+  return fetchDashboardContract<any>(
+    `${DASHBOARD_BASE_PATH}/light-mode-dropdown/todos${dashboardQueryString({
+      date: query.date,
+      status: query.status,
+      limit: query.limit,
+      timezone: query.timezone,
+    })}`,
+  );
+}
+
+export async function createDashboardTodo(body: CreateTodoBody) {
+  const response = await apiPost<any>(
+    `${DASHBOARD_BASE_PATH}/light-mode-dropdown/todos`,
+    body,
+  );
+  return unwrapDashboardResponse(response);
+}
+
+export async function updateDashboardTodo(todoId: string, body: UpdateTodoBody) {
+  const response = await apiPatch<any>(
+    `${DASHBOARD_BASE_PATH}/light-mode-dropdown/todos/${todoId}`,
+    body,
+  );
+  return unwrapDashboardResponse(response);
+}
+
+export async function deleteDashboardTodo(todoId: string) {
+  const response = await apiDelete<any>(
+    `${DASHBOARD_BASE_PATH}/light-mode-dropdown/todos/${todoId}`,
+  );
+  return unwrapDashboardResponse(response);
 }
