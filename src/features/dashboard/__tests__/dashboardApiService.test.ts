@@ -12,6 +12,10 @@ import {
   deleteDashboardTodo,
   fetchDashboardModules,
   fetchDashboardModuleByKey,
+  fetchAnalyticsCatalog,
+  fetchAnalyticsCharts,
+  fetchAnalyticsChartByKey,
+  fetchAnalyticsChartData,
 } from "@/features/dashboard/services/dashboardApiService";
 
 vi.mock("@/lib/api", () => ({
@@ -144,6 +148,36 @@ describe("dashboardApiService", () => {
     expect(mockedApiGet).toHaveBeenNthCalledWith(
       2,
       "/dashboard/modules/academics",
+    );
+  });
+
+  it("requests dashboard analytics catalog, charts, and chart data", async () => {
+    mockedApiGet
+      .mockResolvedValueOnce({ sources: [] })
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce({ chartKey: "academics.gpa_trend" })
+      .mockResolvedValueOnce({ chartKey: "academics.gpa_trend", data: {} });
+
+    await fetchAnalyticsCatalog();
+    await fetchAnalyticsCharts({ source: "academics", status: "available" });
+    await fetchAnalyticsChartByKey("academics.gpa_trend");
+    await fetchAnalyticsChartData("academics.gpa_trend", { range: "30d", gradeId: "grade-1" });
+
+    expect(mockedApiGet).toHaveBeenNthCalledWith(
+      1,
+      "/dashboard/analytics/catalog",
+    );
+    expect(mockedApiGet).toHaveBeenNthCalledWith(
+      2,
+      "/dashboard/analytics/charts?source=academics&status=available",
+    );
+    expect(mockedApiGet).toHaveBeenNthCalledWith(
+      3,
+      "/dashboard/analytics/charts/academics.gpa_trend",
+    );
+    expect(mockedApiGet).toHaveBeenNthCalledWith(
+      4,
+      "/dashboard/analytics/charts/academics.gpa_trend/data?range=30d&gradeId=grade-1",
     );
   });
 });

@@ -429,3 +429,34 @@ export interface DashboardModulesResponse {
     dataFreshness: string;
   };
 }
+
+export interface DashboardAnalyticsCatalog {
+  sources: string[];
+  chartTypes: string[];
+  ranges: string[];
+  granularities: string[];
+  statuses: string[];
+  filterKeys: string[];
+  dataQueryKeys: string[];
+  hierarchyFilterKeys: string[];
+  charts: DashboardAnalyticsChart[];
+}
+
+export interface DashboardAnalyticsChartsQuery {
+  source?: string;
+  type?: string;
+  status?: string;
+  limit?: number;
+}
+
+export interface DashboardAnalyticsChartDataQuery {
+  range?: string;
+  granularity?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  academicYearId?: string;
+  termId?: string;
+  gradeId?: string;
+  sectionId?: string;
+  classroomId?: string;
+}

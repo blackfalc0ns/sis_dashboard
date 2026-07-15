@@ -8,6 +8,11 @@ import type {
   DashboardModuleListItem,
   DashboardModulePage,
   DashboardModulesResponse,
+  DashboardAnalyticsCatalog,
+  DashboardAnalyticsChartsQuery,
+  DashboardAnalyticsChartDataQuery,
+  DashboardAnalyticsChart,
+  DashboardAnalyticsChartDataResponse,
 } from "@/features/dashboard/types/dashboardApi.types";
 
 interface DashboardApiEnvelope<T> {
@@ -193,5 +198,47 @@ export function fetchDashboardModules() {
 export function fetchDashboardModuleByKey(moduleKey: string) {
   return fetchDashboardContract<DashboardModulePage>(
     `${DASHBOARD_BASE_PATH}/modules/${moduleKey}`,
+  );
+}
+
+export function fetchAnalyticsCatalog() {
+  return fetchDashboardContract<DashboardAnalyticsCatalog>(
+    `${DASHBOARD_BASE_PATH}/analytics/catalog`,
+  );
+}
+
+export function fetchAnalyticsCharts(query: DashboardAnalyticsChartsQuery = {}) {
+  return fetchDashboardContract<DashboardAnalyticsChart[]>(
+    `${DASHBOARD_BASE_PATH}/analytics/charts${dashboardQueryString({
+      source: query.source,
+      type: query.type,
+      status: query.status,
+      limit: query.limit,
+    })}`,
+  );
+}
+
+export function fetchAnalyticsChartByKey(chartKey: string) {
+  return fetchDashboardContract<DashboardAnalyticsChart>(
+    `${DASHBOARD_BASE_PATH}/analytics/charts/${chartKey}`,
+  );
+}
+
+export function fetchAnalyticsChartData(
+  chartKey: string,
+  query: DashboardAnalyticsChartDataQuery = {},
+) {
+  return fetchDashboardContract<DashboardAnalyticsChartDataResponse>(
+    `${DASHBOARD_BASE_PATH}/analytics/charts/${chartKey}/data${dashboardQueryString({
+      range: query.range,
+      granularity: query.granularity,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
+      academicYearId: query.academicYearId,
+      termId: query.termId,
+      gradeId: query.gradeId,
+      sectionId: query.sectionId,
+      classroomId: query.classroomId,
+    })}`,
   );
 }
