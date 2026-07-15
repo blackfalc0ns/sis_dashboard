@@ -92,17 +92,23 @@ describe("ModuleTabDashboardView", () => {
       availableData: [
         {
           chartKey: "academics.gpa_trend",
-          series: [
-            {
-              name: "GPA",
-              data: [3.2, 3.4, 3.5],
-              labels: ["Term 1", "Term 2", "Term 3"],
-            },
-          ],
-          totals: {},
-          summary: null,
-          empty: false,
-        },
+          data: {
+            series: [
+              {
+                key: "gpa",
+                label: "GPA",
+                points: [
+                  { x: "Term 1", y: 3.2, coordinate: {} },
+                  { x: "Term 2", y: 3.4, coordinate: {} },
+                  { x: "Term 3", y: 3.5, coordinate: {} },
+                ],
+              },
+            ],
+            totals: {},
+            summary: null,
+            empty: false,
+          },
+        } as any,
       ],
     },
   };

@@ -294,10 +294,16 @@ export interface DashboardModuleNextAction {
   action: DashboardModuleAction;
 }
 
-export interface DashboardAnalyticsChartSeries {
-  name: string;
-  data: number[];
-  labels: string[];
+export interface DashboardAnalyticsChartDataPoint {
+  x: string;
+  y: number;
+  coordinate: any;
+}
+
+export interface DashboardAnalyticsChartDataSeries {
+  key: string;
+  label: string;
+  points: DashboardAnalyticsChartDataPoint[];
 }
 
 export interface DashboardAnalyticsChart {
@@ -310,16 +316,23 @@ export interface DashboardAnalyticsChart {
 }
 
 export interface DashboardAnalyticsChartDataResponse {
+  generatedAt: string;
   chartKey: string;
-  series: DashboardAnalyticsChartSeries[];
-  totals: Record<string, number>;
-  summary: {
-    label: string;
-    value: number;
-    deltaPercent: number | null;
-    precision: number;
-  } | null;
-  empty: boolean;
+  source: string;
+  title: string;
+  type: string;
+  status: string;
+  range: string;
+  granularity: string;
+  filters: any;
+  data: {
+    series: DashboardAnalyticsChartDataSeries[];
+    totals: Record<string, number>;
+    summary: any;
+    empty: boolean;
+  };
+  emptyState: any;
+  meta: any;
 }
 
 export interface DashboardWidget {

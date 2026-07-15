@@ -266,10 +266,10 @@ export default function ModuleTabDashboardView({
               chartType: "line",
             };
 
-            const labels = chartData.series[0]?.labels || [];
-            const seriesList = chartData.series.map((s, sIdx) => ({
-              data: s.data,
-              label: s.name,
+            const labels = chartData.data?.series[0]?.points.map((p) => p.x) || [];
+            const seriesList = (chartData.data?.series || []).map((s, sIdx) => ({
+              data: s.points.map((p) => p.y),
+              label: s.label || s.key,
               color: sIdx === 0 ? "#3b82f6" : sIdx === 1 ? "#10b981" : "#f59e0b",
             }));
 
