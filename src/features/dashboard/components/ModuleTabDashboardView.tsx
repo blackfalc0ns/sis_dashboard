@@ -262,8 +262,8 @@ export default function ModuleTabDashboardView({
           {analytics.availableData.map((chartData) => {
             const chartDef = analytics.charts?.find((c) => c.chartKey === chartData.chartKey) || {
               title: "Trend Chart",
-              subtitle: "Module performance trend",
-              chartType: "line",
+              description: "Module performance trend",
+              type: "line",
             };
 
             const labels = chartData.data?.series[0]?.points.map((p) => p.x) || [];
@@ -277,11 +277,11 @@ export default function ModuleTabDashboardView({
               <article key={chartData.chartKey} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                 <div>
                   <h3 className="text-base font-bold text-gray-950">{chartDef.title}</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">{chartDef.subtitle}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{chartDef.description}</p>
                 </div>
 
                 <div className="mt-4 flex justify-center h-[280px]">
-                  {chartDef.chartType === "bar" ? (
+                  {chartDef.type === "bar" ? (
                     <BarChart
                       xAxis={[{ scaleType: "band", data: labels }]}
                       series={seriesList}

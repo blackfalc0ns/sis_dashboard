@@ -8,6 +8,7 @@ import { useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 
 export type PermissionKey =
+  | "dashboard.analytics.view"
   | "admissions.applications.view"
   | "admissions.applications.manage"
   | "admissions.decisions.view"
@@ -228,6 +229,7 @@ export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
     "nedaa-operations": "dismissal.requests.view",
     "nedaa-gates": "dismissal.gates.view",
     "nedaa-staff-assignments": "dismissal.staff.view",
+    "dashboard-analytics": "dashboard.analytics.view",
   };
 
 export function usePermissions() {

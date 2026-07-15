@@ -8,6 +8,11 @@ import {
   fetchAnalyticsChartData,
 } from "@/features/dashboard/services/dashboardApiService";
 
+const permissionState = vi.hoisted(() => ({
+  isPermissionsReady: true,
+  hasPermission: vi.fn(() => true),
+}));
+
 vi.mock("next/navigation", () => ({
   usePathname: () => "/en/dashboard/analytics",
 }));
@@ -16,6 +21,10 @@ vi.mock("@/features/dashboard/services/dashboardApiService", () => ({
   fetchAnalyticsCatalog: vi.fn(),
   fetchAnalyticsCharts: vi.fn(),
   fetchAnalyticsChartData: vi.fn(),
+}));
+
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => permissionState,
 }));
 
 vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({
@@ -78,11 +87,28 @@ describe("DashboardAnalyticsPage", () => {
     charts: [
       {
         chartKey: "academics.gpa_trend",
-        chartType: "line",
+        type: "line",
         title: "Class GPA Trend",
-        subtitle: "Academic year average GPA",
+        description: "Academic year average GPA",
         source: "academics",
-        series: ["GPA"],
+        series: [{ key: "gpa", label: "GPA" }],
+        defaultRange: "30d",
+        supportedRanges: ["7d", "30d", "90d"],
+        supportedGranularities: ["day", "week"],
+        filters: ["range", "granularity", "academicYearId"],
+        queryCapabilities: {
+          timeFilterMode: "historical",
+          snapshotOnly: false,
+          historicalSeriesCapable: true,
+          categoryTableFunnelCapable: false,
+          definitionOnly: false,
+          timeFiltersApplicable: true,
+          granularityApplicable: true,
+          supportedRanges: ["7d", "30d", "90d"],
+          supportedGranularities: ["day", "week"],
+          supportedHierarchyFilters: ["academicYearId"],
+          requiredHierarchyFilters: [],
+        },
       },
     ] as any[],
   };
@@ -120,6 +146,8 @@ describe("DashboardAnalyticsPage", () => {
     mockedFetchCatalog.mockReset();
     mockedFetchCharts.mockReset();
     mockedFetchChartData.mockReset();
+    permissionState.isPermissionsReady = true;
+    permissionState.hasPermission.mockReset().mockReturnValue(true);
 
     mockedFetchCatalog.mockResolvedValue(mockCatalog as any);
     mockedFetchCharts.mockResolvedValue(mockChartsResponse as any);
@@ -148,11 +176,71 @@ describe("DashboardAnalyticsPage", () => {
     });
   });
 
+  it("regression: sends only each chart's supported defaults and hierarchy context", async () => {
+    mockedFetchCharts.mockResolvedValue({
+      generatedAt: "2026-07-15T09:00:00Z",
+      charts: [
+        ...mockChartsResponse.charts,
+        {
+          chartKey: "settings.email_connection_readiness",
+          type: "donut",
+          title: "Email readiness",
+          description: "Current email configuration state",
+          source: "settings",
+          series: [{ key: "ready", label: "Ready" }],
+          defaultRange: "30d",
+          supportedRanges: ["30d"],
+          supportedGranularities: ["day"],
+          filters: [],
+          queryCapabilities: {
+            timeFilterMode: "snapshot_compatibility",
+            snapshotOnly: true,
+            historicalSeriesCapable: false,
+            categoryTableFunnelCapable: false,
+            definitionOnly: false,
+            timeFiltersApplicable: false,
+            granularityApplicable: false,
+            supportedRanges: ["30d"],
+            supportedGranularities: ["day"],
+            supportedHierarchyFilters: [],
+            requiredHierarchyFilters: [],
+          },
+        },
+      ],
+    } as any);
+
+    render(<DashboardAnalyticsPage />);
+
+    await waitFor(() => {
+      expect(mockedFetchChartData).toHaveBeenCalledWith("academics.gpa_trend", {
+        range: "30d",
+        granularity: "day",
+        academicYearId: "year-1",
+      });
+      expect(mockedFetchChartData).toHaveBeenCalledWith(
+        "settings.email_connection_readiness",
+        {},
+      );
+    });
+  });
+
+  it("does not request analytics data for a user without dashboard analytics access", async () => {
+    permissionState.hasPermission.mockReturnValue(false);
+
+    render(<DashboardAnalyticsPage />);
+
+    await waitFor(() => {
+      expect(permissionState.hasPermission).toHaveBeenCalledWith("dashboard.analytics.view");
+    });
+    expect(mockedFetchCatalog).not.toHaveBeenCalled();
+    expect(mockedFetchCharts).not.toHaveBeenCalled();
+    expect(mockedFetchChartData).not.toHaveBeenCalled();
+  });
+
   it("triggers CSV downloader on Export button click", async () => {
-    const createObjectURL = vi.fn();
-    const revokeObjectURL = vi.fn();
-    Object.defineProperty(window.URL, "createObjectURL", { value: createObjectURL });
-    Object.defineProperty(window.URL, "revokeObjectURL", { value: revokeObjectURL });
+    const anchorClick = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
 
     render(<DashboardAnalyticsPage />);
 
@@ -167,5 +255,6 @@ describe("DashboardAnalyticsPage", () => {
 
     // Verify it doesn't crash on download execution
     expect(exportBtn).toBeInTheDocument();
+    anchorClick.mockRestore();
   });
 });

@@ -31,6 +31,7 @@ import {
   Settings2,
   Activity,
   Route,
+  BarChart3,
 } from "lucide-react";
 import {
   mockLeads,
@@ -129,6 +130,29 @@ export const menuItems: MenuItem[] = [
     href_en: "/en/dashboard",
     href_ar: "/ar/dashboard",
     icon: Home,
+    subgroups: [
+      { key: "general", label_en: "General", label_ar: "عام" },
+    ],
+    children: [
+      {
+        key: "dashboard-overview",
+        subgroup: "general",
+        label_en: "Overview",
+        label_ar: "نظرة عامة",
+        href_en: "/en/dashboard",
+        href_ar: "/ar/dashboard",
+        icon: LayoutDashboard,
+      },
+      {
+        key: "dashboard-analytics",
+        subgroup: "general",
+        label_en: "Analytics",
+        label_ar: "التحليلات",
+        href_en: "/en/dashboard/analytics",
+        href_ar: "/ar/dashboard/analytics",
+        icon: BarChart3,
+      },
+    ],
   },
   {
     key: "communication",

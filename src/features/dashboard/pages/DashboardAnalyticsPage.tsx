@@ -11,8 +11,9 @@ import {
   ArrowRight,
   X,
   HelpCircle,
+  RefreshCw,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -29,6 +30,7 @@ import {
   Legend,
 } from "recharts";
 import { Button, DatePicker, FilterPanel, Select } from "@/components/ui";
+import AccessDenied from "@/components/ui/access-denied/AccessDenied";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import {
@@ -37,7 +39,12 @@ import {
   fetchAnalyticsChartData,
 } from "@/features/dashboard/services/dashboardApiService";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
-import { fetchStructureTree, type StructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
+import {
+  fetchStructureTree,
+  type StructureTree,
+} from "@/features/academics/academic-structure-tree/services/structureService";
+import { usePermissions } from "@/hooks/usePermissions";
+import { ApiError, isApiError } from "@/lib/api-error";
 import type {
   DashboardAnalyticsCatalog,
   DashboardAnalyticsChart,
@@ -48,54 +55,385 @@ import type {
 interface AnalyticsFilters {
   source: string;
   type: string;
-  range: string;
-  granularity: string;
-  dateFrom: Date | null;
-  dateTo: Date | null;
-  academicYearId: string;
-  termId: string;
-  gradeId: string;
-  sectionId: string;
-  classroomId: string;
 }
 
 const defaultFilters: AnalyticsFilters = {
   source: "",
   type: "",
-  range: "30d",
-  granularity: "day",
-  dateFrom: null,
-  dateTo: null,
-  academicYearId: "",
-  termId: "",
-  gradeId: "",
-  sectionId: "",
-  classroomId: "",
 };
 
-const CHART_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6", "#6366f1"];
+const CHART_COLORS = [
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#ec4899",
+  "#8b5cf6",
+  "#6366f1",
+];
+
+type ChartQuery = Omit<
+  DashboardAnalyticsChartDataQuery,
+  "dateFrom" | "dateTo"
+> & {
+  dateFrom?: Date | string;
+  dateTo?: Date | string;
+};
+
+interface ChartError {
+  message: string;
+  code?: string;
+  fields?: string[];
+  traceId?: string;
+}
+
+type ChartDataState =
+  | { status: "loading" }
+  | { status: "success"; data: DashboardAnalyticsChartDataResponse }
+  | { status: "error"; error: ChartError };
+
+type HierarchyFilterKey =
+  | "academicYearId"
+  | "termId"
+  | "gradeId"
+  | "sectionId"
+  | "classroomId";
+
+function chartSupportsFilter(
+  chart: DashboardAnalyticsChart,
+  filter: HierarchyFilterKey,
+) {
+  return (
+    chart.queryCapabilities?.supportedHierarchyFilters?.includes(filter) ??
+    chart.filters?.includes(filter) ??
+    false
+  );
+}
+
+function chartSupportsTimeFilter(chart: DashboardAnalyticsChart) {
+  return (
+    chart.queryCapabilities?.timeFiltersApplicable ??
+    chart.filters?.includes("range") ??
+    false
+  );
+}
+
+function chartSupportsGranularity(chart: DashboardAnalyticsChart) {
+  return (
+    chart.queryCapabilities?.granularityApplicable ??
+    chart.filters?.includes("granularity") ??
+    false
+  );
+}
+
+function defaultChartQuery(
+  chart: DashboardAnalyticsChart,
+  academicYearId: string,
+  termId: string,
+): ChartQuery {
+  const query: ChartQuery = {};
+
+  if (chartSupportsTimeFilter(chart)) {
+    query.range =
+      chart.defaultRange ||
+      chart.queryCapabilities?.supportedRanges?.[0] ||
+      "30d";
+  }
+
+  if (chartSupportsGranularity(chart)) {
+    query.granularity =
+      chart.queryCapabilities?.supportedGranularities?.[0] || "day";
+  }
+
+  if (academicYearId && chartSupportsFilter(chart, "academicYearId")) {
+    query.academicYearId = academicYearId;
+  }
+  if (termId && chartSupportsFilter(chart, "termId")) {
+    query.termId = termId;
+  }
+
+  return query;
+}
+
+function reconcileChartQuery(
+  chart: DashboardAnalyticsChart,
+  query: ChartQuery,
+  academicYearId: string,
+  termId: string,
+): ChartQuery {
+  const nextQuery = { ...query };
+
+  if (chartSupportsTimeFilter(chart)) {
+    nextQuery.range ??=
+      chart.defaultRange ||
+      chart.queryCapabilities?.supportedRanges?.[0] ||
+      "30d";
+  } else {
+    delete nextQuery.range;
+    delete nextQuery.dateFrom;
+    delete nextQuery.dateTo;
+  }
+
+  if (chartSupportsGranularity(chart)) {
+    nextQuery.granularity ??=
+      chart.queryCapabilities?.supportedGranularities?.[0] || "day";
+  } else {
+    delete nextQuery.granularity;
+  }
+
+  for (const [filter, contextFilterValue] of [
+    ["academicYearId", academicYearId],
+    ["termId", termId],
+  ] as const) {
+    if (contextFilterValue && chartSupportsFilter(chart, filter)) {
+      nextQuery[filter] = contextFilterValue;
+    } else {
+      delete nextQuery[filter];
+    }
+  }
+
+  // ── Hierarchy cascade: gradeId → sectionId → classroomId ──────────────
+  // 1. Strip any level the chart doesn't support.
+  if (!chartSupportsFilter(chart, "gradeId"))    delete nextQuery.gradeId;
+  if (!chartSupportsFilter(chart, "sectionId"))  delete nextQuery.sectionId;
+  if (!chartSupportsFilter(chart, "classroomId")) delete nextQuery.classroomId;
+
+  // 2. Enforce parent dependency: child cannot exist without its parent.
+  if (!nextQuery.gradeId)   { delete nextQuery.sectionId; delete nextQuery.classroomId; }
+  if (!nextQuery.sectionId) { delete nextQuery.classroomId; }
+  // ──────────────────────────────────────────────────────────────────────
+
+  return nextQuery;
+}
+
+function formatChartQuery(query: ChartQuery): DashboardAnalyticsChartDataQuery {
+  const formattedQuery: DashboardAnalyticsChartDataQuery = {};
+
+  for (const [key, queryValue] of Object.entries(query)) {
+    if (queryValue === undefined) continue;
+    if (queryValue instanceof Date) {
+      formattedQuery[key as keyof DashboardAnalyticsChartDataQuery] = queryValue
+        .toISOString()
+        .split("T")[0];
+    } else {
+      formattedQuery[key as keyof DashboardAnalyticsChartDataQuery] =
+        queryValue;
+    }
+  }
+
+  // Final cascade guard — ensures no child filter escapes without its parent,
+  // regardless of how the ChartQuery was assembled.
+  if (!formattedQuery.gradeId)   { delete formattedQuery.sectionId;   delete formattedQuery.classroomId; }
+  if (!formattedQuery.sectionId) { delete formattedQuery.classroomId; }
+
+  return formattedQuery;
+}
+
+interface DashboardAnalyticsChartFiltersProps {
+  chart: DashboardAnalyticsChart;
+  query: ChartQuery | undefined;
+  catalog: DashboardAnalyticsCatalog | null;
+  structureTree: StructureTree | null;
+  locale: string;
+  onQueryChange: (
+    field: keyof ChartQuery,
+    queryValue: ChartQuery[keyof ChartQuery],
+  ) => void;
+}
+
+function DashboardAnalyticsChartFilters({
+  chart,
+  query,
+  catalog,
+  structureTree,
+  locale,
+  onQueryChange,
+}: DashboardAnalyticsChartFiltersProps) {
+  if (!query) return null;
+
+  const showRange = chartSupportsTimeFilter(chart);
+  const showGranularity = chartSupportsGranularity(chart);
+  const showGrade = chartSupportsFilter(chart, "gradeId");
+  const showSection = chartSupportsFilter(chart, "sectionId");
+  const showClassroom = chartSupportsFilter(chart, "classroomId");
+
+  if (
+    !showRange &&
+    !showGranularity &&
+    !showGrade &&
+    !showSection &&
+    !showClassroom
+  ) {
+    return null;
+  }
+
+  const chartRangeOptions = (
+    chart.queryCapabilities?.supportedRanges ||
+    chart.supportedRanges ||
+    catalog?.supportedRanges ||
+    []
+  ).map((range) => ({
+    value: range,
+    label: range.toUpperCase(),
+  }));
+
+  const chartGranularityOptions = (
+    chart.queryCapabilities?.supportedGranularities ||
+    chart.supportedGranularities ||
+    catalog?.supportedGranularities ||
+    []
+  ).map((granularity) => ({
+    value: granularity,
+    label: granularity.charAt(0).toUpperCase() + granularity.slice(1),
+  }));
+
+  const chartGradeOptions = [
+    { value: "", label: "All Grades" },
+    ...(structureTree?.grades || []).map((grade) => ({
+      value: grade.id,
+      label: locale === "ar" ? grade.nameAr : grade.nameEn,
+    })),
+  ];
+
+  const chartSectionOptions = [
+    { value: "", label: "All Sections" },
+    ...(structureTree?.sections || [])
+      .filter((section) => !query.gradeId || section.gradeId === query.gradeId)
+      .map((section) => ({
+        value: section.id,
+        label: locale === "ar" ? section.nameAr : section.nameEn,
+      })),
+  ];
+
+  const chartClassroomOptions = [
+    { value: "", label: "All Classrooms" },
+    ...(structureTree?.classrooms || [])
+      .filter(
+        (classroom) =>
+          !query.sectionId || classroom.sectionId === query.sectionId,
+      )
+      .map((classroom) => ({
+        value: classroom.id,
+        label: locale === "ar" ? classroom.nameAr : classroom.nameEn,
+      })),
+  ];
+
+  return (
+    <div className="mt-4 grid grid-cols-1 gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3 sm:grid-cols-2 md:grid-cols-3">
+      {showRange && (
+        <Select
+          label="Range"
+          value={query.range || ""}
+          onChange={(range) => onQueryChange("range", range)}
+          options={chartRangeOptions}
+        />
+      )}
+      {showGranularity && (
+        <Select
+          label="Granularity"
+          value={query.granularity || ""}
+          onChange={(granularity) => onQueryChange("granularity", granularity)}
+          options={chartGranularityOptions}
+        />
+      )}
+      {showGrade && (
+        <Select
+          label="Grade"
+          value={query.gradeId || ""}
+          onChange={(gradeId) => onQueryChange("gradeId", gradeId || undefined)}
+          options={chartGradeOptions}
+        />
+      )}
+      {showSection && (
+        <Select
+          label="Section"
+          value={query.sectionId || ""}
+          onChange={(sectionId) =>
+            onQueryChange("sectionId", sectionId || undefined)
+          }
+          options={chartSectionOptions}
+        />
+      )}
+      {showClassroom && (
+        <Select
+          label="Classroom"
+          value={query.classroomId || ""}
+          onChange={(classroomId) =>
+            onQueryChange("classroomId", classroomId || undefined)
+          }
+          options={chartClassroomOptions}
+        />
+      )}
+      {showRange && query.range === "custom" && (
+        <div className="col-span-full grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <DatePicker
+            label="From"
+            value={
+              query.dateFrom instanceof Date
+                ? query.dateFrom
+                : query.dateFrom
+                  ? new Date(query.dateFrom)
+                  : null
+            }
+            onChange={(dateFrom) =>
+              onQueryChange("dateFrom", dateFrom ?? undefined)
+            }
+          />
+          <DatePicker
+            label="To"
+            value={
+              query.dateTo instanceof Date
+                ? query.dateTo
+                : query.dateTo
+                  ? new Date(query.dateTo)
+                  : null
+            }
+            onChange={(dateTo) => onQueryChange("dateTo", dateTo ?? undefined)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function DashboardAnalyticsPage() {
+  const { hasPermission, isPermissionsReady } = usePermissions();
+
+  if (!isPermissionsReady) {
+    return <MainLoader />;
+  }
+
+  if (!hasPermission("dashboard.analytics.view")) {
+    return (
+      <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
+        <AccessDenied />
+      </main>
+    );
+  }
+
+  return <DashboardAnalyticsContent />;
+}
+
+function DashboardAnalyticsContent() {
   const locale = useLocale();
   const pathname = usePathname();
   const t = useTranslations("dashboard_new");
   const isMountedRef = useRef(true);
 
-  const {
-    academicYearId: contextYearId,
-    termId: contextTermId,
-    academicYears,
-    terms,
-  } = useAcademicYearTermLayoutContext();
+  const { academicYearId: contextYearId, termId: contextTermId } =
+    useAcademicYearTermLayoutContext();
 
   const [showFilters, setShowFilters] = useState(true);
   const [filters, setFilters] = useState<AnalyticsFilters>(defaultFilters);
-  const [catalog, setCatalog] = useState<DashboardAnalyticsCatalog | null>(null);
+  const [catalog, setCatalog] = useState<DashboardAnalyticsCatalog | null>(
+    null,
+  );
   const [charts, setCharts] = useState<DashboardAnalyticsChart[]>([]);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
-  const [structureTree, setStructureTree] = useState<StructureTree | null>(null);
+  const [structureTree, setStructureTree] = useState<StructureTree | null>(
+    null,
+  );
   const [chartDataStates, setChartDataStates] = useState<
-    Record<string, { status: "loading" | "success" | "error"; data?: DashboardAnalyticsChartDataResponse; error?: string }>
+    Record<string, ChartDataState>
   >({});
 
   // Helper to construct dashboard base href
@@ -108,29 +446,14 @@ export default function DashboardAnalyticsPage() {
     return `/${locale}/dashboard`;
   }, [pathname, locale]);
 
-  // Sync filters with academic year/term context
+  const [chartQueries, setChartQueries] = useState<Record<string, ChartQuery>>(
+    {},
+  );
+
+  // Sync structure tree when layout context values update
   useEffect(() => {
     if (contextYearId && contextTermId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFilters((prev) => {
-        if (prev.academicYearId === contextYearId && prev.termId === contextTermId) {
-          return prev;
-        }
-        return {
-          ...prev,
-          academicYearId: contextYearId,
-          termId: contextTermId,
-        };
-      });
-    }
-  }, [contextYearId, contextTermId]);
-
-  // Load structure tree when academicYearId or termId updates
-  useEffect(() => {
-    const activeYearId = filters.academicYearId || contextYearId;
-    const activeTermId = filters.termId || contextTermId;
-    if (activeYearId && activeTermId) {
-      fetchStructureTree(activeYearId, activeTermId)
+      fetchStructureTree(contextYearId, contextTermId)
         .then((tree) => {
           setStructureTree(tree);
         })
@@ -138,7 +461,28 @@ export default function DashboardAnalyticsPage() {
           console.error("Failed to load academic structure tree:", err);
         });
     }
-  }, [filters.academicYearId, filters.termId, contextYearId, contextTermId]);
+  }, [contextYearId, contextTermId]);
+
+  const resolvedChartQueries = useMemo(
+    () =>
+      Object.fromEntries(
+        charts.map((chart) => {
+          const savedQuery =
+            chartQueries[chart.chartKey] ??
+            defaultChartQuery(chart, contextYearId, contextTermId);
+          return [
+            chart.chartKey,
+            reconcileChartQuery(
+              chart,
+              savedQuery,
+              contextYearId,
+              contextTermId,
+            ),
+          ];
+        }),
+      ) as Record<string, ChartQuery>,
+    [charts, chartQueries, contextTermId, contextYearId],
+  );
 
   // Load Catalog on mount
   useEffect(() => {
@@ -186,45 +530,66 @@ export default function DashboardAnalyticsPage() {
   }, [filters.source, filters.type]);
 
   // Fetch individual chart data
-  const loadChartData = useCallback((chartKey: string) => {
-    setChartDataStates((prev) => ({
-      ...prev,
-      [chartKey]: { status: "loading" },
-    }));
+  const fetchDataForChart = useCallback(
+    (chartKey: string, query: ChartQuery) => {
+      setChartDataStates((prev) => ({
+        ...prev,
+        [chartKey]: { status: "loading" },
+      }));
 
-    const query: DashboardAnalyticsChartDataQuery = {
-      range: filters.range,
-      granularity: filters.granularity,
-      dateFrom: filters.dateFrom ? filters.dateFrom.toISOString().split("T")[0] : undefined,
-      dateTo: filters.dateTo ? filters.dateTo.toISOString().split("T")[0] : undefined,
-      academicYearId: filters.academicYearId || undefined,
-      termId: filters.termId || undefined,
-      gradeId: filters.gradeId || undefined,
-      sectionId: filters.sectionId || undefined,
-      classroomId: filters.classroomId || undefined,
-    };
+      fetchAnalyticsChartData(chartKey, formatChartQuery(query))
+        .then((res) => {
+          if (isMountedRef.current) {
+            setChartDataStates((prev) => ({
+              ...prev,
+              [chartKey]: { status: "success", data: res },
+            }));
+          }
+        })
+        .catch((err) => {
+          if (isMountedRef.current) {
+            const chartError: ChartError = isApiError(err)
+              ? {
+                  message: err.message,
+                  code: err.code,
+                  fields: (() => {
+                    const det = err.details as { fields?: string[] } | null;
+                    return Array.isArray(det?.fields) ? det.fields : undefined;
+                  })(),
+                  traceId: err.traceId,
+                }
+              : {
+                  message:
+                    err instanceof Error
+                      ? err.message
+                      : "Failed to load chart data",
+                };
+            setChartDataStates((prev) => ({
+              ...prev,
+              [chartKey]: { status: "error", error: chartError },
+            }));
+          }
+        });
+    },
+    [],
+  );
 
-    fetchAnalyticsChartData(chartKey, query)
-      .then((res) => {
-        setChartDataStates((prev) => ({
-          ...prev,
-          [chartKey]: { status: "success", data: res },
-        }));
-      })
-      .catch((err) => {
-        setChartDataStates((prev) => ({
-          ...prev,
-          [chartKey]: { status: "error", error: err instanceof Error ? err.message : "Failed to load chart data" },
-        }));
-      });
-  }, [filters]);
-
-  // Load all visible chart data on chart list change or filters change
+  // Load chart data when its resolved filter set changes.
+  const lastFetchedQueriesRef = useRef<Record<string, string>>({});
   useEffect(() => {
     charts.forEach((chart) => {
-      loadChartData(chart.chartKey);
+      const key = chart.chartKey;
+      const query = resolvedChartQueries[key];
+      if (!query) return;
+
+      const queryStr = JSON.stringify(formatChartQuery(query));
+
+      if (lastFetchedQueriesRef.current[key] !== queryStr) {
+        lastFetchedQueriesRef.current[key] = queryStr;
+        fetchDataForChart(key, query);
+      }
     });
-  }, [charts, loadChartData]);
+  }, [charts, fetchDataForChart, resolvedChartQueries]);
 
   const updateFilter = useCallback(
     <TKey extends keyof AnalyticsFilters>(
@@ -243,47 +608,76 @@ export default function DashboardAnalyticsPage() {
     setFilters(defaultFilters);
   }, []);
 
-  const handleExportCSV = useCallback((chartKey: string, chartTitle: string) => {
-    const state = chartDataStates[chartKey];
-    if (state?.status !== "success" || !state.data?.data?.series) {
-      return;
-    }
+  const updateChartQuery = useCallback(
+    (
+      chartKey: string,
+      field: keyof ChartQuery,
+      queryValue: ChartQuery[keyof ChartQuery],
+    ) => {
+      setChartQueries((currentQueries) => ({
+        ...currentQueries,
+        [chartKey]: {
+          ...currentQueries[chartKey],
+          [field]: queryValue,
+          ...(field === "gradeId"
+            ? { sectionId: undefined, classroomId: undefined }
+            : {}),
+          ...(field === "sectionId" ? { classroomId: undefined } : {}),
+        },
+      }));
+    },
+    [],
+  );
 
-    const series = state.data.data.series;
-    if (series.length === 0) return;
+  const handleExportCSV = useCallback(
+    (chartKey: string, chartTitle: string) => {
+      const state = chartDataStates[chartKey];
+      if (state?.status !== "success" || !state.data?.data?.series) {
+        return;
+      }
 
-    // Header row
-    const headers = ["Label", ...series.map((s) => s.label || s.key)];
-    const rows = [headers];
+      const series = state.data.data.series;
+      if (series.length === 0) return;
 
-    // Find all unique x labels across all series
-    const pointsMap: Record<string, Record<string, number>> = {};
-    series.forEach((s) => {
-      s.points.forEach((p) => {
-        if (!pointsMap[p.x]) {
-          pointsMap[p.x] = {};
-        }
-        pointsMap[p.x][s.key] = p.y;
-      });
-    });
+      // Header row
+      const headers = ["Label", ...series.map((s) => s.label || s.key)];
+      const rows = [headers];
 
-    Object.entries(pointsMap).forEach(([xVal, values]) => {
-      const row = [xVal];
+      // Find all unique x labels across all series
+      const pointsMap: Record<string, Record<string, number>> = {};
       series.forEach((s) => {
-        row.push(values[s.key] !== undefined ? String(values[s.key]) : "0");
+        s.points.forEach((p) => {
+          if (!pointsMap[p.x]) {
+            pointsMap[p.x] = {};
+          }
+          pointsMap[p.x][s.key] = p.y;
+        });
       });
-      rows.push(row);
-    });
 
-    const csvContent = "data:text/csv;charset=utf-8,\ufeff" + rows.map((e) => e.join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${chartTitle.replace(/\s+/g, "_")}_export.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [chartDataStates]);
+      Object.entries(pointsMap).forEach(([xVal, values]) => {
+        const row = [xVal];
+        series.forEach((s) => {
+          row.push(values[s.key] !== undefined ? String(values[s.key]) : "0");
+        });
+        rows.push(row);
+      });
+
+      const csvContent =
+        "data:text/csv;charset=utf-8,\ufeff" +
+        rows.map((e) => e.join(",")).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute(
+        "download",
+        `${chartTitle.replace(/\s+/g, "_")}_export.csv`,
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    },
+    [chartDataStates],
+  );
 
   const sourceOptions = [
     { value: "", label: "All Modules" },
@@ -300,66 +694,6 @@ export default function DashboardAnalyticsPage() {
       label: t.charAt(0).toUpperCase() + t.slice(1),
     })),
   ];
-
-  const rangeOptions = (catalog?.supportedRanges || []).map((r) => ({
-    value: r,
-    label: r.toUpperCase(),
-  }));
-
-  const granularityOptions = (catalog?.supportedGranularities || []).map((g) => ({
-    value: g,
-    label: g.charAt(0).toUpperCase() + g.slice(1),
-  }));
-
-  const academicYearOptions = useMemo(() => {
-    return (academicYears || []).map((y) => ({
-      value: y.id,
-      label: y.name,
-    }));
-  }, [academicYears]);
-
-  const termOptions = useMemo(() => {
-    return (terms || []).map((t) => ({
-      value: t.id,
-      label: locale === "ar" ? t.nameAr || t.name : t.nameEn || t.name,
-    }));
-  }, [terms, locale]);
-
-  const gradeOptions = useMemo(() => {
-    return [
-      { value: "", label: "All Grades" },
-      ...(structureTree?.grades || []).map((g) => ({
-        value: g.id,
-        label: locale === "ar" ? g.nameAr : g.nameEn,
-      })),
-    ];
-  }, [structureTree, locale]);
-
-  const sectionOptions = useMemo(() => {
-    const filteredSections = filters.gradeId
-      ? (structureTree?.sections || []).filter((s) => s.gradeId === filters.gradeId)
-      : (structureTree?.sections || []);
-    return [
-      { value: "", label: "All Sections" },
-      ...filteredSections.map((s) => ({
-        value: s.id,
-        label: locale === "ar" ? s.nameAr : s.nameEn,
-      })),
-    ];
-  }, [structureTree, filters.gradeId, locale]);
-
-  const classroomOptions = useMemo(() => {
-    const filteredClassrooms = filters.sectionId
-      ? (structureTree?.classrooms || []).filter((c) => c.sectionId === filters.sectionId)
-      : (structureTree?.classrooms || []);
-    return [
-      { value: "", label: "All Classrooms" },
-      ...filteredClassrooms.map((c) => ({
-        value: c.id,
-        label: locale === "ar" ? c.nameAr : c.nameEn,
-      })),
-    ];
-  }, [structureTree, filters.sectionId, locale]);
 
   const BackIcon = locale === "ar" ? ArrowRight : ArrowLeft;
 
@@ -382,12 +716,17 @@ export default function DashboardAnalyticsPage() {
         </Link>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-950">Analytics Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-950">
+              Analytics Dashboard
+            </h1>
             <p className="mt-1 text-sm text-gray-600">
-              Computed charts, catalog details, and operational performance trends
+              Computed charts, catalog details, and operational performance
+              trends
             </p>
           </div>
-          <p className="text-xs text-gray-500">Showing {charts.length} available charts</p>
+          <p className="text-xs text-gray-500">
+            Showing {charts.length} available charts
+          </p>
         </div>
       </header>
 
@@ -411,7 +750,7 @@ export default function DashboardAnalyticsPage() {
         }
         filtersSlot={
           <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 md:grid-cols-2">
               <Select
                 label="Module Source"
                 value={filters.source}
@@ -423,74 +762,6 @@ export default function DashboardAnalyticsPage() {
                 value={filters.type}
                 onChange={(value) => updateFilter("type", value)}
                 options={chartTypeOptions}
-              />
-              <Select
-                label="Time Range"
-                value={filters.range}
-                onChange={(value) => updateFilter("range", value)}
-                options={rangeOptions}
-              />
-              <Select
-                label="Granularity"
-                value={filters.granularity}
-                onChange={(value) => updateFilter("granularity", value)}
-                options={granularityOptions}
-              />
-            </div>
-
-            {filters.range === "custom" && (
-              <div className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:grid-cols-2">
-                <DatePicker
-                  label={t("filters.from")}
-                  value={filters.dateFrom}
-                  onChange={(date) => updateFilter("dateFrom", date)}
-                />
-                <DatePicker
-                  label={t("filters.to")}
-                  value={filters.dateTo}
-                  onChange={(date) => updateFilter("dateTo", date)}
-                />
-              </div>
-            )}
-
-            {/* Academic Hierarchy Filters */}
-            <div className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 md:grid-cols-3 xl:grid-cols-5">
-              <Select
-                label="Academic Year"
-                value={filters.academicYearId}
-                onChange={(value) => updateFilter("academicYearId", value)}
-                options={academicYearOptions}
-              />
-              <Select
-                label="Term"
-                value={filters.termId}
-                onChange={(value) => updateFilter("termId", value)}
-                options={termOptions}
-              />
-              <Select
-                label="Grade"
-                value={filters.gradeId}
-                onChange={(value) => {
-                  updateFilter("gradeId", value);
-                  updateFilter("sectionId", "");
-                  updateFilter("classroomId", "");
-                }}
-                options={gradeOptions}
-              />
-              <Select
-                label="Section"
-                value={filters.sectionId}
-                onChange={(value) => {
-                  updateFilter("sectionId", value);
-                  updateFilter("classroomId", "");
-                }}
-                options={sectionOptions}
-              />
-              <Select
-                label="Classroom"
-                value={filters.classroomId}
-                onChange={(value) => updateFilter("classroomId", value)}
-                options={classroomOptions}
               />
             </div>
           </div>
@@ -508,8 +779,12 @@ export default function DashboardAnalyticsPage() {
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-base font-bold text-gray-950">{chart.title}</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">{chart.subtitle}</p>
+                  <h3 className="text-base font-bold text-gray-950">
+                    {chart.title}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {chart.description}
+                  </p>
                 </div>
                 {state?.status === "success" && (
                   <button
@@ -522,9 +797,27 @@ export default function DashboardAnalyticsPage() {
                 )}
               </div>
 
+              <DashboardAnalyticsChartFilters
+                chart={chart}
+                query={resolvedChartQueries[chart.chartKey]}
+                catalog={catalog}
+                structureTree={structureTree}
+                locale={locale}
+                onQueryChange={(field, queryValue) =>
+                  updateChartQuery(chart.chartKey, field, queryValue)
+                }
+              />
+
               {/* Chart Body Render */}
               <div className="mt-5 flex-1 min-h-[300px] flex items-center justify-center">
-                {renderChartContent(chart, state, loadChartData)}
+                <DashboardAnalyticsChartContent
+                  chart={chart}
+                  state={state}
+                  onRetry={() => {
+                    const query = resolvedChartQueries[chart.chartKey];
+                    if (query) fetchDataForChart(chart.chartKey, query);
+                  }}
+                />
               </div>
             </article>
           );
@@ -533,7 +826,9 @@ export default function DashboardAnalyticsPage() {
         {charts.length === 0 && (
           <div className="col-span-full rounded-xl border border-dashed border-gray-300 p-12 text-center">
             <BarChart3 className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-4 text-sm font-semibold text-gray-900">No charts found</h3>
+            <h3 className="mt-4 text-sm font-semibold text-gray-900">
+              No charts found
+            </h3>
             <p className="mt-1 text-xs text-gray-500">
               Try adjusting your filter settings or search modules.
             </p>
@@ -544,24 +839,92 @@ export default function DashboardAnalyticsPage() {
   );
 }
 
-function renderChartContent(
-  chart: DashboardAnalyticsChart,
-  state: any,
-  onRetry: (chartKey: string) => void,
-) {
+interface DashboardAnalyticsChartContentProps {
+  chart: DashboardAnalyticsChart;
+  state: ChartDataState | undefined;
+  onRetry: () => void;
+}
+
+interface FormattedChartDataPoint {
+  name: string;
+  [seriesKey: string]: number | string;
+}
+
+function DashboardAnalyticsChartContent({
+  chart,
+  state,
+  onRetry,
+}: DashboardAnalyticsChartContentProps) {
   if (!state || state.status === "loading") {
     return <PartialLoader />;
   }
 
   if (state.status === "error") {
+    const { message, code, fields, traceId } = state.error;
     return (
-      <div className="text-center p-6 space-y-3">
-        <AlertTriangle className="mx-auto h-8 w-8 text-amber-500" />
-        <p className="text-sm font-semibold text-gray-900">Failed to load data</p>
-        <p className="text-xs text-gray-500 max-w-[280px] mx-auto">{state.error}</p>
-        <Button size="sm" onClick={() => onRetry(chart.chartKey)}>
-          Retry
-        </Button>
+      <div className="w-full rounded-xl border border-red-100 bg-red-50 p-5 space-y-4">
+        {/* Icon + heading row */}
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 flex-shrink-0 rounded-full bg-red-100 p-1.5">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-red-900 leading-tight">
+                Failed to load chart data
+              </p>
+              {code && (
+                <span className="inline-flex items-center rounded-md bg-red-100 px-2 py-0.5 text-[10px] font-mono font-semibold text-red-700 ring-1 ring-inset ring-red-200">
+                  {code}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-xs text-red-700 leading-relaxed">
+              {message}
+            </p>
+          </div>
+        </div>
+
+        {/* Affected fields */}
+        {fields && fields.length > 0 && (
+          <div className="rounded-lg border border-red-200 bg-white px-3 py-2">
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-red-500">
+              Affected fields
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {fields.map((field) => (
+                <span
+                  key={field}
+                  className="inline-flex items-center rounded-md bg-red-50 px-2 py-0.5 text-xs font-mono text-red-700 ring-1 ring-inset ring-red-200"
+                >
+                  {field}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Retry button */}
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onRetry}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-red-700 active:bg-red-800"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Retry
+          </button>
+
+          {/* Trace ID */}
+          {traceId && (
+            <p
+              className="text-[10px] font-mono text-red-400 select-all truncate max-w-[200px]"
+              title={traceId}
+            >
+              Trace: {traceId}
+            </p>
+          )}
+        </div>
       </div>
     );
   }
@@ -584,8 +947,7 @@ function renderChartContent(
     return <p className="text-sm text-gray-400">Empty Series Data</p>;
   }
 
-  // Parse Rechargets friendly structure
-  const formattedData: any[] = [];
+  const formattedData: FormattedChartDataPoint[] = [];
   const pointsKeys = new Set<string>();
 
   series.forEach((s) => {
@@ -597,7 +959,7 @@ function renderChartContent(
   const uniqueX = Array.from(pointsKeys).sort();
 
   uniqueX.forEach((xVal) => {
-    const entry: any = { name: xVal };
+    const entry: FormattedChartDataPoint = { name: xVal };
     series.forEach((s) => {
       const pt = s.points.find((p) => p.x === xVal);
       entry[s.key] = pt ? pt.y : 0;
@@ -606,15 +968,20 @@ function renderChartContent(
   });
 
   // Table visualization fallback
-  if (chart.chartType === "table") {
+  if (chart.type === "table") {
     return (
       <div className="w-full overflow-x-auto max-h-[280px] border border-gray-150 rounded-lg">
         <table className="min-w-full divide-y divide-gray-200 text-xs">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-2 text-left font-semibold text-gray-700">Label</th>
+              <th className="px-4 py-2 text-left font-semibold text-gray-700">
+                Label
+              </th>
               {series.map((s) => (
-                <th key={s.key} className="px-4 py-2 text-left font-semibold text-gray-700">
+                <th
+                  key={s.key}
+                  className="px-4 py-2 text-left font-semibold text-gray-700"
+                >
                   {s.label || s.key}
                 </th>
               ))}
@@ -623,7 +990,9 @@ function renderChartContent(
           <tbody className="divide-y divide-gray-200 bg-white">
             {formattedData.map((row, rIdx) => (
               <tr key={rIdx} className="hover:bg-gray-50">
-                <td className="px-4 py-2 font-medium text-gray-950">{row.name}</td>
+                <td className="px-4 py-2 font-medium text-gray-950">
+                  {row.name}
+                </td>
                 {series.map((s) => (
                   <td key={s.key} className="px-4 py-2 text-gray-600">
                     {row[s.key] !== undefined ? row[s.key] : "-"}
@@ -638,46 +1007,115 @@ function renderChartContent(
   }
 
   // Pie / Donut Chart
-  if (chart.chartType === "pie" || chart.chartType === "donut") {
+  if (chart.type === "pie" || chart.type === "donut") {
     // Pie chart usually summarizes a single series or totals
-    const pieData = series[0]?.points.map((p) => ({
-      name: p.x,
-      value: p.y,
-    })) || [];
+    const pieData =
+      series[0]?.points.map((p) => ({
+        name: p.x,
+        value: p.y,
+      })) || [];
 
-    const innerRadius = chart.chartType === "donut" ? 60 : 0;
+    const innerRadius = chart.type === "donut" ? 60 : 0;
+
+    const RADIAN = Math.PI / 180;
+
+    const renderCustomLabel = ({
+      cx,
+      cy,
+      midAngle,
+      innerRadius: ir,
+      outerRadius: or,
+      percent,
+      name,
+    }: {
+      cx: number;
+      cy: number;
+      midAngle: number;
+      innerRadius: number;
+      outerRadius: number;
+      percent: number;
+      name: string;
+    }) => {
+      // Skip slices smaller than 5% — they're too narrow to label
+      if (percent < 0.05) return null;
+
+      const radius = or + 24;
+      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+      const anchor = x > cx ? "start" : "end";
+
+      return (
+        <text
+          x={x}
+          y={y}
+          fill="#374151"
+          textAnchor={anchor}
+          dominantBaseline="central"
+          style={{ fontSize: 11, fontWeight: 500, fontFamily: "inherit" }}
+        >
+          {`${name} (${(percent * 100).toFixed(0)}%)`}
+        </text>
+      );
+    };
 
     return (
-      <ResponsiveContainer width="100%" height={260}>
-        <PieChart>
+      <ResponsiveContainer width="100%" height={300}>
+        <PieChart margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
           <Pie
             data={pieData}
             cx="50%"
-            cy="50%"
+            cy="46%"
             innerRadius={innerRadius}
-            outerRadius={90}
+            outerRadius={85}
             paddingAngle={2}
             dataKey="value"
-            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+            labelLine={{ stroke: "#d1d5db", strokeWidth: 1 }}
+            label={renderCustomLabel}
           >
             {pieData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+              <Cell
+                key={`cell-${index}`}
+                fill={CHART_COLORS[index % CHART_COLORS.length]}
+              />
             ))}
           </Pie>
-          <Tooltip />
+          <Tooltip
+            formatter={(value: number, name: string) => [
+              value.toLocaleString(),
+              name,
+            ]}
+            contentStyle={{
+              borderRadius: 8,
+              border: "1px solid #e5e7eb",
+              fontSize: 12,
+            }}
+          />
+          <Legend
+            iconType="circle"
+            iconSize={8}
+            wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+          />
         </PieChart>
       </ResponsiveContainer>
     );
   }
 
   // Bar Chart
-  if (chart.chartType === "bar" || chart.chartType === "stacked-bar") {
+  if (chart.type === "bar" || chart.type === "stacked-bar") {
     return (
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={formattedData}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="name" tickLine={false} tick={{ fontSize: 10, fill: "#6b7280" }} />
-          <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#6b7280" }} />
+          <XAxis
+            dataKey="name"
+            tickLine={false}
+            tick={{ fontSize: 10, fill: "#6b7280" }}
+          />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tick={{ fontSize: 10, fill: "#6b7280" }}
+          />
           <Tooltip />
           <Legend wrapperStyle={{ fontSize: 11 }} />
           {series.map((s, idx) => (
@@ -686,7 +1124,7 @@ function renderChartContent(
               dataKey={s.key}
               name={s.label || s.key}
               fill={CHART_COLORS[idx % CHART_COLORS.length]}
-              stackId={chart.chartType === "stacked-bar" ? "stack" : undefined}
+              stackId={chart.type === "stacked-bar" ? "stack" : undefined}
               radius={[4, 4, 0, 0]}
             />
           ))}
@@ -700,8 +1138,16 @@ function renderChartContent(
     <ResponsiveContainer width="100%" height={260}>
       <LineChart data={formattedData}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="name" tickLine={false} tick={{ fontSize: 10, fill: "#6b7280" }} />
-        <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#6b7280" }} />
+        <XAxis
+          dataKey="name"
+          tickLine={false}
+          tick={{ fontSize: 10, fill: "#6b7280" }}
+        />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          tick={{ fontSize: 10, fill: "#6b7280" }}
+        />
         <Tooltip />
         <Legend wrapperStyle={{ fontSize: 11 }} />
         {series.map((s, idx) => (

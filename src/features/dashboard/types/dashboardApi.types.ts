@@ -308,11 +308,33 @@ export interface DashboardAnalyticsChartDataSeries {
 
 export interface DashboardAnalyticsChart {
   chartKey: string;
-  chartType: string;
+  type: string;
   title: string;
-  subtitle: string;
+  description: string;
   source: string;
-  series: string[];
+  series: DashboardAnalyticsChartDataSeriesDefinition[];
+  defaultRange?: string;
+  supportedRanges?: string[];
+  supportedGranularities?: string[];
+  filters?: string[];
+  queryCapabilities?: {
+    timeFilterMode: string;
+    snapshotOnly: boolean;
+    historicalSeriesCapable: boolean;
+    categoryTableFunnelCapable: boolean;
+    definitionOnly: boolean;
+    timeFiltersApplicable: boolean;
+    granularityApplicable: boolean;
+    supportedRanges: string[];
+    supportedGranularities: string[];
+    supportedHierarchyFilters: string[];
+    requiredHierarchyFilters: string[];
+  };
+}
+
+export interface DashboardAnalyticsChartDataSeriesDefinition {
+  key: string;
+  label: string;
 }
 
 export interface DashboardAnalyticsChartDataResponse {
@@ -430,15 +452,29 @@ export interface DashboardModulesResponse {
   };
 }
 
+export interface DashboardAnalyticsSource {
+  source: string;
+  label: string;
+  status: string;
+  description: string;
+}
+
 export interface DashboardAnalyticsCatalog {
-  sources: string[];
-  chartTypes: string[];
-  ranges: string[];
-  granularities: string[];
-  statuses: string[];
-  filterKeys: string[];
-  dataQueryKeys: string[];
-  hierarchyFilterKeys: string[];
+  version: string;
+  sources: DashboardAnalyticsSource[];
+  supportedChartTypes: string[];
+  supportedRanges: string[];
+  supportedGranularities: string[];
+  charts: DashboardAnalyticsChart[];
+}
+
+export interface DashboardAnalyticsCatalogResponse {
+  generatedAt: string;
+  catalog: DashboardAnalyticsCatalog;
+}
+
+export interface DashboardAnalyticsChartsResponse {
+  generatedAt: string;
   charts: DashboardAnalyticsChart[];
 }
 
