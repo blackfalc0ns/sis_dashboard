@@ -98,13 +98,14 @@ export function SchoolBrandingEditor({
         <DragDropUploadArea
           accept="image/*"
           buttonLabel={copy.uploadLogo}
-          disabled={disabled}
+          disabled={disabled || editor.isUploadingLogo}
           helperText={copy.uploadHint}
           maxSizeBytes={2 * 1024 * 1024}
           multiple={false}
           onFilesSelected={editor.uploadLogo}
           subtitle={copy.uploadHint}
           title={copy.uploadLogo}
+          isUploading={editor.isUploadingLogo}
         />
         {errors.logoUrl ? (
           <p className="text-sm text-red-700">{errors.logoUrl}</p>

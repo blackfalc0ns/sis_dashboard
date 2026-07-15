@@ -6,6 +6,7 @@ import type {
   ResolvedSchoolLocation,
   SchoolProfileSettings,
 } from "../../types";
+import { uploadFile } from "@/services/filesService";
 
 export interface SchoolBrandingEditorCopy {
   logoUploadFailed: string;
@@ -40,6 +41,7 @@ export function useSchoolBrandingEditor({
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [locationWasEdited, setLocationWasEdited] = useState(false);
   const [logoError, setLogoError] = useState("");
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   useEffect(() => {
     setProfile(cloneProfile(initialProfile));
@@ -47,6 +49,7 @@ export function useSchoolBrandingEditor({
     setErrors({});
     setLocationWasEdited(false);
     setLogoError("");
+    setIsUploadingLogo(false);
   }, [initialProfile]);
 
   const isDirty = useMemo(
@@ -133,6 +136,7 @@ export function useSchoolBrandingEditor({
     setErrors({});
     setLocationWasEdited(false);
     setLogoError("");
+    setIsUploadingLogo(false);
   };
 
   const reset = () => {
@@ -140,20 +144,24 @@ export function useSchoolBrandingEditor({
     setErrors({});
     setLocationWasEdited(false);
     setLogoError("");
+    setIsUploadingLogo(false);
   };
 
-  const uploadLogo = (files: File[]) => {
+  const uploadLogo = async (files: File[]) => {
     const [file] = files;
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () =>
-      changeText(
-        "logoUrl",
-        typeof reader.result === "string" ? reader.result : "",
-      );
-    reader.onerror = () => setLogoError(copy.logoUploadFailed);
-    reader.readAsDataURL(file);
+    setIsUploadingLogo(true);
+    setLogoError("");
+    try {
+      const uploaded = await uploadFile(file);
+      const url = `${process.env.NEXT_PUBLIC_API_URL || "https://api.moazez.sa/api/v1"}/files/${uploaded.id}/download`;
+      changeText("logoUrl", url);
+    } catch {
+      setLogoError(copy.logoUploadFailed);
+    } finally {
+      setIsUploadingLogo(false);
+    }
   };
 
   const confirmLocation = (location: ResolvedSchoolLocation) => {
@@ -193,7 +201,8 @@ export function useSchoolBrandingEditor({
     profile,
     errors,
     isDirty,
-    isSaving,
+    isSaving: isSaving || isUploadingLogo,
+    isUploadingLogo,
     isLocationModalOpen,
     locationWasEdited,
     logoError,

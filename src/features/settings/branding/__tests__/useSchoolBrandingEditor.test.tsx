@@ -4,6 +4,11 @@ import { useSchoolBrandingEditor } from "../hooks/useSchoolBrandingEditor";
 import type { SchoolBrandingEditorCopy } from "../hooks/useSchoolBrandingEditor";
 import type { SchoolProfileSettings } from "../../types";
 
+const fileMocks = vi.hoisted(() => ({
+  uploadFile: vi.fn(),
+}));
+vi.mock("@/services/filesService", () => fileMocks);
+
 const completeProfile: SchoolProfileSettings = {
   schoolName: "Al Noor School",
   shortName: "ANS",
@@ -176,6 +181,7 @@ describe("useSchoolBrandingEditor", () => {
   });
 
   it("reads a selected logo into the profile", async () => {
+    fileMocks.uploadFile.mockResolvedValue({ id: "uploaded-logo-id" });
     const { result } = renderHook(() =>
       useSchoolBrandingEditor({
         initialProfile: completeProfile,
@@ -186,11 +192,29 @@ describe("useSchoolBrandingEditor", () => {
     const file = new File(["logo"], "logo.png", { type: "image/png" });
 
     await act(async () => {
-      result.current.uploadLogo([file]);
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await result.current.uploadLogo([file]);
     });
 
-    expect(result.current.profile.logoUrl).toMatch(/^data:image\/png;base64,/);
+    const expectedUrl = `${process.env.NEXT_PUBLIC_API_URL || "https://api.moazez.sa/api/v1"}/files/uploaded-logo-id/download`;
+    expect(result.current.profile.logoUrl).toBe(expectedUrl);
     expect(result.current.logoError).toBe("");
+  });
+
+  it("handles logo upload failure", async () => {
+    fileMocks.uploadFile.mockRejectedValue(new Error("upload failed"));
+    const { result } = renderHook(() =>
+      useSchoolBrandingEditor({
+        initialProfile: completeProfile,
+        copy,
+        onSave: vi.fn(),
+      }),
+    );
+    const file = new File(["logo"], "logo.png", { type: "image/png" });
+
+    await act(async () => {
+      await result.current.uploadLogo([file]);
+    });
+
+    expect(result.current.logoError).toBe("Logo failed");
   });
 });
