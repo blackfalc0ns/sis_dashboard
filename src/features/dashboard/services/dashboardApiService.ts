@@ -5,10 +5,10 @@ import type {
   DashboardAlertsQuery,
   DashboardAlertsResponse,
   DashboardSummaryResponse,
-  DashboardModuleListItem,
   DashboardModulePage,
   DashboardModulesResponse,
-  DashboardAnalyticsCatalog,
+  DashboardAnalyticsCatalogResponse,
+  DashboardAnalyticsChartsResponse,
   DashboardAnalyticsChartsQuery,
   DashboardAnalyticsChartDataQuery,
   DashboardAnalyticsChart,
@@ -66,13 +66,14 @@ function unwrapDashboardResponse<T>(
 function isDashboardEnvelope<T>(
   responsePayload: DashboardApiEnvelope<T> | T,
 ): responsePayload is DashboardApiEnvelope<T> {
-  return (
-    !!responsePayload &&
-    typeof responsePayload === "object" &&
-    ("data" in responsePayload ||
-      "error" in responsePayload ||
-      "message" in responsePayload)
-  );
+  if (!responsePayload || typeof responsePayload !== "object") {
+    return false;
+  }
+  const keys = Object.keys(responsePayload);
+  if (keys.length === 0) {
+    return false;
+  }
+  return keys.every((key) => key === "data" || key === "error" || key === "message");
 }
 
 async function fetchDashboardContract<T>(endpoint: string): Promise<T> {
@@ -202,13 +203,13 @@ export function fetchDashboardModuleByKey(moduleKey: string) {
 }
 
 export function fetchAnalyticsCatalog() {
-  return fetchDashboardContract<DashboardAnalyticsCatalog>(
+  return fetchDashboardContract<DashboardAnalyticsCatalogResponse>(
     `${DASHBOARD_BASE_PATH}/analytics/catalog`,
   );
 }
 
 export function fetchAnalyticsCharts(query: DashboardAnalyticsChartsQuery = {}) {
-  return fetchDashboardContract<DashboardAnalyticsChart[]>(
+  return fetchDashboardContract<DashboardAnalyticsChartsResponse>(
     `${DASHBOARD_BASE_PATH}/analytics/charts${dashboardQueryString({
       source: query.source,
       type: query.type,
