@@ -5,6 +5,8 @@ import type {
   DashboardAlertsQuery,
   DashboardAlertsResponse,
   DashboardSummaryResponse,
+  DashboardModuleListItem,
+  DashboardModulePage,
 } from "@/features/dashboard/types/dashboardApi.types";
 
 interface DashboardApiEnvelope<T> {
@@ -179,4 +181,16 @@ export async function deleteDashboardTodo(todoId: string) {
     `${DASHBOARD_BASE_PATH}/light-mode-dropdown/todos/${todoId}`,
   );
   return unwrapDashboardResponse(response);
+}
+
+export function fetchDashboardModules() {
+  return fetchDashboardContract<DashboardModuleListItem[]>(
+    `${DASHBOARD_BASE_PATH}/modules?status=available`,
+  );
+}
+
+export function fetchDashboardModuleByKey(moduleKey: string) {
+  return fetchDashboardContract<DashboardModulePage>(
+    `${DASHBOARD_BASE_PATH}/modules/${moduleKey}`,
+  );
 }

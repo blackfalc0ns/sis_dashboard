@@ -10,6 +10,8 @@ import {
   createDashboardTodo,
   updateDashboardTodo,
   deleteDashboardTodo,
+  fetchDashboardModules,
+  fetchDashboardModuleByKey,
 } from "@/features/dashboard/services/dashboardApiService";
 
 vi.mock("@/lib/api", () => ({
@@ -124,6 +126,24 @@ describe("dashboardApiService", () => {
     );
     expect(mockedApiDelete).toHaveBeenCalledWith(
       "/dashboard/light-mode-dropdown/todos/todo-123",
+    );
+  });
+
+  it("requests dashboard modules and dynamic module page details", async () => {
+    mockedApiGet
+      .mockResolvedValueOnce({ modules: [] })
+      .mockResolvedValueOnce({ module: { moduleKey: "academics" } });
+
+    await fetchDashboardModules();
+    await fetchDashboardModuleByKey("academics");
+
+    expect(mockedApiGet).toHaveBeenNthCalledWith(
+      1,
+      "/dashboard/modules?status=available",
+    );
+    expect(mockedApiGet).toHaveBeenNthCalledWith(
+      2,
+      "/dashboard/modules/academics",
     );
   });
 });

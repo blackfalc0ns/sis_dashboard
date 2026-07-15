@@ -231,3 +231,164 @@ export interface DashboardActivityFeedQuery {
   limit?: number;
   cursor?: string;
 }
+
+export interface DashboardModuleListItem {
+  moduleKey: string;
+  source: string;
+  title: string;
+  description: string;
+  status: string;
+  iconKey: string;
+  tone: string;
+  frontendRoute: string;
+  sourceRoute: string;
+  summary: {
+    widgetCount: number;
+    chartCount: number;
+    availableChartDataCount: number;
+    riskCount: number;
+    actionCount: number;
+  };
+  capabilities: {
+    widgets: string;
+    analyticsDefinitions: string;
+    analyticsData: string;
+    drilldowns: string;
+    exports: string;
+    realtime: string;
+  };
+}
+
+export interface DashboardModuleAction {
+  label: string;
+  target: string;
+  kind: string;
+}
+
+export interface DashboardModuleQuickStat {
+  key: string;
+  label: string;
+  value: number | string;
+  unit: string | null;
+  tone: string;
+  iconKey: string;
+  source: string;
+  action: DashboardModuleAction | null;
+}
+
+export interface DashboardModuleRisk {
+  key: string;
+  severity: "info" | "warning" | "critical";
+  title: string;
+  count: number;
+  source: string;
+  action: DashboardModuleAction;
+}
+
+export interface DashboardModuleNextAction {
+  key: string;
+  priority: "low" | "medium" | "high" | "critical";
+  label: string;
+  description: string;
+  source: string;
+  action: DashboardModuleAction;
+}
+
+export interface DashboardAnalyticsChartSeries {
+  name: string;
+  data: number[];
+  labels: string[];
+}
+
+export interface DashboardAnalyticsChart {
+  chartKey: string;
+  chartType: string;
+  title: string;
+  subtitle: string;
+  source: string;
+  series: string[];
+}
+
+export interface DashboardAnalyticsChartDataResponse {
+  chartKey: string;
+  series: DashboardAnalyticsChartSeries[];
+  totals: Record<string, number>;
+  summary: {
+    label: string;
+    value: number;
+    deltaPercent: number | null;
+    precision: number;
+  } | null;
+  empty: boolean;
+}
+
+export interface DashboardWidget {
+  widgetKey: string;
+  type: "stat-card" | "progress-card" | "risk-card" | "action-card" | "timeline-card" | "mini-chart-card" | "calendar-card" | "todo-card";
+  source: string;
+  title: string;
+  subtitle: string | null;
+  iconKey: string;
+  tone: "neutral" | "info" | "success" | "warning" | "critical";
+  data: Record<string, any>;
+  action: DashboardModuleAction | null;
+  emptyState: {
+    title: string;
+    description: string | null;
+    action: DashboardModuleAction | null;
+  } | null;
+  meta: {
+    freshness: string;
+    freshnessDetails: any;
+    analytics: any;
+  };
+}
+
+export interface DashboardModulePage {
+  generatedAt: string;
+  module: {
+    moduleKey: string;
+    source: string;
+    title: string;
+    description: string;
+    status: string;
+    iconKey: string;
+    tone: string;
+    frontendRoute: string;
+    sourceRoute: string;
+  };
+  overview: {
+    quickStats: DashboardModuleQuickStat[];
+    risks: DashboardModuleRisk[];
+    actions: DashboardModuleNextAction[];
+  };
+  widgets: DashboardWidget[];
+  analytics: {
+    charts: DashboardAnalyticsChart[];
+    availableData: DashboardAnalyticsChartDataResponse[];
+    plannedCharts: DashboardAnalyticsChart[];
+  };
+  sections: {
+    sectionKey: string;
+    title: string;
+    status: string;
+    items: string[];
+  }[];
+  capabilities: {
+    widgets: string;
+    analyticsDefinitions: string;
+    analyticsData: string;
+    drilldowns: string;
+    exports: string;
+    realtime: string;
+  };
+  emptyState: {
+    reason: string;
+    message: string;
+  } | null;
+  meta: {
+    source: string;
+    version: string;
+    dataFreshness: string;
+  };
+}
