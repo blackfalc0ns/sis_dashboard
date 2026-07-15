@@ -26,6 +26,7 @@ import ActivitiesCard from "../components/ActivitiesCard";
 import FilterBar from "../components/FilterBar";
 import QuickActionPanel from "../components/QuickActionPanel";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import ModuleTabDashboardView from "../components/ModuleTabDashboardView";
 import { SetupGuideCard } from "@/features/onboarding/components/SetupGuideCard";
 import { DASHBOARD_ALERT_PREVIEW_LIMIT } from "@/features/dashboard/constants/dashboardPreviewLimits";
 import { dashboardExportRowsFromViewModels } from "@/features/dashboard/mappers/dashboardViewMapper";
@@ -639,18 +640,7 @@ function DashboardTabContent({
     if (!pageData) return null;
 
     return (
-      <div className="space-y-6">
-        {pageData.overview?.quickStats && (
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {pageData.overview.quickStats.map((stat) => (
-              <article key={stat.key} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <p className="text-sm font-medium text-gray-500">{stat.label}</p>
-                <p className="mt-2 text-3xl font-bold text-gray-950">{stat.value}</p>
-              </article>
-            ))}
-          </section>
-        )}
-      </div>
+      <ModuleTabDashboardView pageData={pageData} pathname={pathname} />
     );
   }
 
