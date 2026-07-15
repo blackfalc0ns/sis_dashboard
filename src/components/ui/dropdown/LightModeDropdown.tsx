@@ -734,7 +734,7 @@ export default function LightModeDropdown({
 
   useEffect(() => {
     if (data) {
-      setTodos(data.planner.todos);
+      setTodos(todoItemsFromPlanner(data.planner.todos));
     }
   }, [data]);
 
