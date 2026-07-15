@@ -7,6 +7,7 @@ import type {
   DashboardSummaryResponse,
   DashboardModuleListItem,
   DashboardModulePage,
+  DashboardModulesResponse,
 } from "@/features/dashboard/types/dashboardApi.types";
 
 interface DashboardApiEnvelope<T> {
@@ -184,7 +185,7 @@ export async function deleteDashboardTodo(todoId: string) {
 }
 
 export function fetchDashboardModules() {
-  return fetchDashboardContract<DashboardModuleListItem[]>(
+  return fetchDashboardContract<DashboardModulesResponse>(
     `${DASHBOARD_BASE_PATH}/modules?status=available`,
   );
 }

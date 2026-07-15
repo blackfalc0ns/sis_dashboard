@@ -225,7 +225,10 @@ export default function SchoolDashboardContainer() {
     fetchDashboardModules()
       .then((modulesResponse) => {
         if (!shouldIgnoreResponse) {
-          setModules(modulesResponse);
+          const list = Array.isArray(modulesResponse)
+            ? modulesResponse
+            : modulesResponse?.modules || [];
+          setModules(list);
         }
       })
       .catch((err) => {

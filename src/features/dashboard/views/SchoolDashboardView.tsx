@@ -166,7 +166,7 @@ export default function SchoolDashboardView({
 
   const dynamicTabs: DashboardTabDefinition[] = [
     { id: "overview", label: t("tabs.overview") || "Overview" },
-    ...modules.map((m) => ({ id: m.moduleKey, label: m.title })),
+    ...(Array.isArray(modules) ? modules : []).map((m) => ({ id: m.moduleKey, label: m.title })),
   ];
 
   return (

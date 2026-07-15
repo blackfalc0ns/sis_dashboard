@@ -392,3 +392,27 @@ export interface DashboardModulePage {
     dataFreshness: string;
   };
 }
+
+export interface DashboardModulesResponse {
+  generatedAt: string;
+  modules: DashboardModuleListItem[];
+  summary: {
+    totalCount: number;
+    availableCount: number;
+    plannedCount: number;
+    deferredCount: number;
+  };
+  filters: {
+    status: string | null;
+    source: string | null;
+    limit: number;
+  };
+  deferred: {
+    capabilities: string;
+  };
+  meta: {
+    source: string;
+    version: string;
+    dataFreshness: string;
+  };
+}
