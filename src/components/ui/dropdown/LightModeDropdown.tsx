@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   FormEvent,
@@ -41,6 +41,12 @@ import Input from "../input/Input";
 import Select, { SelectOption } from "../input/Select";
 import TextArea from "../input/TextArea";
 import Modal from "../modal/Modal";
+import {
+  fetchLightModeDropdown,
+  createDashboardTodo,
+  updateDashboardTodo,
+  deleteDashboardTodo,
+} from "@/features/dashboard/services/dashboardApiService";
 
 export type WeatherTone =
   | "amber"
@@ -608,6 +614,91 @@ function localizedWeekDays(locale: LightModeDropdownLocale) {
     : ["S", "M", "T", "W", "T", "F", "S"];
 }
 
+function getCivilDateString(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function mapBackendResponseToUi(
+  response: any,
+  locale: LightModeDropdownLocale,
+  t: ReturnType<typeof useTranslations>
+): LightModeDropdownData {
+  const isRTL = locale === "ar";
+  const locCode = localeCode[locale];
+  
+  const location =
+    response.location?.label ||
+    [response.location?.city, response.location?.country].filter(Boolean).join(", ") ||
+    "Unknown Location";
+    
+  const returnDate = response.planner?.date ? new Date(response.planner.date) : new Date();
+  
+  const dateLabel = returnDate.toLocaleDateString(locCode, {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  
+  const compactDateLabel = returnDate.toLocaleDateString(locCode, {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+  });
+
+  const weatherStatus = response.weather?.status;
+  const isWeatherUnavailable = weatherStatus !== "available";
+
+  const mappedTodos = (response.planner?.todos || []).map((todo: any, index: number) => {
+    const priority = (todo.priority === "normal" ? "medium" : todo.priority) as TodoPriority;
+    return {
+      id: todo.todoId || `todo-${index}`,
+      title: todo.title,
+      description: todo.notes || "",
+      time: todo.createdAt
+        ? new Date(todo.createdAt).toLocaleTimeString(locCode, {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          })
+        : "",
+      completed: todo.status === "completed",
+      priority,
+      tone: priorityTone[priority],
+    };
+  });
+
+  return {
+    location,
+    dateLabel,
+    compactDateLabel,
+    temperature: isWeatherUnavailable ? "--" : `${response.weather?.current?.temperature ?? "--"}°C`,
+    lowTemperature: isWeatherUnavailable ? "--" : `${response.weather?.current?.lowTemperature ?? "--"}°`,
+    feelsLike: isWeatherUnavailable ? "--" : `${response.weather?.current?.feelsLike ?? "--"}°`,
+    condition: isWeatherUnavailable
+      ? (response.weather?.emptyState?.message || t("weather_unavailable") || "Weather Unavailable")
+      : response.weather?.current?.condition || "",
+    hints: [],
+    highlights: [],
+    cities: [],
+    forecast: [],
+    planner: {
+      time: "",
+      period: "",
+      timezone: response.location?.timezone || "GMT",
+      dateLabel,
+      monthLabel: "",
+      weekDays: [],
+      calendarDays: [],
+      eventDates: response.planner?.eventDates || [],
+      todos: mappedTodos,
+    },
+  };
+}
+
 export default function LightModeDropdown({
   weatherData,
   locale,
@@ -623,7 +714,12 @@ export default function LightModeDropdown({
   const activeLocale: LightModeDropdownLocale =
     locale ?? (currentLocale === "ar" ? "ar" : "en");
   const text = localizedTextFromMessages(t);
-  const weather = resolveWeatherData(weatherData);
+  
+  const [data, setData] = useState<LightModeDropdownData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const weather = data || resolveWeatherData(weatherData);
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [visibleMonth, setVisibleMonth] = useState(
@@ -632,13 +728,50 @@ export default function LightModeDropdown({
   const [todos, setTodos] = useState<PlannerTodo[]>(() =>
     todoItemsFromPlanner(weather.planner.todos),
   );
+
+  const isControlled = expanded !== undefined;
+  const isExpanded = isControlled ? expanded : internalExpanded;
+
+  useEffect(() => {
+    if (data) {
+      setTodos(data.planner.todos);
+    }
+  }, [data]);
+
+  useEffect(() => {
+    if (!isExpanded) return;
+
+    let active = true;
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetchLightModeDropdown({
+          locale: activeLocale,
+          date: getCivilDateString(new Date()),
+        });
+        if (!active) return;
+        const mappedData = mapBackendResponseToUi(response, activeLocale, t);
+        setData(mappedData);
+      } catch (err) {
+        console.error("Failed to load light mode dropdown data:", err);
+        setError("Failed to load");
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+
+    loadData();
+
+    return () => {
+      active = false;
+    };
+  }, [isExpanded, activeLocale]);
+
   const [newTodoTitle, setNewTodoTitle] = useState("");
   const [newTodoDescription, setNewTodoDescription] = useState("");
   const [newTodoPriority, setNewTodoPriority] =
     useState<TodoPriority>("medium");
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
-  const isControlled = expanded !== undefined;
-  const isExpanded = isControlled ? expanded : internalExpanded;
   const isRTL = activeLocale === "ar";
   const selectedTodo = todos.find((todo) => todo.id === selectedTodoId) ?? null;
   const generatedCalendarDays = useMemo(
@@ -710,65 +843,137 @@ export default function LightModeDropdown({
     );
   };
 
-  const toggleTodo = (todoId: string) => {
+  const toggleTodo = async (todoId: string) => {
+    let originalCompleted = false;
     setTodos((currentTodos) =>
-      currentTodos.map((todo) =>
-        todo.id === todoId ? { ...todo, completed: !todo.completed } : todo,
-      ),
+      currentTodos.map((todo) => {
+        if (todo.id === todoId) {
+          originalCompleted = !!todo.completed;
+          return { ...todo, completed: !todo.completed };
+        }
+        return todo;
+      })
     );
+
+    try {
+      await updateDashboardTodo(todoId, {
+        status: !originalCompleted ? "completed" : "pending",
+      });
+    } catch (err) {
+      console.error("Failed to toggle todo:", err);
+      setTodos((currentTodos) =>
+        currentTodos.map((todo) =>
+          todo.id === todoId ? { ...todo, completed: originalCompleted } : todo
+        )
+      );
+    }
   };
 
-  const deleteTodo = (todoId: string) => {
-    setTodos((currentTodos) =>
-      currentTodos.filter((todo) => todo.id !== todoId),
-    );
+  const deleteTodo = async (todoId: string) => {
+    let originalTodos: PlannerTodo[] = [];
+    setTodos((currentTodos) => {
+      originalTodos = currentTodos;
+      return currentTodos.filter((todo) => todo.id !== todoId);
+    });
     setSelectedTodoId((currentTodoId) =>
-      currentTodoId === todoId ? null : currentTodoId,
+      currentTodoId === todoId ? null : currentTodoId
     );
+
+    try {
+      await deleteDashboardTodo(todoId);
+    } catch (err) {
+      console.error("Failed to delete todo:", err);
+      setTodos(originalTodos);
+    }
   };
 
-  const addTodo = (event: FormEvent<HTMLFormElement>) => {
+  const addTodo = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const title = newTodoTitle.trim();
     const description = newTodoDescription.trim();
     if (!title) return;
 
-    setTodos((currentTodos) => [
-      ...currentTodos,
-      {
-        id: `todo-${Date.now()}`,
-        title,
-        description,
-        time: currentDate.toLocaleTimeString(localeCode[activeLocale], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        }),
-        priority: newTodoPriority,
-        tone: priorityTone[newTodoPriority],
-      },
-    ]);
+    const tempId = `todo-${Date.now()}`;
+    const newTodoItem: PlannerTodo = {
+      id: tempId,
+      title,
+      description,
+      time: currentDate.toLocaleTimeString(localeCode[activeLocale], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }),
+      priority: newTodoPriority,
+      tone: priorityTone[newTodoPriority],
+      completed: false,
+    };
+
+    setTodos((currentTodos) => [...currentTodos, newTodoItem]);
     setNewTodoTitle("");
     setNewTodoDescription("");
+
+    try {
+      const response = await createDashboardTodo({
+        date: getCivilDateString(new Date()),
+        title,
+        notes: description || null,
+        priority: newTodoPriority === "medium" ? "normal" : newTodoPriority,
+      });
+
+      if (response && response.todoId) {
+        setTodos((currentTodos) =>
+          currentTodos.map((t) =>
+            t.id === tempId ? { ...t, id: response.todoId } : t
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Failed to create todo:", err);
+      setTodos((currentTodos) => currentTodos.filter((t) => t.id !== tempId));
+    }
   };
 
-  const updateTodo = (
+  const updateTodo = async (
     todoId: string,
-    updates: Partial<LightModeDropdownTodo>,
+    updates: Partial<LightModeDropdownTodo>
   ) => {
+    let originalTodo: PlannerTodo | undefined;
     setTodos((currentTodos) =>
-      currentTodos.map((todo) =>
-        todo.id === todoId
-          ? {
-              ...todo,
-              ...updates,
-              tone: updates.priority
-                ? priorityTone[updates.priority]
-                : todo.tone,
-            }
-          : todo,
-      ),
+      currentTodos.map((todo) => {
+        if (todo.id === todoId) {
+          originalTodo = { ...todo };
+          return {
+            ...todo,
+            ...updates,
+            tone: updates.priority
+              ? priorityTone[updates.priority]
+              : todo.tone,
+          };
+        }
+        return todo;
+      })
     );
+
+    try {
+      const backendPriority =
+        updates.priority === "medium"
+          ? "normal"
+          : updates.priority;
+
+      await updateDashboardTodo(todoId, {
+        title: updates.title,
+        notes: updates.description === undefined ? undefined : (updates.description || null),
+        priority: backendPriority as any,
+      });
+    } catch (err) {
+      console.error("Failed to update todo details:", err);
+      if (originalTodo) {
+        const orig = originalTodo;
+        setTodos((currentTodos) =>
+          currentTodos.map((todo) => (todo.id === todoId ? orig : todo))
+        );
+      }
+    }
   };
 
   return (
@@ -786,6 +991,13 @@ export default function LightModeDropdown({
             panelId={panelId}
             onExpand={() => setExpanded(true)}
           />
+        ) : isLoading && !data ? (
+          <div className="flex h-[220px] w-full items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent" />
+              <span className="text-sm font-medium text-[#6B7280]">Loading command center...</span>
+            </div>
+          </div>
         ) : (
           <ExpandedContent
             weather={{ ...weather, planner: livePlanner }}
@@ -1004,9 +1216,13 @@ function ExpandedContent({
         <MainWeatherCard weather={weather} text={text} />
         <ClockCard planner={weather.planner} text={text} />
 
-        <OtherCountriesCard cities={weather.cities} text={text} />
-        <ForecastCard forecast={weather.forecast} text={text} />
-        <HighlightCard weather={weather} text={text} />
+        {weather.temperature !== "--" && (
+          <>
+            <OtherCountriesCard cities={weather.cities} text={text} />
+            <ForecastCard forecast={weather.forecast} text={text} />
+            <HighlightCard weather={weather} text={text} />
+          </>
+        )}
 
         <CalendarCard
           planner={weather.planner}
@@ -1027,6 +1243,33 @@ function MainWeatherCard({
   weather: LightModeDropdownData;
   text: LocalizedText;
 }) {
+  const isUnavailable = weather.temperature === "--";
+
+  if (isUnavailable) {
+    return (
+      <section className="relative flex min-h-[220px] flex-col justify-between overflow-hidden rounded-2xl border border-[#E5E7EB] bg-gradient-to-br from-[#1E293B] to-[#0F172A] p-5 text-white shadow-sm animate-fadeIn">
+        <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/5" />
+        <div className="absolute -bottom-10 -left-6 h-32 w-32 rounded-full bg-white/5" />
+        <div className="relative flex h-full flex-col justify-between flex-1">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Cloud size={20} className="text-[#94A3B8]" />
+            <span className="text-[13px] font-semibold text-[#94A3B8] tracking-wide uppercase">
+              Weather Service
+            </span>
+          </div>
+          <div>
+            <div className="text-xl font-bold leading-snug text-[#F8FAFC]">
+              Weather Unavailable
+            </div>
+            <p className="mt-2 text-xs text-[#94A3B8] leading-relaxed">
+              {weather.condition}
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="relative flex min-h-[220px] flex-col justify-between overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-hover)] p-5 text-white">
       <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/5" />
