@@ -8,6 +8,7 @@ import {
   BarChart3,
   AlertTriangle,
   ArrowLeft,
+  ArrowRight,
   X,
   HelpCircle,
 } from "lucide-react";
