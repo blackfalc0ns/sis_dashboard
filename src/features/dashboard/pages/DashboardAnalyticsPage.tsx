@@ -5,24 +5,15 @@ import { usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Download,
-  RefreshCw,
   BarChart3,
-  Calendar,
-  Filter,
-  ChevronDown,
-  Check,
   AlertTriangle,
   ArrowLeft,
   X,
-  PieChart as PieIcon,
-  Table as TableIcon,
   HelpCircle,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   ResponsiveContainer,
-  AreaChart,
-  Area,
   LineChart,
   Line,
   BarChart,
@@ -36,7 +27,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { Button, DatePicker, FilterPanel, Select } from "@/components/ui";
+import { Button, DatePicker, FilterPanel, Input, Select } from "@/components/ui";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import {
@@ -549,7 +540,7 @@ function renderChartContent(
   // Pie / Donut Chart
   if (chart.chartType === "pie" || chart.chartType === "donut") {
     // Pie chart usually summarizes a single series or totals
-    const pieData = series[0]?.points.map((p, idx) => ({
+    const pieData = series[0]?.points.map((p) => ({
       name: p.x,
       value: p.y,
     })) || [];
