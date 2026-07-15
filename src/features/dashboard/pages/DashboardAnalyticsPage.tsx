@@ -102,9 +102,9 @@ export default function DashboardAnalyticsPage() {
   useEffect(() => {
     isMountedRef.current = true;
     fetchAnalyticsCatalog()
-      .then((cat) => {
+      .then((res) => {
         if (isMountedRef.current) {
-          setCatalog(cat);
+          setCatalog(res.catalog);
           setLoadingCatalog(false);
         }
       })
@@ -129,9 +129,9 @@ export default function DashboardAnalyticsPage() {
       status: "available",
       limit: 100,
     })
-      .then((chartsList) => {
+      .then((res) => {
         if (active) {
-          setCharts(chartsList);
+          setCharts(res.charts || []);
         }
       })
       .catch((err) => {
@@ -249,26 +249,26 @@ export default function DashboardAnalyticsPage() {
 
   const sourceOptions = [
     { value: "", label: "All Modules" },
-    ...(catalog?.sources || []).map((src) => ({
-      value: src,
-      label: src.charAt(0).toUpperCase() + src.slice(1),
+    ...(catalog?.sources || []).map((s) => ({
+      value: s.source,
+      label: s.label || s.source,
     })),
   ];
 
   const chartTypeOptions = [
     { value: "", label: "All Types" },
-    ...(catalog?.chartTypes || []).map((t) => ({
+    ...(catalog?.supportedChartTypes || []).map((t) => ({
       value: t,
       label: t.charAt(0).toUpperCase() + t.slice(1),
     })),
   ];
 
-  const rangeOptions = (catalog?.ranges || []).map((r) => ({
+  const rangeOptions = (catalog?.supportedRanges || []).map((r) => ({
     value: r,
     label: r.toUpperCase(),
   }));
 
-  const granularityOptions = (catalog?.granularities || []).map((g) => ({
+  const granularityOptions = (catalog?.supportedGranularities || []).map((g) => ({
     value: g,
     label: g.charAt(0).toUpperCase() + g.slice(1),
   }));

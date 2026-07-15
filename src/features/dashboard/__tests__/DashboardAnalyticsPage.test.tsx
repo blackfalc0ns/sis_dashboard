@@ -40,27 +40,34 @@ const mockedFetchChartData = vi.mocked(fetchAnalyticsChartData);
 
 describe("DashboardAnalyticsPage", () => {
   const mockCatalog = {
-    sources: ["admissions", "students", "academics"],
-    chartTypes: ["line", "bar", "pie"],
-    ranges: ["7d", "30d", "90d"],
-    granularities: ["day", "week"],
-    statuses: ["available"],
-    filterKeys: [],
-    dataQueryKeys: [],
-    hierarchyFilterKeys: [],
-    charts: [],
+    generatedAt: "2026-07-15T09:00:00Z",
+    catalog: {
+      version: "v1",
+      sources: [
+        { source: "admissions", label: "Admissions", status: "available", description: "" },
+        { source: "students", label: "Students", status: "available", description: "" },
+        { source: "academics", label: "Academics", status: "available", description: "" },
+      ],
+      supportedChartTypes: ["line", "bar", "pie"],
+      supportedRanges: ["7d", "30d", "90d"],
+      supportedGranularities: ["day", "week"],
+      charts: [],
+    },
   };
 
-  const mockChartsList = [
-    {
-      chartKey: "academics.gpa_trend",
-      chartType: "line",
-      title: "Class GPA Trend",
-      subtitle: "Academic year average GPA",
-      source: "academics",
-      series: ["GPA"],
-    },
-  ];
+  const mockChartsResponse = {
+    generatedAt: "2026-07-15T09:00:00Z",
+    charts: [
+      {
+        chartKey: "academics.gpa_trend",
+        chartType: "line",
+        title: "Class GPA Trend",
+        subtitle: "Academic year average GPA",
+        source: "academics",
+        series: ["GPA"],
+      },
+    ] as any[],
+  };
 
   const mockChartData = {
     generatedAt: "2026-07-15T09:00:00Z",
@@ -96,8 +103,8 @@ describe("DashboardAnalyticsPage", () => {
     mockedFetchCharts.mockReset();
     mockedFetchChartData.mockReset();
 
-    mockedFetchCatalog.mockResolvedValue(mockCatalog);
-    mockedFetchCharts.mockResolvedValue(mockChartsList);
+    mockedFetchCatalog.mockResolvedValue(mockCatalog as any);
+    mockedFetchCharts.mockResolvedValue(mockChartsResponse as any);
     mockedFetchChartData.mockResolvedValue(mockChartData);
   });
 
