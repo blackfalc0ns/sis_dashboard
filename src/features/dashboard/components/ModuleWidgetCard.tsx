@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Users,
@@ -15,7 +14,6 @@ import {
   ShieldAlert,
   School,
   Settings2,
-  ArrowRight,
   Info,
 } from "lucide-react";
 import type { DashboardWidget } from "../types/dashboardApi.types";
@@ -135,7 +133,7 @@ export default function ModuleWidgetCard({ widget }: ModuleWidgetCardProps) {
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 flex">
             {segments.length > 0 ? (
-              segments.map((seg: any) => (
+              segments.map((seg: { key: string; value: number; label: string }) => (
                 <div
                   key={seg.key}
                   style={{ width: `${(seg.value / (data.max || 100)) * 100}%` }}
@@ -174,7 +172,7 @@ export default function ModuleWidgetCard({ widget }: ModuleWidgetCardProps) {
             </span>
           </div>
           <div className="max-h-[160px] overflow-y-auto space-y-2 pr-1">
-            {items.map((item: any, idx: number) => (
+            {items.map((item: { title: string; status: string; priority?: string }, idx: number) => (
               <div
                 key={idx}
                 className="flex items-center gap-2.5 rounded-lg bg-gray-50 p-2 text-xs text-gray-700"
@@ -219,7 +217,7 @@ export default function ModuleWidgetCard({ widget }: ModuleWidgetCardProps) {
             </div>
           </div>
           <div className="max-h-[160px] overflow-y-auto space-y-2 pr-1">
-            {events.map((event: any, idx: number) => {
+            {events.map((event: { title: string; date: string; startTime?: string; iconKey: string; tone: string }, idx: number) => {
               const EventIcon = widgetIcons[event.iconKey] || Clock;
               const evToneStyle = toneStyles[event.tone] || toneStyle;
               return (

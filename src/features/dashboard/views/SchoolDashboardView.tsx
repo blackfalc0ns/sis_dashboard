@@ -138,14 +138,6 @@ const moduleIcons: Record<DashboardModuleCard["id"], LucideIcon> = {
   settings: Settings2,
 };
 
-const dashboardTabs: DashboardTabDefinition[] = [
-  { id: "overview", label: "Overview" },
-  { id: "academics", label: "Academics" },
-  { id: "admissions", label: "Admissions" },
-  { id: "communication", label: "Communication" },
-  { id: "operations", label: "Operations" },
-];
-
 const overviewModuleIds: DashboardModuleCard["id"][] = [
   "students",
   "admissions",
@@ -640,7 +632,7 @@ function DashboardTabContent({
     if (!pageData) return null;
 
     return (
-      <ModuleTabDashboardView pageData={pageData} pathname={pathname} />
+      <ModuleTabDashboardView pageData={pageData} />
     );
   }
 

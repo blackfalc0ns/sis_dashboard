@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useLocale, useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
 import type { LucideIcon } from "lucide-react";
 import {
   Users,
@@ -87,15 +87,12 @@ const toneStyles: Record<
 
 interface ModuleTabDashboardViewProps {
   pageData: DashboardModulePage;
-  pathname: string;
 }
 
 export default function ModuleTabDashboardView({
   pageData,
-  pathname,
 }: ModuleTabDashboardViewProps) {
   const locale = useLocale();
-  const t = useTranslations("dashboard_new");
   const moduleIdentity = pageData.module;
   const overview = pageData.overview;
   const widgets = pageData.widgets || [];
