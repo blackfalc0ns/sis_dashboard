@@ -7268,7 +7268,8 @@
     "upload_failed": "Upload failed",
     "save_failed": "Failed to save",
     "delete_failed": "Failed to delete",
-    "pointsUpdateFailed": "Failed to update points"
+    "pointsUpdateFailed": "Failed to update points",
+    "network_error": "Network error. Please check your connection."
   },
   "success": {
     "uploaded": "Uploaded successfully",

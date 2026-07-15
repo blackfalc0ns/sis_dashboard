@@ -7269,7 +7269,8 @@
     "upload_failed": "فشل رفع الملف",
     "save_failed": "فشل الحفظ",
     "delete_failed": "فشل الحذف",
-    "pointsUpdateFailed": "فشل تحديث الدرجات"
+    "pointsUpdateFailed": "فشل تحديث الدرجات",
+    "network_error": "خطأ في الشبكة. يرجى التحقق من الاتصال."
   },
   "success": {
     "uploaded": "تم الرفع بنجاح",

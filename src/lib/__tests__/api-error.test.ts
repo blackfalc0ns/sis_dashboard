@@ -26,4 +26,27 @@ describe("ApiError", () => {
     expect(apiError.details).toEqual({ field: "scopeType" });
     expect(apiError.traceId).toBe("trace-123");
   });
+
+  it("generates network error message based on locale prefix in pathname", () => {
+    // 1. Default/Arabic (when window is undefined or not starting with /en)
+    const errorAr = ApiError.network();
+    expect(errorAr.message).toBe("خطأ في الشبكة. يرجى التحقق من الاتصال.");
+    expect(errorAr.code).toBe("NETWORK_ERROR");
+    expect(errorAr.status).toBe(0);
+
+    // 2. English locale pathname
+    const originalWindow = global.window;
+    global.window = {
+      location: {
+        pathname: "/en/dashboard",
+      },
+    } as any;
+
+    try {
+      const errorEn = ApiError.network();
+      expect(errorEn.message).toBe("Network error. Please check your connection.");
+    } finally {
+      global.window = originalWindow;
+    }
+  });
 });

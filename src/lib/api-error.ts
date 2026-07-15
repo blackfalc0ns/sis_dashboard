@@ -51,8 +51,14 @@ export class ApiError extends Error {
   }
 
   static network(): ApiError {
+    const isEnglish =
+      typeof window !== "undefined" &&
+      (window.location.pathname === "/en" || window.location.pathname.startsWith("/en/"));
+    const message = isEnglish
+      ? "Network error. Please check your connection."
+      : "خطأ في الشبكة. يرجى التحقق من الاتصال.";
     return new ApiError(
-      "Network error. Please check your connection.",
+      message,
       0,
       "NETWORK_ERROR",
     );
