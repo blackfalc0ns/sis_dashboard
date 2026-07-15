@@ -28,7 +28,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { Button, DatePicker, FilterPanel, Input, Select } from "@/components/ui";
+import { Button, DatePicker, FilterPanel, Select } from "@/components/ui";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import {
@@ -36,6 +36,8 @@ import {
   fetchAnalyticsCharts,
   fetchAnalyticsChartData,
 } from "@/features/dashboard/services/dashboardApiService";
+import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
+import { fetchStructureTree, type StructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import type {
   DashboardAnalyticsCatalog,
   DashboardAnalyticsChart,
@@ -79,11 +81,19 @@ export default function DashboardAnalyticsPage() {
   const t = useTranslations("dashboard_new");
   const isMountedRef = useRef(true);
 
+  const {
+    academicYearId: contextYearId,
+    termId: contextTermId,
+    academicYears,
+    terms,
+  } = useAcademicYearTermLayoutContext();
+
   const [showFilters, setShowFilters] = useState(true);
   const [filters, setFilters] = useState<AnalyticsFilters>(defaultFilters);
   const [catalog, setCatalog] = useState<DashboardAnalyticsCatalog | null>(null);
   const [charts, setCharts] = useState<DashboardAnalyticsChart[]>([]);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
+  const [structureTree, setStructureTree] = useState<StructureTree | null>(null);
   const [chartDataStates, setChartDataStates] = useState<
     Record<string, { status: "loading" | "success" | "error"; data?: DashboardAnalyticsChartDataResponse; error?: string }>
   >({});
@@ -97,6 +107,38 @@ export default function DashboardAnalyticsPage() {
     }
     return `/${locale}/dashboard`;
   }, [pathname, locale]);
+
+  // Sync filters with academic year/term context
+  useEffect(() => {
+    if (contextYearId && contextTermId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFilters((prev) => {
+        if (prev.academicYearId === contextYearId && prev.termId === contextTermId) {
+          return prev;
+        }
+        return {
+          ...prev,
+          academicYearId: contextYearId,
+          termId: contextTermId,
+        };
+      });
+    }
+  }, [contextYearId, contextTermId]);
+
+  // Load structure tree when academicYearId or termId updates
+  useEffect(() => {
+    const activeYearId = filters.academicYearId || contextYearId;
+    const activeTermId = filters.termId || contextTermId;
+    if (activeYearId && activeTermId) {
+      fetchStructureTree(activeYearId, activeTermId)
+        .then((tree) => {
+          setStructureTree(tree);
+        })
+        .catch((err) => {
+          console.error("Failed to load academic structure tree:", err);
+        });
+    }
+  }, [filters.academicYearId, filters.termId, contextYearId, contextTermId]);
 
   // Load Catalog on mount
   useEffect(() => {
@@ -243,10 +285,6 @@ export default function DashboardAnalyticsPage() {
     document.body.removeChild(link);
   }, [chartDataStates]);
 
-  if (loadingCatalog) {
-    return <MainLoader />;
-  }
-
   const sourceOptions = [
     { value: "", label: "All Modules" },
     ...(catalog?.sources || []).map((s) => ({
@@ -273,7 +311,61 @@ export default function DashboardAnalyticsPage() {
     label: g.charAt(0).toUpperCase() + g.slice(1),
   }));
 
+  const academicYearOptions = useMemo(() => {
+    return (academicYears || []).map((y) => ({
+      value: y.id,
+      label: y.name,
+    }));
+  }, [academicYears]);
+
+  const termOptions = useMemo(() => {
+    return (terms || []).map((t) => ({
+      value: t.id,
+      label: locale === "ar" ? t.nameAr || t.name : t.nameEn || t.name,
+    }));
+  }, [terms, locale]);
+
+  const gradeOptions = useMemo(() => {
+    return [
+      { value: "", label: "All Grades" },
+      ...(structureTree?.grades || []).map((g) => ({
+        value: g.id,
+        label: locale === "ar" ? g.nameAr : g.nameEn,
+      })),
+    ];
+  }, [structureTree, locale]);
+
+  const sectionOptions = useMemo(() => {
+    const filteredSections = filters.gradeId
+      ? (structureTree?.sections || []).filter((s) => s.gradeId === filters.gradeId)
+      : (structureTree?.sections || []);
+    return [
+      { value: "", label: "All Sections" },
+      ...filteredSections.map((s) => ({
+        value: s.id,
+        label: locale === "ar" ? s.nameAr : s.nameEn,
+      })),
+    ];
+  }, [structureTree, filters.gradeId, locale]);
+
+  const classroomOptions = useMemo(() => {
+    const filteredClassrooms = filters.sectionId
+      ? (structureTree?.classrooms || []).filter((c) => c.sectionId === filters.sectionId)
+      : (structureTree?.classrooms || []);
+    return [
+      { value: "", label: "All Classrooms" },
+      ...filteredClassrooms.map((c) => ({
+        value: c.id,
+        label: locale === "ar" ? c.nameAr : c.nameEn,
+      })),
+    ];
+  }, [structureTree, filters.sectionId, locale]);
+
   const BackIcon = locale === "ar" ? ArrowRight : ArrowLeft;
+
+  if (loadingCatalog) {
+    return <MainLoader />;
+  }
 
   return (
     <main
@@ -363,35 +455,42 @@ export default function DashboardAnalyticsPage() {
 
             {/* Academic Hierarchy Filters */}
             <div className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 md:grid-cols-3 xl:grid-cols-5">
-              <Input
-                label="Academic Year ID"
+              <Select
+                label="Academic Year"
                 value={filters.academicYearId}
-                onChange={(e) => updateFilter("academicYearId", e.target.value)}
-                placeholder="UUID"
+                onChange={(value) => updateFilter("academicYearId", value)}
+                options={academicYearOptions}
               />
-              <Input
-                label="Term ID"
+              <Select
+                label="Term"
                 value={filters.termId}
-                onChange={(e) => updateFilter("termId", e.target.value)}
-                placeholder="UUID"
+                onChange={(value) => updateFilter("termId", value)}
+                options={termOptions}
               />
-              <Input
-                label="Grade ID"
+              <Select
+                label="Grade"
                 value={filters.gradeId}
-                onChange={(e) => updateFilter("gradeId", e.target.value)}
-                placeholder="UUID"
+                onChange={(value) => {
+                  updateFilter("gradeId", value);
+                  updateFilter("sectionId", "");
+                  updateFilter("classroomId", "");
+                }}
+                options={gradeOptions}
               />
-              <Input
-                label="Section ID"
+              <Select
+                label="Section"
                 value={filters.sectionId}
-                onChange={(e) => updateFilter("sectionId", e.target.value)}
-                placeholder="UUID"
+                onChange={(value) => {
+                  updateFilter("sectionId", value);
+                  updateFilter("classroomId", "");
+                }}
+                options={sectionOptions}
               />
-              <Input
-                label="Classroom ID"
+              <Select
+                label="Classroom"
                 value={filters.classroomId}
-                onChange={(e) => updateFilter("classroomId", e.target.value)}
-                placeholder="UUID"
+                onChange={(value) => updateFilter("classroomId", value)}
+                options={classroomOptions}
               />
             </div>
           </div>

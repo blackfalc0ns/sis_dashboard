@@ -18,6 +18,24 @@ vi.mock("@/features/dashboard/services/dashboardApiService", () => ({
   fetchAnalyticsChartData: vi.fn(),
 }));
 
+vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({
+  useAcademicYearTermLayoutContext: () => ({
+    academicYearId: "year-1",
+    termId: "term-1",
+    academicYears: [{ id: "year-1", name: "2026-27" }],
+    terms: [{ id: "term-1", name: "Term 1", nameAr: "الفصل الأول", nameEn: "Term 1" }],
+  }),
+}));
+
+vi.mock("@/features/academics/academic-structure-tree/services/structureService", () => ({
+  fetchStructureTree: vi.fn().mockResolvedValue({
+    stages: [],
+    grades: [{ id: "grade-1", name: "Grade 1", nameAr: "الصف الأول", nameEn: "Grade 1", stageId: "stage-1" }],
+    sections: [{ id: "sec-1", name: "Section 1", nameAr: "الفصل 1", nameEn: "Section 1", gradeId: "grade-1" }],
+    classrooms: [{ id: "cls-1", name: "Classroom 1", nameAr: "الغرفة 1", nameEn: "Classroom 1", sectionId: "sec-1" }],
+  }),
+}));
+
 vi.mock("recharts", () => ({
   ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
   LineChart: ({ children }: any) => <div data-testid="line-chart">{children}</div>,
