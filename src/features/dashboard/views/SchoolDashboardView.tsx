@@ -651,20 +651,6 @@ function DashboardTabContent({
     );
   }
 
-  // Fallback support for old default tabs matching
-  if (activeTab === "operations") {
-    return (
-      <ModuleCardGrid
-        moduleCards={moduleCardsById(summaryState.data.moduleCards, [
-          "reinforcement",
-        ])}
-        locale={locale}
-        pathname={pathname}
-        t={t}
-      />
-    );
-  }
-
   return (
     <ModuleCardGrid
       moduleCards={moduleCardsById(

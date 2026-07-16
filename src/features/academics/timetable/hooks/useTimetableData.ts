@@ -27,6 +27,7 @@ import {
 import {
   bulkSaveEntries,
   checkConflicts,
+  deleteEntry,
   getConfig,
   getConflicts,
   getPublication,
@@ -597,6 +598,22 @@ export function useTimetableData({
 
       setIsSaving(true);
       try {
+        // Identify cleared entries that need to be deleted from the backend.
+        // A cleared entry has no subjectId but has a real backend ID (not temp-).
+        const entriesToDelete = entries.filter(
+          (entry) =>
+            !entry.subjectId &&
+            entry.id &&
+            !entry.id.startsWith("temp-"),
+        );
+
+        // Delete cleared entries from the backend
+        if (entriesToDelete.length > 0) {
+          await Promise.all(
+            entriesToDelete.map((entry) => deleteEntry(entry.id)),
+          );
+        }
+
         const bulkSaveRequest = buildBulkSaveTimetableRequest({
           termId,
           entries,
@@ -620,7 +637,9 @@ export function useTimetableData({
             error: message,
           };
         }
-        if (bulkSaveRequest.payload.items.length === 0) {
+
+        // If there are no items to bulk-save but we did delete entries, that's still a valid save.
+        if (bulkSaveRequest.payload.items.length === 0 && entriesToDelete.length === 0) {
           const message =
             messages?.noFilledSlotsToSave ??
             "No filled timetable slots to save.";
@@ -631,27 +650,37 @@ export function useTimetableData({
           };
         }
 
-        const conflictResponse = await checkConflicts(bulkSaveRequest.payload);
-        const nextConflicts = conflictsFromResponse(conflictResponse);
-        setConflicts(nextConflicts);
-        if (nextConflicts.length > 0) {
-          return {
-            ok: false,
-            hasConflicts: true,
-            error:
-              messages?.resolveConflictsBeforeSaving ??
-              "Resolve timetable conflicts before saving.",
-          };
+        // Only run bulk save + conflict check if there are items to save
+        if (bulkSaveRequest.payload.items.length > 0) {
+          const conflictResponse = await checkConflicts(bulkSaveRequest.payload);
+          const nextConflicts = conflictsFromResponse(conflictResponse);
+          setConflicts(nextConflicts);
+          if (nextConflicts.length > 0) {
+            return {
+              ok: false,
+              hasConflicts: true,
+              error:
+                messages?.resolveConflictsBeforeSaving ??
+                "Resolve timetable conflicts before saving.",
+            };
+          }
+
+          const savedEntriesResponse = await bulkSaveEntries(
+            bulkSaveRequest.payload,
+          );
+          const mappedEntries = mapBackendEntriesToUi(
+            listResponseItems(savedEntriesResponse),
+          );
+          setTimetableEntries(mappedEntries.entries);
+          setAllTermEntries(mappedEntries.entries);
+        } else {
+          // All entries were cleared — remove deleted entries from local state
+          const deletedIds = new Set(entriesToDelete.map((e) => e.id));
+          const remainingEntries = entries.filter((e) => !deletedIds.has(e.id));
+          setTimetableEntries(remainingEntries);
+          setAllTermEntries(remainingEntries);
         }
 
-        const savedEntriesResponse = await bulkSaveEntries(
-          bulkSaveRequest.payload,
-        );
-        const mappedEntries = mapBackendEntriesToUi(
-          listResponseItems(savedEntriesResponse),
-        );
-        setTimetableEntries(mappedEntries.entries);
-        setAllTermEntries(mappedEntries.entries);
         return { ok: true };
       } catch (error) {
         const conflict = conflictFromTimetableError(error);

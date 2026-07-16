@@ -73,7 +73,8 @@ const CHART_COLORS = [
 
 type ChartQuery = Omit<
   DashboardAnalyticsChartDataQuery,
-  "dateFrom" | "dateTo"
+  // year/term come from context and are injected at fetch time — never stored in user-editable state
+  "academicYearId" | "termId" | "dateFrom" | "dateTo"
 > & {
   dateFrom?: Date | string;
   dateTo?: Date | string;
@@ -127,8 +128,6 @@ function chartSupportsGranularity(chart: DashboardAnalyticsChart) {
 
 function defaultChartQuery(
   chart: DashboardAnalyticsChart,
-  academicYearId: string,
-  termId: string,
 ): ChartQuery {
   const query: ChartQuery = {};
 
@@ -144,21 +143,12 @@ function defaultChartQuery(
       chart.queryCapabilities?.supportedGranularities?.[0] || "day";
   }
 
-  if (academicYearId && chartSupportsFilter(chart, "academicYearId")) {
-    query.academicYearId = academicYearId;
-  }
-  if (termId && chartSupportsFilter(chart, "termId")) {
-    query.termId = termId;
-  }
-
   return query;
 }
 
 function reconcileChartQuery(
   chart: DashboardAnalyticsChart,
   query: ChartQuery,
-  academicYearId: string,
-  termId: string,
 ): ChartQuery {
   const nextQuery = { ...query };
 
@@ -180,21 +170,10 @@ function reconcileChartQuery(
     delete nextQuery.granularity;
   }
 
-  for (const [filter, contextFilterValue] of [
-    ["academicYearId", academicYearId],
-    ["termId", termId],
-  ] as const) {
-    if (contextFilterValue && chartSupportsFilter(chart, filter)) {
-      nextQuery[filter] = contextFilterValue;
-    } else {
-      delete nextQuery[filter];
-    }
-  }
-
   // ── Hierarchy cascade: gradeId → sectionId → classroomId ──────────────
   // 1. Strip any level the chart doesn't support.
-  if (!chartSupportsFilter(chart, "gradeId"))    delete nextQuery.gradeId;
-  if (!chartSupportsFilter(chart, "sectionId"))  delete nextQuery.sectionId;
+  if (!chartSupportsFilter(chart, "gradeId"))     delete nextQuery.gradeId;
+  if (!chartSupportsFilter(chart, "sectionId"))   delete nextQuery.sectionId;
   if (!chartSupportsFilter(chart, "classroomId")) delete nextQuery.classroomId;
 
   // 2. Enforce parent dependency: child cannot exist without its parent.
@@ -205,7 +184,12 @@ function reconcileChartQuery(
   return nextQuery;
 }
 
-function formatChartQuery(query: ChartQuery): DashboardAnalyticsChartDataQuery {
+function formatChartQuery(
+  query: ChartQuery,
+  chart: DashboardAnalyticsChart,
+  contextYearId: string,
+  contextTermId: string,
+): DashboardAnalyticsChartDataQuery {
   const formattedQuery: DashboardAnalyticsChartDataQuery = {};
 
   for (const [key, queryValue] of Object.entries(query)) {
@@ -220,8 +204,15 @@ function formatChartQuery(query: ChartQuery): DashboardAnalyticsChartDataQuery {
     }
   }
 
-  // Final cascade guard — ensures no child filter escapes without its parent,
-  // regardless of how the ChartQuery was assembled.
+  // Inject year/term from context — never from user-editable state.
+  if (contextYearId && chartSupportsFilter(chart, "academicYearId")) {
+    formattedQuery.academicYearId = contextYearId;
+  }
+  if (contextTermId && chartSupportsFilter(chart, "termId")) {
+    formattedQuery.termId = contextTermId;
+  }
+
+  // Final cascade guard — ensures no child filter escapes without its parent.
   if (!formattedQuery.gradeId)   { delete formattedQuery.sectionId;   delete formattedQuery.classroomId; }
   if (!formattedQuery.sectionId) { delete formattedQuery.classroomId; }
 
@@ -469,19 +460,17 @@ function DashboardAnalyticsContent() {
         charts.map((chart) => {
           const savedQuery =
             chartQueries[chart.chartKey] ??
-            defaultChartQuery(chart, contextYearId, contextTermId);
+            defaultChartQuery(chart);
           return [
             chart.chartKey,
             reconcileChartQuery(
               chart,
               savedQuery,
-              contextYearId,
-              contextTermId,
             ),
           ];
         }),
       ) as Record<string, ChartQuery>,
-    [charts, chartQueries, contextTermId, contextYearId],
+    [charts, chartQueries],
   );
 
   // Load Catalog on mount
@@ -531,13 +520,16 @@ function DashboardAnalyticsContent() {
 
   // Fetch individual chart data
   const fetchDataForChart = useCallback(
-    (chartKey: string, query: ChartQuery) => {
+    (chartKey: string, chart: DashboardAnalyticsChart, query: ChartQuery) => {
       setChartDataStates((prev) => ({
         ...prev,
         [chartKey]: { status: "loading" },
       }));
 
-      fetchAnalyticsChartData(chartKey, formatChartQuery(query))
+      fetchAnalyticsChartData(
+        chartKey,
+        formatChartQuery(query, chart, contextYearId, contextTermId),
+      )
         .then((res) => {
           if (isMountedRef.current) {
             setChartDataStates((prev) => ({
@@ -571,7 +563,7 @@ function DashboardAnalyticsContent() {
           }
         });
     },
-    [],
+    [contextYearId, contextTermId],
   );
 
   // Load chart data when its resolved filter set changes.
@@ -582,14 +574,16 @@ function DashboardAnalyticsContent() {
       const query = resolvedChartQueries[key];
       if (!query) return;
 
-      const queryStr = JSON.stringify(formatChartQuery(query));
+      const queryStr = JSON.stringify(
+        formatChartQuery(query, chart, contextYearId, contextTermId),
+      );
 
       if (lastFetchedQueriesRef.current[key] !== queryStr) {
         lastFetchedQueriesRef.current[key] = queryStr;
-        fetchDataForChart(key, query);
+        fetchDataForChart(key, chart, query);
       }
     });
-  }, [charts, fetchDataForChart, resolvedChartQueries]);
+  }, [charts, fetchDataForChart, resolvedChartQueries, contextYearId, contextTermId]);
 
   const updateFilter = useCallback(
     <TKey extends keyof AnalyticsFilters>(
@@ -815,7 +809,7 @@ function DashboardAnalyticsContent() {
                   state={state}
                   onRetry={() => {
                     const query = resolvedChartQueries[chart.chartKey];
-                    if (query) fetchDataForChart(chart.chartKey, query);
+                    if (query) fetchDataForChart(chart.chartKey, chart, query);
                   }}
                 />
               </div>
@@ -1017,32 +1011,16 @@ function DashboardAnalyticsChartContent({
 
     const innerRadius = chart.type === "donut" ? 60 : 0;
 
-    const RADIAN = Math.PI / 180;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const renderCustomLabel = (props: any) => {
+      const { cx, cy, midAngle, outerRadius: or, percent, name } = props;
+      if (!percent || percent < 0.05) return null;
 
-    const renderCustomLabel = ({
-      cx,
-      cy,
-      midAngle,
-      innerRadius: ir,
-      outerRadius: or,
-      percent,
-      name,
-    }: {
-      cx: number;
-      cy: number;
-      midAngle: number;
-      innerRadius: number;
-      outerRadius: number;
-      percent: number;
-      name: string;
-    }) => {
-      // Skip slices smaller than 5% — they're too narrow to label
-      if (percent < 0.05) return null;
-
-      const radius = or + 24;
-      const x = cx + radius * Math.cos(-midAngle * RADIAN);
-      const y = cy + radius * Math.sin(-midAngle * RADIAN);
-      const anchor = x > cx ? "start" : "end";
+      const RADIAN = Math.PI / 180;
+      const radius = (or ?? 85) + 24;
+      const x = (cx ?? 0) + radius * Math.cos(-(midAngle ?? 0) * RADIAN);
+      const y = (cy ?? 0) + radius * Math.sin(-(midAngle ?? 0) * RADIAN);
+      const anchor = x > (cx ?? 0) ? "start" : "end";
 
       return (
         <text
@@ -1053,7 +1031,7 @@ function DashboardAnalyticsChartContent({
           dominantBaseline="central"
           style={{ fontSize: 11, fontWeight: 500, fontFamily: "inherit" }}
         >
-          {`${name} (${(percent * 100).toFixed(0)}%)`}
+          {`${name ?? ""} (${(percent * 100).toFixed(0)}%)`}
         </text>
       );
     };
@@ -1071,6 +1049,7 @@ function DashboardAnalyticsChartContent({
             dataKey="value"
             labelLine={{ stroke: "#d1d5db", strokeWidth: 1 }}
             label={renderCustomLabel}
+
           >
             {pieData.map((entry, index) => (
               <Cell
@@ -1080,10 +1059,6 @@ function DashboardAnalyticsChartContent({
             ))}
           </Pie>
           <Tooltip
-            formatter={(value: number, name: string) => [
-              value.toLocaleString(),
-              name,
-            ]}
             contentStyle={{
               borderRadius: 8,
               border: "1px solid #e5e7eb",
