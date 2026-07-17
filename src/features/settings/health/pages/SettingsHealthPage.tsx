@@ -171,18 +171,22 @@ function HealthCheckDetails({
   if (checkKey === "email") {
     return (
       <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
-        {(["activeConnections", "readyConnections", "invalidConnections"] as const).map(
-          (detailKey) => (
-            <div key={detailKey} className="rounded-lg bg-gray-50 p-2">
-              <dt className="text-[10px] text-gray-500">
-                {detailLabels[isArabic ? "ar" : "en"].email[detailKey]}
-              </dt>
-              <dd className="mt-1 text-lg font-semibold text-gray-900">
-                {getNumericDetail(details, detailKey)}
-              </dd>
-            </div>
-          ),
-        )}
+        {(
+          [
+            "activeConnections",
+            "readyConnections",
+            "invalidConnections",
+          ] as const
+        ).map((detailKey) => (
+          <div key={detailKey} className="rounded-lg bg-gray-50 p-2">
+            <dt className="text-[10px] text-gray-500">
+              {detailLabels[isArabic ? "ar" : "en"].email[detailKey]}
+            </dt>
+            <dd className="mt-1 text-lg font-semibold text-gray-900">
+              {getNumericDetail(details, detailKey)}
+            </dd>
+          </div>
+        ))}
       </dl>
     );
   }
@@ -195,7 +199,9 @@ function HealthCheckDetails({
           {detailLabels[isArabic ? "ar" : "en"].push.mode}
         </span>
         <span className="mt-1 block font-semibold text-gray-900">
-          {detailLabels[isArabic ? "ar" : "en"].push[mode as "send_enabled" | "unknown"] ?? mode}
+          {detailLabels[isArabic ? "ar" : "en"].push[
+            mode as "send_enabled" | "unknown"
+          ] ?? mode}
         </span>
       </div>
     );
@@ -226,7 +232,9 @@ export default function SettingsHealthPage() {
         setReport(await fetchHealthReport());
       } catch (loadError) {
         setError(
-          loadError instanceof Error ? loadError.message : t("messages.load_failed"),
+          loadError instanceof Error
+            ? loadError.message
+            : t("messages.load_failed"),
         );
       } finally {
         setIsLoading(false);
@@ -385,36 +393,48 @@ export default function SettingsHealthPage() {
                 <table className="min-w-full divide-y divide-gray-200 text-sm">
                   <thead className="bg-gray-50 text-left text-xs font-semibold uppercase text-gray-500">
                     <tr>
-                      <th className="px-4 py-3">{t("queues.name")}</th>
-                      <th className="px-4 py-3">{t("queues.status")}</th>
-                      <th className="px-4 py-3">{t("queues.waiting")}</th>
-                      <th className="px-4 py-3">{t("queues.active")}</th>
-                      <th className="px-4 py-3">{t("queues.delayed")}</th>
-                      <th className="px-4 py-3">{t("queues.failed")}</th>
+                      <th className="px-4 py-3 text-center">
+                        {t("queues.name")}
+                      </th>
+                      <th className="px-4 py-3 text-center">
+                        {t("queues.status")}
+                      </th>
+                      <th className="px-4 py-3 text-center">
+                        {t("queues.waiting")}
+                      </th>
+                      <th className="px-4 py-3 text-center">
+                        {t("queues.active")}
+                      </th>
+                      <th className="px-4 py-3 text-center">
+                        {t("queues.delayed")}
+                      </th>
+                      <th className="px-4 py-3 text-center">
+                        {t("queues.failed")}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 bg-white">
                     {queueDetails.map((queue) => (
                       <tr key={queue.name}>
-                        <td className="px-4 py-3 font-medium text-gray-900">
+                        <td className="px-4 py-3 font-medium text-gray-900 text-center">
                           {queue.name}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 text-center">
                           <StatusBadge
                             status={queue.status}
                             label={t(`status.${queue.status}`)}
                           />
                         </td>
-                        <td className="px-4 py-3 text-gray-600">
+                        <td className="px-4 py-3 text-gray-600 text-center">
                           {queue.counts?.waiting ?? 0}
                         </td>
-                        <td className="px-4 py-3 text-gray-600">
+                        <td className="px-4 py-3 text-gray-600 text-center">
                           {queue.counts?.active ?? 0}
                         </td>
-                        <td className="px-4 py-3 text-gray-600">
+                        <td className="px-4 py-3 text-gray-600 text-center">
                           {queue.counts?.delayed ?? 0}
                         </td>
-                        <td className="px-4 py-3 text-gray-600">
+                        <td className="px-4 py-3 text-gray-600 text-center">
                           {queue.counts?.failed ?? 0}
                         </td>
                       </tr>

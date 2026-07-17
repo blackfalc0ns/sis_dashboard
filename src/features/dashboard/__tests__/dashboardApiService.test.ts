@@ -102,15 +102,28 @@ describe("dashboardApiService", () => {
     mockedApiGet
       .mockResolvedValueOnce({ location: { city: "Cairo" } })
       .mockResolvedValueOnce({ todos: [] });
-    mockedApiPost.mockResolvedValueOnce({ todoId: "todo-123" });
-    mockedApiPatch.mockResolvedValueOnce({ todoId: "todo-123", status: "completed" });
-    mockedApiDelete.mockResolvedValueOnce({ deleted: true });
+    mockedApiPost.mockResolvedValueOnce({
+      generatedAt: "2026-07-15T09:00:00.000Z",
+      todo: { todoId: "todo-123" },
+    });
+    mockedApiPatch.mockResolvedValueOnce({
+      generatedAt: "2026-07-15T09:00:00.000Z",
+      todo: { todoId: "todo-123", status: "completed" },
+    });
+    mockedApiDelete.mockResolvedValueOnce({
+      generatedAt: "2026-07-15T09:00:00.000Z",
+      deleted: true,
+      todoId: "todo-123",
+    });
 
     await fetchLightModeDropdown({ date: "2026-07-15", locale: "ar" });
     await fetchDashboardTodos({ status: "all" });
-    await createDashboardTodo({ date: "2026-07-15", title: "Test Todo" });
-    await updateDashboardTodo("todo-123", { status: "completed" });
+    const createdTodo = await createDashboardTodo({ date: "2026-07-15", title: "Test Todo" });
+    const updatedTodo = await updateDashboardTodo("todo-123", { status: "completed" });
     await deleteDashboardTodo("todo-123");
+
+    expect(createdTodo.todo.todoId).toBe("todo-123");
+    expect(updatedTodo.todo.status).toBe("completed");
 
     expect(mockedApiGet).toHaveBeenNthCalledWith(
       1,

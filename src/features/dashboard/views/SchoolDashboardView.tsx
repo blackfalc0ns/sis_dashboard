@@ -145,6 +145,9 @@ const overviewModuleIds: DashboardModuleCard["id"][] = [
   "attendance",
   "behavior",
   "academics",
+  "reinforcement",
+  "grades",
+  "homework",
 ];
 
 export default function SchoolDashboardView({
@@ -165,8 +168,18 @@ export default function SchoolDashboardView({
   const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
 
   const dynamicTabs: DashboardTabDefinition[] = [
-    { id: "overview", label: t("tabs.overview") || "Overview" },
-    ...(Array.isArray(modules) ? modules : []).map((m) => ({ id: m.moduleKey, label: m.title })),
+    { id: "overview", label: t("dashboard.tabs.overview") || "Overview" },
+    ...(Array.isArray(modules) ? modules : []).map((m) => {
+      let label = m.title;
+      if (t.has(`dashboard.tabs.${m.moduleKey}`)) {
+        label = t(`dashboard.tabs.${m.moduleKey}`);
+      } else if (t.has(`dashboard.modules.${m.moduleKey}.title`)) {
+        label = t(`dashboard.modules.${m.moduleKey}.title`);
+      } else if (t.has(`sources.${m.moduleKey}`)) {
+        label = t(`sources.${m.moduleKey}`);
+      }
+      return { id: m.moduleKey, label };
+    }),
   ];
 
   return (

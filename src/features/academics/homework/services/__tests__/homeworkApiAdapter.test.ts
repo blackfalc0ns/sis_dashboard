@@ -403,11 +403,23 @@ describe("homeworkApiAdapter", () => {
             points: 5,
           },
           textAnswer: "Answer",
+          selectedOptionIds: ["opt-1", "opt-2"],
           awardedPoints: 4,
           teacherComment: "Draft feedback",
         }],
       })
-      .mockResolvedValueOnce({ items: [] })
+      .mockResolvedValueOnce({
+        items: [{
+          attachmentId: "submission-attachment-1",
+          fileId: "submission/file-1",
+          title: "Student work",
+          file: {
+            filename: "work.pdf",
+            mimeType: "application/pdf",
+            sizeBytes: "1024",
+          },
+        }],
+      })
       .mockResolvedValueOnce({
         homeworkId: "homework-1",
         linked: true,
@@ -463,9 +475,18 @@ describe("homeworkApiAdapter", () => {
         score: 4,
         maxScore: 5,
         feedback: "Draft feedback",
+        selectedOptionIds: ["opt-1", "opt-2"],
       }),
     ]);
-    await homeworkApiAdapter.listSubmissionAttachments("homework-1", "submission-1");
+    await expect(
+      homeworkApiAdapter.listSubmissionAttachments("homework-1", "submission-1"),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        id: "submission-attachment-1",
+        fileId: "submission/file-1",
+        url: "/api/files/submission%2Ffile-1/download",
+      }),
+    ]);
     await homeworkApiAdapter.reviewSubmissionAnswer(
       "homework-1",
       "submission-1",
@@ -504,7 +525,7 @@ describe("homeworkApiAdapter", () => {
     );
     expect(mockedApiPatch).toHaveBeenCalledWith(
       "/homework/assignments/homework-1/submissions/submission-1/answers/answer-1/review",
-      { score: 5, feedback: "Good answer" },
+      { awardedPoints: 5, teacherComment: "Good answer" },
     );
     expect(mockedApiPatch).toHaveBeenCalledWith(
       "/homework/assignments/homework-1/submissions/submission-1/review",
@@ -512,7 +533,7 @@ describe("homeworkApiAdapter", () => {
     );
     expect(mockedApiPut).toHaveBeenCalledWith(
       "/homework/assignments/homework-1/submissions/submission-1/answers/review",
-      { answers: [{ answerId: "answer-1", score: 5 }] },
+      { answers: [{ answerId: "answer-1", awardedPoints: 5, teacherComment: undefined }] },
     );
     expect(mockedApiGet).toHaveBeenCalledWith(
       "/homework/assignments/homework-1/grade-sync",

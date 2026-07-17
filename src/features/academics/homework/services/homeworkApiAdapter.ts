@@ -160,6 +160,7 @@ function mapSubmissionAnswerToUi(
     feedback: answer.feedback ?? answer.reviewNote ?? answer.teacherComment,
     isCorrect: answer.isCorrect,
     reviewedAt: answer.reviewedAt,
+    selectedOptionIds: answer.selectedOptionIds,
   };
 }
 
@@ -176,7 +177,13 @@ function mapSubmissionAttachmentToUi(
     filename,
     mimeType: attachment.file?.mimeType,
     sizeBytes: attachment.file?.sizeBytes,
-    url: attachment.file?.url,
+    // Submission attachment responses expose the backing file id, not a URL.
+    // Use the same authenticated download proxy as the rest of the app.
+    url:
+      attachment.file?.url ??
+      (attachment.fileId
+        ? `/api/files/${encodeURIComponent(attachment.fileId)}/download`
+        : undefined),
     createdAt: attachment.createdAt,
   };
 }
@@ -577,17 +584,32 @@ export const homeworkApiAdapter: HomeworkAdapter = {
   },
 
   async reviewSubmissionAnswer(homeworkId, submissionId, answerId, payload) {
-    const response = await apiPatch<BackendHomeworkSubmissionAnswerDto>(
+    const backendPayload = {
+      awardedPoints: payload.score,
+      teacherComment: payload.feedback,
+    };
+    const response = await apiPatch<any>(
       `${submissionPath(homeworkId, submissionId)}/answers/${answerId}/review`,
-      payload,
+      backendPayload,
     );
-    return mapSubmissionAnswerToUi(response);
+    const data = (response as any)?.answer ?? response;
+    return mapSubmissionAnswerToUi(data);
   },
 
   async bulkReviewSubmissionAnswers(homeworkId, submissionId, payload) {
+    const backendPayload = {
+      answers: payload.answers.map((item) => ({
+        answerId: item.answerId,
+        awardedPoints: item.score,
+        teacherComment: item.feedback,
+      })),
+    };
     const response = await apiPut<
       BackendHomeworkSubmissionAnswersResponse | BackendHomeworkSubmissionAnswerDto[]
-    >(`${submissionPath(homeworkId, submissionId)}/answers/review`, payload);
+    >(
+      `${submissionPath(homeworkId, submissionId)}/answers/review`,
+      backendPayload,
+    );
     return extractAnswerList(response)
       .map(mapSubmissionAnswerToUi)
       .filter((answer) => answer.id);

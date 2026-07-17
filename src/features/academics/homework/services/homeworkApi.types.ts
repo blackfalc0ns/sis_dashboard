@@ -411,6 +411,7 @@ export interface HomeworkSubmissionAnswerUiModel {
   feedback?: string | null;
   isCorrect?: boolean | null;
   reviewedAt?: string | null;
+  selectedOptionIds?: string[];
 }
 
 export interface HomeworkSubmissionAttachmentUiModel {

@@ -3,24 +3,28 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
+  Check,
   CheckCircle2,
   Clock,
   FileText,
+  Menu,
   RefreshCcw,
   Save,
   Search,
+  X,
 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
-import { AccessDenied } from "@/components/ui";
+import { AccessDenied, ConfirmDialog } from "@/components/ui";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/components/ui/toast/Toast";
 import { getHomeworkErrorMessage } from "@/features/academics/homework/services/homeworkErrors";
 import {
   bulkReviewHomeworkSubmissionAnswers,
   fetchHomeworkSubmission,
+  listHomeworkQuestions,
   listHomeworkSubmissionAnswers,
   listHomeworkSubmissionAttachments,
   listHomeworkSubmissions,
@@ -35,6 +39,9 @@ import type {
   HomeworkSubmissionsPaginationUiModel,
   HomeworkSubmissionUiModel,
 } from "@/features/academics/homework/services/homeworkApi.types";
+import type {
+  AssignmentQuestion,
+} from "@/features/academics/curriculum/services/curriculumService";
 
 const REVIEW_NOTE_MAX_LENGTH = 2000;
 const SEARCH_MAX_LENGTH = 200;
@@ -80,6 +87,10 @@ function normalizeStatus(status: string | undefined) {
   return status?.toLowerCase() ?? "submitted";
 }
 
+function scoreDraftValue(value: number | undefined) {
+  return value === undefined ? "" : String(value);
+}
+
 export default function HomeworkSubmissionReviewPanel({
   homeworkId,
   totalMarks,
@@ -91,6 +102,7 @@ export default function HomeworkSubmissionReviewPanel({
   const canView = hasPermission("homework.submissions.view");
   const canManage = hasPermission("homework.assignments.manage");
   const canSync = hasPermission("grades.items.manage");
+  const canDownloadFiles = hasPermission("files.downloads.view");
   const { showError, showSuccess } = useToast();
   const [submissions, setSubmissions] = useState<HomeworkSubmissionUiModel[]>(
     [],
@@ -99,6 +111,7 @@ export default function HomeworkSubmissionReviewPanel({
     string | null
   >(null);
   const [answers, setAnswers] = useState<HomeworkSubmissionAnswerUiModel[]>([]);
+  const [questions, setQuestions] = useState<AssignmentQuestion[]>([]);
   const [attachments, setAttachments] = useState<
     HomeworkSubmissionAttachmentUiModel[]
   >([]);
@@ -110,6 +123,8 @@ export default function HomeworkSubmissionReviewPanel({
   const [isSavingSubmissionReview, setIsSavingSubmissionReview] =
     useState(false);
   const [isSyncingSubmission, setIsSyncingSubmission] = useState(false);
+  const [pendingSubmissionId, setPendingSubmissionId] = useState<string | null>(null);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [submissionReviewDraft, setSubmissionReviewDraft] =
     useState<SubmissionReviewDraft>({
       awardedMarks: "",
@@ -127,6 +142,7 @@ export default function HomeworkSubmissionReviewPanel({
       limit: DEFAULT_PAGE_SIZE,
       total: 0,
     });
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   const selectedSubmission = useMemo(
     () =>
@@ -193,8 +209,50 @@ export default function HomeworkSubmissionReviewPanel({
     return undefined;
   }, [selectedSubmission?.totalMarks, submissionReviewDraft.awardedMarks, t, totalMarks]);
 
+  const submissionStatusLabel = useCallback(
+    (status: string | undefined) => {
+      switch (normalizeStatus(status)) {
+        case "late":
+          return t("statuses.late");
+        case "reviewed":
+          return t("statuses.reviewed");
+        case "pending_review":
+          return t("statuses.pendingReview");
+        case "submitted":
+        default:
+          return t("statuses.submitted");
+      }
+    },
+    [t],
+  );
+
+  const isSubmissionReviewDirty =
+    selectedSubmission !== null &&
+    (submissionReviewDraft.awardedMarks !== scoreDraftValue(selectedSubmission.awardedMarks) ||
+      submissionReviewDraft.reviewNote !== (selectedSubmission.reviewNote ?? ""));
+
+  const isAnswerReviewDirty = useCallback(
+    (answer: HomeworkSubmissionAnswerUiModel) => {
+      const draft = drafts[answer.id];
+      return (
+        (draft?.score ?? "") !== scoreDraftValue(answer.score) ||
+        (draft?.feedback ?? "") !== (answer.feedback ?? "")
+      );
+    },
+    [drafts],
+  );
+
+  const dirtyAnswerCount = useMemo(
+    () => answers.filter(isAnswerReviewDirty).length,
+    [answers, isAnswerReviewDirty],
+  );
+  const hasUnsavedChanges = isSubmissionReviewDirty || dirtyAnswerCount > 0;
+
   const canSaveSubmissionReview =
-    canManage && !reviewNoteError && !awardedMarksError;
+    canManage &&
+    isSubmissionReviewDirty &&
+    !reviewNoteError &&
+    !awardedMarksError;
 
   const submissionSummary = useMemo(() => {
     return submissions.reduce(
@@ -294,9 +352,458 @@ export default function HomeworkSubmissionReviewPanel({
   }, [loadSubmissions]);
 
   useEffect(() => {
+    let active = true;
+    const loadQuestions = async () => {
+      try {
+        const list = await listHomeworkQuestions(homeworkId);
+        if (active) {
+          setQuestions(list);
+        }
+      } catch (error) {
+        // Quietly fail
+      }
+    };
+    void loadQuestions();
+    return () => {
+      active = false;
+    };
+  }, [homeworkId]);
+
+  useEffect(() => {
     if (!selectedSubmissionId || !canView) return;
     void loadSubmissionDetail(selectedSubmissionId);
   }, [canView, loadSubmissionDetail, selectedSubmissionId]);
+
+  const getQuestionTypeLabel = useCallback(
+    (type?: string) => {
+      switch (type) {
+        case "MCQ_SINGLE":
+          return t("questionTypes.singleChoice");
+        case "MCQ_MULTI":
+          return t("questionTypes.multipleChoice");
+        case "TRUE_FALSE":
+          return t("questionTypes.trueFalse");
+        case "SHORT_ANSWER":
+          return t("questionTypes.shortAnswer");
+        case "ESSAY":
+          return t("questionTypes.essay");
+        default:
+          return type || "";
+      }
+    },
+    [t],
+  );
+
+  const renderAnswerContent = useCallback(
+    (answer: HomeworkSubmissionAnswerUiModel) => {
+      const question = questions.find((q) => q.id === answer.questionId);
+      
+      if (!question) {
+        return (
+          <div className="mt-2 whitespace-pre-wrap rounded-lg bg-gray-50 p-3 text-sm text-gray-700 border border-gray-100">
+            {answer.answerText || t("answers.noAnswer")}
+          </div>
+        );
+      }
+
+      const isChoice =
+        question.questionType === "MCQ_SINGLE" ||
+        question.questionType === "MCQ_MULTI" ||
+        question.questionType === "TRUE_FALSE";
+
+      if (isChoice && question.options && question.options.length > 0) {
+        const selectedOptionIds = answer.selectedOptionIds || [];
+        const isMulti = question.questionType === "MCQ_MULTI";
+
+        return (
+          <div className="mt-3 space-y-2">
+            <div className="grid gap-2 sm:grid-cols-2">
+              {question.options.map((option) => {
+                const isSelected = selectedOptionIds.includes(option.id);
+                const isCorrect = option.isCorrect;
+
+                let boxClass = "flex items-center gap-3 rounded-lg border p-3 text-sm transition ";
+
+                if (isSelected) {
+                  if (isCorrect) {
+                    boxClass += "border-green-300 bg-green-50 text-green-900";
+                  } else {
+                    boxClass += "border-red-300 bg-red-50 text-red-900";
+                  }
+                } else {
+                  if (isCorrect) {
+                    boxClass += "border-dashed border-green-300 bg-white text-green-800";
+                  } else {
+                    boxClass += "border-gray-200 bg-white text-gray-700 hover:bg-gray-50";
+                  }
+                }
+
+                return (
+                  <div key={option.id} className={boxClass}>
+                    {isMulti ? (
+                      isSelected ? (
+                        <div className="flex h-4 w-4 items-center justify-center rounded bg-green-600 text-white shrink-0">
+                          <Check className="h-3 w-3 stroke-[3]" />
+                        </div>
+                      ) : (
+                        <div className="h-4 w-4 rounded border-2 border-gray-300 bg-white shrink-0" />
+                      )
+                    ) : (
+                      isSelected ? (
+                        <div className="flex h-4 w-4 items-center justify-center rounded-full bg-green-600 text-white shrink-0">
+                          <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                        </div>
+                      ) : (
+                        <div className="h-4 w-4 rounded-full border-2 border-gray-300 bg-white shrink-0" />
+                      )
+                    )}
+
+                    <span className="flex-1 font-medium">
+                      {option.textEn || option.textAr || ""}
+                    </span>
+
+                    {isSelected && (
+                      <span className="shrink-0 flex items-center">
+                        {isCorrect ? (
+                          <Check className="h-4 w-4 text-green-600 stroke-[3]" />
+                        ) : (
+                          <X className="h-4 w-4 text-red-600 stroke-[3]" />
+                        )}
+                      </span>
+                    )}
+                    {!isSelected && isCorrect && (
+                      <span className="text-xs font-semibold text-green-600 bg-green-100/80 px-2 py-0.5 rounded-full">
+                        {t("answers.correct")}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="mt-3 space-y-3">
+          <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-gray-150 pb-2 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                {t("answers.studentAnswer")}
+              </span>
+            </div>
+            <p className="whitespace-pre-wrap text-sm text-gray-800 font-medium leading-relaxed">
+              {answer.answerText || (
+                <span className="italic text-gray-400">
+                  {t("answers.noAnswer")}
+                </span>
+              )}
+            </p>
+          </div>
+
+          {question.expectedAnswer && (
+            <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 p-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-500 mb-1">
+                {t("answers.modelAnswer")}
+              </h4>
+              <p className="text-sm font-medium text-indigo-950">
+                {question.expectedAnswer}
+              </p>
+            </div>
+          )}
+        </div>
+      );
+    },
+    [questions, t],
+  );
+
+  const hasActiveFilters =
+    statusFilter !== "all" || Boolean(appliedSearch.trim());
+
+  const applySearch = useCallback(() => {
+    setPage(1);
+    setAppliedSearch(searchDraft.trim().slice(0, SEARCH_MAX_LENGTH));
+  }, [searchDraft]);
+
+  const clearFilters = useCallback(() => {
+    setStatusFilter("all");
+    setSearchDraft("");
+    setAppliedSearch("");
+    setPage(1);
+  }, []);
+
+  const selectSubmission = useCallback(
+    (submissionId: string) => {
+      const nextSubmission = submissions.find(
+        (submission) => submission.id === submissionId,
+      );
+      setSelectedSubmissionId(submissionId);
+      setSubmissionReviewDraft({
+        awardedMarks: scoreDraftValue(nextSubmission?.awardedMarks),
+        reviewNote: nextSubmission?.reviewNote ?? "",
+      });
+      setAnswers([]);
+      setAttachments([]);
+      setDrafts({});
+    },
+    [submissions],
+  );
+
+  const requestSubmissionSelection = useCallback(
+    (submissionId: string) => {
+      if (submissionId === selectedSubmissionId) return;
+      if (hasUnsavedChanges) {
+        setPendingSubmissionId(submissionId);
+        setShowDiscardDialog(true);
+        return;
+      }
+      selectSubmission(submissionId);
+    },
+    [hasUnsavedChanges, selectSubmission, selectedSubmissionId],
+  );
+
+  const discardAndSelectSubmission = useCallback(() => {
+    if (pendingSubmissionId) {
+      selectSubmission(pendingSubmissionId);
+    }
+    setPendingSubmissionId(null);
+    setShowDiscardDialog(false);
+  }, [pendingSubmissionId, selectSubmission]);
+
+  const closeDiscardDialog = useCallback(() => {
+    setPendingSubmissionId(null);
+    setShowDiscardDialog(false);
+  }, []);
+
+  const renderSidebarContent = useCallback(
+    (isDrawer = false) => (
+      <div className="flex h-full flex-col bg-white">
+        <div className="border-b border-border p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">
+                {t("submissions.title")}
+              </h2>
+              <p className="text-xs text-gray-500">
+                {t("submissions.range", {
+                  start: rangeStart,
+                  end: rangeEnd,
+                  total: pagination.total,
+                })}
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void loadSubmissions()}
+              loading={isLoadingSubmissions}
+              disabled={hasUnsavedChanges}
+              leftIcon={<RefreshCcw className="h-4 w-4" />}
+            >
+              {t("actions.refresh")}
+            </Button>
+          </div>
+          <div className="mt-4 space-y-3">
+            <Select
+              label={t("filters.status")}
+              value={statusFilter}
+              options={statusOptions}
+              onChange={(value) => {
+                setPage(1);
+                setStatusFilter(value as SubmissionStatusFilter);
+              }}
+              selectSize="sm"
+              disabled={hasUnsavedChanges}
+            />
+            <Select
+              label={t("filters.limit")}
+              value={String(limit)}
+              options={pageSizeOptions}
+              onChange={(value) => {
+                setPage(1);
+                setLimit(Number(value));
+              }}
+              selectSize="sm"
+              disabled={hasUnsavedChanges}
+            />
+            <div className="flex gap-2">
+              <Input
+                label={t("filters.search")}
+                value={searchDraft}
+                maxLength={SEARCH_MAX_LENGTH}
+                onChange={(event) =>
+                  setSearchDraft(event.target.value.slice(0, SEARCH_MAX_LENGTH))
+                }
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") applySearch();
+                }}
+                placeholder={t("filters.searchPlaceholder")}
+                helperText={t("filters.searchLimit", {
+                  count: searchDraft.length,
+                  max: SEARCH_MAX_LENGTH,
+                })}
+                inputSize="sm"
+                leftIcon={<Search className="h-4 w-4" />}
+                disabled={hasUnsavedChanges}
+              />
+              <div className="flex items-end">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={applySearch}
+                  disabled={hasUnsavedChanges}
+                >
+                  {t("actions.search")}
+                </Button>
+              </div>
+            </div>
+            {hasActiveFilters && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                disabled={hasUnsavedChanges}
+                className="w-full"
+              >
+                {t("actions.clearFilters")}
+              </Button>
+            )}
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2" aria-busy={isLoadingSubmissions}>
+          {isLoadingSubmissions && (
+            <div className="space-y-2 p-1" role="status" aria-live="polite">
+              <span className="sr-only">{t("submissions.loading")}</span>
+              {Array.from({ length: 6 }, (_, index) => (
+                <div
+                  key={index}
+                  className="animate-pulse rounded-lg border border-gray-100 p-3"
+                >
+                  <div className="h-4 w-2/3 rounded bg-gray-200" />
+                  <div className="mt-2 h-3 w-1/2 rounded bg-gray-100" />
+                  <div className="mt-3 h-3 w-1/3 rounded bg-gray-100" />
+                </div>
+              ))}
+            </div>
+          )}
+          {!isLoadingSubmissions && submissions.length === 0 && (
+            <div className="p-6 text-center text-sm text-gray-500">
+              {hasActiveFilters
+                ? t("submissions.emptyFiltered")
+                : t("submissions.empty")}
+            </div>
+          )}
+          {!isLoadingSubmissions && submissions.map((submission) => (
+            <button
+              key={submission.id}
+              type="button"
+              onClick={() => {
+                requestSubmissionSelection(submission.id);
+                if (isDrawer) {
+                  setIsMobileDrawerOpen(false);
+                }
+              }}
+              aria-current={selectedSubmissionId === submission.id ? "true" : undefined}
+              className={`mb-2 w-full cursor-pointer rounded-lg border border-border p-3 text-left transition-colors duration-200 hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                selectedSubmissionId === submission.id
+                  ? "border-primary bg-primary/5"
+                  : "border-gray-200 bg-white"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-gray-900">
+                    {submission.studentName}
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500">
+                    {formatMaybeDate(submission.submittedAt, locale)}
+                  </div>
+                  {submission.studentNumber && (
+                    <div className="mt-1 text-xs text-gray-400">
+                      {submission.studentNumber}
+                    </div>
+                  )}
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${statusClass(
+                    submission.status,
+                  )}`}
+                >
+                  {submissionStatusLabel(submission.status)}
+                </span>
+              </div>
+              <div className="mt-2 text-xs text-gray-650">
+                {scoreText(
+                  submission.awardedMarks,
+                  submission.totalMarks ?? totalMarks,
+                )}
+              </div>
+              {submission.isLate && (
+                <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                  <Clock className="h-3 w-3" />
+                  {t("submissions.late")}
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center justify-between gap-2 border-t border-border p-3 bg-white">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={pagination.page <= 1 || isLoadingSubmissions || hasUnsavedChanges}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+          >
+            {t("pagination.previous")}
+          </Button>
+          <span className="text-xs font-medium text-gray-500">
+            {t("pagination.page", {
+              page: pagination.page,
+              totalPages,
+            })}
+          </span>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={pagination.page >= totalPages || isLoadingSubmissions || hasUnsavedChanges}
+            onClick={() =>
+              setPage((current) => Math.min(totalPages, current + 1))
+            }
+          >
+            {t("pagination.next")}
+          </Button>
+        </div>
+      </div>
+    ),
+    [
+      submissions,
+      selectedSubmissionId,
+      isLoadingSubmissions,
+      statusFilter,
+      limit,
+      searchDraft,
+      pagination,
+      totalPages,
+      locale,
+      t,
+      rangeStart,
+      rangeEnd,
+      statusOptions,
+      pageSizeOptions,
+      totalMarks,
+      applySearch,
+      clearFilters,
+      hasActiveFilters,
+      hasUnsavedChanges,
+      loadSubmissions,
+      requestSubmissionSelection,
+      submissionStatusLabel,
+    ],
+  );
 
   const updateDraft = (answerId: string, updates: Partial<ReviewDraft>) => {
     setDrafts((current) => ({
@@ -307,11 +814,6 @@ export default function HomeworkSubmissionReviewPanel({
         ...updates,
       },
     }));
-  };
-
-  const applySearch = () => {
-    setPage(1);
-    setAppliedSearch(searchDraft.trim().slice(0, SEARCH_MAX_LENGTH));
   };
 
   const saveAnswerReview = async (answerId: string) => {
@@ -332,6 +834,13 @@ export default function HomeworkSubmissionReviewPanel({
       setAnswers((current) =>
         current.map((answer) => (answer.id === answerId ? updated : answer)),
       );
+      setDrafts((current) => ({
+        ...current,
+        [answerId]: {
+          score: scoreDraftValue(updated.score),
+          feedback: updated.feedback ?? "",
+        },
+      }));
       showSuccess(t("messages.answerSaved"));
     } catch (error) {
       showError(t("errors.saveAnswer", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
@@ -341,8 +850,8 @@ export default function HomeworkSubmissionReviewPanel({
   };
 
   const saveAllReviews = async () => {
-    if (!selectedSubmissionId || !canManage) return;
-    const reviewItems = answers.map((answer) => {
+    if (!selectedSubmissionId || !canManage || dirtyAnswerCount === 0) return;
+    const reviewItems = answers.filter(isAnswerReviewDirty).map((answer) => {
       const draft = drafts[answer.id];
       const parsedScore = draft?.score.trim() ? Number(draft.score) : undefined;
       return {
@@ -358,7 +867,24 @@ export default function HomeworkSubmissionReviewPanel({
         selectedSubmissionId,
         { answers: reviewItems },
       );
-      setAnswers(updatedAnswers);
+      setAnswers((current) => {
+        const updatedById = new Map(
+          updatedAnswers.map((answer) => [answer.id, answer]),
+        );
+        return current.map((answer) => updatedById.get(answer.id) ?? answer);
+      });
+      setDrafts((current) => ({
+        ...current,
+        ...Object.fromEntries(
+          updatedAnswers.map((answer) => [
+            answer.id,
+            {
+              score: scoreDraftValue(answer.score),
+              feedback: answer.feedback ?? "",
+            },
+          ]),
+        ),
+      }));
       showSuccess(t("messages.allSaved"));
     } catch (error) {
       showError(t("errors.saveAll", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
@@ -424,182 +950,57 @@ export default function HomeworkSubmissionReviewPanel({
         <SummaryCard label={t("summary.reviewed")} value={submissionSummary.reviewed} />
       </div>
 
+      {hasUnsavedChanges && (
+        <div
+          className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          role="status"
+          aria-live="polite"
+        >
+          <span>{t("messages.unsavedChanges", { count: dirtyAnswerCount })}</span>
+          <span className="shrink-0 text-xs font-semibold">
+            {t("messages.saveBeforeContinuing")}
+          </span>
+        </div>
+      )}
+
       <div className="grid min-h-[calc(100vh-270px)] gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className="rounded-lg border border-border bg-white">
-          <div className="border-b border-border p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-semibold text-gray-900">
-                  {t("submissions.title")}
-                </h2>
-                <p className="text-xs text-gray-500">
-                  {t("submissions.range", {
-                    start: rangeStart,
-                    end: rangeEnd,
-                    total: pagination.total,
-                  })}
-                </p>
-              </div>
+        {/* Desktop Sidebar */}
+        <aside className="hidden lg:block rounded-lg border border-border bg-white overflow-hidden">
+          {renderSidebarContent(false)}
+        </aside>
+
+        <section className="min-w-0 rounded-lg border border-border bg-white">
+          {!selectedSubmission ? (
+            <div className="flex flex-col h-full min-h-[420px] items-center justify-center gap-4 p-6 text-center text-sm text-gray-500">
+              <span>{t("detail.selectSubmission")}</span>
               <Button
-                variant="secondary"
+                variant="primary"
                 size="sm"
-                onClick={() => void loadSubmissions()}
-                loading={isLoadingSubmissions}
-                leftIcon={<RefreshCcw className="h-4 w-4" />}
+                className="lg:hidden"
+                onClick={() => setIsMobileDrawerOpen(true)}
+                leftIcon={<Menu className="h-4 w-4" />}
               >
-                {t("actions.refresh")}
+                {t("actions.viewStudents")}
               </Button>
             </div>
-            <div className="mt-4 space-y-3">
-              <Select
-                label={t("filters.status")}
-                value={statusFilter}
-                options={statusOptions}
-                onChange={(value) => {
-                  setPage(1);
-                  setStatusFilter(value as SubmissionStatusFilter);
-                }}
-                selectSize="sm"
-              />
-              <Select
-                label={t("filters.limit")}
-                value={String(limit)}
-                options={pageSizeOptions}
-                onChange={(value) => {
-                  setPage(1);
-                  setLimit(Number(value));
-                }}
-                selectSize="sm"
-              />
-              <div className="flex gap-2">
-                <Input
-                  label={t("filters.search")}
-                  value={searchDraft}
-                  maxLength={SEARCH_MAX_LENGTH}
-                  onChange={(event) =>
-                    setSearchDraft(event.target.value.slice(0, SEARCH_MAX_LENGTH))
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") applySearch();
-                  }}
-                  placeholder={t("filters.searchPlaceholder")}
-                  helperText={t("filters.searchLimit", {
-                    count: searchDraft.length,
-                    max: SEARCH_MAX_LENGTH,
-                  })}
-                  inputSize="sm"
-                  leftIcon={<Search className="h-4 w-4" />}
-                />
-                <div className="flex items-end">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={applySearch}
-                  >
-                    {t("actions.search")}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="max-h-[calc(100vh-410px)] overflow-y-auto p-2">
-          {!isLoadingSubmissions && submissions.length === 0 && (
-            <div className="p-6 text-center text-sm text-gray-500">
-              {t("submissions.empty")}
-            </div>
-          )}
-          {submissions.map((submission) => (
-            <button
-              key={submission.id}
-              type="button"
-              onClick={() => setSelectedSubmissionId(submission.id)}
-              className={`mb-2 w-full rounded-lg border border-border p-3 text-left transition hover:border-primary ${
-                selectedSubmissionId === submission.id
-                  ? "border-primary bg-primary/5"
-                  : "border-gray-200 bg-white"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium text-gray-900">
-                    {submission.studentName}
-                  </div>
-                  <div className="mt-1 text-xs text-gray-500">
-                    {formatMaybeDate(submission.submittedAt, locale)}
-                  </div>
-                  {submission.studentNumber && (
-                    <div className="mt-1 text-xs text-gray-400">
-                      {submission.studentNumber}
-                    </div>
-                  )}
-                </div>
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${statusClass(
-                    submission.status,
-                  )}`}
-                >
-                  {submission.status}
-                </span>
-              </div>
-              <div className="mt-2 text-xs text-gray-600">
-                {scoreText(
-                  submission.awardedMarks,
-                  submission.totalMarks ?? totalMarks,
-                )}
-              </div>
-              {submission.isLate && (
-                <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-                  <Clock className="h-3 w-3" />
-                  {t("submissions.late")}
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-          <div className="flex items-center justify-between gap-2 border-t border-border p-3">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={pagination.page <= 1 || isLoadingSubmissions}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-            >
-              {t("pagination.previous")}
-            </Button>
-            <span className="text-xs font-medium text-gray-500">
-              {t("pagination.page", {
-                page: pagination.page,
-                totalPages,
-              })}
-            </span>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={pagination.page >= totalPages || isLoadingSubmissions}
-              onClick={() =>
-                setPage((current) => Math.min(totalPages, current + 1))
-              }
-            >
-              {t("pagination.next")}
-            </Button>
-          </div>
-      </aside>
-
-      <section className="min-w-0 rounded-lg border border-border bg-white">
-        {!selectedSubmission ? (
-          <div className="flex h-full min-h-[420px] items-center justify-center text-sm text-gray-500">
-            {t("detail.selectSubmission")}
-          </div>
-        ) : (
-          <>
-            <div className="border-b border-border p-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <h2 className="text-base font-semibold text-gray-900">
-                    {selectedSubmission.studentName}
-                  </h2>
+          ) : (
+            <>
+              <div className="border-b border-border p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="lg:hidden shrink-0"
+                      onClick={() => setIsMobileDrawerOpen(true)}
+                      leftIcon={<Menu className="h-4 w-4" />}
+                    >
+                      {t("actions.students")}
+                    </Button>
+                    <div>
+                      <h2 className="text-base font-semibold text-gray-900">
+                        {selectedSubmission.studentName}
+                      </h2>
                   <p className="text-sm text-gray-500">
                     {t("detail.submittedAt", {
                       date: formatMaybeDate(
@@ -614,13 +1015,15 @@ export default function HomeworkSubmissionReviewPanel({
                     </p>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-2">
+              </div>
+              <div className="flex flex-wrap gap-2">
                   {canManage && (
                     <Button
                       variant="secondary"
                       size="sm"
                       onClick={() => void saveAllReviews()}
                       loading={isBulkSaving}
+                      disabled={dirtyAnswerCount === 0}
                       leftIcon={<Save className="h-4 w-4" />}
                     >
                       {t("actions.saveAll")}
@@ -642,38 +1045,94 @@ export default function HomeworkSubmissionReviewPanel({
 
             <div className="space-y-4 p-4">
               {isLoadingDetail ? (
-                <div className="py-12 text-center text-sm text-gray-500">
-                  {t("detail.loading")}
+                <div className="space-y-4 p-1" role="status" aria-live="polite">
+                  <span className="sr-only">{t("detail.loading")}</span>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {Array.from({ length: 3 }, (_, index) => (
+                      <div
+                        key={index}
+                        className="animate-pulse rounded-lg border border-gray-100 bg-gray-50 p-4"
+                      >
+                        <div className="h-3 w-1/2 rounded bg-gray-200" />
+                        <div className="mt-4 h-6 w-2/3 rounded bg-gray-100" />
+                      </div>
+                    ))}
+                  </div>
+                  {Array.from({ length: 3 }, (_, index) => (
+                    <div
+                      key={index}
+                      className="animate-pulse rounded-lg border border-gray-100 p-4"
+                    >
+                      <div className="h-4 w-1/3 rounded bg-gray-200" />
+                      <div className="mt-3 h-20 rounded bg-gray-100" />
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <>
                   <div className="grid gap-3 sm:grid-cols-3">
-                    <SummaryItem
-                      label={t("detail.status")}
-                      value={selectedSubmission.status}
-                    />
-                    <SummaryItem
-                      label={t("detail.reviewedAt")}
-                      value={formatMaybeDate(
-                        selectedSubmission.reviewedAt,
-                        locale,
-                      )}
-                    />
-                    <SummaryItem
-                      label={t("detail.score")}
-                      value={scoreText(
-                        selectedSubmission.awardedMarks,
-                        selectedSubmission.totalMarks ?? totalMarks,
-                      )}
-                    />
+                    {/* Status Card */}
+                    <div className="rounded-lg border border-border bg-gray-50 p-4 flex flex-col justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                        {t("detail.status")}
+                      </span>
+                      <div className="mt-2">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold border border-transparent ${statusClass(selectedSubmission.status)}`}>
+                          {submissionStatusLabel(selectedSubmission.status)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Reviewed At Card */}
+                    <div className="rounded-lg border border-border bg-gray-50 p-4 flex flex-col justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                        {t("detail.reviewedAt")}
+                      </span>
+                      <div className="mt-2 text-sm font-semibold text-gray-800">
+                        {selectedSubmission.reviewedAt ? (
+                          <span className="flex items-center gap-1.5 text-green-700">
+                            <CheckCircle2 className="h-4 w-4" />
+                            {formatMaybeDate(selectedSubmission.reviewedAt, locale)}
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1.5 text-gray-450">
+                            <Clock className="h-4 w-4" />
+                            {t("detail.pendingReview")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Score Card */}
+                    <div className="rounded-lg border border-border bg-gray-50 p-4 flex flex-col justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                        {t("detail.score")}
+                      </span>
+                      <div className="mt-2 text-sm font-bold text-gray-905 flex items-baseline gap-1">
+                        <span className="text-lg text-primary">
+                          {selectedSubmission.awardedMarks !== undefined && selectedSubmission.awardedMarks !== null ? selectedSubmission.awardedMarks : "-"}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          / {selectedSubmission.totalMarks ?? totalMarks}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   {selectedSubmission.bodyText && (
-                    <div className="rounded-lg border border-border bg-gray-50 p-4">
-                      <h3 className="text-sm font-semibold text-gray-900">
-                        {t("detail.bodyText")}
-                      </h3>
-                      <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">
+                    <div className="rounded-lg border border-border bg-slate-50/50 p-4 shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
+                          {selectedSubmission.studentName.slice(0, 2).toUpperCase()}
+                        </div>
+                        <span className="text-xs font-bold text-gray-700">
+                          {selectedSubmission.studentName}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          • {t("detail.bodyText")}
+                        </span>
+                      </div>
+                      <p className="whitespace-pre-wrap text-sm text-gray-750 font-medium leading-relaxed bg-white border border-gray-150 rounded-lg p-3">
                         {selectedSubmission.bodyText}
                       </p>
                     </div>
@@ -746,24 +1205,44 @@ export default function HomeworkSubmissionReviewPanel({
                         {t("answers.empty")}
                       </div>
                     )}
-                    {answers.map((answer) => (
-                      <article
-                        key={answer.id}
-                        className="rounded-lg border border-border p-4"
-                      >
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium text-gray-900">
-                              {answer.prompt}
+                    {answers.map((answer) => {
+                      const question = questions.find((q) => q.id === answer.questionId);
+                      return (
+                        <article
+                          key={answer.id}
+                          className="rounded-lg border border-border p-4 bg-white shadow-sm"
+                        >
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between border-b border-gray-100 pb-3 mb-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                {question && (
+                                  <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+                                    {getQuestionTypeLabel(question.questionType)}
+                                  </span>
+                                )}
+                                {answer.isCorrect === true && (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-bold text-green-700 border border-green-200">
+                                    <Check className="h-3 w-3 stroke-[3]" />
+                                    {t("answers.correct")}
+                                  </span>
+                                )}
+                                {answer.isCorrect === false && (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-700 border border-red-200">
+                                    <X className="h-3 w-3 stroke-[3]" />
+                                    {t("answers.incorrect")}
+                                  </span>
+                                )}
+                              </div>
+                              <h4 className="text-sm font-semibold text-gray-900 leading-snug">
+                                {answer.prompt}
+                              </h4>
                             </div>
-                            <div className="mt-2 whitespace-pre-wrap rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
-                              {answer.answerText || t("answers.noAnswer")}
+                            <div className="shrink-0 flex items-center gap-1 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-700">
+                              {scoreText(answer.score, answer.maxScore)}
                             </div>
                           </div>
-                          <div className="text-xs text-gray-500">
-                            {scoreText(answer.score, answer.maxScore)}
-                          </div>
-                        </div>
+                          
+                          {renderAnswerContent(answer)}
                         <div className="mt-4 grid gap-3 lg:grid-cols-[160px_minmax(0,1fr)_auto] lg:items-end">
                           <Input
                             label={t("answers.score")}
@@ -795,6 +1274,7 @@ export default function HomeworkSubmissionReviewPanel({
                               variant="secondary"
                               onClick={() => void saveAnswerReview(answer.id)}
                               loading={pendingAnswerId === answer.id}
+                              disabled={!isAnswerReviewDirty(answer)}
                               leftIcon={<Save className="h-4 w-4" />}
                             >
                               {t("actions.saveAnswer")}
@@ -802,7 +1282,8 @@ export default function HomeworkSubmissionReviewPanel({
                           )}
                         </div>
                       </article>
-                    ))}
+                    );
+                  })}
                   </div>
 
                   <div className="space-y-3">
@@ -818,8 +1299,16 @@ export default function HomeworkSubmissionReviewPanel({
                       {attachments.map((attachment) => (
                         <a
                           key={attachment.id}
-                          href={attachment.url || "#"}
-                          target={attachment.url ? "_blank" : undefined}
+                          href={
+                            canDownloadFiles && attachment.url
+                              ? attachment.url
+                              : undefined
+                          }
+                          target={
+                            canDownloadFiles && attachment.url
+                              ? "_blank"
+                              : undefined
+                          }
                           rel="noreferrer"
                           className="flex items-start gap-3 rounded-lg border border-border p-3 text-sm hover:border-primary"
                         >
@@ -844,6 +1333,47 @@ export default function HomeworkSubmissionReviewPanel({
           </>
         )}
       </section>
+      <ConfirmDialog
+        isOpen={showDiscardDialog}
+        onClose={closeDiscardDialog}
+        onConfirm={discardAndSelectSubmission}
+        title={t("unsavedChanges.title")}
+        description={t("unsavedChanges.description")}
+        confirmLabel={t("unsavedChanges.discard")}
+        cancelLabel={t("unsavedChanges.stay")}
+        severity="warning"
+      />
+      {/* Mobile Drawer Overlay */}
+      {isMobileDrawerOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-300"
+            onClick={() => setIsMobileDrawerOpen(false)}
+          />
+          {/* Drawer Panel */}
+          <div
+            className={`fixed inset-y-0 w-full max-w-[345px] bg-white shadow-2xl transition-transform duration-300 flex flex-col
+              ${locale === "ar" ? "right-0 border-l border-border" : "left-0 border-r border-border"}`}
+          >
+            <div className="flex items-center justify-between border-b border-border p-4 bg-slate-50">
+              <span className="font-bold text-gray-900 text-sm">
+                {t("submissions.title")}
+              </span>
+              <button
+                type="button"
+                className="rounded-lg p-1 text-gray-400 hover:bg-gray-150 hover:text-gray-700 transition"
+                onClick={() => setIsMobileDrawerOpen(false)}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto min-h-0 bg-white">
+              {renderSidebarContent(true)}
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

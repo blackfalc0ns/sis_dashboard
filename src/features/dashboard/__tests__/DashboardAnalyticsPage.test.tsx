@@ -7,10 +7,18 @@ import {
   fetchAnalyticsCharts,
   fetchAnalyticsChartData,
 } from "@/features/dashboard/services/dashboardApiService";
+import { ApiError } from "@/lib/api-error";
+import type { DashboardAnalyticsChartsResponse } from "@/features/dashboard/types/dashboardApi.types";
 
 const permissionState = vi.hoisted(() => ({
   isPermissionsReady: true,
   hasPermission: vi.fn(() => true),
+}));
+
+const academicContextState = vi.hoisted(() => ({
+  refreshAcademicYears: vi.fn(),
+  refreshTerms: vi.fn(),
+  requestAcademicYearChange: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -32,6 +40,7 @@ vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({
     academicYearId: "year-1",
     termId: "term-1",
     academicYears: [{ id: "year-1", name: "2026-27" }],
+    ...academicContextState,
     terms: [{ id: "term-1", name: "Term 1", nameAr: "الفصل الأول", nameEn: "Term 1" }],
   }),
 }));
@@ -148,6 +157,13 @@ describe("DashboardAnalyticsPage", () => {
     mockedFetchChartData.mockReset();
     permissionState.isPermissionsReady = true;
     permissionState.hasPermission.mockReset().mockReturnValue(true);
+    academicContextState.refreshAcademicYears.mockReset().mockResolvedValue([
+      { id: "year-1", name: "2026-27" },
+    ]);
+    academicContextState.refreshTerms.mockReset().mockResolvedValue([
+      { id: "term-1", name: "Term 1" },
+    ]);
+    academicContextState.requestAcademicYearChange.mockReset();
 
     mockedFetchCatalog.mockResolvedValue(mockCatalog as any);
     mockedFetchCharts.mockResolvedValue(mockChartsResponse as any);
@@ -235,6 +251,73 @@ describe("DashboardAnalyticsPage", () => {
     expect(mockedFetchCatalog).not.toHaveBeenCalled();
     expect(mockedFetchCharts).not.toHaveBeenCalled();
     expect(mockedFetchChartData).not.toHaveBeenCalled();
+  });
+
+  it.each(["academic_year", "term"])(
+    "shows an empty state when the selected %s has no reporting period",
+    async (range) => {
+    mockedFetchCharts.mockResolvedValue({
+      ...mockChartsResponse,
+      charts: mockChartsResponse.charts.map((chart) => ({
+        ...chart,
+        defaultRange: range,
+        supportedRanges: [range],
+        queryCapabilities: {
+          ...chart.queryCapabilities,
+          supportedRanges: [range],
+        },
+      })),
+    } as DashboardAnalyticsChartsResponse);
+    mockedFetchChartData.mockRejectedValueOnce(
+      new ApiError(
+        "Dashboard analytics hierarchy was not found",
+        404,
+        "not_found",
+      ),
+    );
+
+    render(<DashboardAnalyticsPage />);
+
+    expect(
+      await screen.findByText("No reporting period is available"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Dashboard analytics hierarchy was not found"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Academic context refreshed"),
+    ).not.toBeInTheDocument();
+    },
+  );
+
+  it("recovers from the production stale-hierarchy analytics response", async () => {
+    academicContextState.refreshTerms.mockResolvedValueOnce([
+      { id: "term-2", name: "Term 2" },
+    ]);
+    mockedFetchChartData.mockRejectedValueOnce(
+      new ApiError(
+        "Dashboard analytics hierarchy was not found",
+        404,
+        "not_found",
+      ),
+    );
+
+    render(<DashboardAnalyticsPage />);
+
+    expect(
+      await screen.findByText("Academic context refreshed"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Dashboard analytics hierarchy was not found"),
+    ).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(academicContextState.refreshAcademicYears).toHaveBeenCalled();
+      expect(academicContextState.refreshTerms).toHaveBeenCalledWith("year-1");
+      expect(academicContextState.requestAcademicYearChange).toHaveBeenCalledWith(
+        "year-1",
+      );
+    });
   });
 
   it("triggers CSV downloader on Export button click", async () => {

@@ -195,7 +195,11 @@
         "healthy": "سليم",
         "warning": "يحتاج إلى إجراء",
         "empty": "لا يوجد نشاط",
-        "setup": "يحتاج إلى إعداد"
+        "setup": "يحتاج إلى إعداد",
+        "available": "متاح",
+        "partial": "جزئي",
+        "planned": "مخطط",
+        "deferred": "مؤجل"
       },
       "setup": {
         "ready": "جاهز",
@@ -292,7 +296,19 @@
           "label": "الجدول",
           "detail": "{first, plural, zero {لا توجد مدخلات} one {مدخل واحد} two {مدخلان} few {# مدخلات} many {# مدخلا} other {# مدخل}}، {second, plural, zero {لا توجد منشورة} one {واحد منشور} two {اثنان منشوران} few {# منشورة} many {# منشورا} other {# منشور}}"
         }
-      }
+      },
+      "risks_alerts": "مخاطر وتنبيهات الوحدة",
+      "recommended_actions": "الإجراءات الموصى بها",
+      "open_module_page": "فتح صفحة الوحدة",
+      "no_risks": "لم يتم اكتشاف مخاطر نشطة",
+      "no_actions": "لا توجد إجراءات معلقة موصى بها",
+      "assigned_widgets": "الأدوات المعينة",
+      "active_areas": "الأقسام النشطة",
+      "priority_low": "منخفضة",
+      "priority_medium": "متوسطة",
+      "priority_high": "مرتفعة",
+      "priority_critical": "حرجة",
+      "count": "العدد: {value}"
     },
     "activity_card": {
       "title": "الأنشطة الأخيرة",
@@ -399,6 +415,71 @@
           "label": "PDF",
           "description": "تقرير جاهز للطباعة"
         }
+      }
+    },
+    "analytics": {
+      "title": "لوحة بيانات التحليلات",
+      "description": "مقاييس الأداء التشغيلي المحسوبة عبر وحدات النظام",
+      "showing_charts": "عرض {count} من المخططات المتاحة",
+      "refresh_all": "تحديث الكل",
+      "refresh_chart": "تحديث المخطط",
+      "csv_export": "تصدير CSV",
+      "no_charts": "لم يتم العثور على مخططات",
+      "adjust_filters": "جرّب تعديل إعدادات التصفية أو البحث في الوحدات.",
+      "no_data": "لا توجد بيانات متاحة",
+      "no_events": "هذا المخطط لا يحتوي على أحداث مسجلة.",
+      "empty_series": "بيانات سلسلة فارغة",
+      "table_label": "التسمية",
+      "load_failed": "فشل تحميل بيانات المخطط",
+      "context_refreshed_title": "تم تحديث السياق الأكاديمي",
+      "context_refreshed_description": "تغير السياق الأكاديمي المحدد. حدثنا الخيارات المتاحة وأعدنا تعيين عوامل تصفية المخطط المتأثرة.",
+      "context_unavailable_title": "تم تحديث عوامل تصفية المخطط",
+      "context_unavailable_description": "السياق الأكاديمي المحدد أو عامل تصفية المخطط لم يعد متاحاً. سيُعاد تحميل المخطط باستخدام عوامل التصفية المحدثة.",
+      "reporting_period_unavailable_title": "لا تتوفر فترة تقارير",
+      "reporting_period_unavailable_description": "لم تبدأ السنة الأكاديمية أو الترم المحدد بعد أو لا يحتوي على فترة تقارير متاحة. اختر نطاقاً أو سنة أكاديمية أو ترماً آخر.",
+      "affected_fields": "الحقول المتأثرة",
+      "retry": "إعادة المحاولة",
+      "range": "النطاق",
+      "granularity": "التقسيم",
+      "grade": "الصف",
+      "section": "القسم",
+      "classroom": "الفصل",
+      "from": "من",
+      "to": "إلى",
+      "all_grades": "جميع الصفوف",
+      "all_sections": "جميع الأقسام",
+      "all_classrooms": "جميع الفصول",
+      "all_modules": "جميع الوحدات",
+      "all_types": "جميع الأنواع",
+      "module_source": "مصدر الوحدة",
+      "chart_type": "نوع المخطط",
+      "toggle_filters": "تبديل عوامل التصفية",
+      "dashboard_filters": "عوامل تصفية لوحة البيانات",
+      "ranges": {
+        "7d": "آخر 7 أيام",
+        "30d": "آخر 30 يوماً",
+        "90d": "آخر 90 يوماً",
+        "term": "الترم الحالي",
+        "academic_year": "السنة الأكاديمية",
+        "custom": "نطاق مخصص"
+      },
+      "granularities": {
+        "day": "يومي",
+        "week": "أسبوعي",
+        "month": "شهري"
+      },
+      "chart_types": {
+        "line": "مخطط خطي",
+        "bar": "مخطط شريطي",
+        "stacked-bar": "مخطط شريطي مكدس",
+        "area": "مخطط مساحي",
+        "donut": "مخطط حلقي",
+        "pie": "مخطط دائري",
+        "funnel": "مخطط قمعي",
+        "heatmap": "خريطة حرارية",
+        "radial-progress": "مخطط تقدم شعاعي",
+        "table": "جدول",
+        "timeline": "مخطط زمني"
       }
     }
   },
@@ -5311,6 +5392,9 @@
         "actions": {
           "refresh": "تحديث",
           "search": "بحث",
+          "clearFilters": "مسح عوامل التصفية",
+          "students": "الطلاب",
+          "viewStudents": "عرض قائمة الطلاب",
           "saveAnswer": "حفظ الإجابة",
           "saveAll": "حفظ كل المراجعات",
           "saveSubmission": "حفظ مراجعة التسليم",
@@ -5331,7 +5415,7 @@
           }
         },
         "summary": {
-          "visible": "المعروض",
+          "visible": "في هذه الصفحة",
           "pending": "بانتظار المراجعة",
           "late": "متأخر",
           "reviewed": "تمت المراجعة"
@@ -5341,7 +5425,15 @@
           "count": "{count, plural, zero {# تسليمات} one {# تسليم} two {# تسليمان} few {# تسليمات} many {# تسليمًا} other {# تسليم}}",
           "range": "{start}-{end} من {total}",
           "empty": "لا توجد تسليمات لهذا الواجب.",
+          "emptyFiltered": "لا توجد تسليمات تطابق عوامل التصفية.",
+          "loading": "جارٍ تحميل التسليمات…",
           "late": "متأخر"
+        },
+        "statuses": {
+          "pendingReview": "بانتظار المراجعة",
+          "submitted": "تم التسليم",
+          "late": "متأخر",
+          "reviewed": "تمت المراجعة"
         },
         "pagination": {
           "previous": "السابق",
@@ -5354,6 +5446,7 @@
           "loading": "جار تحميل التسليم...",
           "status": "الحالة",
           "reviewedAt": "تمت المراجعة",
+          "pendingReview": "بانتظار المراجعة",
           "score": "الدرجة",
           "bodyText": "ملاحظة التسليم"
         },
@@ -5374,8 +5467,19 @@
           "title": "الإجابات",
           "empty": "لا توجد إجابات لهذا التسليم.",
           "noAnswer": "لم يتم إرسال إجابة.",
+          "studentAnswer": "إجابة الطالب",
+          "modelAnswer": "الإجابة النموذجية",
+          "correct": "صحيحة",
+          "incorrect": "خاطئة",
           "score": "الدرجة",
           "feedback": "ملاحظات"
+        },
+        "questionTypes": {
+          "singleChoice": "اختيار من متعدد (فردي)",
+          "multipleChoice": "اختيار من متعدد (متعدد)",
+          "trueFalse": "صح أو خطأ",
+          "shortAnswer": "إجابة قصيرة",
+          "essay": "سؤال مقالي"
         },
         "attachments": {
           "title": "المرفقات",
@@ -5385,7 +5489,15 @@
           "answerSaved": "تم حفظ مراجعة الإجابة.",
           "allSaved": "تم حفظ كل مراجعات الإجابات.",
           "submissionSaved": "تم حفظ مراجعة التسليم.",
-          "synced": "تمت مزامنة درجة التسليم."
+          "synced": "تمت مزامنة درجة التسليم.",
+          "unsavedChanges": "{count, plural, =0 {لديك تغييرات مراجعة غير محفوظة.} one {لديك مراجعة إجابة واحدة غير محفوظة.} two {لديك مراجعتا إجابة غير محفوظتين.} few {لديك # مراجعات إجابات غير محفوظة.} many {لديك # مراجعة إجابة غير محفوظة.} other {لديك # مراجعة إجابة غير محفوظة.}}",
+          "saveBeforeContinuing": "احفظها أو تخلّ عنها قبل تغيير قائمة الطلاب."
+        },
+        "unsavedChanges": {
+          "title": "هل تريد تجاهل تغييرات المراجعة غير المحفوظة؟",
+          "description": "ستفقد تعديلاتك على هذا التسليم إذا تابعت.",
+          "discard": "تجاهل التغييرات",
+          "stay": "متابعة التعديل"
         },
         "errors": {
           "loadSubmissions": "فشل تحميل التسليمات: {message}",

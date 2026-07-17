@@ -46,6 +46,8 @@ import {
   createDashboardTodo,
   updateDashboardTodo,
   deleteDashboardTodo,
+  type DashboardLightModeDropdownResponse,
+  type DashboardTodo,
 } from "@/features/dashboard/services/dashboardApiService";
 
 export type WeatherTone =
@@ -106,6 +108,7 @@ export interface LightModeDropdownTodo {
 }
 
 export interface LightModeDropdownPlannerData {
+  date?: string;
   time: string;
   period: string;
   timezone: string;
@@ -622,11 +625,10 @@ function getCivilDateString(date: Date) {
 }
 
 function mapBackendResponseToUi(
-  response: any,
+  response: DashboardLightModeDropdownResponse,
   locale: LightModeDropdownLocale,
   t: ReturnType<typeof useTranslations>
 ): LightModeDropdownData {
-  const isRTL = locale === "ar";
   const locCode = localeCode[locale];
   
   const location =
@@ -652,10 +654,10 @@ function mapBackendResponseToUi(
   const weatherStatus = response.weather?.status;
   const isWeatherUnavailable = weatherStatus !== "available";
 
-  const mappedTodos = (response.planner?.todos || []).map((todo: any, index: number) => {
+  const mappedTodos = response.planner.todos.map((todo: DashboardTodo) => {
     const priority = (todo.priority === "normal" ? "medium" : todo.priority) as TodoPriority;
     return {
-      id: todo.todoId || `todo-${index}`,
+      id: todo.todoId,
       title: todo.title,
       description: todo.notes || "",
       time: todo.createdAt
@@ -686,6 +688,7 @@ function mapBackendResponseToUi(
     cities: [],
     forecast: [],
     planner: {
+      date: response.planner.date,
       time: "",
       period: "",
       timezone: response.location?.timezone || "GMT",
@@ -717,7 +720,6 @@ export default function LightModeDropdown({
   
   const [data, setData] = useState<LightModeDropdownData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const weather = data || resolveWeatherData(weatherData);
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
@@ -733,12 +735,6 @@ export default function LightModeDropdown({
   const isExpanded = isControlled ? expanded : internalExpanded;
 
   useEffect(() => {
-    if (data) {
-      setTodos(todoItemsFromPlanner(data.planner.todos));
-    }
-  }, [data]);
-
-  useEffect(() => {
     if (!isExpanded) return;
 
     let active = true;
@@ -747,14 +743,13 @@ export default function LightModeDropdown({
       try {
         const response = await fetchLightModeDropdown({
           locale: activeLocale,
-          date: getCivilDateString(new Date()),
         });
         if (!active) return;
         const mappedData = mapBackendResponseToUi(response, activeLocale, t);
         setData(mappedData);
+        setTodos(todoItemsFromPlanner(mappedData.planner.todos));
       } catch (err) {
         console.error("Failed to load light mode dropdown data:", err);
-        setError("Failed to load");
       } finally {
         if (active) setIsLoading(false);
       }
@@ -914,19 +909,17 @@ export default function LightModeDropdown({
 
     try {
       const response = await createDashboardTodo({
-        date: getCivilDateString(new Date()),
+        date: data?.planner.date ?? getCivilDateString(new Date()),
         title,
         notes: description || null,
         priority: newTodoPriority === "medium" ? "normal" : newTodoPriority,
       });
 
-      if (response && response.todoId) {
-        setTodos((currentTodos) =>
-          currentTodos.map((t) =>
-            t.id === tempId ? { ...t, id: response.todoId } : t
-          )
-        );
-      }
+      setTodos((currentTodos) =>
+        currentTodos.map((todo) =>
+          todo.id === tempId ? { ...todo, id: response.todo.todoId } : todo,
+        ),
+      );
     } catch (err) {
       console.error("Failed to create todo:", err);
       setTodos((currentTodos) => currentTodos.filter((t) => t.id !== tempId));
@@ -963,7 +956,13 @@ export default function LightModeDropdown({
       await updateDashboardTodo(todoId, {
         title: updates.title,
         notes: updates.description === undefined ? undefined : (updates.description || null),
-        priority: backendPriority as any,
+        status:
+          updates.completed === undefined
+            ? undefined
+            : updates.completed
+              ? "completed"
+              : "pending",
+        priority: backendPriority,
       });
     } catch (err) {
       console.error("Failed to update todo details:", err);

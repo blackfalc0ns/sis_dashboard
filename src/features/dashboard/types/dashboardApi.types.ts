@@ -306,17 +306,34 @@ export interface DashboardAnalyticsChartDataSeries {
   points: DashboardAnalyticsChartDataPoint[];
 }
 
+export interface DashboardAnalyticsChartEmptyState {
+  reason: string;
+  message: string;
+}
+
+export interface DashboardAnalyticsChartMeta {
+  dataAvailability: string;
+}
+
 export interface DashboardAnalyticsChart {
   chartKey: string;
   type: string;
   title: string;
   description: string;
   source: string;
+  status?: string;
   series: DashboardAnalyticsChartDataSeriesDefinition[];
   defaultRange?: string;
   supportedRanges?: string[];
   supportedGranularities?: string[];
   filters?: string[];
+  requiredPermission?: string;
+  endpoint?: string;
+  definitionEndpoint?: string;
+  dataEndpoint?: string;
+  endpointPurpose?: string;
+  emptyState?: DashboardAnalyticsChartEmptyState;
+  meta?: DashboardAnalyticsChartMeta;
   queryCapabilities?: {
     timeFilterMode: string;
     snapshotOnly: boolean;
@@ -337,6 +354,64 @@ export interface DashboardAnalyticsChartDataSeriesDefinition {
   label: string;
 }
 
+export interface DashboardAnalyticsChartDataSummary {
+  value: number;
+  label: string;
+}
+
+export interface DashboardAnalyticsChartDataFilters {
+  range: string;
+  granularity: string;
+  dateFrom: string | null;
+  dateTo: string | null;
+  academicYearId: string | null;
+  termId: string | null;
+  gradeId: string | null;
+  sectionId: string | null;
+  classroomId: string | null;
+}
+
+export interface DashboardAnalyticsChartDataEmptyState {
+  reason: string;
+  message: string;
+}
+
+export interface DashboardAnalyticsResolvedWindow {
+  startInclusive: string;
+  endExclusive: string;
+  startCivilDate: string;
+  endCivilDate: string;
+}
+
+export interface DashboardAnalyticsQueryMetadata {
+  effectiveTimezone: string;
+  requestedFilters: string[];
+  appliedFilters: string[];
+  notApplicableFilters: string[];
+  resolvedWindow: DashboardAnalyticsResolvedWindow;
+}
+
+export interface DashboardFreshnessMetadata {
+  generatedAt: string;
+  strategy: string;
+}
+
+export interface DashboardAnalyticsChartDataMeta {
+  source: string;
+  pack: string | null;
+  dataAvailability: string;
+  computation: string | null;
+  freshness: DashboardFreshnessMetadata;
+  query: DashboardAnalyticsQueryMetadata;
+  deferred: {
+    historicalSeries?: string;
+    computedSeries?: string;
+    drilldown: string;
+    exports: string;
+    realtime: string;
+  };
+}
+
 export interface DashboardAnalyticsChartDataResponse {
   generatedAt: string;
   chartKey: string;
@@ -346,15 +421,27 @@ export interface DashboardAnalyticsChartDataResponse {
   status: string;
   range: string;
   granularity: string;
-  filters: any;
+  filters: DashboardAnalyticsChartDataFilters;
   data: {
     series: DashboardAnalyticsChartDataSeries[];
     totals: Record<string, number>;
-    summary: any;
+    summary: DashboardAnalyticsChartDataSummary | null;
     empty: boolean;
   };
-  emptyState: any;
-  meta: any;
+  emptyState: DashboardAnalyticsChartDataEmptyState | null;
+  meta: DashboardAnalyticsChartDataMeta;
+}
+
+export interface DashboardWidgetAnalyticsReference {
+  chartKey: string;
+  chartType: string;
+  definitionEndpoint: string;
+  dataEndpoint: string;
+  defaultRange: string;
+  defaultGranularity: string;
+  dataAvailability: string;
+  pack: string | null;
+  computation: string | null;
 }
 
 export interface DashboardWidget {
@@ -374,8 +461,8 @@ export interface DashboardWidget {
   } | null;
   meta: {
     freshness: string;
-    freshnessDetails: any;
-    analytics: any;
+    freshnessDetails: DashboardFreshnessMetadata;
+    analytics: DashboardWidgetAnalyticsReference | null;
   };
 }
 
@@ -425,6 +512,14 @@ export interface DashboardModulePage {
     source: string;
     version: string;
     dataFreshness: string;
+    freshness: DashboardFreshnessMetadata;
+    deferred: {
+      customLayouts: string;
+      userPreferences: string;
+      drilldowns: string;
+      exports: string;
+      realtime: string;
+    };
   };
 }
 

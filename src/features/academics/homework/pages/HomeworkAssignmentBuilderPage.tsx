@@ -178,7 +178,9 @@ export default function HomeworkAssignmentBuilderPage({
       );
     } catch (error) {
       showError(
-        tHomework("errors.loadFailed", { message: getHomeworkErrorMessage(error, tHomeworkError) }),
+        tHomework("errors.loadFailed", {
+          message: getHomeworkErrorMessage(error, tHomeworkError),
+        }),
       );
     } finally {
       setIsLoading(false);
@@ -266,7 +268,9 @@ export default function HomeworkAssignmentBuilderPage({
   const handleBack = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("tab");
-    router.push(`/${locale}/academics/homework${params.toString() ? `?${params.toString()}` : ""}`);
+    router.push(
+      `/${locale}/academics/homework${params.toString() ? `?${params.toString()}` : ""}`,
+    );
   };
 
   const setActiveTab = (tab: HomeworkDetailTab) => {
@@ -660,7 +664,7 @@ export default function HomeworkAssignmentBuilderPage({
               </div>
             )}
         </div>
-        <nav className="mt-4 flex gap-2 overflow-x-auto">
+        <nav className="mt-4 pt-4 flex gap-2 overflow-x-auto">
           {(
             [
               ["builder", tHomework("tabs.builder")],

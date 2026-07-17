@@ -195,7 +195,11 @@
         "healthy": "Healthy",
         "warning": "Needs action",
         "empty": "No activity",
-        "setup": "Needs setup"
+        "setup": "Needs setup",
+        "available": "Available",
+        "partial": "Partial",
+        "planned": "Planned",
+        "deferred": "Deferred"
       },
       "setup": {
         "ready": "Ready",
@@ -292,7 +296,19 @@
           "label": "Timetable",
           "detail": "{first, plural, one {# entry} other {# entries}}, {second, plural, one {# published} other {# published}}"
         }
-      }
+      },
+      "risks_alerts": "Module Risks & Alerts",
+      "recommended_actions": "Recommended Actions",
+      "open_module_page": "Open Module Page",
+      "no_risks": "No active risks detected",
+      "no_actions": "No pending actions recommended",
+      "assigned_widgets": "Assigned Widgets",
+      "active_areas": "Active Areas",
+      "priority_low": "Low",
+      "priority_medium": "Medium",
+      "priority_high": "High",
+      "priority_critical": "Critical",
+      "count": "Count: {value}"
     },
     "activity_card": {
       "title": "Recent activities",
@@ -399,6 +415,71 @@
           "label": "PDF",
           "description": "Print-ready report"
         }
+      }
+    },
+    "analytics": {
+      "title": "Analytics Dashboard",
+      "description": "Computed operational performance metrics across system modules",
+      "showing_charts": "Showing {count} available charts",
+      "refresh_all": "Refresh All",
+      "refresh_chart": "Refresh Chart",
+      "csv_export": "CSV Export",
+      "no_charts": "No charts found",
+      "adjust_filters": "Try adjusting your filter settings or search modules.",
+      "no_data": "No Data Available",
+      "no_events": "This chart has no recorded events.",
+      "empty_series": "Empty Series Data",
+      "table_label": "Label",
+      "load_failed": "Failed to load chart data",
+      "context_refreshed_title": "Academic context refreshed",
+      "context_refreshed_description": "The selected academic context changed. We refreshed the available options and reset any affected chart filters.",
+      "context_unavailable_title": "Chart filters were refreshed",
+      "context_unavailable_description": "The selected academic context or chart filter is no longer available. The chart will reload using the refreshed filters.",
+      "reporting_period_unavailable_title": "No reporting period is available",
+      "reporting_period_unavailable_description": "The selected academic year or term has not started yet or has no available reporting period. Choose another range, academic year, or term.",
+      "affected_fields": "Affected fields",
+      "retry": "Retry",
+      "range": "Range",
+      "granularity": "Granularity",
+      "grade": "Grade",
+      "section": "Section",
+      "classroom": "Classroom",
+      "from": "From",
+      "to": "To",
+      "all_grades": "All Grades",
+      "all_sections": "All Sections",
+      "all_classrooms": "All Classrooms",
+      "all_modules": "All Modules",
+      "all_types": "All Types",
+      "module_source": "Module Source",
+      "chart_type": "Chart Type",
+      "toggle_filters": "Toggle filters",
+      "dashboard_filters": "Dashboard Filters",
+      "ranges": {
+        "7d": "Last 7 days",
+        "30d": "Last 30 days",
+        "90d": "Last 90 days",
+        "term": "Current Term",
+        "academic_year": "Academic Year",
+        "custom": "Custom Range"
+      },
+      "granularities": {
+        "day": "Daily",
+        "week": "Weekly",
+        "month": "Monthly"
+      },
+      "chart_types": {
+        "line": "Line Chart",
+        "bar": "Bar Chart",
+        "stacked-bar": "Stacked Bar Chart",
+        "area": "Area Chart",
+        "donut": "Donut Chart",
+        "pie": "Pie Chart",
+        "funnel": "Funnel Chart",
+        "heatmap": "Heatmap",
+        "radial-progress": "Radial Progress",
+        "table": "Table",
+        "timeline": "Timeline"
       }
     }
   },
@@ -5310,6 +5391,9 @@
         "actions": {
           "refresh": "Refresh",
           "search": "Search",
+          "clearFilters": "Clear filters",
+          "students": "Students",
+          "viewStudents": "View students list",
           "saveAnswer": "Save answer",
           "saveAll": "Save all reviews",
           "saveSubmission": "Save submission review",
@@ -5330,7 +5414,7 @@
           }
         },
         "summary": {
-          "visible": "Visible",
+          "visible": "On this page",
           "pending": "Pending",
           "late": "Late",
           "reviewed": "Reviewed"
@@ -5340,7 +5424,15 @@
           "count": "{count, plural, one {# submission} other {# submissions}}",
           "range": "{start}-{end} of {total}",
           "empty": "No submissions found for this homework.",
+          "emptyFiltered": "No submissions match these filters.",
+          "loading": "Loading submissions…",
           "late": "Late"
+        },
+        "statuses": {
+          "pendingReview": "Pending review",
+          "submitted": "Submitted",
+          "late": "Late",
+          "reviewed": "Reviewed"
         },
         "pagination": {
           "previous": "Previous",
@@ -5353,6 +5445,7 @@
           "loading": "Loading submission...",
           "status": "Status",
           "reviewedAt": "Reviewed",
+          "pendingReview": "Pending review",
           "score": "Score",
           "bodyText": "Submission note"
         },
@@ -5373,8 +5466,19 @@
           "title": "Answers",
           "empty": "No answers found for this submission.",
           "noAnswer": "No answer submitted.",
+          "studentAnswer": "Student's answer",
+          "modelAnswer": "Model answer",
+          "correct": "Correct",
+          "incorrect": "Incorrect",
           "score": "Score",
           "feedback": "Feedback"
+        },
+        "questionTypes": {
+          "singleChoice": "Single choice",
+          "multipleChoice": "Multiple choice",
+          "trueFalse": "True / false",
+          "shortAnswer": "Short answer",
+          "essay": "Essay"
         },
         "attachments": {
           "title": "Attachments",
@@ -5384,7 +5488,15 @@
           "answerSaved": "Answer review saved.",
           "allSaved": "All answer reviews saved.",
           "submissionSaved": "Submission review saved.",
-          "synced": "Submission grade synced."
+          "synced": "Submission grade synced.",
+          "unsavedChanges": "{count, plural, =0 {You have unsaved review changes.} one {You have # unsaved answer review.} other {You have # unsaved answer reviews.}}",
+          "saveBeforeContinuing": "Save or discard them before changing the queue."
+        },
+        "unsavedChanges": {
+          "title": "Discard unsaved review changes?",
+          "description": "Your edits to this submission will be lost if you continue.",
+          "discard": "Discard changes",
+          "stay": "Keep editing"
         },
         "errors": {
           "loadSubmissions": "Failed to load submissions: {message}",
@@ -12363,9 +12475,15 @@
     }
   },
   "onboarding": {
-    "layout": { "label": "Onboarding setup" },
-    "loading": { "preparing": "Preparing your setup…" },
-    "errors": { "stepLoadFailed": "Could not load this setup step." },
+    "layout": {
+      "label": "Onboarding setup"
+    },
+    "loading": {
+      "preparing": "Preparing your setup…"
+    },
+    "errors": {
+      "stepLoadFailed": "Could not load this setup step."
+    },
     "welcome": {
       "eyebrow": "School onboarding",
       "title": "Welcome to your school workspace",

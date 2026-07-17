@@ -115,10 +115,80 @@ export function fetchDashboardActivityFeed(
 }
 
 export interface FetchLightModeDropdownQuery {
-  locale?: string;
+  locale?: "en" | "ar";
   timezone?: string;
-  units?: string;
+  units?: "metric" | "imperial";
   date?: string;
+}
+
+export type DashboardTodoStatus = "pending" | "completed";
+export type DashboardTodoPriority = "low" | "normal" | "high";
+
+export interface DashboardTodo {
+  todoId: string;
+  date: string;
+  title: string;
+  notes: string | null;
+  status: DashboardTodoStatus;
+  priority: DashboardTodoPriority;
+  sortOrder: number;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DashboardLightModeDropdownResponse {
+  location: {
+    label: string | null;
+    city: string | null;
+    country: string | null;
+    timezone: string;
+  };
+  weather: {
+    status: string;
+    current: {
+      temperature: number | null;
+      lowTemperature: number | null;
+      feelsLike: number | null;
+      condition: string;
+    };
+    emptyState: {
+      message: string;
+    };
+  };
+  planner: {
+    date: string;
+    timezone: string;
+    eventDates: string[];
+    todos: DashboardTodo[];
+  };
+}
+
+export interface DashboardTodosResponse {
+  generatedAt: string;
+  date: string;
+  todos: DashboardTodo[];
+  summary: {
+    total: number;
+    pending: number;
+    completed: number;
+  };
+}
+
+export interface CreateDashboardTodoResponse {
+  generatedAt: string;
+  todo: DashboardTodo;
+}
+
+export interface UpdateDashboardTodoResponse {
+  generatedAt: string;
+  todo: DashboardTodo;
+}
+
+export interface DeleteDashboardTodoResponse {
+  generatedAt: string;
+  deleted: true;
+  todoId: string;
 }
 
 export interface FetchTodosQuery {
@@ -132,7 +202,7 @@ export interface CreateTodoBody {
   date: string;
   title: string;
   notes?: string | null;
-  priority?: "low" | "normal" | "high";
+  priority?: DashboardTodoPriority;
   sortOrder?: number;
 }
 
@@ -140,13 +210,13 @@ export interface UpdateTodoBody {
   date?: string;
   title?: string;
   notes?: string | null;
-  status?: "pending" | "completed";
-  priority?: "low" | "normal" | "high";
+  status?: DashboardTodoStatus;
+  priority?: DashboardTodoPriority;
   sortOrder?: number;
 }
 
 export function fetchLightModeDropdown(query: FetchLightModeDropdownQuery = {}) {
-  return fetchDashboardContract<any>(
+  return fetchDashboardContract<DashboardLightModeDropdownResponse>(
     `${DASHBOARD_BASE_PATH}/light-mode-dropdown${dashboardQueryString({
       locale: query.locale,
       timezone: query.timezone,
@@ -157,7 +227,7 @@ export function fetchLightModeDropdown(query: FetchLightModeDropdownQuery = {}) 
 }
 
 export function fetchDashboardTodos(query: FetchTodosQuery = {}) {
-  return fetchDashboardContract<any>(
+  return fetchDashboardContract<DashboardTodosResponse>(
     `${DASHBOARD_BASE_PATH}/light-mode-dropdown/todos${dashboardQueryString({
       date: query.date,
       status: query.status,
@@ -168,7 +238,7 @@ export function fetchDashboardTodos(query: FetchTodosQuery = {}) {
 }
 
 export async function createDashboardTodo(body: CreateTodoBody) {
-  const response = await apiPost<any>(
+  const response = await apiPost<CreateDashboardTodoResponse>(
     `${DASHBOARD_BASE_PATH}/light-mode-dropdown/todos`,
     body,
   );
@@ -176,7 +246,7 @@ export async function createDashboardTodo(body: CreateTodoBody) {
 }
 
 export async function updateDashboardTodo(todoId: string, body: UpdateTodoBody) {
-  const response = await apiPatch<any>(
+  const response = await apiPatch<UpdateDashboardTodoResponse>(
     `${DASHBOARD_BASE_PATH}/light-mode-dropdown/todos/${todoId}`,
     body,
   );
@@ -184,7 +254,7 @@ export async function updateDashboardTodo(todoId: string, body: UpdateTodoBody) 
 }
 
 export async function deleteDashboardTodo(todoId: string) {
-  const response = await apiDelete<any>(
+  const response = await apiDelete<DeleteDashboardTodoResponse>(
     `${DASHBOARD_BASE_PATH}/light-mode-dropdown/todos/${todoId}`,
   );
   return unwrapDashboardResponse(response);
