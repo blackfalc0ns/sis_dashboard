@@ -94,17 +94,17 @@ export default function ModuleWidgetCard({ widget }: ModuleWidgetCardProps) {
     case "stat-card": {
       const val = widget.data?.value ?? "--";
       return (
-        <article className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+        <article className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider truncate">
+              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider truncate">
                 {widget.title}
               </p>
               <p className="mt-2 text-2xl font-bold text-gray-950 truncate">
                 {val}
               </p>
               {widget.subtitle && (
-                <p className="mt-1 text-xs text-gray-500 truncate">
+                <p className="mt-1 text-xs text-gray-600 truncate">
                   {widget.subtitle}
                 </p>
               )}
@@ -124,9 +124,9 @@ export default function ModuleWidgetCard({ widget }: ModuleWidgetCardProps) {
       const segments = data.segments || [];
 
       return (
-        <article className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+        <article className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider truncate">
+            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider truncate">
               {widget.title}
             </p>
             <span className="text-sm font-bold text-gray-950">{percent}%</span>
@@ -148,7 +148,7 @@ export default function ModuleWidgetCard({ widget }: ModuleWidgetCardProps) {
               />
             )}
           </div>
-          <p className="mt-2 text-xs text-gray-500">{label || widget.subtitle}</p>
+          <p className="mt-2 text-xs text-gray-600">{label || widget.subtitle}</p>
         </article>
       );
     }
@@ -159,11 +159,11 @@ export default function ModuleWidgetCard({ widget }: ModuleWidgetCardProps) {
       const summary = data.summary || { total: 0, pending: 0, completed: 0 };
 
       return (
-        <article className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+        <article className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ListTodo className="h-4 w-4 text-primary-500" />
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 {widget.title}
               </p>
             </div>
@@ -207,11 +207,11 @@ export default function ModuleWidgetCard({ widget }: ModuleWidgetCardProps) {
       const events = data.events || [];
 
       return (
-        <article className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+        <article className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-primary-500" />
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 {widget.title}
               </p>
             </div>
@@ -249,8 +249,8 @@ export default function ModuleWidgetCard({ widget }: ModuleWidgetCardProps) {
 
     default: {
       return (
-        <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold text-gray-500 uppercase">{widget.title}</p>
+        <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-gray-300 hover:shadow-md transition-all duration-200">
+          <p className="text-xs font-semibold text-gray-600 uppercase">{widget.title}</p>
           <p className="mt-1 text-xs text-gray-600">{widget.subtitle}</p>
         </article>
       );

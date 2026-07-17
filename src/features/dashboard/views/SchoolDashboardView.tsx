@@ -184,58 +184,62 @@ export default function SchoolDashboardView({
 
   return (
     <div
-      className="min-h-screen bg-gray-50 p-4 sm:p-6"
+      className="min-h-screen bg-gray-50/50 p-4 sm:p-6 md:p-8"
       dir={locale === "ar" ? "rtl" : "ltr"}
     >
-      <LightModeDropdown />
-      <DashboardHeader
-        activityFeedState={activityFeedState}
-        alertsState={alertsState}
-        isRefreshing={isRefreshing}
-        onRefresh={onRefresh}
-        locale={locale}
-        pathname={pathname}
-        summaryState={summaryState}
-        t={t}
-      />
+      <div className="mx-auto max-w-7xl space-y-6">
+        <LightModeDropdown />
+        <DashboardHeader
+          activityFeedState={activityFeedState}
+          alertsState={alertsState}
+          isRefreshing={isRefreshing}
+          onRefresh={onRefresh}
+          locale={locale}
+          pathname={pathname}
+          summaryState={summaryState}
+          t={t}
+        />
 
-      <DashboardActionRow alertsState={alertsState} pathname={pathname} t={t} />
+        <DashboardActionRow alertsState={alertsState} pathname={pathname} t={t} />
 
-      <SetupGuideCard />
+        <div className="w-full">
+          <SetupGuideCard />
+        </div>
 
-      <TopKpiGrid locale={locale} summaryState={summaryState} t={t} />
+        <TopKpiGrid locale={locale} summaryState={summaryState} t={t} />
 
-      <DashboardTabs
-        activeTab={activeTab}
-        onTabChange={(tabId) => {
-          setActiveTab(tabId);
-          if (tabId !== "overview") {
-            onLoadModuleDetails(tabId);
-          }
-        }}
-        tabs={dynamicTabs}
-        t={t}
-      />
+        <DashboardTabs
+          activeTab={activeTab}
+          onTabChange={(tabId) => {
+            setActiveTab(tabId);
+            if (tabId !== "overview") {
+              onLoadModuleDetails(tabId);
+            }
+          }}
+          tabs={dynamicTabs}
+          t={t}
+        />
 
-      <DashboardTabContent
-        activeTab={activeTab}
-        locale={locale}
-        pathname={pathname}
-        summaryState={summaryState}
-        cachedModules={cachedModules}
-        moduleLoadingStates={moduleLoadingStates}
-        moduleErrors={moduleErrors}
-        t={t}
-      />
+        <DashboardTabContent
+          activeTab={activeTab}
+          locale={locale}
+          pathname={pathname}
+          summaryState={summaryState}
+          cachedModules={cachedModules}
+          moduleLoadingStates={moduleLoadingStates}
+          moduleErrors={moduleErrors}
+          t={t}
+        />
 
-      <PersistentDashboardDetails
-        activityFeedState={activityFeedState}
-        alertsState={alertsState}
-        locale={locale}
-        pathname={pathname}
-        summaryState={summaryState}
-        t={t}
-      />
+        <PersistentDashboardDetails
+          activityFeedState={activityFeedState}
+          alertsState={alertsState}
+          locale={locale}
+          pathname={pathname}
+          summaryState={summaryState}
+          t={t}
+        />
+      </div>
     </div>
   );
 }
@@ -333,21 +337,21 @@ function DashboardHeader({
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href={localizedPath(pathname, "/attendance/reports")}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
           >
             <FileText className="h-4 w-4" />
             {t("dashboard.reports")}
           </Link>
           <Link
             href={localizedPath(pathname, "/settings")}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
           >
             <Settings2 className="h-4 w-4" />
             {t("dashboard.settings")}
           </Link>
           <button
             onClick={onRefresh}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-hover disabled:cursor-wait disabled:opacity-70"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-hover disabled:cursor-wait disabled:opacity-70 focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
             disabled={isRefreshing}
           >
             <RefreshCw
@@ -425,7 +429,7 @@ function ActionRequiredPanel({
             <Link
               key={alertEntry.id}
               href={localizedPath(pathname, alertEntry.actionTarget)}
-              className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-hover"
+              className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-hover focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
             >
               {alertEntry.actionLabel}
             </Link>
@@ -489,7 +493,7 @@ function ActionRequiredHeader({
       {hasMoreAlerts ? (
         <Link
           href={alertsHref}
-          className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
+          className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
         >
           {t("dashboard.alerts.view_all")}
         </Link>
@@ -584,14 +588,16 @@ function DashboardTabs({
           return (
             <button
               key={dashboardTab.id}
+              id={`tab-${dashboardTab.id}`}
               type="button"
               role="tab"
               aria-selected={isActive}
+              aria-controls={`panel-${dashboardTab.id}`}
               onClick={() => onTabChange(dashboardTab.id)}
-              className={`shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+              className={`shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 ${
                 isActive
                   ? "bg-primary text-white"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-950"
+                  : "text-gray-700 hover:bg-gray-50 hover:text-gray-950"
               }`}
             >
               {label}
@@ -622,58 +628,70 @@ function DashboardTabContent({
   moduleErrors: Record<string, string>;
   t: ReturnType<typeof useTranslations>;
 }) {
-  if (activeTab !== "overview") {
-    const state = moduleLoadingStates[activeTab] || "loading";
-    if (state === "loading") {
-      return (
-        <div className="flex justify-center p-8">
-          <PartialLoader />
-        </div>
-      );
+  const renderInnerContent = () => {
+    if (activeTab !== "overview") {
+      const state = moduleLoadingStates[activeTab] || "loading";
+      if (state === "loading") {
+        return (
+          <div className="flex justify-center p-8">
+            <PartialLoader />
+          </div>
+        );
+      }
+      if (state === "error") {
+        return (
+          <section className="rounded-xl border border-red-200 bg-white p-5 shadow-sm">
+            <SectionError
+              title={t("dashboard.modules_unavailable") || "Modules Unavailable"}
+              message={moduleErrors[activeTab] || "Failed to load module details"}
+            />
+          </section>
+        );
+      }
+      const pageData = cachedModules[activeTab];
+      if (!pageData) return null;
+
+      return <ModuleTabDashboardView pageData={pageData} />;
     }
-    if (state === "error") {
+
+    if (summaryState.status === "loading") {
+      return <ModuleCardGridSkeleton t={t} />;
+    }
+
+    if (summaryState.status === "error") {
       return (
         <section className="rounded-xl border border-red-200 bg-white p-5 shadow-sm">
           <SectionError
-            title={t("dashboard.modules_unavailable") || "Modules Unavailable"}
-            message={moduleErrors[activeTab] || "Failed to load module details"}
+            title={t("dashboard.modules_unavailable")}
+            message={summaryState.message}
           />
         </section>
       );
     }
-    const pageData = cachedModules[activeTab];
-    if (!pageData) return null;
 
     return (
-      <ModuleTabDashboardView pageData={pageData} />
+      <ModuleCardGrid
+        moduleCards={moduleCardsById(
+          summaryState.data.moduleCards,
+          moduleIdsForTab(activeTab),
+        )}
+        locale={locale}
+        pathname={pathname}
+        t={t}
+      />
     );
-  }
-
-  if (summaryState.status === "loading") {
-    return <ModuleCardGridSkeleton t={t} />;
-  }
-
-  if (summaryState.status === "error") {
-    return (
-      <section className="rounded-xl border border-red-200 bg-white p-5 shadow-sm">
-        <SectionError
-          title={t("dashboard.modules_unavailable")}
-          message={summaryState.message}
-        />
-      </section>
-    );
-  }
+  };
 
   return (
-    <ModuleCardGrid
-      moduleCards={moduleCardsById(
-        summaryState.data.moduleCards,
-        moduleIdsForTab(activeTab),
-      )}
-      locale={locale}
-      pathname={pathname}
-      t={t}
-    />
+    <div
+      id={`panel-${activeTab}`}
+      role="tabpanel"
+      aria-labelledby={`tab-${activeTab}`}
+      tabIndex={0}
+      className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 rounded-xl"
+    >
+      {renderInnerContent()}
+    </div>
   );
 }
 
@@ -930,16 +948,16 @@ function TopKpiCard({
   const numberLocale = locale === "ar" ? "ar-EG" : "en";
 
   return (
-    <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-gray-300 hover:shadow-md transition-all duration-200">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-gray-500">
+          <p className="text-sm font-semibold text-gray-600">
             {t(`dashboard.top_kpis.${topKpi.id}.label`)}
           </p>
           <p className="mt-2 text-3xl font-bold text-gray-950">
             {topKpi.value.toLocaleString(numberLocale)}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs font-medium text-gray-600">
             {t(
               `dashboard.top_kpis.${topKpi.id}.subtitle`,
               topKpi.subtitleValues,
@@ -972,7 +990,7 @@ function ModuleSummaryCard({
   const toneStyle = toneStyles[stateTone];
 
   return (
-    <article className="flex min-h-[320px] flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <article className="flex min-h-[320px] flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:border-gray-300 hover:shadow-md transition-all duration-200">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
@@ -984,7 +1002,7 @@ function ModuleSummaryCard({
             <h2 className="text-base font-bold text-gray-950">
               {t(`dashboard.modules.${moduleCard.id}.title`)}
             </h2>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs font-medium text-gray-600">
               {localizedModuleSummary(moduleCard, t)}
             </p>
           </div>
@@ -1002,7 +1020,7 @@ function ModuleSummaryCard({
         {localizedModuleHighlights(moduleCard, t).map((highlight) => (
           <span
             key={highlight}
-            className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600"
+            className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600"
           >
             {highlight}
           </span>
@@ -1012,7 +1030,7 @@ function ModuleSummaryCard({
       {moduleCard.actionLabel && moduleCard.actionTarget ? (
         <Link
           href={localizedPath(pathname, moduleCard.actionTarget)}
-          className="mt-auto pt-5 text-sm font-semibold text-primary-700 hover:text-hover"
+          className="mt-auto pt-5 text-sm font-semibold text-primary-700 hover:text-hover focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none rounded cursor-pointer transition-colors duration-200"
         >
           {localizedModuleAction(moduleCard, t)}
         </Link>
@@ -1084,7 +1102,7 @@ function SetupChecklist({
                   ? t("dashboard.setup.ready")
                   : t("dashboard.setup.not_configured")}
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-600">
                 {localizedSetupDetail(setupItem, t)}
               </p>
             </div>
@@ -1362,7 +1380,7 @@ function DeferredFeatureList({
   return (
     <aside className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
       <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-950">
-        <BarChart3 className="h-5 w-5 text-gray-500" />
+        <BarChart3 className="h-5 w-5 text-gray-600" />
         {t("dashboard.version_notes")}
       </h2>
       <div
@@ -1378,7 +1396,7 @@ function DeferredFeatureList({
             <p className="text-sm font-semibold text-gray-800">
               {feature.title}
             </p>
-            <p className="mt-1 text-xs leading-5 text-gray-500">
+            <p className="mt-1 text-xs leading-5 text-gray-600">
               {feature.description}
             </p>
           </div>

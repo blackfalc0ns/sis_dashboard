@@ -80,7 +80,7 @@ export default function ActivitiesCard({
 
       <Link
         href={recentActivitiesHref}
-        className={`mt-4 flex items-center justify-end gap-2 text-sm font-medium text-primary-600 hover:text-hover-600 ${
+        className={`mt-4 flex items-center justify-end gap-2 text-sm font-medium text-primary-600 hover:text-hover focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none rounded cursor-pointer duration-200 ${
           isRtl ? "mr-auto" : "ml-auto"
         }`}
       >

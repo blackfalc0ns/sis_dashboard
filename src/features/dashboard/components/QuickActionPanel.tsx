@@ -51,7 +51,7 @@ function QuickActionLinks({ actions }: { actions: QuickAction[] }) {
           <Link
             key={action.id}
             href={action.href}
-            className="group flex items-center gap-2 rounded-lg px-3 py-2.5 text-lg font-medium transition-all hover:scale-105 hover:shadow-md"
+            className="group flex items-center gap-2 rounded-lg px-3 py-2.5 text-lg font-medium transition-all hover:opacity-95 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900 cursor-pointer duration-200"
             style={{
               backgroundColor: action.color,
               borderColor: action.color,

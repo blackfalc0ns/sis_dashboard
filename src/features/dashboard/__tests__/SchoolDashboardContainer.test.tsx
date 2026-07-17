@@ -93,8 +93,8 @@ describe("SchoolDashboardContainer", () => {
       "aria-selected",
       "false",
     );
-    expect(screen.queryByText("Homework")).not.toBeInTheDocument();
-    expect(screen.queryByText("Reinforcement")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Homework" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Reinforcement" })).toBeInTheDocument();
     expect(
       screen.getByText("Attendance session submitted"),
     ).toBeInTheDocument();
