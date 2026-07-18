@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X, Info } from "lucide-react";
 import { useLocale } from "next-intl";
 import { createFocusTrap } from "@/lib/accessibility/focusTrap";
@@ -119,6 +120,8 @@ export default function Modal({
 
   if (!isOpen) return null;
 
+  if (typeof document === "undefined") return null;
+
   // Size classes
   const sizeClasses = {
     sm: "max-w-md",
@@ -154,7 +157,7 @@ export default function Modal({
     variant === "danger",
   );
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
       onDoubleClick={handleOverlayDoubleClick}
@@ -268,6 +271,7 @@ export default function Modal({
           }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body,
   );
 }

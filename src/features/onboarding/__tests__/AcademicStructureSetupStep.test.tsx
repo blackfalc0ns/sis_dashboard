@@ -51,6 +51,13 @@ const copy = {
   gradeCreated: "Grade created. Now add its first section.",
   sectionCreated: "Section created. Your academic structure is ready.",
   complete: "Academic structure has the minimum required chain.",
+  progressLabel: "Structure progress",
+  progressText: (completed: number, total: number) => `${completed} of ${total} complete`,
+  stage: "Stage",
+  grade: "Grade",
+  section: "Section",
+  done: "Done",
+  remaining: "Remaining",
 };
 
 describe("AcademicStructureSetupStep", () => {
@@ -76,6 +83,11 @@ describe("AcademicStructureSetupStep", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Create stage" })).toBeVisible();
+    expect(screen.getByRole("progressbar", { name: "Structure progress" })).toHaveAttribute(
+      "aria-valuenow",
+      "0",
+    );
+    expect(screen.getByText("Stage").parentElement).toHaveTextContent("Remaining");
     await user.type(screen.getByRole("textbox", { name: "Arabic name" }), "ابتدائي");
     await user.type(screen.getByRole("textbox", { name: "English name" }), "Primary");
     await user.click(screen.getByRole("button", { name: "Create" }));
@@ -102,6 +114,12 @@ describe("AcademicStructureSetupStep", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Create grade" })).toBeVisible();
+    expect(screen.getByRole("progressbar", { name: "Structure progress" })).toHaveAttribute(
+      "aria-valuenow",
+      "1",
+    );
+    expect(screen.getByText("Stage").parentElement).toHaveTextContent("Done");
+    expect(screen.getByText("Grade").parentElement).toHaveTextContent("Remaining");
     await user.type(screen.getByRole("textbox", { name: "Arabic name" }), "الأول");
     await user.type(screen.getByRole("textbox", { name: "English name" }), "Grade 1");
     await user.click(screen.getByRole("button", { name: "Create" }));

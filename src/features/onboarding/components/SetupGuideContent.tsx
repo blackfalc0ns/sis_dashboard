@@ -217,6 +217,14 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
       gradeCreated: t("steps.structure.gradeCreated"),
       sectionCreated: t("steps.structure.sectionCreated"),
       complete: t("steps.structure.complete"),
+      progressLabel: t("steps.structure.progressLabel"),
+      progressText: (completed, total) =>
+        t("steps.structure.progressText", { completed, total }),
+      stage: t("steps.structure.stage"),
+      grade: t("steps.structure.grade"),
+      section: t("steps.structure.section"),
+      done: t("steps.structure.done"),
+      remaining: t("steps.structure.remaining"),
     },
     subjects: {
       summary: t("steps.subjects.summary"),

@@ -12716,6 +12716,13 @@
         "gradeCreated": "Grade created. Now add its first section.",
         "sectionCreated": "Section created. Your academic structure is ready.",
         "complete": "Academic structure has the minimum required chain.",
+        "progressLabel": "Structure progress",
+        "progressText": "{completed} of {total} complete",
+        "stage": "Stage",
+        "grade": "Grade",
+        "section": "Section",
+        "done": "Done",
+        "remaining": "Remaining",
         "title": "Structure",
         "description": "Create stage, grade, and section."
       },
