@@ -79,6 +79,22 @@ const CHART_COLORS = [
   "#6366f1",
 ];
 
+function defaultCustomDateRange() {
+  const today = new Date();
+  // Use midday so converting the values to an ISO date cannot shift them to
+  // the previous calendar day in timezones east of UTC.
+  const dateFrom = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    12,
+  );
+  const dateTo = new Date(dateFrom);
+  dateTo.setDate(dateTo.getDate() + 1);
+
+  return { dateFrom, dateTo };
+}
+
 type ChartQuery = Omit<
   DashboardAnalyticsChartDataQuery,
   // year/term come from context and are injected at fetch time — never stored in user-editable state
@@ -733,17 +749,37 @@ function DashboardAnalyticsContent() {
       field: keyof ChartQuery,
       queryValue: ChartQuery[keyof ChartQuery],
     ) => {
-      setChartQueries((currentQueries) => ({
-        ...currentQueries,
-        [chartKey]: {
-          ...currentQueries[chartKey],
-          [field]: queryValue,
-          ...(field === "gradeId"
-            ? { sectionId: undefined, classroomId: undefined }
-            : {}),
-          ...(field === "sectionId" ? { classroomId: undefined } : {}),
-        },
-      }));
+      setChartQueries((currentQueries) => {
+        const currentQuery = currentQueries[chartKey];
+        const shouldSetCustomDateDefaults =
+          field === "range" &&
+          queryValue === "custom" &&
+          (!currentQuery?.dateFrom || !currentQuery?.dateTo);
+        const customDateDefaults: Pick<
+          ChartQuery,
+          "dateFrom" | "dateTo"
+        > = shouldSetCustomDateDefaults
+          ? defaultCustomDateRange()
+          : { dateFrom: undefined, dateTo: undefined };
+
+        return {
+          ...currentQueries,
+          [chartKey]: {
+            ...currentQuery,
+            [field]: queryValue,
+            ...(shouldSetCustomDateDefaults
+              ? {
+                  dateFrom: currentQuery?.dateFrom ?? customDateDefaults.dateFrom,
+                  dateTo: currentQuery?.dateTo ?? customDateDefaults.dateTo,
+                }
+              : {}),
+            ...(field === "gradeId"
+              ? { sectionId: undefined, classroomId: undefined }
+              : {}),
+            ...(field === "sectionId" ? { classroomId: undefined } : {}),
+          },
+        };
+      });
     },
     [],
   );
