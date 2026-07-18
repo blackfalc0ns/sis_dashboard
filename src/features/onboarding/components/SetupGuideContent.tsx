@@ -60,6 +60,7 @@ function createStepContent(
     snapshot.subjects.status === "success"
       ? snapshot.subjects.data
       : snapshot.subjects.data ?? emptySubjects;
+  const rooms = snapshot.rooms.status === "success" ? snapshot.rooms.data : snapshot.rooms.data ?? [];
 
   return {
     organization: (
@@ -99,6 +100,7 @@ function createStepContent(
       <RoomsSetupStep
         copy={copy.rooms}
         refreshStep={result.refreshStep}
+        rooms={rooms}
         schoolId={result.schoolId}
       />
     ),
@@ -175,6 +177,11 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
         footerSignature: t("steps.organization.footerSignature"),
         uploadLogo: t("steps.organization.uploadLogo"),
         uploadHint: t("steps.organization.uploadHint"),
+        removeLogo: t("steps.organization.removeLogo"),
+        removeLogoTitle: t("steps.organization.removeLogoTitle"),
+        removeLogoDescription: t("steps.organization.removeLogoDescription"),
+        confirmRemoveLogo: t("steps.organization.confirmRemoveLogo"),
+        cancel: t("steps.organization.cancel"),
         pickFromMap: t("steps.organization.pickFromMap"),
         clearLocation: t("steps.organization.clearLocation"),
         selectedLocation: t("steps.organization.formattedAddress"),
@@ -183,6 +190,9 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
         coordinates: (lat, lng) =>
           t("steps.organization.coordinates", { lat, lng }),
         logoUploadFailed: t("steps.organization.logoUploadFailed"),
+        logoDeleteFailed: t("steps.organization.logoDeleteFailed"),
+        logoUploaded: t("steps.organization.logoUploaded"),
+        logoRemoved: t("steps.organization.logoRemoved"),
         validation: {
           schoolName: t("steps.organization.required"),
           shortName: t("steps.organization.shortNameRequired"),
@@ -201,6 +211,15 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
       termsCount: (count) => t("steps.academicContext.termsCount", { count }),
       createdContexts: t("steps.academicContext.createdContexts"),
       noTerms: t("steps.academicContext.noTerms"),
+      progressLabel: t("steps.academicContext.progressLabel"),
+      progressText: (completed, total) =>
+        t("steps.academicContext.progressText", { completed, total }),
+      academicYear: t("steps.academicContext.academicYear"),
+      term: t("steps.academicContext.term"),
+      done: t("steps.academicContext.done"),
+      remaining: t("steps.academicContext.remaining"),
+      manage: t("steps.academicContext.manage"),
+      edit: t("steps.academicContext.edit"),
       createYear: t("steps.academicContext.createYear"),
       createTerm: t("steps.academicContext.createTerm"),
     },
@@ -209,6 +228,7 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
       stageTitle: t("steps.structure.stageTitle"),
       gradeTitle: t("steps.structure.gradeTitle"),
       sectionTitle: t("steps.structure.sectionTitle"),
+      classroomTitle: t("steps.structure.classroomTitle"),
       nameAr: t("steps.structure.nameAr"),
       nameEn: t("steps.structure.nameEn"),
       save: t("steps.structure.save"),
@@ -218,6 +238,7 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
       stageCreated: t("steps.structure.stageCreated"),
       gradeCreated: t("steps.structure.gradeCreated"),
       sectionCreated: t("steps.structure.sectionCreated"),
+      classroomCreated: t("steps.structure.classroomCreated"),
       complete: t("steps.structure.complete"),
       progressLabel: t("steps.structure.progressLabel"),
       progressText: (completed, total) =>
@@ -225,8 +246,10 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
       stage: t("steps.structure.stage"),
       grade: t("steps.structure.grade"),
       section: t("steps.structure.section"),
+      classroom: t("steps.structure.classroom"),
       done: t("steps.structure.done"),
       remaining: t("steps.structure.remaining"),
+      manage: t("steps.structure.manage"),
     },
     subjects: {
       summary: t("steps.subjects.summary"),
@@ -237,12 +260,14 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
       saveAllocation: t("steps.subjects.saveAllocation"),
       saving: t("steps.subjects.saving"),
       saveFailed: t("steps.subjects.saveFailed"),
+      manage: t("steps.subjects.manage"),
     },
     rooms: {
       summary: t("steps.rooms.summary"),
       createRoom: t("steps.rooms.createRoom"),
       missingSchool: t("steps.rooms.missingSchool"),
       saveFailed: t("steps.rooms.saveFailed"),
+      manage: t("steps.rooms.manage"),
     },
   };
   const effectiveSelectedStepId =

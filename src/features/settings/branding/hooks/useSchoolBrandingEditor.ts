@@ -6,10 +6,16 @@ import type {
   ResolvedSchoolLocation,
   SchoolProfileSettings,
 } from "../../types";
-import { uploadFile } from "@/services/filesService";
+import {
+  deleteBrandingLogo,
+  uploadBrandingLogo,
+} from "../../services/brandingService";
 
 export interface SchoolBrandingEditorCopy {
   logoUploadFailed: string;
+  logoDeleteFailed: string;
+  logoUploaded: string;
+  logoRemoved: string;
   validation: Partial<Record<keyof SchoolProfileSettings, string>>;
 }
 
@@ -41,6 +47,7 @@ export function useSchoolBrandingEditor({
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [locationWasEdited, setLocationWasEdited] = useState(false);
   const [logoError, setLogoError] = useState("");
+  const [logoStatus, setLogoStatus] = useState("");
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   useEffect(() => {
@@ -49,6 +56,7 @@ export function useSchoolBrandingEditor({
     setErrors({});
     setLocationWasEdited(false);
     setLogoError("");
+    setLogoStatus("");
     setIsUploadingLogo(false);
   }, [initialProfile]);
 
@@ -78,6 +86,7 @@ export function useSchoolBrandingEditor({
     setErrors((current) => ({ ...current, [key]: undefined }));
     if (key === "logoUrl") {
       setLogoError("");
+      setLogoStatus("");
     }
   };
 
@@ -136,6 +145,7 @@ export function useSchoolBrandingEditor({
     setErrors({});
     setLocationWasEdited(false);
     setLogoError("");
+    setLogoStatus("");
     setIsUploadingLogo(false);
   };
 
@@ -144,6 +154,7 @@ export function useSchoolBrandingEditor({
     setErrors({});
     setLocationWasEdited(false);
     setLogoError("");
+    setLogoStatus("");
     setIsUploadingLogo(false);
   };
 
@@ -153,12 +164,34 @@ export function useSchoolBrandingEditor({
 
     setIsUploadingLogo(true);
     setLogoError("");
+    setLogoStatus("");
     try {
-      const uploaded = await uploadFile(file);
-      const url = `${process.env.NEXT_PUBLIC_API_URL || "https://api.moazez.sa/api/v1"}/files/${uploaded.id}/download`;
-      changeText("logoUrl", url);
+      const uploadedProfile = await uploadBrandingLogo(file);
+      setProfile(uploadedProfile);
+      setSavedProfile(uploadedProfile);
+      setErrors((current) => ({ ...current, logoUrl: undefined }));
+      setLogoStatus(copy.logoUploaded);
     } catch {
       setLogoError(copy.logoUploadFailed);
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
+  const deleteLogo = async (): Promise<boolean> => {
+    setIsUploadingLogo(true);
+    setLogoError("");
+    setLogoStatus("");
+    try {
+      await deleteBrandingLogo();
+      const updatedProfile = { ...profile, logoUrl: "" };
+      setProfile(updatedProfile);
+      setSavedProfile(updatedProfile);
+      setLogoStatus(copy.logoRemoved);
+      return true;
+    } catch {
+      setLogoError(copy.logoDeleteFailed);
+      return false;
     } finally {
       setIsUploadingLogo(false);
     }
@@ -206,8 +239,10 @@ export function useSchoolBrandingEditor({
     isLocationModalOpen,
     locationWasEdited,
     logoError,
+    logoStatus,
     changeText,
     uploadLogo,
+    deleteLogo,
     confirmLocation,
     clearLocation,
     openLocationModal: () => setIsLocationModalOpen(true),

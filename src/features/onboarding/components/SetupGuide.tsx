@@ -95,15 +95,18 @@ export function SetupGuide({
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="onboarding-enter">
           <h2 className="text-xl font-semibold text-gray-950">{copy.title}</h2>
-          <p aria-live="polite" className="mt-1 text-sm text-gray-600">
+        </div>
+        <div className="onboarding-enter onboarding-enter-delay-1 min-w-40">
+          <p
+            aria-live="polite"
+            className="mb-2 text-sm font-medium text-gray-700"
+          >
             {copy.progressText(
               evaluation.completedCount,
               evaluation.totalCount,
               evaluation.progressPercent,
             )}
           </p>
-        </div>
-        <div className="onboarding-enter onboarding-enter-delay-1 min-w-40">
           <div
             aria-label={copy.progressLabel}
             aria-valuemax={100}
@@ -120,9 +123,7 @@ export function SetupGuide({
         </div>
       </div>
 
-      <div
-        className="onboarding-enter onboarding-enter-delay-2 mt-5 grid grid-cols-1 gap-3 md:grid-cols-5"
-      >
+      <div className="onboarding-enter onboarding-enter-delay-2 mt-5 grid grid-cols-1 gap-3 md:grid-cols-5">
         {setupSteps.map((definition) => {
           const step = evaluation.steps[definition.id];
           const stepCopy = copy.steps[definition.id];
@@ -181,9 +182,7 @@ export function SetupGuide({
         })}
       </div>
 
-      <div
-        className="onboarding-enter onboarding-enter-delay-3 mt-5 rounded-xl border border-gray-100 bg-gray-50 p-4"
-      >
+      <div className="onboarding-enter onboarding-enter-delay-3 mt-5 rounded-xl border border-gray-100 bg-gray-50 p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
             <h3 className="text-lg font-semibold text-gray-950">
@@ -207,10 +206,7 @@ export function SetupGuide({
             </button>
           ) : null}
         </div>
-        <div
-          className="onboarding-step-content mt-4"
-          key={selectedStepId}
-        >
+        <div className="onboarding-step-content mt-4" key={selectedStepId}>
           {stepContent[selectedStepId]}
         </div>
       </div>

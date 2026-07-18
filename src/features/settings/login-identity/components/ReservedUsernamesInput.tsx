@@ -1,13 +1,11 @@
 "use client";
 
 import { useId, useState } from "react";
-import { X } from "lucide-react";
 
 interface ReservedUsernamesInputProps {
   label: string;
   helperText: string;
   placeholder: string;
-  removeLabel: (username: string) => string;
   values: string[];
   disabled?: boolean;
   error?: string;
@@ -26,7 +24,6 @@ export default function ReservedUsernamesInput({
   label,
   helperText,
   placeholder,
-  removeLabel,
   values,
   disabled = false,
   error,
@@ -58,16 +55,6 @@ export default function ReservedUsernamesInput({
                 className="inline-flex items-center gap-1 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-sm font-medium text-blue-800"
               >
                 <span dir="ltr">{username}</span>
-                {!disabled ? (
-                  <button
-                    type="button"
-                    aria-label={removeLabel(username)}
-                    className="rounded-full p-0.5 text-blue-700 transition-colors hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-primary"
-                    onClick={() => onChange(values.filter((value) => value !== username))}
-                  >
-                    <X className="h-3.5 w-3.5" aria-hidden="true" />
-                  </button>
-                ) : null}
               </span>
             ))}
           </div>

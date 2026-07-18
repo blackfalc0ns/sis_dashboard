@@ -52,7 +52,11 @@ function hasCompleteStructure(tree: StructureTree) {
     tree.grades.filter((grade) => stageIds.has(grade.stageId)).map((grade) => grade.id),
   );
 
-  return tree.sections.some((section) => validGradeIds.has(section.gradeId));
+  const validSectionIds = new Set(
+    tree.sections.filter((section) => validGradeIds.has(section.gradeId)).map((section) => section.id),
+  );
+
+  return tree.classrooms.some((classroom) => validSectionIds.has(classroom.sectionId));
 }
 
 function hasCompleteSubjects(data: SubjectsSetupData, tree: StructureTree | undefined) {

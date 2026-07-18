@@ -62,6 +62,16 @@ const section = {
   order: 1,
 };
 
+const classroom = {
+  id: "classroom-1",
+  name: "Room 101",
+  nameAr: "غرفة 101",
+  nameEn: "Room 101",
+  sectionId: section.id,
+  capacity: 30,
+  order: 1,
+};
+
 const subject = {
   id: "subject-1",
   termId: term.id,
@@ -89,7 +99,7 @@ const completeSnapshot: SetupSnapshot = {
   },
   structure: {
     status: "success",
-    data: { stages: [stage], grades: [grade], sections: [section], classrooms: [] },
+    data: { stages: [stage], grades: [grade], sections: [section], classrooms: [classroom] },
   },
   subjects: {
     status: "success",

@@ -44,22 +44,10 @@ export default function SchoolOnboardingPage() {
         </p>
       </header>
 
-      <div
-        className={`onboarding-enter onboarding-enter-delay-1 mx-auto mb-4 flex max-w-6xl flex-col gap-3 rounded-2xl border p-4 text-sm sm:flex-row sm:items-center sm:justify-between ${
-          canLeaveSetup
-            ? "border-gray-200 bg-white text-gray-700"
-            : "border-amber-200 bg-amber-50 text-amber-900"
-        }`}
-      >
-        {!canLeaveSetup ? (
-          <p id="skip-setup-requirement">{t("setup.skipRequirement")}</p>
-        ) : null}
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="onboarding-enter onboarding-enter-delay-1 mx-auto mb-4 flex max-w-6xl justify-center rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-700">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
             aria-label={t("setup.logout")}
-            aria-describedby={
-              !canLeaveSetup ? "skip-setup-requirement" : undefined
-            }
             leftIcon={<LogOut aria-hidden="true" className="size-4" />}
             onClick={() => void logout()}
             type="button"
@@ -68,9 +56,6 @@ export default function SchoolOnboardingPage() {
             {t("setup.logout")}
           </Button>
           <Button
-            aria-describedby={
-              !canLeaveSetup ? "skip-setup-requirement" : undefined
-            }
             disabled={!canLeaveSetup}
             onClick={handleSkip}
             type="button"

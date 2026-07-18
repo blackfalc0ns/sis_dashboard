@@ -74,6 +74,20 @@ export interface BrandingApiDto {
   mapPlaceLabel: string | null;
 }
 
+export interface UpdateBrandingApiDto {
+  schoolName?: string | null;
+  shortName?: string | null;
+  timezone?: string | null;
+  addressLine?: string | null;
+  formattedAddress?: string | null;
+  city?: string | null;
+  country?: string | null;
+  footerSignature?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  mapPlaceLabel?: string | null;
+}
+
 export interface LocationSuggestion {
   id: string;
   label: string;

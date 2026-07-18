@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  createClassroom,
   createGrade,
   createSection,
   createStage,
@@ -12,6 +13,7 @@ vi.mock("@/features/academics/academic-structure-tree/services/structureService"
   createStage: vi.fn(),
   createGrade: vi.fn(),
   createSection: vi.fn(),
+  createClassroom: vi.fn(),
 }));
 
 const stage = { id: "stage-1", name: "Primary", nameAr: "ابتدائي", nameEn: "Primary", order: 1 };
@@ -33,6 +35,15 @@ const section = {
   capacity: 30,
   order: 1,
 };
+const classroom = {
+  id: "classroom-1",
+  name: "Room 101",
+  nameAr: "غرفة 101",
+  nameEn: "Room 101",
+  sectionId: section.id,
+  capacity: 30,
+  order: 1,
+};
 
 const emptyTree = { stages: [], grades: [], sections: [], classrooms: [] };
 
@@ -41,6 +52,7 @@ const copy = {
   stageTitle: "Create stage",
   gradeTitle: "Create grade",
   sectionTitle: "Create section",
+  classroomTitle: "Create classroom",
   nameAr: "Arabic name",
   nameEn: "English name",
   save: "Create",
@@ -49,13 +61,15 @@ const copy = {
   saveFailed: "Could not create structure item",
   stageCreated: "Stage created. Now add its first grade.",
   gradeCreated: "Grade created. Now add its first section.",
-  sectionCreated: "Section created. Your academic structure is ready.",
-  complete: "Academic structure has the minimum required chain.",
+  sectionCreated: "Section created. Now add its first classroom.",
+  classroomCreated: "Classroom created. Your academic structure is ready.",
+  complete: "Academic structure has the minimum required chain, including a classroom.",
   progressLabel: "Structure progress",
   progressText: (completed: number, total: number) => `${completed} of ${total} complete`,
   stage: "Stage",
   grade: "Grade",
   section: "Section",
+  classroom: "Classroom",
   done: "Done",
   remaining: "Remaining",
 };
@@ -65,12 +79,13 @@ describe("AcademicStructureSetupStep", () => {
     vi.clearAllMocks();
   });
 
-  it("creates the next missing stage, grade, then section using refreshed IDs", async () => {
+  it("creates the next missing stage, grade, section, then classroom using refreshed IDs", async () => {
     const user = userEvent.setup();
     const refreshStep = vi.fn();
     vi.mocked(createStage).mockResolvedValue(stage);
     vi.mocked(createGrade).mockResolvedValue(grade);
     vi.mocked(createSection).mockResolvedValue(section);
+    vi.mocked(createClassroom).mockResolvedValue(classroom);
 
     const { rerender } = render(
       <AcademicStructureSetupStep
@@ -153,6 +168,33 @@ describe("AcademicStructureSetupStep", () => {
       nameAr: "أ",
       nameEn: "A",
       gradeId: grade.id,
+      capacity: 30,
+      order: 1,
+    });
+    rerender(
+      <AcademicStructureSetupStep
+        copy={copy}
+        refreshStep={refreshStep}
+        termId="term-1"
+        tree={{ ...emptyTree, stages: [stage], grades: [grade], sections: [section] }}
+        yearId="year-1"
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Create classroom" })).toBeVisible();
+    expect(screen.getByRole("progressbar", { name: "Structure progress" })).toHaveAttribute(
+      "aria-valuenow",
+      "3",
+    );
+    await user.type(screen.getByRole("textbox", { name: "Arabic name" }), "غرفة 101");
+    await user.type(screen.getByRole("textbox", { name: "English name" }), "Room 101");
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    expect(createClassroom).toHaveBeenCalledWith("year-1", "term-1", {
+      name: "Room 101",
+      nameAr: "غرفة 101",
+      nameEn: "Room 101",
+      sectionId: section.id,
       capacity: 30,
       order: 1,
     });

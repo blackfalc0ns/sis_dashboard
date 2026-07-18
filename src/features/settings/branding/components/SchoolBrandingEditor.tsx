@@ -1,7 +1,9 @@
 "use client";
 
-import { ImagePlus, MapPin } from "lucide-react";
+import { useState } from "react";
+import { ImagePlus, MapPin, Trash2 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
@@ -26,6 +28,11 @@ export interface SchoolBrandingFormCopy extends SchoolBrandingEditorCopy {
   footerSignature: string;
   uploadLogo: string;
   uploadHint: string;
+  removeLogo: string;
+  removeLogoTitle: string;
+  removeLogoDescription: string;
+  confirmRemoveLogo: string;
+  cancel: string;
   pickFromMap: string;
   clearLocation: string;
   selectedLocation: string;
@@ -72,22 +79,39 @@ export function SchoolBrandingEditor({
   disabled = false,
 }: SchoolBrandingEditorProps) {
   const { profile, errors } = editor;
+  const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+
+  const confirmLogoRemoval = async () => {
+    if (await editor.deleteLogo()) setIsRemoveDialogOpen(false);
+  };
 
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[0.9fr_1.1fr]">
       <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4">
         <h4 className="font-semibold text-gray-950">{copy.uploadLogo}</h4>
         {profile.logoUrl ? (
-          <div className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              alt={profile.schoolName}
-              className="h-20 w-20 rounded-full object-cover ring-4 ring-white"
-              src={profile.logoUrl}
-            />
-            <p className="min-w-0 text-sm font-semibold text-gray-900">
-              {profile.schoolName}
-            </p>
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <div className="flex min-w-0 items-center gap-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                alt={profile.schoolName}
+                className="h-20 w-20 rounded-full object-cover ring-4 ring-white"
+                src={profile.logoUrl}
+              />
+              <p className="min-w-0 text-sm font-semibold text-gray-900">
+                {profile.schoolName}
+              </p>
+            </div>
+            <Button
+              aria-label={copy.removeLogo}
+              disabled={disabled || editor.isUploadingLogo}
+              leftIcon={<Trash2 className="h-4 w-4" />}
+              onClick={() => setIsRemoveDialogOpen(true)}
+              type="button"
+              variant="danger"
+            >
+              {copy.removeLogo}
+            </Button>
           </div>
         ) : (
           <div className="flex items-center justify-center text-sm text-gray-400">
@@ -96,11 +120,11 @@ export function SchoolBrandingEditor({
         )}
 
         <DragDropUploadArea
-          accept="image/*"
+          accept="image/png,image/jpeg"
           buttonLabel={copy.uploadLogo}
           disabled={disabled || editor.isUploadingLogo}
           helperText={copy.uploadHint}
-          maxSizeBytes={2 * 1024 * 1024}
+          maxSizeBytes={5 * 1024 * 1024}
           multiple={false}
           onFilesSelected={editor.uploadLogo}
           subtitle={copy.uploadHint}
@@ -108,10 +132,15 @@ export function SchoolBrandingEditor({
           isUploading={editor.isUploadingLogo}
         />
         {errors.logoUrl ? (
-          <p className="text-sm text-red-700">{errors.logoUrl}</p>
+          <p className="text-sm text-red-700" role="alert">{errors.logoUrl}</p>
         ) : null}
         {editor.logoError ? (
-          <p className="text-sm text-red-700">{editor.logoError}</p>
+          <p className="text-sm text-red-700" role="alert">{editor.logoError}</p>
+        ) : null}
+        {editor.logoStatus ? (
+          <p aria-live="polite" className="text-sm font-medium text-emerald-700">
+            {editor.logoStatus}
+          </p>
         ) : null}
       </section>
 
@@ -238,6 +267,17 @@ export function SchoolBrandingEditor({
         isOpen={editor.isLocationModalOpen}
         onClose={editor.closeLocationModal}
         onConfirm={editor.confirmLocation}
+      />
+      <ConfirmDialog
+        cancelLabel={copy.cancel}
+        confirmLabel={copy.confirmRemoveLogo}
+        description={copy.removeLogoDescription}
+        isOpen={isRemoveDialogOpen}
+        loading={editor.isUploadingLogo}
+        onClose={() => setIsRemoveDialogOpen(false)}
+        onConfirm={() => void confirmLogoRemoval()}
+        severity="danger"
+        title={copy.removeLogoTitle}
       />
     </div>
   );

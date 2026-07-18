@@ -42,6 +42,12 @@ const copy = {
   termsCount: (count: number) => `${count} terms`,
   createdContexts: "Created academic years and terms",
   noTerms: "No terms created yet",
+  progressLabel: "Academic context progress",
+  progressText: (completed: number, total: number) => `${completed} of ${total} complete`,
+  academicYear: "Academic year",
+  term: "Term",
+  done: "Done",
+  remaining: "Remaining",
   createYear: "Create academic year",
   createTerm: "Create term",
 };
@@ -67,6 +73,10 @@ describe("AcademicContextSetupStep", () => {
 
     expect(createdContexts).toHaveTextContent("2026-2027");
     expect(createdContexts).toHaveTextContent("Term 1");
+    expect(screen.getByRole("progressbar", { name: "Academic context progress" })).toHaveAttribute(
+      "aria-valuenow",
+      "2",
+    );
   });
 
   it("opens YearDialog with existingYears when no academic year exists", async () => {

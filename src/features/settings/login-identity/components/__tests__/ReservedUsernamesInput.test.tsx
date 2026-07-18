@@ -11,7 +11,6 @@ function Harness() {
       label="Reserved usernames"
       helperText="Add usernames"
       placeholder="Type a username"
-      removeLabel={(username) => `Remove ${username}`}
       values={values}
       onChange={setValues}
     />
@@ -19,7 +18,7 @@ function Harness() {
 }
 
 describe("ReservedUsernamesInput", () => {
-  it("normalizes, deduplicates, and removes reserved usernames", async () => {
+  it("normalizes and deduplicates reserved usernames", async () => {
     const user = userEvent.setup();
     render(<Harness />);
 
@@ -29,9 +28,7 @@ describe("ReservedUsernamesInput", () => {
     expect(screen.getAllByText("admin")).toHaveLength(1);
     expect(screen.getByText("support")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Remove admin" }));
-
-    expect(screen.queryByText("admin")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove admin" })).not.toBeInTheDocument();
     expect(screen.getByText("support")).toBeInTheDocument();
   });
 });

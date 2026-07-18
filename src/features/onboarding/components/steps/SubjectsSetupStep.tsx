@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useLocale } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
@@ -23,6 +24,7 @@ export interface SubjectsSetupStepCopy {
   saveAllocation: string;
   saving: string;
   saveFailed: string;
+  manage: string;
 }
 
 interface SubjectsSetupStepProps {
@@ -40,7 +42,9 @@ export function SubjectsSetupStep({
   subjectsData,
   refreshStep,
 }: SubjectsSetupStepProps) {
+  const locale = useLocale();
   const [isSubjectDialogOpen, setIsSubjectDialogOpen] = useState(false);
+  const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
   const [gradeId, setGradeId] = useState(grades[0]?.id ?? "");
   const [subjectId, setSubjectId] = useState(subjectsData.subjects[0]?.id ?? "");
   const [weeklyHours, setWeeklyHours] = useState("1");
@@ -48,16 +52,23 @@ export function SubjectsSetupStep({
   const [isSaving, setIsSaving] = useState(false);
 
   const gradeOptions = useMemo(
-    () => grades.map((grade) => ({ value: grade.id, label: grade.nameEn || grade.name })),
-    [grades],
+    () =>
+      grades.map((grade) => ({
+        value: grade.id,
+        label: locale === "ar" ? grade.nameAr || grade.name : grade.nameEn || grade.name,
+      })),
+    [grades, locale],
   );
   const subjectOptions = useMemo(
     () =>
       subjectsData.subjects.map((subject) => ({
         value: subject.id,
-        label: subject.nameEn || subject.name,
+        label:
+          locale === "ar"
+            ? subject.nameAr || subject.name
+            : subject.nameEn || subject.name,
       })),
-    [subjectsData.subjects],
+    [locale, subjectsData.subjects],
   );
 
   const handleSubjectSuccess = () => {
@@ -114,12 +125,17 @@ export function SubjectsSetupStep({
         </div>
       )}
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {subjectsData.subjects.map((subject) => (
+        <Button key={subject.id} onClick={() => { setEditingSubjectId(subject.id); setIsSubjectDialogOpen(true); }} size="sm" type="button" variant="secondary">
+          {copy.manage}: {locale === "ar" ? subject.nameAr || subject.name : subject.nameEn || subject.name}
+        </Button>
+      ))}
       <SubjectDialog
         existingSubjects={subjectsData.subjects}
         isOpen={isSubjectDialogOpen}
-        onClose={() => setIsSubjectDialogOpen(false)}
+        onClose={() => { setIsSubjectDialogOpen(false); setEditingSubjectId(null); }}
         onSuccess={handleSubjectSuccess}
-        subject={null}
+        subject={subjectsData.subjects.find((subject) => subject.id === editingSubjectId) ?? null}
       />
     </div>
   );

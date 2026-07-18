@@ -5,9 +5,10 @@ import type { SchoolBrandingEditorCopy } from "../hooks/useSchoolBrandingEditor"
 import type { SchoolProfileSettings } from "../../types";
 
 const fileMocks = vi.hoisted(() => ({
-  uploadFile: vi.fn(),
+  deleteBrandingLogo: vi.fn(),
+  uploadBrandingLogo: vi.fn(),
 }));
-vi.mock("@/services/filesService", () => fileMocks);
+vi.mock("@/features/settings/services/brandingService", () => fileMocks);
 
 const completeProfile: SchoolProfileSettings = {
   schoolName: "Al Noor School",
@@ -26,6 +27,9 @@ const completeProfile: SchoolProfileSettings = {
 
 const copy: SchoolBrandingEditorCopy = {
   logoUploadFailed: "Logo failed",
+  logoDeleteFailed: "Could not remove logo",
+  logoUploaded: "Logo updated",
+  logoRemoved: "Logo removed",
   validation: {
     schoolName: "School name required",
     shortName: "Short name required",
@@ -180,8 +184,11 @@ describe("useSchoolBrandingEditor", () => {
     expect(result.current.profile.longitude).toBeNull();
   });
 
-  it("reads a selected logo into the profile", async () => {
-    fileMocks.uploadFile.mockResolvedValue({ id: "uploaded-logo-id" });
+  it("adopts the managed logo URL returned by the branding upload", async () => {
+    fileMocks.uploadBrandingLogo.mockResolvedValue({
+      ...completeProfile,
+      logoUrl: "https://api.example.test/api/v1/public/schools/school-1/branding/logo?v=1",
+    });
     const { result } = renderHook(() =>
       useSchoolBrandingEditor({
         initialProfile: completeProfile,
@@ -195,13 +202,14 @@ describe("useSchoolBrandingEditor", () => {
       await result.current.uploadLogo([file]);
     });
 
-    const expectedUrl = `${process.env.NEXT_PUBLIC_API_URL || "https://api.moazez.sa/api/v1"}/files/uploaded-logo-id/download`;
-    expect(result.current.profile.logoUrl).toBe(expectedUrl);
+    expect(result.current.profile.logoUrl).toBe(
+      "https://api.example.test/api/v1/public/schools/school-1/branding/logo?v=1",
+    );
     expect(result.current.logoError).toBe("");
   });
 
   it("handles logo upload failure", async () => {
-    fileMocks.uploadFile.mockRejectedValue(new Error("upload failed"));
+    fileMocks.uploadBrandingLogo.mockRejectedValue(new Error("upload failed"));
     const { result } = renderHook(() =>
       useSchoolBrandingEditor({
         initialProfile: completeProfile,
@@ -216,5 +224,23 @@ describe("useSchoolBrandingEditor", () => {
     });
 
     expect(result.current.logoError).toBe("Logo failed");
+  });
+
+  it("removes the managed logo and announces the result", async () => {
+    fileMocks.deleteBrandingLogo.mockResolvedValue(undefined);
+    const { result } = renderHook(() =>
+      useSchoolBrandingEditor({
+        initialProfile: completeProfile,
+        copy,
+        onSave: vi.fn(),
+      }),
+    );
+
+    await act(async () => {
+      await result.current.deleteLogo();
+    });
+
+    expect(result.current.profile.logoUrl).toBe("");
+    expect(result.current.logoStatus).toBe("Logo removed");
   });
 });

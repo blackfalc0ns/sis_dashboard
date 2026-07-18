@@ -235,7 +235,6 @@ export default function LoginIdentityForm({
           values={values.reservedUsernames}
           placeholder={t("placeholders.reserved_usernames")}
           helperText={t("helpers.reserved_usernames")}
-          removeLabel={(username) => t("remove_reserved_username", { username })}
           error={errors.reservedUsernames}
           onChange={onReservedUsernamesChange}
           onBlur={() => onBlur("reservedUsernames")}

@@ -1,7 +1,8 @@
-import { apiGet, apiPatch } from "@/lib/api";
+import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import type {
   BrandingApiDto,
   SchoolProfileSettings,
+  UpdateBrandingApiDto,
 } from "@/features/settings/types";
 
 export const BRANDING_UPDATED_EVENT = "branding-updated";
@@ -49,7 +50,7 @@ export function brandingApiToForm(
 
 export function brandingFormToApi(
   payload: SchoolProfileSettings,
-): BrandingApiDto {
+): UpdateBrandingApiDto {
   const toNullable = (value: string) => {
     const normalized = value.trim();
     return normalized.length > 0 ? normalized : null;
@@ -64,7 +65,6 @@ export function brandingFormToApi(
     city: toNullable(payload.city),
     country: toNullable(payload.country),
     footerSignature: toNullable(payload.footerSignature),
-    logoUrl: toNullable(payload.logoUrl),
     latitude: payload.latitude,
     longitude: payload.longitude,
     mapPlaceLabel: toNullable(payload.mapPlaceLabel),
@@ -119,6 +119,12 @@ export async function fetchBrandingProfile(
   return request;
 }
 
+function cacheAndEmit(profile: SchoolProfileSettings) {
+  const cached = cacheAndReturn(profile);
+  emitBrandingUpdated(cached);
+  return cached;
+}
+
 export async function updateBrandingProfile(
   payload: SchoolProfileSettings,
 ): Promise<SchoolProfileSettings> {
@@ -127,9 +133,26 @@ export async function updateBrandingProfile(
     brandingFormToApi(payload),
   );
   const normalized = brandingApiToForm(response);
-  const cached = cacheAndReturn(normalized);
-  emitBrandingUpdated(cached);
-  return cached;
+  return cacheAndEmit(normalized);
+}
+
+export async function uploadBrandingLogo(
+  file: File,
+): Promise<SchoolProfileSettings> {
+  const body = new FormData();
+  body.append("file", file);
+
+  const response = await apiPost<BrandingApiDto>("/settings/branding/logo", body, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return cacheAndEmit(brandingApiToForm(response));
+}
+
+export async function deleteBrandingLogo(): Promise<void> {
+  await apiDelete<void>("/settings/branding/logo");
+  if (!brandingCache) return;
+
+  cacheAndEmit({ ...brandingCache, logoUrl: "" });
 }
 
 export function calculateBrandingProfileCompleteness(
