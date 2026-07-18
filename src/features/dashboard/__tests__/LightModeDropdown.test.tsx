@@ -17,7 +17,7 @@ const mockCreateTodo = vi.mocked(api.createDashboardTodo);
 const mockUpdateTodo = vi.mocked(api.updateDashboardTodo);
 
 describe("LightModeDropdown Integration", () => {
-  it("renders collapsed by default and fetches dropdown details when expanded", async () => {
+  it("loads dropdown details when the page opens", async () => {
     mockFetchDropdown.mockResolvedValue({
       location: {
         label: "Test Cairo Campus",
@@ -69,7 +69,13 @@ describe("LightModeDropdown Integration", () => {
       },
     });
 
-    render(<LightModeDropdown defaultExpanded={true} />);
+    render(<LightModeDropdown />);
+
+    await waitFor(() => {
+      expect(mockFetchDropdown).toHaveBeenCalledWith({ locale: "en" });
+    });
+
+    fireEvent.click(screen.getByRole("button", { expanded: false }));
 
     await waitFor(() => {
       expect(screen.getByText("Test Cairo Campus")).toBeInTheDocument();

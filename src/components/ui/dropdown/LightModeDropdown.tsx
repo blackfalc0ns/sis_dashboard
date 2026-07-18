@@ -555,6 +555,40 @@ function resolveWeatherData(
   };
 }
 
+function emptyWeatherData(
+  locale: LightModeDropdownLocale,
+  weatherData?: Partial<LightModeDropdownData>,
+): LightModeDropdownData {
+  const date = new Date();
+
+  return {
+    location: "",
+    dateLabel: date.toLocaleDateString(localeCode[locale]),
+    compactDateLabel: date.toLocaleDateString(localeCode[locale]),
+    temperature: "--",
+    lowTemperature: "--",
+    feelsLike: "--",
+    condition: "",
+    hints: [],
+    highlights: [],
+    cities: [],
+    forecast: [],
+    planner: {
+      date: getCivilDateString(date),
+      time: "",
+      period: "",
+      timezone: "",
+      dateLabel: "",
+      monthLabel: "",
+      weekDays: [],
+      eventDates: [],
+      calendarDays: [],
+      todos: [],
+    },
+    ...weatherData,
+  };
+}
+
 function todoItemsFromPlanner(todos: LightModeDropdownTodo[]): PlannerTodo[] {
   return todos.map((todo, index) => ({
     ...todo,
@@ -719,9 +753,9 @@ export default function LightModeDropdown({
   const text = localizedTextFromMessages(t);
   
   const [data, setData] = useState<LightModeDropdownData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const weather = data || resolveWeatherData(weatherData);
+  const weather = data || emptyWeatherData(activeLocale, weatherData);
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [visibleMonth, setVisibleMonth] = useState(
@@ -735,8 +769,6 @@ export default function LightModeDropdown({
   const isExpanded = isControlled ? expanded : internalExpanded;
 
   useEffect(() => {
-    if (!isExpanded) return;
-
     let active = true;
     const loadData = async () => {
       setIsLoading(true);
@@ -760,7 +792,7 @@ export default function LightModeDropdown({
     return () => {
       active = false;
     };
-  }, [isExpanded, activeLocale]);
+  }, [activeLocale]);
 
   const [newTodoTitle, setNewTodoTitle] = useState("");
   const [newTodoDescription, setNewTodoDescription] = useState("");
