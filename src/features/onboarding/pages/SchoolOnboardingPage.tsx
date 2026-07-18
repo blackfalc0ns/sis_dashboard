@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { LogOut } from "lucide-react";
+import { CircleAlert, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useSetupStatusContext } from "../context/SetupStatusContext";
@@ -45,7 +45,7 @@ export default function SchoolOnboardingPage() {
       </header>
 
       <div className="onboarding-enter onboarding-enter-delay-1 mx-auto mb-4 flex max-w-6xl justify-center rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-700">
-        <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className="flex flex-col items-center gap-3">
           <Button
             aria-label={t("setup.logout")}
             leftIcon={<LogOut aria-hidden="true" className="size-4" />}
@@ -56,6 +56,7 @@ export default function SchoolOnboardingPage() {
             {t("setup.logout")}
           </Button>
           <Button
+            aria-describedby={!canLeaveSetup ? "skip-setup-requirement" : undefined}
             disabled={!canLeaveSetup}
             onClick={handleSkip}
             type="button"
@@ -63,6 +64,15 @@ export default function SchoolOnboardingPage() {
           >
             {isSetupComplete ? t("setup.finish") : t("setup.skip")}
           </Button>
+          {!canLeaveSetup && (
+            <p
+              className="flex items-center justify-center gap-2 text-center text-sm text-gray-600"
+              id="skip-setup-requirement"
+            >
+              <CircleAlert aria-hidden="true" className="size-4 shrink-0 text-amber-600" />
+              {t("setup.skipRequirement")}
+            </p>
+          )}
         </div>
       </div>
       <div className="onboarding-enter onboarding-enter-delay-2">
