@@ -234,18 +234,7 @@ export default function PolicyWizardDialog({
     });
   }, [isOpen, policy, availablePeriods, formData.mode]);
 
-  // Load periods when dialog opens or scope changes (always needed now)
-  useEffect(() => {
-    if (!isOpen || !term || formData.mode !== "PERIOD") {
-      setAvailablePeriods([]);
-      return;
-    }
-
-    loadAvailablePeriods();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, formData.mode, formData.scopeType, formData.scopeIds, term]);
-
-  const loadAvailablePeriods = async () => {
+  async function loadAvailablePeriods() {
     if (!term) return;
 
     // Do not query timetable data while the hierarchy target is incomplete.
@@ -300,7 +289,18 @@ export default function PolicyWizardDialog({
     } finally {
       setIsLoadingPeriods(false);
     }
-  };
+  }
+
+  // Load periods when dialog opens or scope changes (always needed now)
+  useEffect(() => {
+    if (!isOpen || !term || formData.mode !== "PERIOD") {
+      setAvailablePeriods([]);
+      return;
+    }
+
+    loadAvailablePeriods();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, formData.mode, formData.scopeType, formData.scopeIds, term]);
 
   const handleFieldChange = (
     field: keyof PolicyFormData,

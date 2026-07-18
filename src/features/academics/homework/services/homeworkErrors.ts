@@ -59,6 +59,7 @@ const HOMEWORK_ERROR_KEYS: Record<string, string> = {
   "homework.grade_sync.duplicate_link": "gradeSyncDuplicateLink",
   "homework.grade_sync.unlink_not_allowed": "gradeSyncUnlinkNotAllowed",
   "homework.grade_sync.failed": "gradeSyncFailed",
+  "grades.assessment.not_published": "gradeSyncAssessmentNotPublished",
   "validation.failed": "validationFailed",
 };
 

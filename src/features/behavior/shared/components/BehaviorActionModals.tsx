@@ -110,7 +110,7 @@ function CategoryModal({
     defaultPoints: string | number;
     isActive: boolean;
     sortOrder: string | number;
-  }>({
+  }>(() => ({
     code: category?.code ?? `CAT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
     nameEn: category?.nameEn ?? "",
     nameAr: category?.nameAr ?? "",
@@ -121,7 +121,7 @@ function CategoryModal({
     defaultPoints: category?.defaultPoints ?? 1,
     isActive: category?.isActive ?? true,
     sortOrder: category?.sortOrder ?? 10,
-  });
+  }));
   const [saving, setSaving] = useState(false);
 
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
@@ -278,7 +278,7 @@ function RecordModal({
   const minDate = currentTerm?.startDate ? new Date(currentTerm.startDate) : undefined;
   const maxDate = currentTerm?.endDate ? new Date(currentTerm.endDate) : undefined;
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     studentId: record?.studentId ?? "",
     enrollmentId: record?.enrollmentId ?? "",
     categoryId: record?.categoryId ?? "",
@@ -287,7 +287,7 @@ function RecordModal({
     noteEn: record?.noteEn ?? "",
     noteAr: record?.noteAr ?? "",
     occurredAt: record?.occurredAt ? new Date(record.occurredAt) : new Date(),
-  });
+  }));
   const [saving, setSaving] = useState(false);
 
   const [studentOptions, setStudentOptions] = useState<SelectOption[]>([]);

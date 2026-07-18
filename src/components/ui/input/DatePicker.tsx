@@ -26,6 +26,7 @@ export interface DatePickerProps {
   maxDate?: Date;
   disablePast?: boolean;
   disableFuture?: boolean;
+  shouldDisableDate?: (date: Date) => boolean;
   format?: string;
   className?: string;
 }
@@ -47,6 +48,7 @@ export default function DatePicker({
   maxDate,
   disablePast = false,
   disableFuture = false,
+  shouldDisableDate,
   format,
   className = "",
 }: DatePickerProps) {
@@ -135,6 +137,11 @@ export default function DatePicker({
             maxDate={maxDate ? dayjs(maxDate) : undefined}
             disablePast={disablePast}
             disableFuture={disableFuture}
+            shouldDisableDate={
+              shouldDisableDate
+                ? (date) => shouldDisableDate(date.toDate())
+                : undefined
+            }
             format={dateFormat}
             slotProps={{
               textField: {

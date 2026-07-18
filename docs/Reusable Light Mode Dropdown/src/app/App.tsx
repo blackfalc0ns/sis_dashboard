@@ -172,7 +172,7 @@ function HighlightCard() {
   return (
     <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 h-full">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[14px] font-semibold text-[#111827]">Today's Highlight</h3>
+        <h3 className="text-[14px] font-semibold text-[#111827]">Today&apos;s Highlight</h3>
         <span className="text-[11px] text-[#9CA3AF] bg-[#F3F4F6] px-2 py-0.5 rounded-full">Sun, 04 Aug</span>
       </div>
       <div className="grid grid-cols-3 gap-2.5">

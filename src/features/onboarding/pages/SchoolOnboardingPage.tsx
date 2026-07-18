@@ -2,7 +2,9 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 import { useSetupStatusContext } from "../context/SetupStatusContext";
 import { SetupGuideContent } from "../components/SetupGuideContent";
 import { markOnboardingSkipped } from "../components/OnboardingRedirectGuard";
@@ -10,16 +12,21 @@ import { markOnboardingSkipped } from "../components/OnboardingRedirectGuard";
 export default function SchoolOnboardingPage() {
   const result = useSetupStatusContext();
   const t = useTranslations("onboarding");
+  const { logout } = useAuth();
   const router = useRouter();
   const params = useParams<{ lang?: string }>();
   const locale = params.lang ?? "en";
   const canSkip =
     result.evaluation.steps.academicContext.isComplete &&
     result.evaluation.steps.structure.isComplete;
+  const isSetupComplete = result.evaluation.isComplete;
+  const canLeaveSetup = canSkip || isSetupComplete;
 
   function handleSkip() {
-    if (!canSkip) return;
-    markOnboardingSkipped(result.schoolId);
+    if (!canLeaveSetup) return;
+    if (!isSetupComplete) {
+      markOnboardingSkipped(result.schoolId);
+    }
     router.push(`/${locale}/dashboard`);
   }
 
@@ -37,16 +44,35 @@ export default function SchoolOnboardingPage() {
         </p>
       </header>
 
-      <div className="onboarding-enter onboarding-enter-delay-1 mx-auto mb-4 flex max-w-6xl flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
-        <p>{t("setup.skipRequirement")}</p>
-        <Button
-          disabled={!canSkip}
-          onClick={handleSkip}
-          type="button"
-          variant="outline"
-        >
-          {t("setup.skip")}
-        </Button>
+      <div
+        className={`onboarding-enter onboarding-enter-delay-1 mx-auto mb-4 flex max-w-6xl flex-col gap-3 rounded-2xl border p-4 text-sm sm:flex-row sm:items-center sm:justify-between ${
+          canLeaveSetup
+            ? "border-gray-200 bg-white text-gray-700"
+            : "border-amber-200 bg-amber-50 text-amber-900"
+        }`}
+      >
+        {!canLeaveSetup ? (
+          <p id="skip-setup-requirement">{t("setup.skipRequirement")}</p>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            leftIcon={<LogOut aria-hidden="true" className="size-4" />}
+            onClick={() => void logout()}
+            type="button"
+            variant="ghost"
+          >
+            {t("setup.logout")}
+          </Button>
+          <Button
+            aria-describedby={!canLeaveSetup ? "skip-setup-requirement" : undefined}
+            disabled={!canLeaveSetup}
+            onClick={handleSkip}
+            type="button"
+            variant="outline"
+          >
+            {isSetupComplete ? t("setup.finish") : t("setup.skip")}
+          </Button>
+        </div>
       </div>
       <div className="onboarding-enter onboarding-enter-delay-2">
         <SetupGuideContent result={result} title={t("setup.guideTitle")} />

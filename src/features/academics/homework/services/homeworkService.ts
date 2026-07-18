@@ -117,6 +117,10 @@ export const listHomeworkSubmissionAnswers: HomeworkAdapter["listSubmissionAnswe
   (homeworkId, submissionId) =>
     homeworkAdapter.listSubmissionAnswers(homeworkId, submissionId);
 
+export const fetchHomeworkSubmissionAnswer: HomeworkAdapter["getSubmissionAnswer"] =
+  (homeworkId, submissionId, answerId) =>
+    homeworkAdapter.getSubmissionAnswer(homeworkId, submissionId, answerId);
+
 export const reviewHomeworkSubmissionAnswer: HomeworkAdapter["reviewSubmissionAnswer"] =
   (homeworkId, submissionId, answerId, payload) =>
     homeworkAdapter.reviewSubmissionAnswer(

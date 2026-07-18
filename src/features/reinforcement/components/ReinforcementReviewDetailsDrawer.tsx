@@ -1,12 +1,12 @@
 "use client";
 
-import { CheckCircle, Clock, FileText, RefreshCw, X, XCircle } from "lucide-react";
+import { CheckCircle, Clock, Eye, RefreshCw, X, XCircle } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import Button from "@/components/ui/button/Button";
+import FilePreviewModal, { FilePreviewThumbnail } from "@/components/ui/file-preview-modal";
 import type { ReinforcementReviewItem, ReinforcementReviewStatus } from "../types";
-import { getReinforcementProofDownloadUrl } from "../utils/reinforcementFileUrl";
 
 interface ReinforcementReviewDetailsDrawerProps {
   isOpen: boolean;
@@ -46,6 +46,7 @@ export default function ReinforcementReviewDetailsDrawer({
 }: ReinforcementReviewDetailsDrawerProps) {
   const locale = useLocale();
   const t = useTranslations("reinforcement");
+  const [proofFileId, setProofFileId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -92,6 +93,7 @@ export default function ReinforcementReviewDetailsDrawer({
     : missing;
 
   return (
+    <>
     <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={onClose}>
       <aside
         role="dialog"
@@ -224,20 +226,27 @@ export default function ReinforcementReviewDetailsDrawer({
                   </div>
                 ) : null}
                 {proof?.proofFileId ? (
-                  <div className="rounded-lg bg-gray-50 px-4 py-3">
-                    <div className="text-xs font-medium uppercase text-gray-500 mb-1">
-                      {t("reviews.detail.proofFile") || "Proof File"}
-                    </div>
-                    <a
-                      href={getReinforcementProofDownloadUrl(proof.proofFileId)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                    >
-                      <FileText className="h-4 w-4" />
-                      {t("reviews.detail.viewFile") || "View File"}
-                    </a>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setProofFileId(String(proof.proofFileId))}
+                    className="group flex w-full items-center justify-between gap-4 rounded-xl border border-sky-100 bg-sky-50/60 p-4 text-start transition-colors hover:border-sky-200 hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  >
+                    <span className="flex min-w-0 items-center gap-3">
+                      <FilePreviewThumbnail
+                        alt={t("reviews.detail.proofFile") || "Proof File"}
+                        fileId={String(proof.proofFileId)}
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold text-gray-900">
+                          {t("reviews.detail.proofFile") || "Proof File"}
+                        </span>
+                        <span className="mt-0.5 block text-xs font-medium text-primary">
+                          {t("reviews.detail.viewFile") || "View File"}
+                        </span>
+                      </span>
+                    </span>
+                    <Eye className="h-5 w-5 shrink-0 text-primary transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
+                  </button>
                 ) : null}
                 {!proof?.proofText && !proof?.proofFileId && (
                   <p className="text-sm text-gray-500">
@@ -335,6 +344,17 @@ export default function ReinforcementReviewDetailsDrawer({
         ) : null}
       </aside>
     </div>
+      <FilePreviewModal
+        attachment={proofFileId ? {
+          id: proofFileId,
+          name: t("reviews.detail.proofFile"),
+          size: 0,
+          type: "",
+        } : null}
+        isOpen={Boolean(proofFileId)}
+        onClose={() => setProofFileId(null)}
+      />
+    </>
   );
 }
 

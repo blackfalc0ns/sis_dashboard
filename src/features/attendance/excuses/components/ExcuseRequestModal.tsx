@@ -39,7 +39,7 @@ import {
 } from "../services/attendanceExcusesService";
 import { uploadFile } from "@/services/filesService";
 import { uploadExcuseAttachments } from "../utils/uploadExcuseAttachments";
-import AttendanceAttachmentPreviewModal from "@/features/attendance/shared/components/AttendanceAttachmentPreviewModal";
+import FilePreviewModal from "@/components/ui/file-preview-modal";
 
 interface ExcuseRequestModalProps {
   isOpen: boolean;
@@ -1093,7 +1093,7 @@ export default function ExcuseRequestModal({
         </div>
       </div>
     </Modal>
-    <AttendanceAttachmentPreviewModal
+    <FilePreviewModal
       attachment={previewAttachment}
       isOpen={!!previewAttachment}
       onClose={() => setPreviewAttachment(null)}

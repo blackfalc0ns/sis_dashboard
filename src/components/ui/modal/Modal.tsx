@@ -9,6 +9,9 @@ import {
   createAriaModal,
 } from "@/lib/accessibility/ariaHelpers";
 
+let openModalCount = 0;
+let initialBodyOverflow = "";
+
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -89,19 +92,26 @@ export default function Modal({
 
   // Lock body scroll when modal is open
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+
+    if (openModalCount === 0) {
+      initialBodyOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
     }
 
+    openModalCount += 1;
+
     return () => {
-      document.body.style.overflow = "unset";
+      openModalCount -= 1;
+
+      if (openModalCount === 0) {
+        document.body.style.overflow = initialBodyOverflow;
+      }
     };
   }, [isOpen]);
 
-  // Handle overlay click
-  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Require a deliberate double-click outside the modal before closing it.
+  const handleOverlayDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (closeOnOverlayClick && e.target === e.currentTarget) {
       onClose();
     }
@@ -147,7 +157,7 @@ export default function Modal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-      onClick={handleOverlayClick}
+      onDoubleClick={handleOverlayDoubleClick}
       dir={isRTL ? "rtl" : "ltr"}
       aria-hidden={!isOpen}
     >
@@ -227,6 +237,14 @@ export default function Modal({
         </div>
 
         {/* Footer */}
+        {closeOnOverlayClick && (
+          <div className="shrink-0 px-6 py-2 text-center text-xs text-gray-500 border-t border-gray-100 bg-gray-50">
+            {locale === "ar"
+              ? "انقر نقرتين خارج النافذة لإغلاقها"
+              : "Double-click outside this window to close it"}
+          </div>
+        )}
+
         {footer && (
           <div
             className={`shrink-0 flex items-center gap-3 px-6 py-4 border-t border-gray-100 bg-white ${

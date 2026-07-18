@@ -110,7 +110,7 @@ export default function AttendancePoliciesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [termContext.yearId, termContext.termId]);
 
-  const loadData = async () => {
+  async function loadData() {
     if (!termContext.yearId || !termContext.termId) return;
 
     try {

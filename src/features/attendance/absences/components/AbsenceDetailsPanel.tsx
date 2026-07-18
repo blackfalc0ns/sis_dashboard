@@ -5,7 +5,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import { X, FileText, Edit2, Calendar, User, GraduationCap, Clock3 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
-import AttendanceAttachmentPreviewModal from "@/features/attendance/shared/components/AttendanceAttachmentPreviewModal";
+import FilePreviewModal from "@/components/ui/file-preview-modal";
 import { formatAttendanceDateTime } from "@/features/attendance/utils/dateFormatting";
 import { formatFileSize } from "@/utils/upload/validateFile";
 import type { AttachmentMeta } from "@/features/attendance/roll-call/types";
@@ -282,7 +282,7 @@ export default function AbsenceDetailsPanel({
         )}
       </div>
 
-      <AttendanceAttachmentPreviewModal
+      <FilePreviewModal
         attachment={previewAttachment}
         isOpen={!!previewAttachment}
         onClose={() => setPreviewAttachment(null)}

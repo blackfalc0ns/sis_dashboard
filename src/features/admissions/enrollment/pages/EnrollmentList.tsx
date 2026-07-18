@@ -25,6 +25,7 @@ interface Option { id: string; name: string; parentId?: string }
 
 export default function EnrollmentList() {
   const t = useTranslations("admissions.enrollment"); const locale = useLocale();
+  const [now] = useState(() => Date.now());
   const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
   const { hasPermission } = usePermissions();
   const canView = hasPermission("students.enrollments.view"); const canViewStudents = hasPermission("students.records.view"); const canManage = hasPermission("students.enrollments.manage") && !isReadOnly; const canManageLifecycle = hasPermission("students.lifecycle.manage") && !isReadOnly;
@@ -51,7 +52,7 @@ export default function EnrollmentList() {
 
   const records = useMemo(() => dtos.map((dto) => mapEnrollment(dto, studentDisplayName(studentMap.get(dto.studentId), locale))), [dtos, locale, studentMap]);
   const visible = useMemo(() => records.filter((item) => !search || [item.studentName, item.academicYear, item.grade, item.section, item.classroom].some((value) => value.toLowerCase().includes(search.toLowerCase()))), [records, search]);
-  const thisWeek = records.filter((item) => Date.now() - new Date(item.enrollmentDate).getTime() <= 7 * 86400000).length;
+  const thisWeek = records.filter((item) => now - new Date(item.enrollmentDate).getTime() <= 7 * 86400000).length;
   const columns = [
     { key: "studentName", label: t("student_name") }, { key: "status", label: t("details.fields.status"), render: (value: unknown) => t(`status.${String(value)}`) }, { key: "academicYear", label: t("academic_year") }, { key: "grade", label: t("grade") }, { key: "section", label: t("section") }, { key: "classroom", label: t("classroom") }, { key: "enrollmentDate", label: t("enrolled_date"), render: (value: unknown) => new Date(String(value)).toLocaleDateString(locale) },
   ];

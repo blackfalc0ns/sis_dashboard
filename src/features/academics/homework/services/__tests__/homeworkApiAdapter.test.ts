@@ -124,6 +124,25 @@ describe("homeworkApiAdapter", () => {
     );
   });
 
+  it("maps the assignment returned after resolving targets", async () => {
+    mockedApiPost.mockResolvedValueOnce({
+      id: "homework-1",
+      title: "Resolved homework",
+      status: "draft",
+      attachmentsCount: 2,
+    });
+
+    await expect(
+      homeworkApiAdapter.resolveTargets("homework-1"),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        id: "homework-1",
+        title: "Resolved homework",
+        attachmentCount: 2,
+      }),
+    );
+  });
+
   it("wires question and attachment endpoints under the homework assignment", async () => {
     mockedApiGet.mockResolvedValueOnce({ items: [] });
     mockedApiPatch.mockResolvedValueOnce({ question: { questionId: "question-1", homeworkId: "homework-1", type: "short_text", prompt: "Q", points: 0, sortOrder: 2, isRequired: true, options: [], createdAt: "", updatedAt: "" } });
@@ -282,6 +301,36 @@ describe("homeworkApiAdapter", () => {
     );
   });
 
+  it("keeps option ordering on the dedicated reorder endpoint", async () => {
+    mockedApiPatch.mockResolvedValueOnce({
+      question: {
+        questionId: "question-1",
+        homeworkId: "homework-1",
+        type: "single_choice",
+        prompt: "Pick one",
+        points: 1,
+        sortOrder: 0,
+        isRequired: true,
+        options: [],
+        createdAt: "",
+        updatedAt: "",
+      },
+    });
+
+    await homeworkApiAdapter.updateOption("homework-1", "question-1", {
+      id: "option-1",
+      textAr: "Updated",
+      textEn: "Updated",
+      isCorrect: true,
+      order: 3,
+    });
+
+    expect(mockedApiPatch).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/questions/question-1/options/option-1",
+      { text: "Updated", isCorrect: true },
+    );
+  });
+
   it("deletes stale hidden options when updating a true false question", async () => {
     const backendQuestion = {
       questionId: "question-1", homeworkId: "homework-1", type: "true_false",
@@ -427,10 +476,12 @@ describe("homeworkApiAdapter", () => {
         warnings: [],
       });
     mockedApiPatch.mockResolvedValueOnce({
-      answerId: "answer-1",
-      prompt: "Explain",
-      answerText: "Answer",
-      score: 5,
+      answer: {
+        answerId: "answer-1",
+        prompt: "Explain",
+        answerText: "Answer",
+        score: 5,
+      },
     }).mockResolvedValueOnce({
       submission: {
         id: "submission-1",
@@ -547,6 +598,34 @@ describe("homeworkApiAdapter", () => {
     );
     expect(mockedApiPost).toHaveBeenCalledWith(
       "/homework/assignments/homework-1/submissions/submission-1/grade-sync",
+    );
+  });
+
+  it("gets one submission answer from the backend detail endpoint", async () => {
+    mockedApiGet.mockResolvedValueOnce({
+      answer: {
+        answerId: "answer-1",
+        questionId: "question-1",
+        prompt: {
+          questionId: "question-1",
+          type: "short_text",
+          prompt: "Explain",
+          points: 5,
+        },
+        textAnswer: "Answer",
+      },
+    });
+
+    await expect(
+      homeworkApiAdapter.getSubmissionAnswer(
+        "homework-1",
+        "submission-1",
+        "answer-1",
+      ),
+    ).resolves.toEqual(expect.objectContaining({ id: "answer-1", prompt: "Explain" }));
+
+    expect(mockedApiGet).toHaveBeenCalledWith(
+      "/homework/assignments/homework-1/submissions/submission-1/answers/answer-1",
     );
   });
 });

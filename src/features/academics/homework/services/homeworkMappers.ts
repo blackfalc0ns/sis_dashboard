@@ -50,9 +50,20 @@ function normalizeStatus(
   return "draft";
 }
 
-function label(ref: BackendHomeworkAssignmentDto["teacher"]): string | undefined {
+function label(
+  ref: {
+    displayName?: string;
+    fullName?: string;
+    name?: string;
+    nameEn?: string;
+    nameAr?: string;
+    title?: string;
+    titleEn?: string;
+    titleAr?: string;
+  } | null | undefined,
+): string | undefined {
   if (!ref) return undefined;
-  return ref.displayName || ref.name || ref.nameEn || ref.nameAr || ref.title || ref.titleEn || ref.titleAr;
+  return ref.displayName || ref.fullName || ref.name || ref.nameEn || ref.nameAr || ref.title || ref.titleEn || ref.titleAr;
 }
 
 function homeworkAssignmentId(dto: BackendHomeworkAssignmentDto) {
@@ -69,6 +80,9 @@ export function mapBackendHomeworkAssignmentToUi(
     classroomId: dto.classroomId ?? dto.classroom?.id,
     subjectId: dto.subjectId ?? dto.subject?.id,
     teacherSubjectAllocationId: dto.teacherSubjectAllocationId,
+    teacherUserId: dto.teacherUserId ?? dto.teacher?.userId,
+    timetableEntryId: dto.timetableEntryId,
+    scheduleDate: dto.scheduleDate,
     title: dto.title ?? "",
     description: dto.description ?? "",
     mode: String(dto.mode || "homework").toLowerCase(),
@@ -76,14 +90,28 @@ export function mapBackendHomeworkAssignmentToUi(
     targetMode: String(dto.targetMode || "classroom").toLowerCase(),
     dueAt: dto.dueAt ?? undefined,
     publishAt: dto.publishAt ?? undefined,
+    publishedAt: dto.publishedAt,
+    closedAt: dto.closedAt,
     estimatedMinutes: dto.estimatedMinutes ?? undefined,
     totalMarks: dto.totalMarks ?? 0,
     isGraded: dto.isGraded ?? true,
     questionCount: dto.questionCount ?? dto.questions?.length ?? 0,
-    attachmentCount: dto.attachmentCount ?? dto.attachments?.length ?? 0,
+    attachmentCount:
+      dto.attachmentsCount ?? dto.attachmentCount ?? dto.attachments?.length ?? 0,
     classroomName: label(dto.classroom),
+    classroomSectionName: label(dto.classroom?.section),
+    classroomGradeName: label(dto.classroom?.grade),
+    academicYearName: label(dto.academicYear),
+    termName: label(dto.term),
+    termStartDate: dto.term?.startDate,
+    termEndDate: dto.term?.endDate,
     subjectName: label(dto.subject),
+    subjectCode: dto.subject?.code,
+    subjectColor: dto.subject?.color,
     teacherName: label(dto.teacher),
+    counters: dto.counters,
+    questions: dto.questions?.map(mapBackendHomeworkQuestionToBuilder),
+    attachments: dto.attachments?.map(mapBackendHomeworkAttachmentToBuilder),
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
   };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import {
@@ -23,6 +23,9 @@ export interface AcademicStructureSetupStepCopy {
   saving: string;
   required: string;
   saveFailed: string;
+  stageCreated: string;
+  gradeCreated: string;
+  sectionCreated: string;
   complete: string;
 }
 
@@ -86,18 +89,27 @@ export function AcademicStructureSetupStep({
         : nextAction.type;
   const [nameAr, setNameAr] = useState("");
   const [nameEn, setNameEn] = useState("");
+  const [formActionKey, setFormActionKey] = useState(actionKey);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const currentNameAr = formActionKey === actionKey ? nameAr : "";
+  const currentNameEn = formActionKey === actionKey ? nameEn : "";
 
-  useEffect(() => {
-    setNameAr("");
-    setNameEn("");
-    setError("");
-  }, [actionKey]);
+  const successNotice = success ? (
+    <p
+      aria-live="polite"
+      className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800"
+      role="status"
+    >
+      {success}
+    </p>
+  ) : null;
 
   if (nextAction.type === "complete") {
     return (
       <div className="space-y-2">
+        {successNotice}
         <h3 className="text-base font-semibold text-gray-950">{nextAction.title}</h3>
         <p className="text-sm text-gray-600">{copy.summary}</p>
       </div>
@@ -105,7 +117,7 @@ export function AcademicStructureSetupStep({
   }
 
   const handleSubmit = async () => {
-    if (!nameAr.trim() || !nameEn.trim()) {
+    if (!currentNameAr.trim() || !currentNameEn.trim()) {
       setError(copy.required);
       return;
     }
@@ -115,30 +127,34 @@ export function AcademicStructureSetupStep({
 
     try {
       const basePayload = {
-        name: nameEn.trim() || nameAr.trim(),
-        nameAr: nameAr.trim(),
-        nameEn: nameEn.trim(),
+        name: currentNameEn.trim() || currentNameAr.trim(),
+        nameAr: currentNameAr.trim(),
+        nameEn: currentNameEn.trim(),
         order: nextAction.order,
       };
 
       if (nextAction.type === "stage") {
         await createStage(yearId, termId, basePayload);
+        setSuccess(copy.stageCreated);
       } else if (nextAction.type === "grade") {
         await createGrade(yearId, termId, {
           ...basePayload,
           stageId: nextAction.stage.id,
           capacity: 30,
         });
+        setSuccess(copy.gradeCreated);
       } else {
         await createSection(yearId, termId, {
           ...basePayload,
           gradeId: nextAction.grade.id,
           capacity: 30,
         });
+        setSuccess(copy.sectionCreated);
       }
 
       setNameAr("");
       setNameEn("");
+      setFormActionKey(actionKey);
       await refreshStep("structure");
     } catch {
       setError(copy.saveFailed);
@@ -159,19 +175,24 @@ export function AcademicStructureSetupStep({
           label={copy.nameAr}
           onChange={(event) => {
             setNameAr(event.target.value);
+            setFormActionKey(actionKey);
             setError("");
+            setSuccess("");
           }}
-          value={nameAr}
+          value={currentNameAr}
         />
         <Input
           label={copy.nameEn}
           onChange={(event) => {
             setNameEn(event.target.value);
+            setFormActionKey(actionKey);
             setError("");
+            setSuccess("");
           }}
-          value={nameEn}
+          value={currentNameEn}
         />
       </div>
+      {successNotice}
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       <Button loading={isSaving} onClick={() => void handleSubmit()} type="button">
         {isSaving ? copy.saving : copy.save}

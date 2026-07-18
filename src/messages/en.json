@@ -500,6 +500,7 @@
     "last_page": "Last page",
     "preview": "Preview",
     "open": "Open",
+    "filePreview": { "title": "Attachment preview", "loading": "Loading preview...", "unavailable": "Preview unavailable", "unavailableDescription": "This attachment cannot be previewed right now.", "fileType": "File type", "fileSize": "File size", "openInNewTab": "Open this file in a new tab.", "videoUnsupported": "Your browser does not support video playback." },
     "close": "Close",
     "delete": "Delete",
     "cancel": "Cancel",
@@ -5262,16 +5263,20 @@
           "targetMode": "Target mode",
           "mode": "Mode",
           "dueAt": "Due date",
+          "scheduleDate": "Lesson date",
+          "timetableEntry": "Timetable lesson",
           "totalMarks": "Total marks",
           "estimatedMinutes": "Estimated minutes",
           "description": "Description"
         },
         "placeholders": {
           "teacherSubjectAllocation": "Select teacher, subject, and classroom",
-          "searchAllocation": "Search teacher, subject, or classroom..."
+          "searchAllocation": "Search teacher, subject, or classroom...",
+          "timetableEntry": "No lesson link"
         },
         "helpers": {
-          "teacherSubjectAllocation": "Homework will use this allocation for teacher, subject, classroom, year, and term validation."
+          "teacherSubjectAllocation": "Homework will use this allocation for teacher, subject, classroom, year, and term validation.",
+          "scheduleDate": "Only dates with this class's scheduled lesson can be selected."
         },
         "targetModes": {
           "classroom": "Classroom",
@@ -5310,13 +5315,18 @@
           "created": "Homework draft created.",
           "loadingAllocations": "Loading teacher allocations...",
           "noAllocations": "No teacher allocations found for this term.",
-          "noAllocationResults": "No matching teacher allocations."
+          "noAllocationResults": "No matching teacher allocations.",
+          "loadingTimetableDays": "Finding available lesson dates...",
+          "noTimetableDays": "No scheduled lesson dates are available for this class.",
+          "loadingTimetableSlots": "Loading timetable lessons...",
+          "noTimetableSlots": "No timetable lessons are available for this lesson date."
         },
         "errors": {
           "contextRequired": "Select an academic year and term first.",
           "allocationRequired": "Teacher subject allocation is required.",
           "titleRequired": "Homework title is required.",
           "dueAtRequired": "Due date is required.",
+          "scheduleDateOutsideTerm": "Lesson date must be within the selected term.",
           "allocationsLoadFailed": "Failed to load teacher allocations.",
           "studentsLoadFailed": "Failed to load eligible students.",
           "noEligibleStudents": "This classroom has no eligible students for homework targets.",
@@ -5613,6 +5623,7 @@
         "submissionAttachmentInvalidReorder": "The submission attachment order is invalid.",
         "gradeSyncNotLinked": "Link this homework to a grade assessment before syncing.",
         "gradeSyncInvalidAssessment": "The selected grade assessment is not compatible with homework sync.",
+        "gradeSyncAssessmentNotPublished": "Publish the selected grade assessment before linking it to this homework.",
         "gradeSyncIncompatibleScope": "The selected grade assessment does not match this homework scope.",
         "gradeSyncAssessmentLocked": "The linked grade assessment is locked. Unlock it before syncing homework grades.",
         "gradeSyncSubmissionNotReviewed": "Only reviewed homework submissions can be synced to grades.",
@@ -10413,8 +10424,8 @@
         "rewardType": "Reward type",
         "rewardValue": "Reward value",
         "rewardValueHint": "Numbers only, zero or greater.",
-        "rewardLabelEn": "Reward label (English)",
-        "rewardLabelAr": "Reward label (Arabic)",
+        "rewardLabelEn": "Reward label",
+        "rewardLabelAr": "Reward label",
         "dueDate": "Due date",
         "targets": "Targets",
         "targetsDescription": "Default target scope is student. Add each target once.",
@@ -12519,6 +12530,8 @@
       "description": "Complete the essential setup so every part of your school dashboard works smoothly.",
       "skipRequirement": "Add academic years, terms, and academic structure before skipping.",
       "skip": "Skip setup",
+      "finish": "Finish",
+      "logout": "Log out",
       "guideTitle": "School setup"
     },
     "guide": {
@@ -12609,6 +12622,9 @@
         "saving": "Creating",
         "required": "Both names are required",
         "saveFailed": "Could not create structure item",
+        "stageCreated": "Stage created. Now add its first grade.",
+        "gradeCreated": "Grade created. Now add its first section.",
+        "sectionCreated": "Section created. Your academic structure is ready.",
         "complete": "Academic structure has the minimum required chain.",
         "title": "Structure",
         "description": "Create stage, grade, and section."

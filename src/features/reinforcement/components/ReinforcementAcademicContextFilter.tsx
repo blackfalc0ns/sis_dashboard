@@ -611,95 +611,12 @@ export default function ReinforcementAcademicContextFilter({
     emit({ subjectId: undefined });
   }, [emit, filteredSubjects, subjectAllocations.loading, value.subjectId]);
 
-  /* ─── Auto-select when only one option (terms) ─── */
-  useEffect(() => {
-    if (
-      !terms.loading &&
-      terms.data.length === 1 &&
-      value.academicYearId &&
-      !value.termId
-    ) {
-      const termId = getId(terms.data[0]);
-      if (termId) {
-        emit({
-          termId,
-          stageId: undefined,
-          gradeId: undefined,
-          sectionId: undefined,
-          classroomId: undefined,
-          subjectId: undefined,
-          studentId: undefined,
-          enrollmentId: undefined,
-        });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [terms.loading, terms.data.length]);
-
-  /* ─── Auto-select when only one option (stages) ─── */
-  useEffect(() => {
-    if (
-      !tree.loading &&
-      tree.data.stages.length === 1 &&
-      value.termId &&
-      !value.stageId
-    ) {
-      const stageId = tree.data.stages[0]?.id;
-      if (stageId) {
-        emit({
-          stageId,
-          gradeId: undefined,
-          sectionId: undefined,
-          classroomId: undefined,
-        });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tree.loading, tree.data.stages.length]);
-
-  /* ─── Auto-select when only one option (grades) ─── */
   const filteredGrades = tree.data.grades.filter(
     (grade) => !value.stageId || grade.stageId === value.stageId,
   );
-  useEffect(() => {
-    if (
-      !tree.loading &&
-      filteredGrades.length === 1 &&
-      value.termId &&
-      !value.gradeId
-    ) {
-      const gradeId = filteredGrades[0]?.id;
-      if (gradeId) {
-        emit({
-          gradeId,
-          sectionId: undefined,
-          classroomId: undefined,
-        });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tree.loading, filteredGrades.length, value.stageId]);
-
-  /* ─── Auto-select when only one option (sections) ─── */
   const filteredSections = tree.data.sections.filter(
     (section) => !value.gradeId || section.gradeId === value.gradeId,
   );
-  useEffect(() => {
-    if (
-      !tree.loading &&
-      filteredSections.length === 1 &&
-      value.termId &&
-      !value.sectionId
-    ) {
-      const sectionId = filteredSections[0]?.id;
-      if (sectionId) {
-        emit({ sectionId, classroomId: undefined });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tree.loading, filteredSections.length, value.gradeId]);
-
-  /* ─── Auto-select when only one option (classrooms) ─── */
   const filteredClassrooms = tree.data.classrooms.filter(
     (classroom) => !value.sectionId || classroom.sectionId === value.sectionId,
   );
@@ -723,20 +640,6 @@ export default function ReinforcementAcademicContextFilter({
     }
     emit({ studentId: undefined, enrollmentId: undefined });
   }, [emit, filteredStudents, value.studentId]);
-  useEffect(() => {
-    if (
-      !tree.loading &&
-      filteredClassrooms.length === 1 &&
-      value.termId &&
-      !value.classroomId
-    ) {
-      const classroomId = filteredClassrooms[0]?.id;
-      if (classroomId) {
-        emit({ classroomId });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tree.loading, filteredClassrooms.length, value.sectionId]);
 
   /* ─── Derived state ─── */
   const selected = useMemo<ReinforcementAcademicContextSelection>(

@@ -1,13 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import ChartCard from "@/components/ui/chart-card/ChartCard";
 import { TrendingUp, CheckCircle, XCircle } from "lucide-react";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
@@ -39,7 +33,8 @@ export default function OverviewCharts({
     return <PartialLoader />;
   }
 
-  const hasReadinessData = readinessData.length > 0 && readinessData.some((d) => d.value > 0);
+  const hasReadinessData =
+    readinessData.length > 0 && readinessData.some((d) => d.value > 0);
 
   const readinessInsight = hasReadinessData
     ? (() => {
@@ -60,11 +55,11 @@ export default function OverviewCharts({
             <p className="text-xs text-green-800">{readinessInsight}</p>
           </div>
         )}
-        
+
         <div className="flex flex-col gap-6">
           {hasReadinessData ? (
             <div className="relative">
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie
                     data={readinessData}
@@ -74,7 +69,6 @@ export default function OverviewCharts({
                     outerRadius={80}
                     paddingAngle={2}
                     dataKey="value"
-                    label={(entry) => `${entry.name}: ${entry.value}%`}
                     labelLine={false}
                   >
                     {readinessData.map((entry, index) => (
@@ -93,8 +87,28 @@ export default function OverviewCharts({
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-2xl font-bold text-gray-800">
-                  {readinessData.find(d => d.key === "ready")?.value || 0}%
+                  {readinessData.find((d) => d.key === "ready")?.value || 0}%
                 </span>
+              </div>
+
+              <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 px-2">
+                {readinessData.map((entry) => (
+                  <div
+                    key={entry.key}
+                    className="flex min-w-0 items-center gap-2 text-xs text-gray-600"
+                    dir="auto"
+                  >
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: entry.color }}
+                      aria-hidden="true"
+                    />
+                    <span className="truncate">{entry.name}</span>
+                    <span className="font-semibold text-gray-800">
+                      {entry.value}%
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
@@ -105,7 +119,9 @@ export default function OverviewCharts({
 
           <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
             <div className="flex flex-col gap-1 items-center justify-center text-center p-2 rounded bg-gray-50">
-              <span className="text-xs text-gray-500">{tSnapshot("readyForScheduling")}</span>
+              <span className="text-xs text-gray-500">
+                {tSnapshot("readyForScheduling")}
+              </span>
               {readyForScheduling ? (
                 <CheckCircle className="w-5 h-5 text-green-500" />
               ) : (
@@ -113,7 +129,9 @@ export default function OverviewCharts({
               )}
             </div>
             <div className="flex flex-col gap-1 items-center justify-center text-center p-2 rounded bg-gray-50">
-              <span className="text-xs text-gray-500">{tSnapshot("readyForLearningFlow")}</span>
+              <span className="text-xs text-gray-500">
+                {tSnapshot("readyForLearningFlow")}
+              </span>
               {readyForLearningFlow ? (
                 <CheckCircle className="w-5 h-5 text-green-500" />
               ) : (

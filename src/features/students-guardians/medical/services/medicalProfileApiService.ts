@@ -29,6 +29,25 @@ function normalizeMedicalList(values?: string[]) {
     .slice(0, 20);
 }
 
+function isMissingMedicalProfileResponse(response: unknown): boolean {
+  if (response == null || response === "") return true;
+
+  if (Array.isArray(response)) return response.length === 0;
+
+  if (!response || typeof response !== "object") return false;
+
+  const envelope = response as Record<string, unknown>;
+  if (Object.keys(envelope).length === 0) return true;
+
+  return ["data", "result", "payload"].some((key) => {
+    const envelopeValue = envelope[key];
+    return (
+      envelopeValue === null ||
+      (Array.isArray(envelopeValue) && envelopeValue.length === 0)
+    );
+  });
+}
+
 function mapMedicalProfileToUpdatePayload(
   profile: Partial<StudentMedicalProfile>,
 ): UpdateStudentMedicalProfilePayload {
@@ -48,7 +67,7 @@ export async function fetchMedicalProfile(
     const response = await apiGet<unknown>(
       `${STUDENTS_BASE_PATH}/${studentId}/medical-profile`,
     );
-    if (response === null) {
+    if (isMissingMedicalProfileResponse(response)) {
       return null;
     }
     return normalizeMedicalProfile(

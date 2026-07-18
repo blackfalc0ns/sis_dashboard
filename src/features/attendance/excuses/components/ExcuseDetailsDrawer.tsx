@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { X, User, CalendarDays, Paperclip, Clock3, Check, Ban, AlertTriangle } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import type { EffectiveExcusePolicy } from "@/features/attendance/policies/services/attendancePolicyService";
-import AttendanceAttachmentPreviewModal from "@/features/attendance/shared/components/AttendanceAttachmentPreviewModal";
+import FilePreviewModal from "@/components/ui/file-preview-modal";
 import { getThresholdState } from "@/features/attendance/shared/policyThresholds";
 import { formatAttendanceDateTime } from "@/features/attendance/utils/dateFormatting";
 import { formatFileSize } from "@/utils/upload/validateFile";
@@ -224,7 +224,7 @@ export default function ExcuseDetailsDrawer({ request, effectivePolicy, isReadOn
         )}
       </div>
 
-      <AttendanceAttachmentPreviewModal
+      <FilePreviewModal
         attachment={previewAttachment}
         isOpen={!!previewAttachment}
         onClose={() => setPreviewAttachment(null)}

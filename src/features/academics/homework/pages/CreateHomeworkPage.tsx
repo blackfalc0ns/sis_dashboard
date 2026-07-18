@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import DatePicker from "@/components/ui/input/DatePicker";
 import Select from "@/components/ui/input/Select";
+import TimetableSlotSelect, {
+  listAvailableTimetableDays,
+} from "@/features/academics/lesson-plans/components/TimetableSlotSelect";
+import type { BackendTimetableEntryDto } from "@/features/academics/timetable/services/timetableApiTypes";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { AccessDenied } from "@/components/ui";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -42,6 +46,7 @@ interface AllocationSelectOption extends SelectOption {
   teacherLabel: string;
   subjectLabel: string;
   classroomLabel: string;
+  gradeId: string;
 }
 
 interface EligibleHomeworkStudent {
@@ -101,6 +106,31 @@ function studentNameForLocale(locale: string, student: Student) {
         student.id;
 }
 
+function formatLocalDateOnly(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function parseLocalDateOnly(dateOnlyValue?: string) {
+  return dateOnlyValue ? new Date(`${dateOnlyValue}T00:00:00`) : null;
+}
+
+function isDateOnlyWithinRange(
+  dateOnlyValue: string,
+  startDate?: string,
+  endDate?: string,
+) {
+  return Boolean(
+    startDate &&
+      endDate &&
+      dateOnlyValue >= startDate &&
+      dateOnlyValue <= endDate,
+  );
+}
+
 function buildEligibleStudents(input: {
   enrollments: Array<StudentEnrollment & { id: string }>;
   students: Student[];
@@ -148,6 +178,9 @@ function buildAllocationOptions(input: {
       const section = input.structure.sections.find(
         (item) => item.id === allocation.sectionId,
       );
+      const grade = input.structure.grades.find(
+        (item) => item.id === section?.gradeId,
+      );
       const labelParts = [
         teacherNameForLocale(input.locale, teacher),
         localizedName(input.locale, subject),
@@ -169,14 +202,13 @@ function buildAllocationOptions(input: {
           subject,
           classroom,
           section,
-          grade: input.structure.grades.find(
-            (item) => item.id === section?.gradeId,
-          ),
+          grade,
         }),
         allocation,
         teacherLabel,
         subjectLabel,
         classroomLabel,
+        gradeId: grade?.id ?? "",
       };
     })
     .sort((left, right) => left.label.localeCompare(right.label, input.locale));
@@ -190,13 +222,16 @@ export default function CreateHomeworkPage() {
   const searchParams = useSearchParams();
   const { showError, showSuccess } = useToast();
   const { hasPermission } = usePermissions();
-  const { academicYearId, termId, isInitializing } =
+  const { academicYearId, termId, selectedTerm, isInitializing } =
     useAcademicYearTermLayoutContext();
   const canManage = hasPermission("homework.assignments.manage");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingAllocations, setIsLoadingAllocations] = useState(false);
   const [isLoadingEligibleStudents, setIsLoadingEligibleStudents] =
     useState(false);
+  const [availableTimetableDays, setAvailableTimetableDays] = useState<
+    number[] | null
+  >(null);
   const [allocationOptions, setAllocationOptions] = useState<
     AllocationSelectOption[]
   >([]);
@@ -204,7 +239,10 @@ export default function CreateHomeworkPage() {
     EligibleHomeworkStudent[]
   >([]);
   const [studentSearch, setStudentSearch] = useState("");
-  const [draft, setDraft] = useState<CreateHomeworkAssignmentRequest>({
+  const [selectedTimetableDate, setSelectedTimetableDate] = useState<
+    string | undefined
+  >();
+  const [draft, setDraft] = useState<CreateHomeworkAssignmentRequest>(() => ({
     academicYearId: academicYearId || "",
     termId: termId || "",
     teacherSubjectAllocationId: "",
@@ -214,7 +252,7 @@ export default function CreateHomeworkPage() {
     mode: "homework",
     isGraded: true,
     totalMarks: 10,
-  });
+  }));
 
   const effectiveDraft = useMemo(
     () => ({
@@ -231,6 +269,20 @@ export default function CreateHomeworkPage() {
         (option) => option.value === draft.teacherSubjectAllocationId,
       ),
     [allocationOptions, draft.teacherSubjectAllocationId],
+  );
+
+  const timetableScope = useMemo(
+    () => ({
+      academicYearId: effectiveDraft.academicYearId,
+      termId: effectiveDraft.termId,
+      gradeId: selectedAllocation?.gradeId ?? "",
+      sectionId: selectedAllocation?.allocation.sectionId ?? "",
+      classroomId: selectedAllocation?.allocation.classroomId ?? "",
+      teacherUserId: selectedAllocation?.allocation.teacherId ?? "",
+      subjectId: selectedAllocation?.allocation.subjectId ?? "",
+      teacherSubjectAllocationId: selectedAllocation?.allocation.id ?? "",
+    }),
+    [effectiveDraft.academicYearId, effectiveDraft.termId, selectedAllocation],
   );
 
   const filteredEligibleStudents = useMemo(() => {
@@ -332,6 +384,33 @@ export default function CreateHomeworkPage() {
     };
   }, [effectiveDraft.academicYearId, locale, selectedAllocation, showError, t]);
 
+  useEffect(() => {
+    let isActive = true;
+
+    if (
+      !selectedAllocation ||
+      !timetableScope.academicYearId ||
+      !timetableScope.termId ||
+      !timetableScope.classroomId ||
+      !timetableScope.subjectId
+    ) {
+      queueMicrotask(() => {
+        if (isActive) setAvailableTimetableDays(null);
+      });
+      return () => {
+        isActive = false;
+      };
+    }
+
+    void listAvailableTimetableDays(timetableScope).then((days) => {
+      if (isActive) setAvailableTimetableDays(days);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [selectedAllocation, timetableScope]);
+
   const toggleSelectedStudent = (studentId: string) => {
     setDraft((current) => {
       const currentStudentIds = current.studentIds ?? [];
@@ -353,6 +432,26 @@ export default function CreateHomeworkPage() {
     setDraft((current) => ({ ...current, studentIds: [] }));
   };
 
+  const selectTimetableEntry = useCallback(
+    (entry: BackendTimetableEntryDto | null) => {
+      const timetableEntryId = entry?.id;
+      setDraft((current) =>
+        current.timetableEntryId === timetableEntryId &&
+        current.scheduleDate ===
+          (timetableEntryId ? selectedTimetableDate : undefined)
+          ? current
+          : {
+              ...current,
+              timetableEntryId,
+              scheduleDate: timetableEntryId
+                ? selectedTimetableDate
+                : undefined,
+            },
+      );
+    },
+    [selectedTimetableDate],
+  );
+
   const handleSubmit = async () => {
     if (!effectiveDraft.academicYearId || !effectiveDraft.termId) {
       showError(t("errors.contextRequired"));
@@ -368,6 +467,17 @@ export default function CreateHomeworkPage() {
     }
     if (!effectiveDraft.dueAt) {
       showError(t("errors.dueAtRequired"));
+      return;
+    }
+    if (
+      effectiveDraft.scheduleDate &&
+      !isDateOnlyWithinRange(
+        effectiveDraft.scheduleDate,
+        selectedTerm?.startDate,
+        selectedTerm?.endDate,
+      )
+    ) {
+      showError(t("errors.scheduleDateOutsideTerm"));
       return;
     }
     if (eligibleStudents.length === 0) {
@@ -390,6 +500,9 @@ export default function CreateHomeworkPage() {
           effectiveDraft.targetMode === "selected_students"
             ? effectiveDraft.studentIds
             : undefined,
+        scheduleDate: effectiveDraft.timetableEntryId
+          ? effectiveDraft.scheduleDate
+          : undefined,
       };
       const created = await createHomeworkAssignment(payload);
       showSuccess(t("messages.created"));
@@ -450,13 +563,16 @@ export default function CreateHomeworkPage() {
               required
               searchable
               value={draft.teacherSubjectAllocationId}
-              onChange={(teacherSubjectAllocationId) =>
+              onChange={(teacherSubjectAllocationId) => {
+                setSelectedTimetableDate(undefined);
                 setDraft((current) => ({
                   ...current,
                   teacherSubjectAllocationId,
                   studentIds: [],
-                }))
-              }
+                  scheduleDate: undefined,
+                  timetableEntryId: undefined,
+                }));
+              }}
               options={allocationOptions}
               placeholder={t("placeholders.teacherSubjectAllocation")}
               searchPlaceholder={t("placeholders.searchAllocation")}
@@ -517,6 +633,51 @@ export default function CreateHomeworkPage() {
                 }))
               }
             />
+            <DatePicker
+              label={t("fields.scheduleDate")}
+              value={parseLocalDateOnly(selectedTimetableDate)}
+              onChange={(date) => {
+                setSelectedTimetableDate(
+                  date ? formatLocalDateOnly(date) : undefined,
+                );
+                setDraft((current) => ({
+                  ...current,
+                  scheduleDate: undefined,
+                  timetableEntryId: undefined,
+                }));
+              }}
+              helperText={
+                !selectedAllocation
+                  ? t("helpers.scheduleDate")
+                  : availableTimetableDays === null
+                    ? t("messages.loadingTimetableDays")
+                    : availableTimetableDays.length === 0
+                      ? t("messages.noTimetableDays")
+                      : t("helpers.scheduleDate")
+              }
+              disabled={
+                !selectedAllocation ||
+                availableTimetableDays === null ||
+                availableTimetableDays.length === 0
+              }
+              minDate={parseLocalDateOnly(selectedTerm?.startDate) ?? undefined}
+              maxDate={parseLocalDateOnly(selectedTerm?.endDate) ?? undefined}
+              shouldDisableDate={(date) =>
+                !availableTimetableDays?.includes(date.getDay())
+              }
+            />
+            {selectedAllocation && selectedTimetableDate && (
+              <TimetableSlotSelect
+                {...timetableScope}
+                plannedDate={selectedTimetableDate}
+                value={draft.timetableEntryId ?? ""}
+                onChange={selectTimetableEntry}
+                label={t("fields.timetableEntry")}
+                emptyOptionLabel={t("placeholders.timetableEntry")}
+                noSlotsMessage={t("messages.noTimetableSlots")}
+                loadingMessage={t("messages.loadingTimetableSlots")}
+              />
+            )}
             <Input
               label={t("fields.totalMarks")}
               type="number"

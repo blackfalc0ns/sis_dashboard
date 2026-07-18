@@ -122,7 +122,9 @@ export default function DocumentsTab({
 }: DocumentsTabProps) {
   const t = useTranslations("admissions.application360");
   const translateRef = useRef(t);
-  translateRef.current = t;
+  useEffect(() => {
+    translateRef.current = t;
+  }, [t]);
   const locale = useLocale();
   const { showToast } = useToast();
   const { hasPermission } = usePermissions();

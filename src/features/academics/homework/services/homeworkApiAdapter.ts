@@ -10,6 +10,7 @@ import type {
   BackendHomeworkQuestionDetailResponse,
   BackendHomeworkQuestionsResponse,
   BackendHomeworkSubmissionAnswerDto,
+  BackendHomeworkSubmissionAnswerResponse,
   BackendHomeworkSubmissionAnswersResponse,
   BackendHomeworkSubmissionAttachmentDto,
   BackendHomeworkSubmissionAttachmentsResponse,
@@ -418,10 +419,10 @@ export const homeworkApiAdapter: HomeworkAdapter = {
   },
 
   async resolveTargets(homeworkId: string) {
-    const response = await apiPost<BackendHomeworkTargetsResponse>(
+    const response = await apiPost<BackendHomeworkAssignmentDto>(
       `${BASE_PATH}/${homeworkId}/targets/resolve`,
     );
-    return extractTargetList(response).map(mapBackendHomeworkTargetToUi);
+    return mapBackendHomeworkAssignmentToUi(response);
   },
 
   async listQuestions(homeworkId: string) {
@@ -492,7 +493,10 @@ export const homeworkApiAdapter: HomeworkAdapter = {
   async updateOption(homeworkId, questionId, option) {
     const response = await apiPatch<BackendHomeworkQuestionDetailResponse>(
       `${BASE_PATH}/${homeworkId}/questions/${questionId}/options/${option.id}`,
-      mapBuilderOptionToHomeworkPayload(option),
+      {
+        text: option.textEn || option.textAr,
+        isCorrect: option.isCorrect,
+      },
     );
     return mapBackendHomeworkQuestionToBuilder(response.question);
   },
@@ -583,17 +587,23 @@ export const homeworkApiAdapter: HomeworkAdapter = {
       .filter((answer) => answer.id);
   },
 
+  async getSubmissionAnswer(homeworkId, submissionId, answerId) {
+    const response = await apiGet<BackendHomeworkSubmissionAnswerResponse>(
+      `${submissionPath(homeworkId, submissionId)}/answers/${answerId}`,
+    );
+    return mapSubmissionAnswerToUi(response.answer);
+  },
+
   async reviewSubmissionAnswer(homeworkId, submissionId, answerId, payload) {
     const backendPayload = {
       awardedPoints: payload.score,
       teacherComment: payload.feedback,
     };
-    const response = await apiPatch<any>(
+    const response = await apiPatch<BackendHomeworkSubmissionAnswerResponse>(
       `${submissionPath(homeworkId, submissionId)}/answers/${answerId}/review`,
       backendPayload,
     );
-    const data = (response as any)?.answer ?? response;
-    return mapSubmissionAnswerToUi(data);
+    return mapSubmissionAnswerToUi(response.answer);
   },
 
   async bulkReviewSubmissionAnswers(homeworkId, submissionId, payload) {

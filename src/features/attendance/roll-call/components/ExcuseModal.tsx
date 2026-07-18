@@ -6,7 +6,7 @@ import { FileText, X } from "lucide-react";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
 import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
-import AttendanceAttachmentPreviewModal from "@/features/attendance/shared/components/AttendanceAttachmentPreviewModal";
+import FilePreviewModal from "@/components/ui/file-preview-modal";
 import { formatFileSize, getUploadRules } from "@/utils/upload/validateFile";
 import { uploadFile } from "@/services/filesService";
 import { uploadExcuseAttachments } from "@/features/attendance/excuses/utils/uploadExcuseAttachments";
@@ -277,7 +277,7 @@ export default function ExcuseModal({
         </div>
       </Modal>
 
-      <AttendanceAttachmentPreviewModal
+      <FilePreviewModal
         attachment={previewAttachment}
         isOpen={!!previewAttachment}
         onClose={() => setPreviewAttachment(null)}

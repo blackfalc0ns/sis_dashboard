@@ -5,3 +5,7 @@ export function formatLocalDateOnly(date: Date): string {
 
   return `${year}-${month}-${day}`;
 }
+
+export function parseLocalDateOnly(dateOnlyValue?: string): Date | null {
+  return dateOnlyValue ? new Date(`${dateOnlyValue}T00:00:00`) : null;
+}

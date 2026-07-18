@@ -47,6 +47,9 @@ const copy = {
   saving: "Creating",
   required: "Both names are required",
   saveFailed: "Could not create structure item",
+  stageCreated: "Stage created. Now add its first grade.",
+  gradeCreated: "Grade created. Now add its first section.",
+  sectionCreated: "Section created. Your academic structure is ready.",
   complete: "Academic structure has the minimum required chain.",
 };
 
@@ -84,6 +87,9 @@ describe("AcademicStructureSetupStep", () => {
       order: 1,
     });
     await waitFor(() => expect(refreshStep).toHaveBeenCalledWith("structure"));
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Stage created. Now add its first grade.",
+    );
 
     rerender(
       <AcademicStructureSetupStep

@@ -31,21 +31,11 @@ export default function LessonAssignments({
   const [assignments, setAssignments] = useState<Assignment[]>([]);
 
   useEffect(() => {
-    if (lessonId) {
-      loadAssignments();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lessonId]);
-
-  const loadAssignments = async () => {
     if (!lessonId) return;
-    try {
-      const data = await fetchLessonAssignments(lessonId);
-      setAssignments(data);
-    } catch (error) {
-      console.error("Failed to load assignments:", error);
-    }
-  };
+    fetchLessonAssignments(lessonId)
+      .then(setAssignments)
+      .catch((error) => console.error("Failed to load assignments:", error));
+  }, [lessonId]);
 
   const handleAddAssignment = () => {
     const params = new URLSearchParams(searchParams.toString());

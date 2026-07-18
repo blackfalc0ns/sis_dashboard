@@ -163,18 +163,13 @@ export default function ConversationDetail({
   }, [messagesState.messages]);
 
   // Stabilize the messageIds array reference — only change when IDs actually differ
-  const prevMessageIdsRef = useRef<string[]>([]);
-  const stableMessageIds = useMemo(() => {
-    const prev = prevMessageIdsRef.current;
-    if (
-      prev.length === messageIds.length &&
-      prev.every((id, i) => id === messageIds[i])
-    ) {
-      return prev;
-    }
-    prevMessageIdsRef.current = messageIds;
-    return messageIds;
-  }, [messageIds]);
+  const [stableMessageIds, setStableMessageIds] = useState<string[]>(messageIds);
+  const isMessageIdsChanged =
+    messageIds.length !== stableMessageIds.length ||
+    messageIds.some((id, index) => id !== stableMessageIds[index]);
+  if (isMessageIdsChanged) {
+    setStableMessageIds(messageIds);
+  }
 
   const reactionsState = useMessageReactions(stableMessageIds);
   const attachmentMessages = useMemo(

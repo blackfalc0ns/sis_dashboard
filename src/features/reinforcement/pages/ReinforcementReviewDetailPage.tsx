@@ -6,7 +6,7 @@ import {
   ArrowLeft,
   CheckCircle,
   Clock,
-  FileText,
+  Eye,
   RefreshCw,
   ShieldAlert,
   XCircle,
@@ -20,6 +20,7 @@ import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/usePermissions";
+import FilePreviewModal, { FilePreviewThumbnail } from "@/components/ui/file-preview-modal";
 import ReinforcementReviewActionModal from "../components/ReinforcementReviewActionModal";
 import {
   approveReinforcementSubmission,
@@ -27,7 +28,6 @@ import {
   rejectReinforcementSubmission,
 } from "../services/reinforcementReviewsService";
 import { grantXpForReinforcementReview } from "../services/reinforcementXpService";
-import { getReinforcementProofDownloadUrl } from "../utils/reinforcementFileUrl";
 import type {
   GrantXpForReviewPayload,
   ReinforcementReviewItem,
@@ -86,6 +86,7 @@ export default function ReinforcementReviewDetailPage({
   const [xpModalOpen, setXpModalOpen] = useState(false);
   const [xpAmount, setXpAmount] = useState("");
   const [xpGranting, setXpGranting] = useState(false);
+  const [proofFileId, setProofFileId] = useState<string | null>(null);
 
   const canView = hasPermission("reinforcement.reviews.view");
   const canManage = hasPermission("reinforcement.reviews.manage");
@@ -358,22 +359,27 @@ export default function ReinforcementReviewDetailPage({
                 </div>
               ) : null}
               {review.proof?.proofFileId ? (
-                <div className="rounded-lg bg-gray-50 px-4 py-3">
-                  <div className="text-xs font-medium uppercase text-gray-500 mb-1">
-                    {t("reviews.detail.proofFile")}
-                  </div>
-                  <a
-                    href={getReinforcementProofDownloadUrl(
-                      review.proof.proofFileId as string,
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                  >
-                    <FileText className="h-4 w-4" />
-                    {t("reviews.detail.viewFile")}
-                  </a>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setProofFileId(String(review.proof.proofFileId))}
+                  className="group flex w-full items-center justify-between gap-4 rounded-xl border border-sky-100 bg-sky-50/60 p-4 text-start transition-colors hover:border-sky-200 hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <FilePreviewThumbnail
+                      alt={t("reviews.detail.proofFile")}
+                      fileId={String(review.proof.proofFileId)}
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-gray-900">
+                        {t("reviews.detail.proofFile")}
+                      </span>
+                      <span className="mt-0.5 block text-xs font-medium text-primary">
+                        {t("reviews.detail.viewFile")}
+                      </span>
+                    </span>
+                  </span>
+                  <Eye className="h-5 w-5 shrink-0 text-primary transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
+                </button>
               ) : null}
               {!review.proof?.proofText && !review.proof?.proofFileId && (
                 <p className="text-sm text-gray-500">{t("reviews.detail.noProof")}</p>
@@ -481,6 +487,17 @@ export default function ReinforcementReviewDetailPage({
         onSubmit={handleActionSubmit}
         actionType={actionType}
         loading={actionLoading}
+      />
+
+      <FilePreviewModal
+        attachment={proofFileId ? {
+          id: proofFileId,
+          name: t("reviews.detail.proofFile"),
+          size: 0,
+          type: "",
+        } : null}
+        isOpen={Boolean(proofFileId)}
+        onClose={() => setProofFileId(null)}
       />
 
       {/* XP grant modal (shown after successful approval) */}

@@ -91,7 +91,6 @@ export default function HomeworkGradeSyncPanel({
           scopeType: homework.classroomId ? "classroom" : "school",
           scopeId: homework.classroomId,
           subjectId: homework.subjectId,
-          includeDrafts: true,
         },
       );
       setAssessmentOptions(
@@ -316,7 +315,11 @@ function StatusRow({ label, value }: { label: string; value: string }) {
 }
 
 function isHomeworkSyncCompatibleAssessment(assessment: Assessment) {
-  return assessment.type === "ASSIGNMENT" && !assessment.isLocked;
+  return (
+    assessment.type === "ASSIGNMENT" &&
+    assessment.approvalStatus === "published" &&
+    !assessment.isLocked
+  );
 }
 
 function assessmentToOption(

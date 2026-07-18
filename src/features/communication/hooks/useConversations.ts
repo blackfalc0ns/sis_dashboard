@@ -377,7 +377,9 @@ export function useConversations() {
   const { user } = useAuth();
   const mountedRef = useRef(false);
   const userIdRef = useRef(user?.id);
-  userIdRef.current = user?.id;
+  useEffect(() => {
+    userIdRef.current = user?.id;
+  }, [user?.id]);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [filters, setFilters] = useState<ConversationFiltersState>(DEFAULT_FILTERS);
   const [conversations, setConversations] = useState<ConversationListItemModel[]>(

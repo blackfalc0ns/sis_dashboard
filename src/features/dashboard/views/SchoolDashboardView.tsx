@@ -187,7 +187,7 @@ export default function SchoolDashboardView({
       className="min-h-screen bg-gray-50/50 p-4 sm:p-6 md:p-8"
       dir={locale === "ar" ? "rtl" : "ltr"}
     >
-      <div className="mx-auto max-w-7xl space-y-6">
+      <div className="space-y-6">
         <LightModeDropdown />
         <DashboardHeader
           activityFeedState={activityFeedState}
@@ -200,7 +200,11 @@ export default function SchoolDashboardView({
           t={t}
         />
 
-        <DashboardActionRow alertsState={alertsState} pathname={pathname} t={t} />
+        <DashboardActionRow
+          alertsState={alertsState}
+          pathname={pathname}
+          t={t}
+        />
 
         <div className="w-full">
           <SetupGuideCard />
@@ -581,9 +585,11 @@ function DashboardTabs({
       >
         {tabs.map((dashboardTab) => {
           const isActive = dashboardTab.id === activeTab;
-          const label = (typeof t.has === "function" && t.has(`dashboard.tabs.${dashboardTab.id}`))
-            ? t(`dashboard.tabs.${dashboardTab.id}`)
-            : dashboardTab.label;
+          const label =
+            typeof t.has === "function" &&
+            t.has(`dashboard.tabs.${dashboardTab.id}`)
+              ? t(`dashboard.tabs.${dashboardTab.id}`)
+              : dashboardTab.label;
 
           return (
             <button
@@ -642,8 +648,12 @@ function DashboardTabContent({
         return (
           <section className="rounded-xl border border-red-200 bg-white p-5 shadow-sm">
             <SectionError
-              title={t("dashboard.modules_unavailable") || "Modules Unavailable"}
-              message={moduleErrors[activeTab] || "Failed to load module details"}
+              title={
+                t("dashboard.modules_unavailable") || "Modules Unavailable"
+              }
+              message={
+                moduleErrors[activeTab] || "Failed to load module details"
+              }
             />
           </section>
         );

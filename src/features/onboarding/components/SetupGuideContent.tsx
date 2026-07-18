@@ -213,6 +213,9 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
       saving: t("steps.structure.saving"),
       required: t("steps.structure.required"),
       saveFailed: t("steps.structure.saveFailed"),
+      stageCreated: t("steps.structure.stageCreated"),
+      gradeCreated: t("steps.structure.gradeCreated"),
+      sectionCreated: t("steps.structure.sectionCreated"),
       complete: t("steps.structure.complete"),
     },
     subjects: {

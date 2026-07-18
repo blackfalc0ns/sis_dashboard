@@ -13,9 +13,22 @@ import { createAssessment } from "../services/gradesAssessmentsService";
 import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
 import type { AssessmentDeliveryMode, AssessmentType, CreateAssessmentPayload, ExamScopeType, ScopeEntityOption } from "../../shared/types";
 import { useGradesYearTermLayoutContext } from "@/features/grades/hooks/GradesYearTermLayoutContext";
-import { formatLocalDateOnly } from "../../shared/utils/dateOnly";
+import {
+  formatLocalDateOnly,
+  parseLocalDateOnly,
+} from "../../shared/utils/dateOnly";
 
 const defaultDeliveryMode: AssessmentDeliveryMode = "SCORE_ONLY";
+
+function defaultAssessmentDate(
+  term: { startDate: string; endDate: string } | null,
+) {
+  const today = formatLocalDateOnly(new Date());
+  if (!term) return today;
+  if (today < term.startDate) return term.startDate;
+  if (today > term.endDate) return term.endDate;
+  return today;
+}
 
 function scopePath(
   entities: Record<ExamScopeType, ScopeEntityOption[]>,
@@ -47,6 +60,7 @@ export default function CreateAssessmentPage() {
   const {
     academicYearId,
     termId,
+    selectedTerm,
     isInitializing,
   } = useGradesYearTermLayoutContext();
 
@@ -140,7 +154,7 @@ export default function CreateAssessmentPage() {
           deliveryMode: defaultDeliveryMode,
           title: "",
           titleAr: "",
-          date: formatLocalDateOnly(new Date()),
+          date: defaultAssessmentDate(selectedTerm),
           weight: 15,
           maxScore: 20,
         });
@@ -152,7 +166,15 @@ export default function CreateAssessmentPage() {
     };
 
     void loadFilters();
-  }, [academicYearId, isInitializing, searchParams, showError, tCommon, termId]);
+  }, [
+    academicYearId,
+    isInitializing,
+    searchParams,
+    selectedTerm,
+    showError,
+    tCommon,
+    termId,
+  ]);
 
   useEffect(() => {
     if (!draft || subjects.some((subject) => subject.id === draft.subjectId)) return;
@@ -308,8 +330,10 @@ export default function CreateAssessmentPage() {
             />
             <DatePicker
               label={tDialog("date")}
-              value={draft.date ? new Date(draft.date) : null}
+              value={parseLocalDateOnly(draft.date)}
               onChange={(date) => setDraft((current) => (current && date ? { ...current, date: formatLocalDateOnly(date) } : current))}
+              minDate={parseLocalDateOnly(selectedTerm?.startDate) ?? undefined}
+              maxDate={parseLocalDateOnly(selectedTerm?.endDate) ?? undefined}
             />
             <Input label={tDialog("titleEn")} value={draft.title} onChange={(event) => setDraft((current) => (current ? { ...current, title: event.target.value } : current))} required />
             <Input label={tDialog("titleAr")} value={draft.titleAr} onChange={(event) => setDraft((current) => (current ? { ...current, titleAr: event.target.value } : current))} required />

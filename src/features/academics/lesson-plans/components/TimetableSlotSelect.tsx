@@ -134,12 +134,11 @@ export function activeTimetableDates(
 
 export function filterEntriesForScope(
   entries: BackendTimetableEntryDto[],
-  scope: TimetableSlotScope,
 ): BackendTimetableEntryDto[] {
   return entries.filter((entry) => entry.status?.toLowerCase() !== "cancelled");
 }
 
-function entryMatchesLessonPlanScope(
+export function entryMatchesTimetableScope(
   entry: BackendTimetableEntryDto,
   scope: TimetableSlotScope,
 ): boolean {
@@ -171,6 +170,39 @@ function entryMatchesLessonPlanScope(
     flatEntry.teacher?.id === scope.teacherUserId;
 
   return allocationMatch || (classroomMatch && subjectMatch && teacherMatch);
+}
+
+export async function listAvailableTimetableDays(
+  scope: TimetableSlotScope,
+): Promise<number[]> {
+  for (const attempt of timetableConfigAttempts(scope)) {
+    try {
+      const config = await getConfig(attempt);
+      const timetableConfigId = config.timetableConfigId || config.id;
+      const entriesByDay = await Promise.all(
+        config.activeDays.map(async (dayOfWeek) => ({
+          dayOfWeek,
+          response: await listEntries({
+            timetableConfigId,
+            classroomId: scope.classroomId || undefined,
+            dayOfWeek,
+          }),
+        })),
+      );
+
+      return entriesByDay
+        .filter(({ response }) =>
+          filterEntriesForScope(responseEntries(response)).some((entry) =>
+            entryMatchesTimetableScope(entry, scope),
+          ),
+        )
+        .map(({ dayOfWeek }) => dayOfWeek);
+    } catch {
+      // Try the next broader timetable scope.
+    }
+  }
+
+  return [];
 }
 
 function entryOptionLabel(entry: BackendTimetableEntryDto): string {
@@ -254,7 +286,7 @@ export default function TimetableSlotSelect({
             classroomId: scope.classroomId || undefined,
             dayOfWeek: dayOfWeekFromDateOnly(plannedDate),
           });
-          const filtered = filterEntriesForScope(responseEntries(response), scope);
+          const filtered = filterEntriesForScope(responseEntries(response));
           if (active) setEntries(filtered);
           return;
         } catch {
@@ -280,7 +312,7 @@ export default function TimetableSlotSelect({
         ...entries.map((entry) => ({
           value: entry.id,
           label: entryOptionLabel(entry),
-          disabled: !entryMatchesLessonPlanScope(entry, scope),
+          disabled: !entryMatchesTimetableScope(entry, scope),
         })),
       ]}
       helperText={!isLoading && entries.length === 0 ? noSlotsMessage : undefined}

@@ -500,6 +500,7 @@
     "last_page": "الصفحة الأخيرة",
     "preview": "معاينة",
     "open": "فتح",
+    "filePreview": { "title": "معاينة المرفق", "loading": "جارٍ تحميل المعاينة...", "unavailable": "المعاينة غير متاحة", "unavailableDescription": "لا يمكن معاينة هذا المرفق حالياً.", "fileType": "نوع الملف", "fileSize": "حجم الملف", "openInNewTab": "افتح هذا الملف في علامة تبويب جديدة.", "videoUnsupported": "متصفحك لا يدعم تشغيل الفيديو." },
     "close": "إغلاق",
     "delete": "حذف",
     "cancel": "إلغاء",
@@ -5263,16 +5264,20 @@
           "targetMode": "نطاق الاستهداف",
           "mode": "النوع",
           "dueAt": "موعد التسليم",
+          "scheduleDate": "تاريخ الحصة",
+          "timetableEntry": "حصة الجدول الدراسي",
           "totalMarks": "الدرجة الكلية",
           "estimatedMinutes": "الدقائق المقدرة",
           "description": "الوصف"
         },
         "placeholders": {
           "teacherSubjectAllocation": "اختر المعلم والمادة والفصل",
-          "searchAllocation": "ابحث باسم المعلم أو المادة أو الفصل..."
+          "searchAllocation": "ابحث باسم المعلم أو المادة أو الفصل...",
+          "timetableEntry": "بدون ربط بحصة"
         },
         "helpers": {
-          "teacherSubjectAllocation": "سيستخدم الواجب هذا التوزيع للتحقق من المعلم والمادة والفصل والسنة والترم."
+          "teacherSubjectAllocation": "سيستخدم الواجب هذا التوزيع للتحقق من المعلم والمادة والفصل والسنة والترم.",
+          "scheduleDate": "يمكن اختيار التواريخ التي تحتوي على حصة مجدولة لهذا الفصل فقط."
         },
         "targetModes": {
           "classroom": "الفصل",
@@ -5311,13 +5316,18 @@
           "created": "تم إنشاء مسودة الواجب.",
           "loadingAllocations": "جاري تحميل توزيعات المعلمين...",
           "noAllocations": "لا توجد توزيعات معلمين لهذا الترم.",
-          "noAllocationResults": "لا توجد توزيعات معلمين مطابقة."
+          "noAllocationResults": "لا توجد توزيعات معلمين مطابقة.",
+          "loadingTimetableDays": "جارٍ البحث عن تواريخ الحصص المتاحة...",
+          "noTimetableDays": "لا توجد تواريخ حصص مجدولة متاحة لهذا الفصل.",
+          "loadingTimetableSlots": "جارٍ تحميل حصص الجدول الدراسي...",
+          "noTimetableSlots": "لا توجد حصص متاحة في الجدول الدراسي لتاريخ الحصة هذا."
         },
         "errors": {
           "contextRequired": "اختر السنة الدراسية والترم أولًا.",
           "allocationRequired": "توزيع المعلم والمادة مطلوب.",
           "titleRequired": "عنوان الواجب مطلوب.",
           "dueAtRequired": "موعد التسليم مطلوب.",
+          "scheduleDateOutsideTerm": "يجب أن يكون تاريخ الحصة ضمن الترم المحدد.",
           "allocationsLoadFailed": "فشل تحميل توزيعات المعلمين.",
           "studentsLoadFailed": "فشل تحميل الطلاب المؤهلين.",
           "noEligibleStudents": "لا يوجد طلاب مؤهلون في هذا الفصل لاستهداف الواجب.",
@@ -5614,6 +5624,7 @@
         "submissionAttachmentInvalidReorder": "ترتيب مرفقات التسليم غير صالح.",
         "gradeSyncNotLinked": "اربط هذا الواجب بتقييم درجات قبل المزامنة.",
         "gradeSyncInvalidAssessment": "تقييم الدرجات المحدد غير متوافق مع مزامنة الواجب.",
+        "gradeSyncAssessmentNotPublished": "انشر تقييم الدرجات المحدد قبل ربطه بهذا الواجب.",
         "gradeSyncIncompatibleScope": "تقييم الدرجات المحدد لا يطابق نطاق هذا الواجب.",
         "gradeSyncAssessmentLocked": "تقييم الدرجات المرتبط مقفل. افتحه قبل مزامنة درجات الواجب.",
         "gradeSyncSubmissionNotReviewed": "يمكن مزامنة التسليمات التي تمت مراجعتها فقط.",
@@ -10414,8 +10425,8 @@
         "rewardType": "نوع المكافأة",
         "rewardValue": "قيمة المكافأة",
         "rewardValueHint": "أرقام فقط، وتكون القيمة صفرًا أو أكبر.",
-        "rewardLabelEn": "تسمية المكافأة (إنجليزي)",
-        "rewardLabelAr": "تسمية المكافأة (عربي)",
+        "rewardLabelEn": "تسمية المكافأة",
+        "rewardLabelAr": "تسمية المكافأة",
         "dueDate": "تاريخ الاستحقاق",
         "targets": "الأهداف",
         "targetsDescription": "النطاق الافتراضي هو الطالب. أضف كل هدف مرة واحدة فقط.",
@@ -12508,6 +12519,8 @@
       "description": "أكمل الإعدادات الأساسية حتى تعمل جميع أجزاء لوحة تحكم المدرسة بسلاسة.",
       "skipRequirement": "أضف العام والفصول الدراسية والهيكل الأكاديمي قبل التخطي.",
       "skip": "تخطي الإعداد",
+      "finish": "إنهاء",
+      "logout": "تسجيل الخروج",
       "guideTitle": "إعداد المدرسة"
     },
     "guide": {
@@ -12598,6 +12611,9 @@
         "saving": "جارٍ الإنشاء",
         "required": "الاسمان العربي والإنجليزي مطلوبان",
         "saveFailed": "تعذر إنشاء عنصر الهيكل",
+        "stageCreated": "تم إنشاء المرحلة. أضف الآن الصف الأول لها.",
+        "gradeCreated": "تم إنشاء الصف. أضف الآن الشعبة الأولى له.",
+        "sectionCreated": "تم إنشاء الشعبة. أصبح الهيكل الأكاديمي جاهزًا.",
         "complete": "يحتوي الهيكل الأكاديمي على الحد الأدنى المطلوب.",
         "title": "الهيكل",
         "description": "أنشئ المرحلة والصف والشعبة."

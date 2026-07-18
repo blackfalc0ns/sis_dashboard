@@ -90,7 +90,7 @@ export default function AcademicCalendarPage() {
   const canView = hasPermission("academics.calendar.view");
   const canManage = hasPermission("academics.calendar.manage");
 
-  const defaultDateRef = useRef(new Date());
+  const [defaultDate] = useState(() => new Date());
   const eventsRequestIdRef = useRef(0);
   const structureRequestIdRef = useRef(0);
 
@@ -101,7 +101,7 @@ export default function AcademicCalendarPage() {
         ? new Date(`${rawDate}T00:00:00`)
         : null;
     const validDate =
-      parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : defaultDateRef.current;
+      parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : defaultDate;
 
     const rawTypes = (searchParams.get("types") || "")
       .split(",")
@@ -142,7 +142,7 @@ export default function AcademicCalendarPage() {
       view: validView,
       displayMode: validMode,
     };
-  }, [searchParams]);
+  }, [searchParams, defaultDate]);
 
   // Calendar state
   const [currentDate, setCurrentDate] = useState(queryState.currentDate);

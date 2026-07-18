@@ -72,14 +72,15 @@ export interface BackendHomeworkAssignmentDto {
   isGraded?: boolean;
   questionCount?: number;
   attachmentCount?: number;
+  attachmentsCount?: number;
   academicYear?: BackendNamedRef;
-  term?: BackendNamedRef;
-  classroom?: BackendNamedRef;
-  subject?: BackendNamedRef;
-  teacher?: BackendNamedRef;
+  term?: BackendHomeworkTermRef;
+  classroom?: BackendHomeworkClassroomRef;
+  subject?: BackendHomeworkSubjectRef;
+  teacher?: BackendHomeworkTeacherRef;
   questions?: BackendHomeworkQuestionDto[];
   attachments?: BackendHomeworkAttachmentDto[];
-  counters?: Record<string, number>;
+  counters?: BackendHomeworkCounters;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -93,6 +94,38 @@ export interface BackendNamedRef {
   titleAr?: string;
   titleEn?: string;
   displayName?: string;
+  fullName?: string;
+}
+
+export interface BackendHomeworkTermRef extends BackendNamedRef {
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface BackendHomeworkClassroomRef extends BackendNamedRef {
+  section?: BackendNamedRef | null;
+  grade?: BackendNamedRef | null;
+}
+
+export interface BackendHomeworkSubjectRef extends BackendNamedRef {
+  code?: string | null;
+  color?: string | null;
+}
+
+export interface BackendHomeworkTeacherRef {
+  userId?: string;
+  fullName?: string;
+}
+
+export interface BackendHomeworkCounters {
+  totalTargets?: number;
+  assigned?: number;
+  viewed?: number;
+  submitted?: number;
+  late?: number;
+  missing?: number;
+  reviewed?: number;
+  excused?: number;
 }
 
 export interface HomeworkAssignmentListFilters {
@@ -219,6 +252,9 @@ export interface HomeworkAssignmentUiModel {
   classroomId?: string;
   subjectId?: string;
   teacherSubjectAllocationId?: string;
+  teacherUserId?: string;
+  timetableEntryId?: string | null;
+  scheduleDate?: string | null;
   title: string;
   description?: string;
   mode: string;
@@ -226,14 +262,27 @@ export interface HomeworkAssignmentUiModel {
   targetMode: string;
   dueAt?: string;
   publishAt?: string;
+  publishedAt?: string | null;
+  closedAt?: string | null;
   estimatedMinutes?: number;
   totalMarks: number;
   isGraded: boolean;
   questionCount: number;
   attachmentCount: number;
   classroomName?: string;
+  classroomSectionName?: string;
+  classroomGradeName?: string;
+  academicYearName?: string;
+  termName?: string;
+  termStartDate?: string;
+  termEndDate?: string;
   subjectName?: string;
+  subjectCode?: string | null;
+  subjectColor?: string | null;
   teacherName?: string;
+  counters?: BackendHomeworkCounters;
+  questions?: AssignmentQuestion[];
+  attachments?: AssignmentAttachment[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -356,6 +405,10 @@ export interface BackendHomeworkSubmissionAnswerDto {
 export interface BackendHomeworkSubmissionAnswersResponse {
   items?: BackendHomeworkSubmissionAnswerDto[];
   answers?: BackendHomeworkSubmissionAnswerDto[];
+}
+
+export interface BackendHomeworkSubmissionAnswerResponse {
+  answer: BackendHomeworkSubmissionAnswerDto;
 }
 
 export interface BackendHomeworkSubmissionAttachmentDto {
@@ -517,7 +570,7 @@ export interface HomeworkAdapter {
   closeAssignment(homeworkId: string): Promise<HomeworkAssignmentUiModel>;
   cancelAssignment(homeworkId: string): Promise<HomeworkAssignmentUiModel>;
   listTargets(homeworkId: string): Promise<HomeworkTargetUiModel[]>;
-  resolveTargets(homeworkId: string): Promise<HomeworkTargetUiModel[]>;
+  resolveTargets(homeworkId: string): Promise<HomeworkAssignmentUiModel>;
   listQuestions(homeworkId: string): Promise<AssignmentQuestion[]>;
   createQuestion(
     homeworkId: string,
@@ -565,7 +618,6 @@ export interface HomeworkAdapter {
     payload: {
       title?: string;
       description?: string;
-      sortOrder?: number;
     },
   ): Promise<AssignmentAttachment>;
   reorderAttachment(
@@ -591,6 +643,11 @@ export interface HomeworkAdapter {
     homeworkId: string,
     submissionId: string,
   ): Promise<HomeworkSubmissionAnswerUiModel[]>;
+  getSubmissionAnswer(
+    homeworkId: string,
+    submissionId: string,
+    answerId: string,
+  ): Promise<HomeworkSubmissionAnswerUiModel>;
   reviewSubmissionAnswer(
     homeworkId: string,
     submissionId: string,

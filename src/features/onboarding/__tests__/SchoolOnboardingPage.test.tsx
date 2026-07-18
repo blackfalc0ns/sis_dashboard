@@ -12,6 +12,8 @@ const navigationMock = vi.hoisted(() => ({
   push: vi.fn(),
 }));
 
+const authMock = vi.hoisted(() => ({ logout: vi.fn() }));
+
 vi.mock("../context/SetupStatusContext", () => ({
   useSetupStatusContext: hookMock.useSetupStatusContext,
 }));
@@ -24,6 +26,10 @@ vi.mock("next-intl", () => ({
 vi.mock("next/navigation", () => ({
   useParams: () => ({ lang: "en" }),
   useRouter: () => ({ push: navigationMock.push }),
+}));
+
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => authMock,
 }));
 
 const snapshot = {
@@ -83,6 +89,7 @@ function createEvaluation(overrides?: {
 describe("SchoolOnboardingPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authMock.logout.mockResolvedValue(undefined);
     sessionStorage.clear();
     hookMock.useSetupStatusContext.mockReturnValue({
       snapshot,
@@ -103,6 +110,28 @@ describe("SchoolOnboardingPage", () => {
     ).toBeVisible();
     expect(screen.getByText("guide.progressText")).toBeVisible();
     expect(screen.queryByRole("button", { name: "guide.dismiss" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "setup.finish" })).toBeEnabled();
+  });
+
+  it("finishes setup without recording it as skipped", async () => {
+    const user = userEvent.setup();
+
+    render(<SchoolOnboardingPage />);
+
+    await user.click(screen.getByRole("button", { name: "setup.finish" }));
+
+    expect(sessionStorage.getItem("sis:onboarding:skipped:school-1")).toBeNull();
+    expect(navigationMock.push).toHaveBeenCalledWith("/en/dashboard");
+  });
+
+  it("logs the user out from the onboarding page", async () => {
+    const user = userEvent.setup();
+
+    render(<SchoolOnboardingPage />);
+
+    await user.click(screen.getByRole("button", { name: "setup.logout" }));
+
+    expect(authMock.logout).toHaveBeenCalledOnce();
   });
 
   it("renders the welcoming onboarding hero before the setup workflow", () => {
@@ -137,7 +166,14 @@ describe("SchoolOnboardingPage", () => {
     render(<SchoolOnboardingPage />);
 
     expect(screen.getByRole("button", { name: "setup.skip" })).toBeDisabled();
-    expect(screen.getByText("setup.skipRequirement")).toBeVisible();
+    expect(screen.getByText("setup.skipRequirement")).toHaveAttribute(
+      "id",
+      "skip-setup-requirement",
+    );
+    expect(screen.getByRole("button", { name: "setup.skip" })).toHaveAttribute(
+      "aria-describedby",
+      "skip-setup-requirement",
+    );
   });
 
   it("stores a session skip and returns to the dashboard when minimum academic setup exists", async () => {
@@ -159,6 +195,7 @@ describe("SchoolOnboardingPage", () => {
 
     await user.click(screen.getByRole("button", { name: "setup.skip" }));
 
+    expect(screen.queryByText("setup.skipRequirement")).not.toBeInTheDocument();
     expect(sessionStorage.getItem("sis:onboarding:skipped:school-1")).toBe("true");
     expect(navigationMock.push).toHaveBeenCalledWith("/en/dashboard");
   });

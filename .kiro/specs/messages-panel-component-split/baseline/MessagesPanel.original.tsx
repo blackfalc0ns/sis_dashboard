@@ -977,6 +977,30 @@ function AttachmentCard({
     }
   };
 
+  const handleDownload = async () => {
+    if (!fileId) return;
+    try {
+      const { apiClient: client } = await import("@/lib/api");
+      // Fetch the file as a blob (axios follows the 307 redirect to S3)
+      const response = await client.get(`/files/${fileId}/download`, {
+        responseType: "blob",
+      });
+      // Create a download link from the blob
+      const blob = new Blob([response.data as BlobPart]);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = name || "download";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      // Fallback: open the URL directly (might work for public files)
+      if (href) window.open(href, "_blank");
+    }
+  };
+
   const content = (
     <div
       className={`flex items-center gap-3 rounded-lg p-3 mb-2 ${
@@ -1029,30 +1053,6 @@ function AttachmentCard({
       ) : null}
     </div>
   );
-
-  const handleDownload = async () => {
-    if (!fileId) return;
-    try {
-      const { apiClient: client } = await import("@/lib/api");
-      // Fetch the file as a blob (axios follows the 307 redirect to S3)
-      const response = await client.get(`/files/${fileId}/download`, {
-        responseType: "blob",
-      });
-      // Create a download link from the blob
-      const blob = new Blob([response.data as BlobPart]);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = name || "download";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch {
-      // Fallback: open the URL directly (might work for public files)
-      if (href) window.open(href, "_blank");
-    }
-  };
 
   return content;
 }

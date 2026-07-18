@@ -24,6 +24,31 @@ describe("medicalProfileApiService", () => {
     await expect(fetchMedicalProfile("student-1")).resolves.toBeNull();
   });
 
+  it.each([
+    undefined,
+    "",
+    [],
+    {},
+    { data: null },
+    { result: null },
+    { payload: [] },
+  ])(
+    "returns null for an empty medical-profile response: %j",
+    async (response) => {
+      apiMocks.apiGet.mockResolvedValue(response);
+
+      await expect(fetchMedicalProfile("student-1")).resolves.toBeNull();
+    },
+  );
+
+  it("keeps rejecting a non-empty array response", async () => {
+    apiMocks.apiGet.mockResolvedValue([{ studentId: "student-1" }]);
+
+    await expect(fetchMedicalProfile("student-1")).rejects.toThrow(
+      "Medical profile API response must be an object",
+    );
+  });
+
   it("maps the frontend medical form to the backend update DTO", async () => {
     apiMocks.apiPatch.mockResolvedValue({
       id: "medical-1",
