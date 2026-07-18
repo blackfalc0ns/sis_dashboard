@@ -13,6 +13,8 @@ export interface AcademicContextSetupStepCopy {
   summary: string;
   yearsCount(count: number): string;
   termsCount(count: number): string;
+  createdContexts: string;
+  noTerms: string;
   createYear: string;
   createTerm: string;
 }
@@ -54,6 +56,36 @@ export function AcademicContextSetupStep({
           <p className="text-sm font-medium text-gray-950">{copy.termsCount(countTerms(data))}</p>
         </div>
       </div>
+      {data.years.length > 0 ? (
+        <ul
+          aria-label={copy.createdContexts}
+          className="space-y-2 rounded-lg border border-gray-200 bg-white p-3"
+        >
+          {data.years.map((year) => {
+            const terms = data.termsByYear[year.id] ?? [];
+
+            return (
+              <li className="rounded-md bg-gray-50 p-3" key={year.id}>
+                <p className="text-sm font-semibold text-gray-950">{year.name}</p>
+                {terms.length > 0 ? (
+                  <ul className="mt-2 flex flex-wrap gap-2">
+                    {terms.map((term) => (
+                      <li
+                        className="rounded-full border border-primary/15 bg-primary/[0.03] px-2.5 py-1 text-xs font-medium text-gray-700"
+                        key={term.id}
+                      >
+                        {term.name}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-xs text-gray-600">{copy.noTerms}</p>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
       {targetYear ? (
         <Button onClick={() => setIsTermDialogOpen(true)} type="button">
           {copy.createTerm}

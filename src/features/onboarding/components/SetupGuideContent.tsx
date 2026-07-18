@@ -199,6 +199,8 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
       summary: t("steps.academicContext.summary"),
       yearsCount: (count) => t("steps.academicContext.yearsCount", { count }),
       termsCount: (count) => t("steps.academicContext.termsCount", { count }),
+      createdContexts: t("steps.academicContext.createdContexts"),
+      noTerms: t("steps.academicContext.noTerms"),
       createYear: t("steps.academicContext.createYear"),
       createTerm: t("steps.academicContext.createTerm"),
     },

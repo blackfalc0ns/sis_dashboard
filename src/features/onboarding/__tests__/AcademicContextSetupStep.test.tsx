@@ -40,6 +40,8 @@ const copy = {
   summary: "Create the academic year and terms.",
   yearsCount: (count: number) => `${count} years`,
   termsCount: (count: number) => `${count} terms`,
+  createdContexts: "Created academic years and terms",
+  noTerms: "No terms created yet",
   createYear: "Create academic year",
   createTerm: "Create term",
 };
@@ -47,6 +49,24 @@ const copy = {
 describe("AcademicContextSetupStep", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("lists each created academic year with its terms", () => {
+    render(
+      <AcademicContextSetupStep
+        copy={copy}
+        data={{ years: [year], termsByYear: { [year.id]: [term] } }}
+        selectedYear={year}
+        refreshStep={vi.fn()}
+      />,
+    );
+
+    const createdContexts = screen.getByRole("list", {
+      name: "Created academic years and terms",
+    });
+
+    expect(createdContexts).toHaveTextContent("2026-2027");
+    expect(createdContexts).toHaveTextContent("Term 1");
   });
 
   it("opens YearDialog with existingYears when no academic year exists", async () => {
