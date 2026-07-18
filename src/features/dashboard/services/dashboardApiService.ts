@@ -8,10 +8,10 @@ import type {
   DashboardModulePage,
   DashboardModulesResponse,
   DashboardAnalyticsCatalogResponse,
+  DashboardAnalyticsChartResponse,
   DashboardAnalyticsChartsResponse,
   DashboardAnalyticsChartsQuery,
   DashboardAnalyticsChartDataQuery,
-  DashboardAnalyticsChart,
   DashboardAnalyticsChartDataResponse,
 } from "@/features/dashboard/types/dashboardApi.types";
 
@@ -290,7 +290,7 @@ export function fetchAnalyticsCharts(query: DashboardAnalyticsChartsQuery = {}) 
 }
 
 export function fetchAnalyticsChartByKey(chartKey: string) {
-  return fetchDashboardContract<DashboardAnalyticsChart>(
+  return fetchDashboardContract<DashboardAnalyticsChartResponse>(
     `${DASHBOARD_BASE_PATH}/analytics/charts/${chartKey}`,
   );
 }

@@ -560,17 +560,94 @@ export interface DashboardAnalyticsCatalog {
   supportedChartTypes: string[];
   supportedRanges: string[];
   supportedGranularities: string[];
+  filters: DashboardAnalyticsFilterDefinition[];
+  metrics: DashboardAnalyticsMetric[];
+  kpis: DashboardAnalyticsKpi[];
   charts: DashboardAnalyticsChart[];
+}
+
+export interface DashboardAnalyticsFilterDefinition {
+  key: string;
+  type: "enum" | "date" | "id";
+  values: string[] | null;
+  description: string;
+  requiredWhen: string | null;
+  validation: string | null;
+}
+
+export interface DashboardAnalyticsMetric {
+  metricKey: string;
+  source: string;
+  label: string;
+  description: string;
+  valueType: string;
+  unit: string | null;
+  aggregation: string;
+  status: string;
+  sourceModels: string[];
+  noLeakNotes: string;
+}
+
+export interface DashboardAnalyticsKpi {
+  kpiKey: string;
+  source: string;
+  label: string;
+  description: string;
+  metricKeys: string[];
+  status: string;
+  defaultTone: string;
+  actionTarget: string;
 }
 
 export interface DashboardAnalyticsCatalogResponse {
   generatedAt: string;
   catalog: DashboardAnalyticsCatalog;
+  deferred: DashboardAnalyticsDeferredCapabilities;
+  meta: DashboardAnalyticsCatalogMeta;
 }
 
 export interface DashboardAnalyticsChartsResponse {
   generatedAt: string;
   charts: DashboardAnalyticsChart[];
+  summary: DashboardAnalyticsChartsSummary;
+  filters: DashboardAnalyticsChartsAppliedFilters;
+  deferred: DashboardAnalyticsDeferredCapabilities;
+}
+
+export interface DashboardAnalyticsDeferredCapabilities {
+  computedSeries: string;
+  historicalSeries: string;
+  drilldownData: string;
+  savedReports?: string;
+  customDashboards?: string;
+}
+
+export interface DashboardAnalyticsCatalogMeta {
+  source: string;
+  dataFreshness: string;
+  freshness: DashboardFreshnessMetadata;
+}
+
+export interface DashboardAnalyticsChartsSummary {
+  total: number;
+  bySource: Record<string, number>;
+  byType: Record<string, number>;
+  byStatus: Record<string, number>;
+}
+
+export interface DashboardAnalyticsChartsAppliedFilters {
+  source: string | null;
+  type: string | null;
+  status: string | null;
+  limit: number;
+}
+
+export interface DashboardAnalyticsChartResponse {
+  generatedAt: string;
+  chart: DashboardAnalyticsChart & {
+    futureDataContract: { series: DashboardAnalyticsChartDataSeries[] };
+  };
+  deferred: DashboardAnalyticsDeferredCapabilities;
 }
 
 export interface DashboardAnalyticsChartsQuery {

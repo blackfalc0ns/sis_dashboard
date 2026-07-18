@@ -63,11 +63,13 @@ import type {
 interface AnalyticsFilters {
   source: string;
   type: string;
+  status: string;
 }
 
 const defaultFilters: AnalyticsFilters = {
   source: "",
   type: "",
+  status: "available",
 };
 
 const CHART_COLORS = [
@@ -111,6 +113,8 @@ interface ChartError {
   traceId?: string;
   hierarchyUnavailable?: boolean;
   reportingPeriodUnavailable?: boolean;
+  granularityRangeInvalid?: boolean;
+  clientValidation?: boolean;
 }
 
 type ChartDataState =
@@ -169,6 +173,77 @@ function isUnavailableReportingPeriod(
     (query.range === "academic_year" || query.range === "term") &&
     isUnavailableAnalyticsHierarchy(error)
   );
+}
+
+function minimumGranularityDays(granularity: ChartQuery["granularity"]): number {
+  if (granularity === "week") return 7;
+  if (granularity === "month") return 28;
+  return 0;
+}
+
+function customRangeError(query: ChartQuery): ChartError | null {
+  if (query.range !== "custom") return null;
+  if (!query.dateFrom || !query.dateTo) {
+    return { message: "Custom analytics range requires both dates", fields: ["dateFrom", "dateTo"], clientValidation: true };
+  }
+
+  const start = new Date(query.dateFrom);
+  const end = new Date(query.dateTo);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return { message: "Analytics civil date is invalid", fields: ["dateFrom", "dateTo"], clientValidation: true };
+  }
+
+  const inclusiveDays = Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1;
+  if (inclusiveDays < 1) {
+    return { message: "Custom analytics range is reversed", fields: ["dateFrom", "dateTo"], clientValidation: true };
+  }
+  if (inclusiveDays > 366) {
+    return { message: "Custom analytics range is too large", fields: ["dateFrom", "dateTo"], clientValidation: true };
+  }
+  return null;
+}
+
+function isGranularityRangeTooShort(query: ChartQuery): boolean {
+  const minimumDays = minimumGranularityDays(query.granularity);
+  if (!minimumDays) return false;
+
+  if (query.range === "7d" || query.range === "30d" || query.range === "90d") {
+    const days = Number.parseInt(query.range, 10);
+    return days < minimumDays;
+  }
+
+  if (query.range !== "custom" || !query.dateFrom || !query.dateTo) return false;
+
+  const start = new Date(query.dateFrom);
+  const end = new Date(query.dateTo);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return false;
+
+  return Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1 < minimumDays;
+}
+
+function isGranularityRangeValidationError(error: unknown): error is ApiError {
+  return (
+    isApiError(error) &&
+    error.code === "validation.failed" &&
+    (error.message === "Weekly analytics requires at least seven civil days" ||
+      error.message === "Monthly analytics requires at least twenty-eight civil days")
+  );
+}
+
+function analyticsValidationMessage(
+  message: string | undefined,
+  t: ReturnType<typeof useTranslations>,
+): string | undefined {
+  const messageKeys: Record<string, string> = {
+    "Custom analytics range requires both dates": "analytics.custom_dates_required",
+    "Custom analytics range is reversed": "analytics.custom_dates_reversed",
+    "Custom analytics range is too large": "analytics.custom_dates_too_large",
+    "Analytics civil date is invalid": "analytics.custom_dates_invalid",
+    "Weekly analytics requires at least seven civil days": "analytics.short_range_error",
+    "Monthly analytics requires at least twenty-eight civil days": "analytics.short_range_error",
+  };
+  const key = message ? messageKeys[message] : undefined;
+  return key ? t(key) : message;
 }
 
 function defaultChartQuery(chart: DashboardAnalyticsChart): ChartQuery {
@@ -278,6 +353,8 @@ interface DashboardAnalyticsChartFiltersProps {
   catalog: DashboardAnalyticsCatalog | null;
   structureTree: StructureTree | null;
   locale: string;
+  validationFields?: string[];
+  validationMessage?: string;
   onQueryChange: (
     field: keyof ChartQuery,
     queryValue: ChartQuery[keyof ChartQuery],
@@ -290,6 +367,8 @@ function DashboardAnalyticsChartFilters({
   catalog,
   structureTree,
   locale,
+  validationFields,
+  validationMessage,
   onQueryChange,
 }: DashboardAnalyticsChartFiltersProps) {
   const t = useTranslations("dashboard_new");
@@ -326,10 +405,19 @@ function DashboardAnalyticsChartFilters({
     chart.supportedGranularities ||
     catalog?.supportedGranularities ||
     []
-  ).map((granularity) => ({
-    value: granularity,
-    label: t(`analytics.granularities.${granularity}`),
-  }));
+  ).map((granularity) => {
+    const unavailable = isGranularityRangeTooShort({
+      ...query,
+      granularity,
+    });
+    return {
+      value: granularity,
+      label: t(`analytics.granularities.${granularity}`),
+      disabled: unavailable,
+    };
+  });
+
+  const granularityUnavailable = isGranularityRangeTooShort(query);
 
   const chartGradeOptions = [
     { value: "", label: t("analytics.all_grades") },
@@ -376,6 +464,7 @@ function DashboardAnalyticsChartFilters({
           value={query.range || ""}
           onChange={(range) => onQueryChange("range", range)}
           options={chartRangeOptions}
+          error={validationFields?.includes("range") ? validationMessage : undefined}
         />
       )}
       {showGranularity && (
@@ -384,7 +473,13 @@ function DashboardAnalyticsChartFilters({
           value={query.granularity || ""}
           onChange={(granularity) => onQueryChange("granularity", granularity)}
           options={chartGranularityOptions}
+          error={validationFields?.includes("granularity") ? validationMessage : undefined}
         />
+      )}
+      {showGranularity && granularityUnavailable && (
+        <p className="col-span-full -mt-1 text-xs text-amber-700" role="status" aria-live="polite">
+          {t("analytics.granularity_unavailable")}
+        </p>
       )}
       {showGrade && (
         <Select
@@ -392,6 +487,7 @@ function DashboardAnalyticsChartFilters({
           value={query.gradeId || ""}
           onChange={(gradeId) => onQueryChange("gradeId", gradeId || undefined)}
           options={chartGradeOptions}
+          error={validationFields?.includes("gradeId") ? validationMessage : undefined}
         />
       )}
       {showSection && (
@@ -402,6 +498,7 @@ function DashboardAnalyticsChartFilters({
             onQueryChange("sectionId", sectionId || undefined)
           }
           options={chartSectionOptions}
+          error={validationFields?.includes("sectionId") ? validationMessage : undefined}
         />
       )}
       {showClassroom && (
@@ -412,6 +509,7 @@ function DashboardAnalyticsChartFilters({
             onQueryChange("classroomId", classroomId || undefined)
           }
           options={chartClassroomOptions}
+          error={validationFields?.includes("classroomId") ? validationMessage : undefined}
         />
       )}
       {showRange && query.range === "custom" && (
@@ -428,6 +526,12 @@ function DashboardAnalyticsChartFilters({
             onChange={(dateFrom) =>
               onQueryChange("dateFrom", dateFrom ?? undefined)
             }
+            maxDate={
+              query.dateTo
+                ? new Date(query.dateTo)
+                : undefined
+            }
+            error={validationFields?.includes("dateFrom") ? validationMessage : undefined}
           />
           <DatePicker
             label={t("analytics.to")}
@@ -439,6 +543,17 @@ function DashboardAnalyticsChartFilters({
                   : null
             }
             onChange={(dateTo) => onQueryChange("dateTo", dateTo ?? undefined)}
+            minDate={
+              query.dateFrom
+                ? new Date(query.dateFrom)
+                : undefined
+            }
+            maxDate={
+              query.dateFrom
+                ? new Date(new Date(query.dateFrom).getTime() + 365 * 86_400_000)
+                : undefined
+            }
+            error={validationFields?.includes("dateTo") ? validationMessage : undefined}
           />
         </div>
       )}
@@ -484,6 +599,10 @@ function DashboardAnalyticsContent() {
     null,
   );
   const [charts, setCharts] = useState<DashboardAnalyticsChart[]>([]);
+  const [chartSummary, setChartSummary] = useState<{
+    total: number;
+    byStatus: Record<string, number>;
+  } | null>(null);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [structureTree, setStructureTree] = useState<StructureTree | null>(
     null,
@@ -562,12 +681,13 @@ function DashboardAnalyticsContent() {
     fetchAnalyticsCharts({
       source: filters.source || undefined,
       type: filters.type || undefined,
-      status: "available",
+      status: filters.status || undefined,
       limit: 100,
     })
       .then((res) => {
         if (active) {
           setCharts(res.charts || []);
+          setChartSummary(res.summary);
         }
       })
       .catch((err) => {
@@ -577,7 +697,7 @@ function DashboardAnalyticsContent() {
     return () => {
       active = false;
     };
-  }, [filters.source, filters.type]);
+  }, [filters.source, filters.type, filters.status]);
 
   const recoverUnavailableHierarchy = useCallback(
     async (chartKey: string) => {
@@ -632,6 +752,15 @@ function DashboardAnalyticsContent() {
   // Fetch individual chart data
   const fetchDataForChart = useCallback(
     (chartKey: string, chart: DashboardAnalyticsChart, query: ChartQuery) => {
+      const dateRangeError = customRangeError(query);
+      if (dateRangeError) {
+        setChartDataStates((prev) => ({
+          ...prev,
+          [chartKey]: { status: "error", error: dateRangeError },
+        }));
+        return;
+      }
+
       setChartDataStates((prev) => ({
         ...prev,
         [chartKey]: { status: "loading" },
@@ -656,6 +785,7 @@ function DashboardAnalyticsContent() {
               err,
               query,
             );
+            const granularityRangeInvalid = isGranularityRangeValidationError(err);
             const chartError: ChartError = isApiError(err)
               ? {
                   message: err.message,
@@ -667,6 +797,7 @@ function DashboardAnalyticsContent() {
                   traceId: err.traceId,
                   hierarchyUnavailable,
                   reportingPeriodUnavailable,
+                  granularityRangeInvalid,
                 }
               : {
                   message:
@@ -761,23 +892,33 @@ function DashboardAnalyticsContent() {
         > = shouldSetCustomDateDefaults
           ? defaultCustomDateRange()
           : { dateFrom: undefined, dateTo: undefined };
+        const nextQuery = {
+          ...currentQuery,
+          [field]: queryValue,
+          ...(shouldSetCustomDateDefaults
+            ? {
+                dateFrom: currentQuery?.dateFrom ?? customDateDefaults.dateFrom,
+                dateTo: currentQuery?.dateTo ?? customDateDefaults.dateTo,
+              }
+            : {}),
+          ...(field === "gradeId"
+            ? { sectionId: undefined, classroomId: undefined }
+            : {}),
+          ...(field === "sectionId" ? { classroomId: undefined } : {}),
+        };
+
+        if (field === "range" && queryValue !== "custom") {
+          nextQuery.dateFrom = undefined;
+          nextQuery.dateTo = undefined;
+        }
+
+        if (isGranularityRangeTooShort(nextQuery)) {
+          nextQuery.granularity = "day";
+        }
 
         return {
           ...currentQueries,
-          [chartKey]: {
-            ...currentQuery,
-            [field]: queryValue,
-            ...(shouldSetCustomDateDefaults
-              ? {
-                  dateFrom: currentQuery?.dateFrom ?? customDateDefaults.dateFrom,
-                  dateTo: currentQuery?.dateTo ?? customDateDefaults.dateTo,
-                }
-              : {}),
-            ...(field === "gradeId"
-              ? { sectionId: undefined, classroomId: undefined }
-              : {}),
-            ...(field === "sectionId" ? { classroomId: undefined } : {}),
-          },
+          [chartKey]: nextQuery,
         };
       });
     },
@@ -838,8 +979,16 @@ function DashboardAnalyticsContent() {
     { value: "", label: t("analytics.all_modules") },
     ...(catalog?.sources || []).map((s) => ({
       value: s.source,
-      label: t(`sources.${s.source}`),
+      label: s.label,
+      disabled: s.status !== "available" && filters.status === "available",
     })),
+  ];
+
+  const statusOptions = [
+    { value: "", label: t("analytics.all_statuses") },
+    { value: "available", label: t("analytics.status_available") },
+    { value: "planned", label: t("analytics.status_planned") },
+    { value: "deferred", label: t("analytics.status_deferred") },
   ];
 
   const chartTypeOptions = [
@@ -914,7 +1063,7 @@ function DashboardAnalyticsContent() {
               {t("analytics.refresh_all")}
             </Button>
             <p className="text-xs text-gray-500">
-              {t("analytics.showing_charts", { count: charts.length })}
+              {t("analytics.showing_charts", { count: chartSummary?.total ?? charts.length })}
             </p>
           </div>
         </div>
@@ -942,7 +1091,7 @@ function DashboardAnalyticsContent() {
       <FilterPanel
         showFilters={showFilters}
         onToggleFilters={() => setShowFilters((show) => !show)}
-        hasActiveFilters={true}
+        hasActiveFilters={Boolean(filters.source || filters.type || filters.status !== "available")}
         toggleTitle={t("analytics.dashboard_filters")}
         toggleAriaLabel={t("analytics.toggle_filters")}
         className="mb-5 border border-gray-200"
@@ -958,7 +1107,7 @@ function DashboardAnalyticsContent() {
         }
         filtersSlot={
           <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 md:grid-cols-3">
               <Select
                 label={t("analytics.module_source")}
                 value={filters.source}
@@ -970,6 +1119,12 @@ function DashboardAnalyticsContent() {
                 value={filters.type}
                 onChange={(value) => updateFilter("type", value)}
                 options={chartTypeOptions}
+              />
+              <Select
+                label={t("analytics.chart_status")}
+                value={filters.status}
+                onChange={(value) => updateFilter("status", value)}
+                options={statusOptions}
               />
             </div>
           </div>
@@ -1029,10 +1184,28 @@ function DashboardAnalyticsContent() {
                 catalog={catalog}
                 structureTree={structureTree}
                 locale={locale}
+                validationFields={
+                  state?.status === "error" &&
+                  (state.error.granularityRangeInvalid || state.error.clientValidation ||
+                    state.error.code === "validation.failed")
+                    ? state.error.fields
+                    : undefined
+                }
+                validationMessage={
+                  state?.status === "error" &&
+                  (state.error.granularityRangeInvalid || state.error.clientValidation ||
+                    state.error.code === "validation.failed")
+                    ? analyticsValidationMessage(state.error.message, t)
+                    : undefined
+                }
                 onQueryChange={(field, queryValue) =>
                   updateChartQuery(chart.chartKey, field, queryValue)
                 }
               />
+
+              {state?.status === "success" && (
+                <DashboardAnalyticsContractMetadata data={state.data} />
+              )}
 
               {/* Chart Body Render */}
               <div className="mt-5 flex-1 min-h-[300px] flex items-center justify-center">
@@ -1040,6 +1213,9 @@ function DashboardAnalyticsContent() {
                   chart={chart}
                   state={state}
                   locale={locale}
+                  onSwitchToDaily={() =>
+                    updateChartQuery(chart.chartKey, "granularity", "day")
+                  }
                   onRetry={() => {
                     const query = resolvedChartQueries[chart.chartKey];
                     if (query) fetchDataForChart(chart.chartKey, chart, query);
@@ -1070,7 +1246,41 @@ interface DashboardAnalyticsChartContentProps {
   chart: DashboardAnalyticsChart;
   state: ChartDataState | undefined;
   locale: string;
+  onSwitchToDaily: () => void;
   onRetry: () => void;
+}
+
+function DashboardAnalyticsContractMetadata({
+  data,
+}: {
+  data: DashboardAnalyticsChartDataResponse;
+}) {
+  const t = useTranslations("dashboard_new");
+  const query = data.meta?.query;
+  const ignoredFilters = query?.notApplicableFilters || [];
+
+  if (!query && data.meta?.dataAvailability === "available") return null;
+
+  return (
+    <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
+      {query?.resolvedWindow && (
+        <span>
+          {t("analytics.effective_period", {
+            from: query.resolvedWindow.startCivilDate,
+            to: query.resolvedWindow.endCivilDate,
+          })}
+        </span>
+      )}
+      {data.meta?.freshness?.generatedAt && (
+        <span>{t("analytics.data_updated", { value: new Date(data.meta.freshness.generatedAt).toLocaleString() })}</span>
+      )}
+      {ignoredFilters.length > 0 && (
+        <span className="text-amber-800" role="status">
+          {t("analytics.ignored_filters", { filters: ignoredFilters.join(", ") })}
+        </span>
+      )}
+    </div>
+  );
 }
 
 interface FormattedChartDataPoint {
@@ -1082,6 +1292,7 @@ function DashboardAnalyticsChartContent({
   chart,
   state,
   locale,
+  onSwitchToDaily,
   onRetry,
 }: DashboardAnalyticsChartContentProps) {
   const t = useTranslations("dashboard_new");
@@ -1109,6 +1320,30 @@ function DashboardAnalyticsChartContent({
     }
 
     const { message, code, fields, traceId, hierarchyUnavailable } = state.error;
+    if (state.error.granularityRangeInvalid || state.error.clientValidation) {
+      const isGranularityError = state.error.granularityRangeInvalid;
+      return (
+        <div
+          className="w-full rounded-xl border border-amber-200 bg-amber-50 p-5 text-center"
+          role="alert"
+        >
+          <AlertTriangle className="mx-auto h-6 w-6 text-amber-700" />
+          <p className="mt-2 text-sm font-semibold text-amber-950">
+            {isGranularityError
+              ? t("analytics.short_range_title")
+              : t("analytics.custom_range_title")}
+          </p>
+          <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-amber-800">
+            {analyticsValidationMessage(message, t)}
+          </p>
+          {isGranularityError && (
+            <Button className="mt-4" onClick={onSwitchToDaily}>
+              {t("analytics.switch_to_daily")}
+            </Button>
+          )}
+        </div>
+      );
+    }
     return (
       <div
         className="w-full rounded-xl border border-red-100 bg-red-50 p-5 space-y-4"
@@ -1186,10 +1421,13 @@ function DashboardAnalyticsChartContent({
 
   const chartData: DashboardAnalyticsChartDataResponse = state.data;
   if (chartData.emptyState) {
+    const isDeferred = chartData.emptyState.reason === "not_implemented";
     return (
       <div className="text-center p-6 space-y-2">
         <HelpCircle className="mx-auto h-8 w-8 text-gray-400" />
-        <p className="text-sm font-semibold text-gray-900">{t("analytics.no_data")}</p>
+        <p className="text-sm font-semibold text-gray-900">
+          {isDeferred ? t("analytics.data_not_available") : t("analytics.no_data")}
+        </p>
         <p className="text-xs text-gray-500 max-w-[280px] mx-auto">
           {chartData.emptyState.message || t("analytics.no_events")}
         </p>

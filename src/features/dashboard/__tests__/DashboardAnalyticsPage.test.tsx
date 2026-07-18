@@ -253,6 +253,46 @@ describe("DashboardAnalyticsPage", () => {
     expect(mockedFetchChartData).not.toHaveBeenCalled();
   });
 
+  it("recovers weekly analytics validation errors by switching the chart to daily", async () => {
+    mockedFetchCharts.mockResolvedValue({
+      ...mockChartsResponse,
+      charts: mockChartsResponse.charts.map((chart) => ({
+        ...chart,
+        defaultRange: "term",
+        supportedRanges: ["term"],
+        supportedGranularities: ["week", "day"],
+        queryCapabilities: {
+          ...chart.queryCapabilities,
+          supportedRanges: ["term"],
+          supportedGranularities: ["week", "day"],
+        },
+      })),
+    } as DashboardAnalyticsChartsResponse);
+    mockedFetchChartData.mockRejectedValueOnce(
+      new ApiError(
+        "Weekly analytics requires at least seven civil days",
+        400,
+        "validation.failed",
+        undefined,
+        { fields: ["granularity", "range"] },
+      ),
+    );
+
+    render(<DashboardAnalyticsPage />);
+
+    expect(
+      await screen.findByText("This period is too short for the selected grouping"),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Switch to daily" }));
+
+    await waitFor(() => {
+      expect(mockedFetchChartData).toHaveBeenLastCalledWith(
+        "academics.gpa_trend",
+        expect.objectContaining({ range: "term", granularity: "day" }),
+      );
+    });
+  });
+
   it.each(["academic_year", "term"])(
     "shows an empty state when the selected %s has no reporting period",
     async (range) => {
