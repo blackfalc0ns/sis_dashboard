@@ -56,15 +56,21 @@ export default function SchoolOnboardingPage() {
         ) : null}
         <div className="flex flex-wrap items-center gap-2">
           <Button
+            aria-label={t("setup.logout")}
+            aria-describedby={
+              !canLeaveSetup ? "skip-setup-requirement" : undefined
+            }
             leftIcon={<LogOut aria-hidden="true" className="size-4" />}
             onClick={() => void logout()}
             type="button"
-            variant="ghost"
+            variant="danger"
           >
             {t("setup.logout")}
           </Button>
           <Button
-            aria-describedby={!canLeaveSetup ? "skip-setup-requirement" : undefined}
+            aria-describedby={
+              !canLeaveSetup ? "skip-setup-requirement" : undefined
+            }
             disabled={!canLeaveSetup}
             onClick={handleSkip}
             type="button"
