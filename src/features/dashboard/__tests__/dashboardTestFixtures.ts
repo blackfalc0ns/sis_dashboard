@@ -66,6 +66,7 @@ export function dashboardSummaryResponse(
       alertsEngine: "deferred",
       analyticsBuilder: "out_of_scope_v1",
     },
+    meta: { source: "dashboard_summary", freshness: { dataMode: "request_time_snapshot", cacheStatus: "not_used", realtimeStatus: "not_used" } },
     ...overrides,
   };
 }
@@ -99,6 +100,7 @@ export function dashboardAlertsResponse(
       },
     },
     deferred: {},
+    meta: { source: "dashboard_alerts", freshness: { dataMode: "request_time_snapshot", cacheStatus: "not_used", realtimeStatus: "not_used" } },
     ...overrides,
   };
 }
@@ -141,6 +143,7 @@ export function dashboardActivityFeedResponse(
       dateTo: null,
     },
     deferred: {},
+    meta: { source: "dashboard_activity_feed", capability: "available", freshness: { dataMode: "request_time_snapshot", cacheStatus: "not_used", realtimeStatus: "not_used" } },
     ...overrides,
   };
 }

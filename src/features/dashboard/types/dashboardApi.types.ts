@@ -28,7 +28,7 @@ export interface DashboardAcademicReference {
 export interface DashboardSummaryResponse {
   generatedAt: string;
   school: {
-    name: string;
+    name: string | null;
     timezone: string;
     locale: string | null;
   };
@@ -37,8 +37,17 @@ export interface DashboardSummaryResponse {
     term: DashboardAcademicReference | null;
   };
   cards: DashboardSummaryCards;
-  alertsPreview: DashboardAlertPreview[];
+  alertsPreview: DashboardSummaryAlertPreview[];
   deferred: Record<string, string>;
+  meta: { source: string; freshness: DashboardFreshnessMetadata };
+}
+
+export interface DashboardSummaryAlertPreview {
+  key: string;
+  source: string;
+  severity: DashboardAlertSeverity;
+  title: string;
+  count: number;
 }
 
 export interface DashboardSummaryCards {
@@ -161,6 +170,7 @@ export interface DashboardAlertsResponse {
     bySource: Partial<Record<DashboardSource, number>>;
   };
   deferred: Record<string, string>;
+  meta: { source: string; freshness: DashboardFreshnessMetadata };
 }
 
 export interface DashboardAlert {
@@ -201,6 +211,7 @@ export interface DashboardActivityFeedResponse {
     dateTo: string | null;
   };
   deferred: Record<string, string>;
+  meta: { source: string; capability: string; freshness: DashboardFreshnessMetadata };
 }
 
 export interface DashboardActivityFeedItem {
@@ -297,7 +308,7 @@ export interface DashboardModuleNextAction {
 export interface DashboardAnalyticsChartDataPoint {
   x: string;
   y: number;
-  coordinate: any;
+  coordinate: unknown;
 }
 
 export interface DashboardAnalyticsChartDataSeries {
@@ -392,8 +403,9 @@ export interface DashboardAnalyticsQueryMetadata {
 }
 
 export interface DashboardFreshnessMetadata {
-  generatedAt: string;
-  strategy: string;
+  dataMode: "static_catalog" | "request_time_snapshot" | "persisted_user_data" | "cached" | "realtime";
+  cacheStatus: "not_used" | "hit" | "miss";
+  realtimeStatus: "not_used" | "push";
 }
 
 export interface DashboardAnalyticsChartDataMeta {
@@ -444,26 +456,93 @@ export interface DashboardWidgetAnalyticsReference {
   computation: string | null;
 }
 
-export interface DashboardWidget {
+export type DashboardWidgetSource = "admissions" | "students" | "academics" | "attendance" | "grades" | "homework" | "behavior" | "reinforcement" | "communication" | "settings" | "activity" | "todos" | "calendar";
+export type DashboardWidgetType = "stat-card" | "progress-card" | "risk-card" | "action-card" | "timeline-card" | "mini-chart-card" | "calendar-card" | "todo-card";
+export type DashboardWidgetTone = "neutral" | "info" | "success" | "warning" | "critical";
+
+export interface DashboardWidgetAction {
+  label: string;
+  target: string;
+  kind: "frontend-route";
+}
+
+export interface DashboardWidgetEmptyState {
+  title: string;
+  description: string | null;
+  action: DashboardWidgetAction | null;
+}
+
+export interface DashboardWidgetBase<TType extends DashboardWidgetType, TData> {
   widgetKey: string;
-  type: "stat-card" | "progress-card" | "risk-card" | "action-card" | "timeline-card" | "mini-chart-card" | "calendar-card" | "todo-card";
-  source: string;
+  type: TType;
+  source: DashboardWidgetSource;
   title: string;
   subtitle: string | null;
   iconKey: string;
-  tone: "neutral" | "info" | "success" | "warning" | "critical";
-  data: Record<string, any>;
-  action: DashboardModuleAction | null;
-  emptyState: {
-    title: string;
-    description: string | null;
-    action: DashboardModuleAction | null;
-  } | null;
+  tone: DashboardWidgetTone;
+  data: TData;
+  action: DashboardWidgetAction | null;
+  emptyState: DashboardWidgetEmptyState | null;
   meta: {
-    freshness: string;
+    freshness: "live";
     freshnessDetails: DashboardFreshnessMetadata;
     analytics: DashboardWidgetAnalyticsReference | null;
   };
+}
+
+export type DashboardStatWidget = DashboardWidgetBase<"stat-card", { value: number; unit: null; label: string }>;
+export type DashboardActionWidget = DashboardWidgetBase<"action-card", { value: number | string; unit: null; label: string; message: string; status: "needs_review" | "clear" | "not_configured" | "active" }>;
+export type DashboardRiskWidget = DashboardWidgetBase<"risk-card", { count: number; label: string; riskLevel: "critical" | "elevated" | "clear"; items: unknown[] }>;
+export type DashboardProgressWidget = DashboardWidgetBase<"progress-card", { value: number | null; max: number | null; percent: number | null; unit: "percent"; label: string; segments: Array<{ key: string; label: string; value: number }>; status?: "not_configured" }>;
+export type DashboardTimelineWidget = DashboardWidgetBase<"timeline-card", { items: Array<{ source: string; eventType: string; title: string; description: string; actor: { displayName: string; type: string }; subject: { type: string; label: string }; occurredAt: string }>; count: number; label: string; nextCursor: null; hasMore: boolean }>;
+export type DashboardMiniChartWidget = DashboardWidgetBase<"mini-chart-card", { series: DashboardAnalyticsChartDataSeries[]; totals: Record<string, number>; summary: DashboardAnalyticsChartDataSummary | null; empty: boolean }>;
+export type DashboardCalendarWidget = DashboardWidgetBase<"calendar-card", { date: string; sourceMode: "academic_calendar_cross_module_and_todos"; eventDates: string[]; events: Array<{ source: string; title: string; date: string; endDate: string; startTime: string | null; endTime: string | null; allDay: boolean; eventType: string | null; status: "pending" | "completed" | null; priority: "low" | "normal" | "high" | null; tone: DashboardWidgetTone; iconKey: string }>; summary: { total: number; academicCalendar: number; crossModule: number; attendanceSessions: number; placementTests: number; interviews: number; homeworkDue: number; gradeAssessments: number; todos: number } }>;
+export type DashboardTodoWidget = DashboardWidgetBase<"todo-card", { date: string; items: Array<{ title: string; status: "pending" | "completed"; priority: "low" | "normal" | "high" }>; summary: { total: number; pending: number; completed: number } }>;
+export type DashboardWidget = DashboardStatWidget | DashboardActionWidget | DashboardRiskWidget | DashboardProgressWidget | DashboardTimelineWidget | DashboardMiniChartWidget | DashboardCalendarWidget | DashboardTodoWidget;
+
+export interface DashboardWidgetsDeferred {
+  customLayouts: "deferred";
+  widgetPreferences: "deferred";
+  analyticsCharts: "available" | "integration_deferred" | "deferred";
+  weatherWidgets: "deferred";
+  todoWidgets: "available" | "integration_deferred" | "deferred";
+  analyticsStandalone: "available" | "snapshot_only";
+  todosStandalone: "persisted";
+  calendarTodoComposition: "available";
+  plannerCalendar: "available";
+  crossModulePlannerItems: "available";
+}
+
+export interface DashboardWidgetsResponse {
+  generatedAt: string;
+  widgets: DashboardWidget[];
+  summary: { total: number; byType: Partial<Record<DashboardWidgetType, number>>; bySource: Partial<Record<DashboardWidgetSource, number>> };
+  filters: { source: DashboardWidgetSource | null; type: DashboardWidgetType | null; limit: number };
+  deferred: DashboardWidgetsDeferred;
+}
+
+export interface DashboardWidgetResponse {
+  generatedAt: string;
+  widget: DashboardWidget;
+  deferred: DashboardWidgetsDeferred;
+}
+
+export interface DashboardCommandCenterResponse {
+  generatedAt: string;
+  school: { name: string | null; timezone: string; locale: string | null };
+  academicContext: DashboardSummaryResponse["academicContext"];
+  operator: { displayName: string; userType: string };
+  today: { date: string; dayOfWeek: string; timezone: string };
+  quickStats: Array<{ key: string; label: string; value: number; unit: string | null; tone: string; iconKey: string; source: string; action: DashboardAlertAction & { kind: "frontend-route" } }>;
+  operationalHealth: Array<{ key: string; label: string; status: string; score: number; summary: string; source: string; action: DashboardAlertAction & { kind: "frontend-route" } }>;
+  moduleReadiness: Array<{ source: string; label: string; status: string; score: number; summary: string; metrics: Array<{ key: string; label: string; value: string | number | boolean | null }>; action: DashboardAlertAction & { kind: "frontend-route" } }>;
+  topRisks: Array<{ key: string; severity: DashboardAlertSeverity; title: string; count: number; source: string; action: DashboardAlertAction & { kind: "frontend-route" } }>;
+  topActions: Array<{ key: string; priority: string; label: string; description: string; source: string; action: DashboardAlertAction & { kind: "frontend-route" } }>;
+  alertsPreview: Array<{ key: string; severity: DashboardAlertSeverity; title: string; count: number; source: string; action: DashboardAlertAction & { kind: "frontend-route" } }>;
+  activityPreview: DashboardActivityFeedItem[];
+  analyticsPreview: Array<{ chartKey: string; source: string; title: string; type: string; series: DashboardAnalyticsChartDataSeries[]; totals: Record<string, number>; summary: DashboardAnalyticsChartDataSummary | null; empty: boolean; action: DashboardAlertAction & { kind: "frontend-route" }; analytics: DashboardWidgetAnalyticsReference }>;
+  todoPreview: { date: string; items: Array<{ title: string; status: "pending" | "completed"; priority: "low" | "normal" | "high" }>; summary: { total: number; pending: number; completed: number }; action: DashboardAlertAction & { kind: "frontend-route" } };
+  meta: { source: string; version: string; dataFreshness: string; freshness: DashboardFreshnessMetadata; deferred: Record<string, string> };
 }
 
 export interface DashboardModulePage {

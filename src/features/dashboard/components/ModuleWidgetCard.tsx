@@ -1,259 +1,77 @@
 "use client";
 
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import {
-  Users,
-  GraduationCap,
-  Calendar,
-  Clock,
-  AlertTriangle,
-  TrendingUp,
-  ListTodo,
-  CheckCircle2,
-  BookOpen,
-  ShieldAlert,
-  School,
-  Settings2,
-  Info,
-} from "lucide-react";
-import type { DashboardWidget } from "../types/dashboardApi.types";
+import { AlertTriangle, Calendar, CheckCircle2, Clock, Info, ListTodo, TrendingUp, Users } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type { DashboardMiniChartWidget, DashboardWidget, DashboardWidgetAction, DashboardWidgetTone } from "../types/dashboardApi.types";
+import { resolveDashboardActionTarget } from "../utils/resolveDashboardActionTarget";
 
 const widgetIcons: Record<string, LucideIcon> = {
-  users: Users,
-  "graduation-cap": GraduationCap,
-  calendar: Calendar,
-  clock: Clock,
-  "alert-triangle": AlertTriangle,
-  "trending-up": TrendingUp,
-  "list-todo": ListTodo,
-  admissions: Users,
-  academics: GraduationCap,
-  attendance: CheckCircle2,
-  grades: BookOpen,
-  homework: BookOpen,
-  behavior: ShieldAlert,
-  reinforcement: School,
-  settings: Settings2,
+  users: Users, "graduation-cap": TrendingUp, calendar: Calendar, "alert-triangle": AlertTriangle,
+  "trending-up": TrendingUp, "list-todo": ListTodo, admissions: Users, academics: TrendingUp,
+  attendance: CheckCircle2, grades: TrendingUp, homework: CheckCircle2, behavior: AlertTriangle,
+  reinforcement: TrendingUp, settings: Info,
 };
 
-const toneStyles: Record<
-  string,
-  { border: string; bg: string; text: string; icon: string; dot: string; progressBg: string }
-> = {
-  critical: {
-    border: "border-red-200",
-    bg: "bg-red-50",
-    text: "text-red-700",
-    icon: "text-red-600",
-    dot: "bg-red-500",
-    progressBg: "bg-red-500",
-  },
-  warning: {
-    border: "border-amber-200",
-    bg: "bg-amber-50",
-    text: "text-amber-700",
-    icon: "text-amber-600",
-    dot: "bg-amber-500",
-    progressBg: "bg-amber-500",
-  },
-  info: {
-    border: "border-cyan-200",
-    bg: "bg-cyan-50",
-    text: "text-cyan-700",
-    icon: "text-cyan-600",
-    dot: "bg-cyan-500",
-    progressBg: "bg-cyan-500",
-  },
-  success: {
-    border: "border-emerald-200",
-    bg: "bg-emerald-50",
-    text: "text-emerald-700",
-    icon: "text-emerald-600",
-    dot: "bg-emerald-500",
-    progressBg: "bg-emerald-500",
-  },
-  neutral: {
-    border: "border-gray-200",
-    bg: "bg-gray-50",
-    text: "text-gray-700",
-    icon: "text-gray-500",
-    dot: "bg-gray-400",
-    progressBg: "bg-gray-500",
-  },
+const toneStyles: Record<DashboardWidgetTone, { badge: string; icon: string; progress: string; value: string }> = {
+  critical: { badge: "bg-red-50 text-red-700", icon: "text-red-600", progress: "bg-red-500", value: "text-red-700" },
+  warning: { badge: "bg-amber-50 text-amber-700", icon: "text-amber-600", progress: "bg-amber-500", value: "text-amber-700" },
+  info: { badge: "bg-sky-50 text-sky-700", icon: "text-sky-600", progress: "bg-sky-500", value: "text-sky-700" },
+  success: { badge: "bg-emerald-50 text-emerald-700", icon: "text-emerald-600", progress: "bg-emerald-500", value: "text-emerald-700" },
+  neutral: { badge: "bg-gray-100 text-gray-700", icon: "text-gray-500", progress: "bg-gray-500", value: "text-gray-950" },
 };
+const chartColors = ["#2563eb", "#0f766e", "#d97706", "#7c3aed"];
 
-interface ModuleWidgetCardProps {
-  widget: DashboardWidget;
-}
-
-export default function ModuleWidgetCard({ widget }: ModuleWidgetCardProps) {
-  const Icon = widgetIcons[widget.iconKey] || Info;
-  const toneStyle = toneStyles[widget.tone] || toneStyles.neutral;
+export default function ModuleWidgetCard({ widget }: { widget: DashboardWidget }) {
+  const Icon = widgetIcons[widget.iconKey] ?? Info;
+  const tone = toneStyles[widget.tone];
+  const preferredAction = widget.emptyState?.action ?? widget.action;
 
   switch (widget.type) {
-    case "stat-card": {
-      const val = widget.data?.value ?? "--";
-      return (
-        <article className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider truncate">
-                {widget.title}
-              </p>
-              <p className="mt-2 text-2xl font-bold text-gray-950 truncate">
-                {val}
-              </p>
-              {widget.subtitle && (
-                <p className="mt-1 text-xs text-gray-600 truncate">
-                  {widget.subtitle}
-                </p>
-              )}
-            </div>
-            <div className={`rounded-full border ${toneStyle.border} ${toneStyle.bg} p-2 shrink-0`}>
-              <Icon className={`h-4 w-4 ${toneStyle.icon}`} />
-            </div>
-          </div>
-        </article>
-      );
-    }
-
+    case "stat-card":
+      return <WidgetFrame widget={widget} action={preferredAction}><WidgetHeader icon={<Icon className={`h-4 w-4 ${tone.icon}`} />} title={widget.title} /><p className="mt-5 text-3xl font-bold text-gray-950">{widget.data.value}</p><p className="mt-2 text-xs text-gray-600">{widget.subtitle ?? widget.data.label}</p></WidgetFrame>;
+    case "action-card":
+      return <WidgetFrame widget={widget} action={preferredAction}><WidgetHeader icon={<Icon className={`h-4 w-4 ${tone.icon}`} />} title={widget.title} badge={widget.data.status.replace("_", " ")} tone={tone} /><p className={`mt-4 text-3xl font-bold ${tone.value}`}>{widget.data.value}</p><p className="mt-2 text-sm leading-5 text-gray-600">{widget.data.message}</p></WidgetFrame>;
+    case "risk-card":
+      return <WidgetFrame widget={widget} action={preferredAction}><WidgetHeader icon={<AlertTriangle className={`h-4 w-4 ${tone.icon}`} />} title={widget.title} badge={widget.data.riskLevel} tone={tone} /><p className={`mt-4 text-3xl font-bold ${tone.value}`}>{widget.data.count}</p><p className="mt-2 text-sm text-gray-600">{widget.subtitle ?? widget.data.label}</p></WidgetFrame>;
     case "progress-card": {
-      const data = widget.data || {};
-      const percent = data.percent ?? 0;
-      const label = data.label ?? "";
-      const segments = data.segments || [];
-
-      return (
-        <article className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider truncate">
-              {widget.title}
-            </p>
-            <span className="text-sm font-bold text-gray-950">{percent}%</span>
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 flex">
-            {segments.length > 0 ? (
-              segments.map((seg: { key: string; value: number; label: string }) => (
-                <div
-                  key={seg.key}
-                  style={{ width: `${(seg.value / (data.max || 100)) * 100}%` }}
-                  className={`h-full ${toneStyles[seg.key]?.progressBg || toneStyle.progressBg}`}
-                  title={`${seg.label}: ${seg.value}`}
-                />
-              ))
-            ) : (
-              <div
-                style={{ width: `${percent}%` }}
-                className={`h-full ${toneStyle.progressBg}`}
-              />
-            )}
-          </div>
-          <p className="mt-2 text-xs text-gray-600">{label || widget.subtitle}</p>
-        </article>
-      );
+      const percent = widget.data.percent;
+      return <WidgetFrame widget={widget} action={preferredAction}><WidgetHeader icon={<Icon className={`h-4 w-4 ${tone.icon}`} />} title={widget.title} badge={percent === null ? "unavailable" : `${percent}%`} tone={tone} />{percent === null ? <WidgetEmptyState widget={widget} /> : <><div className="mt-5 h-2 overflow-hidden rounded-full bg-gray-100"><div className={`h-full rounded-full ${tone.progress}`} style={{ width: `${Math.max(0, Math.min(100, percent))}%` }} /></div><p className="mt-3 text-sm text-gray-600">{widget.data.segments.map((segment) => `${segment.label}: ${segment.value}`).join(" · ")}</p></>}</WidgetFrame>;
     }
-
-    case "todo-card": {
-      const data = widget.data || {};
-      const items = data.items || [];
-      const summary = data.summary || { total: 0, pending: 0, completed: 0 };
-
-      return (
-        <article className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ListTodo className="h-4 w-4 text-primary-500" />
-              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                {widget.title}
-              </p>
-            </div>
-            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-              {summary.completed}/{summary.total} Done
-            </span>
-          </div>
-          <div className="max-h-[160px] overflow-y-auto space-y-2 pr-1">
-            {items.map((item: { title: string; status: string; priority?: string }, idx: number) => (
-              <div
-                key={idx}
-                className="flex items-center gap-2.5 rounded-lg bg-gray-50 p-2 text-xs text-gray-700"
-              >
-                <div
-                  className={`h-2 w-2 rounded-full ${
-                    item.status === "completed"
-                      ? "bg-emerald-500"
-                      : item.priority === "high"
-                      ? "bg-red-500"
-                      : "bg-amber-500"
-                  }`}
-                />
-                <span className={item.status === "completed" ? "line-through text-gray-400 truncate flex-1" : "truncate flex-1"}>
-                  {item.title}
-                </span>
-              </div>
-            ))}
-            {items.length === 0 && (
-              <p className="py-4 text-center text-xs text-gray-400">
-                No tasks available
-              </p>
-            )}
-          </div>
-        </article>
-      );
-    }
-
+    case "mini-chart-card":
+      return <WidgetFrame widget={widget} action={preferredAction}><WidgetHeader icon={<TrendingUp className={`h-4 w-4 ${tone.icon}`} />} title={widget.title} /><p className="mt-3 text-2xl font-bold text-gray-950">{widget.data.summary?.value ?? Object.values(widget.data.totals).reduce((total, current) => total + current, 0)}</p>{widget.data.empty ? <WidgetEmptyState widget={widget} /> : <MiniChart widget={widget} />}</WidgetFrame>;
+    case "timeline-card":
+      return <WidgetFrame widget={widget} action={preferredAction}><WidgetHeader icon={<Clock className={`h-4 w-4 ${tone.icon}`} />} title={widget.title} /><div className="mt-4 max-h-44 space-y-3 overflow-y-auto pr-1">{widget.data.items.length ? widget.data.items.map((activity) => <div key={`${activity.eventType}-${activity.occurredAt}`}><p className="text-sm font-medium text-gray-950">{activity.title}</p><p className="mt-1 line-clamp-2 text-xs text-gray-600">{activity.description}</p><p className="mt-1 text-xs text-gray-500">{activity.actor.displayName} · {formatDate(activity.occurredAt)}</p></div>) : <WidgetEmptyState widget={widget} fallback="No recent activity." />}</div></WidgetFrame>;
     case "calendar-card":
-    case "timeline-card": {
-      const data = widget.data || {};
-      const events = data.events || [];
-
-      return (
-        <article className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-primary-500" />
-              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                {widget.title}
-              </p>
-            </div>
-          </div>
-          <div className="max-h-[160px] overflow-y-auto space-y-2 pr-1">
-            {events.map((event: { title: string; date: string; startTime?: string; iconKey: string; tone: string }, idx: number) => {
-              const EventIcon = widgetIcons[event.iconKey] || Clock;
-              const evToneStyle = toneStyles[event.tone] || toneStyle;
-              return (
-                <div
-                  key={idx}
-                  className="flex items-start gap-2.5 rounded-lg bg-gray-50 p-2 text-xs text-gray-700"
-                >
-                  <div className={`rounded-full ${evToneStyle.bg} p-1 shrink-0`}>
-                    <EventIcon className={`h-3.5 w-3.5 ${evToneStyle.icon}`} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold truncate">{event.title}</p>
-                    <p className="mt-0.5 text-[10px] text-gray-400">
-                      {event.date} {event.startTime ? `• ${event.startTime}` : ""}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-            {events.length === 0 && (
-              <p className="py-4 text-center text-xs text-gray-400">
-                No events scheduled
-              </p>
-            )}
-          </div>
-        </article>
-      );
-    }
-
-    default: {
-      return (
-        <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-gray-300 hover:shadow-md transition-all duration-200">
-          <p className="text-xs font-semibold text-gray-600 uppercase">{widget.title}</p>
-          <p className="mt-1 text-xs text-gray-600">{widget.subtitle}</p>
-        </article>
-      );
-    }
+      return <WidgetFrame widget={widget} action={preferredAction}><WidgetHeader icon={<Calendar className={`h-4 w-4 ${tone.icon}`} />} title={widget.title} badge={`${widget.data.summary.total} events`} tone={tone} /><div className="mt-4 max-h-44 space-y-2 overflow-y-auto pr-1">{widget.data.events.length ? widget.data.events.map((event, index) => <div key={`${event.title}-${event.date}-${index}`} className="rounded-lg bg-gray-50 p-2"><p className="truncate text-sm font-medium text-gray-950">{event.title}</p><p className="mt-1 text-xs text-gray-600">{event.date}{event.startTime ? ` · ${event.startTime}` : ""}</p></div>) : <WidgetEmptyState widget={widget} fallback="No events scheduled for today." />}</div></WidgetFrame>;
+    case "todo-card":
+      return <WidgetFrame widget={widget} action={preferredAction}><WidgetHeader icon={<ListTodo className={`h-4 w-4 ${tone.icon}`} />} title={widget.title} badge={`${widget.data.summary.pending} pending`} tone={tone} /><div className="mt-4 max-h-44 space-y-2 overflow-y-auto pr-1">{widget.data.items.length ? widget.data.items.map((todo, index) => <div key={`${todo.title}-${index}`} className="flex items-center gap-2 text-sm"><CheckCircle2 className={`h-4 w-4 shrink-0 ${todo.status === "completed" ? "text-emerald-500" : "text-gray-300"}`} /><span className={todo.status === "completed" ? "text-gray-400 line-through" : "text-gray-700"}>{todo.title}</span></div>) : <WidgetEmptyState widget={widget} fallback="No tasks for today." />}</div></WidgetFrame>;
   }
 }
+
+function WidgetFrame({ widget, action, children }: { widget: DashboardWidget; action: DashboardWidgetAction | null; children: React.ReactNode }) {
+  const content = <article className="h-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-colors duration-200">{children}</article>;
+  return action ? <Link href={resolveDashboardActionTarget(action.target)} aria-label={`${action.label}: ${widget.title}`} className="group block h-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 hover:[&>article]:border-primary/40 hover:[&>article]:shadow-md">{content}</Link> : content;
+}
+
+function WidgetHeader({ icon, title, badge, tone }: { icon: React.ReactNode; title: string; badge?: string; tone?: { badge: string } }) {
+  return <div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-center gap-2"><span className="rounded-full bg-gray-50 p-2">{icon}</span><p className="truncate text-sm font-semibold text-gray-950">{title}</p></div>{badge && tone ? <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium capitalize ${tone.badge}`}>{badge}</span> : null}</div>;
+}
+
+function WidgetEmptyState({ widget, fallback }: { widget: DashboardWidget; fallback?: string }) {
+  const message = widget.emptyState?.description ?? fallback ?? "No data is available.";
+  return <p className="mt-4 rounded-lg bg-gray-50 px-3 py-4 text-center text-sm text-gray-600">{widget.emptyState?.title ? `${widget.emptyState.title}: ${message}` : message}</p>;
+}
+
+function MiniChart({ widget }: { widget: DashboardMiniChartWidget }) {
+  const byLabel = new Map<string, Record<string, string | number>>();
+  widget.data.series.forEach((series) => series.points.forEach((point) => { const chartPoint = byLabel.get(point.x) ?? { label: point.x }; chartPoint[series.key] = point.y; byLabel.set(point.x, chartPoint); }));
+  const chartData = Array.from(byLabel.values());
+  if (!chartData.length) return <WidgetEmptyState widget={widget} fallback="No data points are available." />;
+  const chartSeries = widget.data.series.map((series, index) => ({ ...series, color: chartColors[index % chartColors.length] }));
+  const axes = <><CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} /><XAxis dataKey="label" minTickGap={24} tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#6b7280" }} /><YAxis width={28} tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#6b7280" }} /><Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }} /></>;
+  return <div className="mt-3 h-32" role="img" aria-label={`${widget.title} chart`}><ResponsiveContainer width="100%" height="100%">{widget.meta.analytics?.chartType === "area" ? <AreaChart data={chartData}>{axes}{chartSeries.map((series) => <Area key={series.key} type="monotone" dataKey={series.key} name={series.label} stroke={series.color} fill={series.color} fillOpacity={0.15} strokeWidth={2} />)}</AreaChart> : <LineChart data={chartData}>{axes}{chartSeries.map((series) => <Line key={series.key} type="monotone" dataKey={series.key} name={series.label} stroke={series.color} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />)}</LineChart>}</ResponsiveContainer></div>;
+}
+
+function formatDate(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleString(); }

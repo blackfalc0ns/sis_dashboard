@@ -13,6 +13,11 @@ import type {
   DashboardAnalyticsChartsQuery,
   DashboardAnalyticsChartDataQuery,
   DashboardAnalyticsChartDataResponse,
+  DashboardCommandCenterResponse,
+  DashboardWidgetSource,
+  DashboardWidgetType,
+  DashboardWidgetResponse,
+  DashboardWidgetsResponse,
 } from "@/features/dashboard/types/dashboardApi.types";
 
 interface DashboardApiEnvelope<T> {
@@ -84,6 +89,24 @@ async function fetchDashboardContract<T>(endpoint: string): Promise<T> {
 export function fetchDashboardSummary() {
   return fetchDashboardContract<DashboardSummaryResponse>(
     `${DASHBOARD_BASE_PATH}/summary`,
+  );
+}
+
+export function fetchDashboardCommandCenter() {
+  return fetchDashboardContract<DashboardCommandCenterResponse>(
+    `${DASHBOARD_BASE_PATH}/command-center`,
+  );
+}
+
+export function fetchDashboardWidgets(query: { source?: DashboardWidgetSource; type?: DashboardWidgetType; limit?: number } = {}) {
+  return fetchDashboardContract<DashboardWidgetsResponse>(
+    `${DASHBOARD_BASE_PATH}/widgets${dashboardQueryString(query)}`,
+  );
+}
+
+export function fetchDashboardWidget(widgetKey: string) {
+  return fetchDashboardContract<DashboardWidgetResponse>(
+    `${DASHBOARD_BASE_PATH}/widgets/${widgetKey}`,
   );
 }
 

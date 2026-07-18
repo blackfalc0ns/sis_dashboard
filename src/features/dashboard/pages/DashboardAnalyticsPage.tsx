@@ -1251,8 +1251,8 @@ function DashboardAnalyticsContractMetadata({
           })}
         </span>
       )}
-      {data.meta?.freshness?.generatedAt && (
-        <span>{t("analytics.data_updated", { value: new Date(data.meta.freshness.generatedAt).toLocaleString() })}</span>
+      {data.generatedAt && (
+        <span>{t("analytics.data_updated", { value: new Date(data.generatedAt).toLocaleString() })}</span>
       )}
       {ignoredFilters.length > 0 && (
         <span className="text-amber-800" role="status">

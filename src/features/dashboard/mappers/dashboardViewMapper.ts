@@ -438,7 +438,7 @@ function dashboardContext(
 ): DashboardContextViewModel {
   return {
     generatedAt: summaryResponse.generatedAt,
-    schoolName: summaryResponse.school.name,
+    schoolName: summaryResponse.school.name ?? "School",
     timezone: summaryResponse.school.timezone,
     academicYearName:
       summaryResponse.academicContext.academicYear?.name ?? "No active academic year",
