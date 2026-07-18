@@ -253,6 +253,32 @@ describe("DashboardAnalyticsPage", () => {
     expect(mockedFetchChartData).not.toHaveBeenCalled();
   });
 
+  it("allows classroom analytics without selecting a grade or section", async () => {
+    mockedFetchCharts.mockResolvedValue({
+      ...mockChartsResponse,
+      charts: mockChartsResponse.charts.map((chart) => ({
+        ...chart,
+        filters: ["range", "granularity", "academicYearId", "classroomId"],
+        queryCapabilities: {
+          ...chart.queryCapabilities,
+          supportedHierarchyFilters: ["academicYearId", "classroomId"],
+        },
+      })),
+    } as DashboardAnalyticsChartsResponse);
+
+    render(<DashboardAnalyticsPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Classroom" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Classroom 1" }));
+
+    await waitFor(() => {
+      expect(mockedFetchChartData).toHaveBeenLastCalledWith(
+        "academics.gpa_trend",
+        expect.objectContaining({ classroomId: "cls-1", academicYearId: "year-1" }),
+      );
+    });
+  });
+
   it("recovers weekly analytics validation errors by switching the chart to daily", async () => {
     mockedFetchCharts.mockResolvedValue({
       ...mockChartsResponse,

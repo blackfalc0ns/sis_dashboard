@@ -288,21 +288,10 @@ function reconcileChartQuery(
     delete nextQuery.granularity;
   }
 
-  // ── Hierarchy cascade: gradeId → sectionId → classroomId ──────────────
-  // 1. Strip any level the chart doesn't support.
+  // Remove filters the selected chart does not support.
   if (!chartSupportsFilter(chart, "gradeId")) delete nextQuery.gradeId;
   if (!chartSupportsFilter(chart, "sectionId")) delete nextQuery.sectionId;
   if (!chartSupportsFilter(chart, "classroomId")) delete nextQuery.classroomId;
-
-  // 2. Enforce parent dependency: child cannot exist without its parent.
-  if (!nextQuery.gradeId) {
-    delete nextQuery.sectionId;
-    delete nextQuery.classroomId;
-  }
-  if (!nextQuery.sectionId) {
-    delete nextQuery.classroomId;
-  }
-  // ──────────────────────────────────────────────────────────────────────
 
   return nextQuery;
 }
@@ -333,15 +322,6 @@ function formatChartQuery(
   }
   if (contextTermId && chartSupportsFilter(chart, "termId")) {
     formattedQuery.termId = contextTermId;
-  }
-
-  // Final cascade guard — ensures no child filter escapes without its parent.
-  if (!formattedQuery.gradeId) {
-    delete formattedQuery.sectionId;
-    delete formattedQuery.classroomId;
-  }
-  if (!formattedQuery.sectionId) {
-    delete formattedQuery.classroomId;
   }
 
   return formattedQuery;
