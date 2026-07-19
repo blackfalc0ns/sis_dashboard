@@ -44,7 +44,7 @@ export default function SchoolOnboardingPage() {
         </p>
       </header>
 
-      <div className="onboarding-enter onboarding-enter-delay-1 mx-auto mb-4 flex max-w-6xl justify-center rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-700">
+      <div className="onboarding-enter onboarding-enter-delay-1 mx-auto mb-4 flex max-w-6xl justify-center rounded-2xl bg-white p-4 text-sm text-gray-700">
         <div className="flex flex-col items-center gap-3">
           <div className="flex gap-2">
             <Button
