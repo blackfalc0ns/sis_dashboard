@@ -36,9 +36,6 @@ interface EditSlotDialogProps {
     subjectId: string | null,
     teacherId: string | null,
     roomId: string | null,
-    slotType?: "CLASS" | "BREAK",
-    breakLabelAr?: string,
-    breakLabelEn?: string
   ) => void;
   onClose: () => void;
   getDefaultTeacher: (subjectId: string) => string | null;
@@ -77,13 +74,10 @@ export default function EditSlotDialog({
 }: EditSlotDialogProps) {
   const t = useTranslations("academics.timetable.editSlot");
 
-  const [slotType, setSlotType] = useState<"CLASS" | "BREAK">("CLASS");
   const [subjectId, setSubjectId] = useState<string>("");
   const [teacherId, setTeacherId] = useState<string>("");
   const [teacherAllocationId, setTeacherAllocationId] = useState<string>("");
   const [roomId, setRoomId] = useState<string>("");
-  const [breakLabelAr, setBreakLabelAr] = useState<string>("فسحة");
-  const [breakLabelEn, setBreakLabelEn] = useState<string>("Break");
   const [autoFilledTeacher, setAutoFilledTeacher] = useState(false);
   const [autoFilledRoom, setAutoFilledRoom] = useState(false);
   const [roomSource, setRoomSource] = useState<RoomAssignmentSource | null>(null);
@@ -105,23 +99,17 @@ export default function EditSlotDialog({
         locale,
       }).find((allocation) => allocation.teacherId === entry.teacherId);
 
-      setSlotType(entry.slotType || "CLASS");
       setSubjectId(entry.subjectId || "");
       setTeacherId(entry.teacherId || "");
       setTeacherAllocationId(matchingAllocation?.allocationId ?? "");
       setRoomId(entry.roomId || "");
       setRoomSource(getRoomSource(entry.roomId || null, entry.subjectId || undefined));
-      setBreakLabelAr(entry.breakLabelAr || "فسحة");
-      setBreakLabelEn(entry.breakLabelEn || "Break");
     } else {
-      setSlotType("CLASS");
       setSubjectId("");
       setTeacherId("");
       setTeacherAllocationId("");
       setRoomId("");
       setRoomSource(null);
-      setBreakLabelAr("فسحة");
-      setBreakLabelEn("Break");
     }
 
     setAutoFilledTeacher(false);
@@ -138,11 +126,6 @@ export default function EditSlotDialog({
     teachers,
   ]);
   /* eslint-enable react-hooks/set-state-in-effect */
-
-  const slotTypeOptions = [
-    { value: "CLASS", label: t("class") },
-    { value: "BREAK", label: t("break") },
-  ];
 
   const subjectOptions = [
     { value: "", label: t("noSubject") },
@@ -283,37 +266,21 @@ export default function EditSlotDialog({
     }
   };
 
-  const roomConflictWarning =
-    slotType === "CLASS" && roomId ? hasRoomConflict(roomId) : false;
-  const missingRoomWarning = slotType === "CLASS" && subjectId && !roomId;
+  const roomConflictWarning = roomId ? hasRoomConflict(roomId) : false;
+  const missingRoomWarning = subjectId && !roomId;
 
   const handleSave = () => {
-    if (slotType === "BREAK") {
-      onSave(
-        dayKey,
-        periodIndex,
-        null,
-        null,
-        null,
-        "BREAK",
-        breakLabelAr,
-        breakLabelEn
-      );
-      return;
-    }
-
     onSave(
       dayKey,
       periodIndex,
       subjectId || null,
       teacherId || null,
       roomId || null,
-      "CLASS"
     );
   };
 
   const handleClear = () => {
-    onSave(dayKey, periodIndex, null, null, null, "CLASS");
+    onSave(dayKey, periodIndex, null, null, null);
   };
 
   return (
@@ -339,54 +306,13 @@ export default function EditSlotDialog({
       }
     >
       <div className="space-y-4">
-        {selectedClassroomName && slotType === "CLASS" && (
+        {selectedClassroomName && (
           <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
             {t("targetClassroom", { classroom: selectedClassroomName })}
           </div>
         )}
 
-        <div>
-          <Select
-            label={t("slotType")}
-            value={slotType}
-            onChange={(value) => setSlotType(value as "CLASS" | "BREAK")}
-            options={slotTypeOptions}
-          />
-        </div>
-
-        {slotType === "BREAK" ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-            <p className="mb-3 text-sm text-amber-800">{t("breakInfo")}</p>
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  {t("breakLabelAr")}
-                </label>
-                <input
-                  type="text"
-                  value={breakLabelAr}
-                  onChange={(event) => setBreakLabelAr(event.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-primary"
-                  placeholder={t("breakLabelPlaceholderAr")}
-                  dir="rtl"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  {t("breakLabelEn")}
-                </label>
-                <input
-                  type="text"
-                  value={breakLabelEn}
-                  onChange={(event) => setBreakLabelEn(event.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-primary"
-                  placeholder="Break"
-                />
-              </div>
-            </div>
-          </div>
-        ) : (
-          <>
+        <>
             <div>
               <Select
                 label={t("subject")}
@@ -442,8 +368,7 @@ export default function EditSlotDialog({
                 </p>
               )}
             </div>
-          </>
-        )}
+        </>
       </div>
     </Modal>
   );

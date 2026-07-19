@@ -442,9 +442,6 @@ export default function TimetableView({
     subjectId: string | null,
     teacherId: string | null,
     roomId: string | null,
-    slotType?: "CLASS" | "BREAK",
-    breakLabelAr?: string,
-    breakLabelEn?: string,
   ) => {
     // Update local state
     if (!editingSlot) {
@@ -469,12 +466,9 @@ export default function TimetableView({
       classroomId: editingSlot.classroomId,
       dayKey,
       periodIndex,
-      slotType: slotType || "CLASS",
       subjectId,
       teacherId,
       roomId,
-      breakLabelAr,
-      breakLabelEn,
       status: "DRAFT",
     };
 
