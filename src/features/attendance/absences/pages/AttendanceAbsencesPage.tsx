@@ -8,14 +8,12 @@ import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
 import AttendanceScopeHeader from "@/features/attendance/shared/components/AttendanceScopeHeader";
 import AttendanceFiltersPanel from "@/features/attendance/shared/components/AttendanceFiltersPanel";
-import AttendanceDetailsCard from "@/features/attendance/shared/components/AttendanceDetailsCard";
 import AttendanceBottomDrawer from "@/features/attendance/shared/components/AttendanceBottomDrawer";
 import {
   AttendanceWorkspaceContentPanel,
   AttendanceWorkspaceHeader,
   AttendanceWorkspaceMobileActions,
   AttendanceWorkspaceShell,
-  AttendanceWorkspaceSplit,
   AttendanceWorkspaceStack,
   AttendanceWorkspaceState,
 } from "@/features/attendance/shared/components/AttendanceWorkspaceShell";
@@ -175,13 +173,15 @@ export default function AttendanceAbsencesPage() {
 
   const handleRecordClick = (record: AbsenceRecord) => {
     setSelectedRecord(record);
-    if (isMobile) {
-      setShowDetailsDrawer(true);
-    }
+    setShowDetailsDrawer(true);
   };
 
   const handleEditExcuse = async (record: AbsenceRecord) => {
-    if (isReadOnly) return;
+    if (
+      isReadOnly ||
+      record.sessionStatus !== "SUBMITTED" ||
+      record.status === "EXCUSED"
+    ) return;
 
     try {
       // Resolve effective policy for this record
@@ -194,7 +194,7 @@ export default function AttendanceAbsencesPage() {
       );
 
       // Check if excuses are allowed by policy
-      if (!policy.allowExcuses) {
+      if (policy && !policy.allowExcuses) {
         showError(t("messages.excusesDisabledByPolicy"));
         return;
       }
@@ -208,7 +208,11 @@ export default function AttendanceAbsencesPage() {
   };
 
   const handleEditEarlyLeave = (record: AbsenceRecord) => {
-    if (isReadOnly) return;
+    if (
+      isReadOnly ||
+      record.sessionStatus !== "SUBMITTED" ||
+      record.status === "EXCUSED"
+    ) return;
     setRecordToEdit(record);
     setEarlyLeaveModalOpen(true);
   };
@@ -226,11 +230,17 @@ export default function AttendanceAbsencesPage() {
     }
   };
 
-  const handleSaveEarlyLeave = async (minutes: number) => {
+  const handleSaveEarlyLeave = async ({
+    minutes,
+    correctionReason,
+  }: {
+    minutes: number;
+    correctionReason: string;
+  }) => {
     if (!recordToEdit) return;
 
     try {
-      await updateEarlyLeaveMinutes(recordToEdit, minutes);
+      await updateEarlyLeaveMinutes(recordToEdit, minutes, correctionReason);
       showSuccess(t("minutesSaved"));
       await reloadRecords();
     } catch (error) {
@@ -467,6 +477,7 @@ export default function AttendanceAbsencesPage() {
       onEditExcuse={handleEditExcuse}
       onEditEarlyLeave={handleEditEarlyLeave}
       isReadOnly={isReadOnly}
+      structureTree={structureTree}
     />
   );
 
@@ -487,36 +498,21 @@ export default function AttendanceAbsencesPage() {
         </AttendanceWorkspaceHeader>
 
         {!isMobile && (
-          <AttendanceWorkspaceSplit
-            main={
-              <>
-                <AttendanceFiltersPanel className="rounded-lg">
-                  <AbsencesFiltersBar
-                    filters={{ ...filters, search: searchInput }}
-                    onFiltersChange={handleFiltersChange}
-                    onClearFilters={handleClearFilters}
-                    onExport={() => setShowExportModal(true)}
-                    isReadOnly={isReadOnly}
-                    structureTree={structureTree}
-                  />
-                </AttendanceFiltersPanel>
-                <AttendanceWorkspaceContentPanel loading={isLoading}>
-                  {recordsBody}
-                </AttendanceWorkspaceContentPanel>
-              </>
-            }
-            details={
-              <AttendanceDetailsCard className="rounded-lg">
-                <AbsenceDetailsPanel
-                  record={selectedRecord}
-                  onClose={() => setSelectedRecord(null)}
-                  onEditExcuse={handleEditExcuse}
-                  onEditEarlyLeave={handleEditEarlyLeave}
-                  isReadOnly={isReadOnly}
-                />
-              </AttendanceDetailsCard>
-            }
-          />
+          <>
+            <AttendanceFiltersPanel className="rounded-lg">
+              <AbsencesFiltersBar
+                filters={{ ...filters, search: searchInput }}
+                onFiltersChange={handleFiltersChange}
+                onClearFilters={handleClearFilters}
+                onExport={() => setShowExportModal(true)}
+                isReadOnly={isReadOnly}
+                structureTree={structureTree}
+              />
+            </AttendanceFiltersPanel>
+            <AttendanceWorkspaceContentPanel loading={isLoading}>
+              {recordsBody}
+            </AttendanceWorkspaceContentPanel>
+          </>
         )}
 
         {isMobile && (
@@ -550,14 +546,23 @@ export default function AttendanceAbsencesPage() {
 
       <AttendanceBottomDrawer
         isOpen={showDetailsDrawer}
-        onClose={() => setShowDetailsDrawer(false)}
+        onClose={() => {
+          setShowDetailsDrawer(false);
+          setSelectedRecord(null);
+        }}
+        anchor={isMobile ? "bottom" : "left"}
+        heightClassName={isMobile ? "h-[80vh]" : "h-full w-[min(32rem,100vw)]"}
       >
         <AbsenceDetailsPanel
           record={selectedRecord}
-          onClose={() => setShowDetailsDrawer(false)}
+          onClose={() => {
+            setShowDetailsDrawer(false);
+            setSelectedRecord(null);
+          }}
           onEditExcuse={handleEditExcuse}
           onEditEarlyLeave={handleEditEarlyLeave}
           isReadOnly={isReadOnly}
+          structureTree={structureTree}
         />
       </AttendanceBottomDrawer>
 

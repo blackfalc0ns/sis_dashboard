@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import ExcuseDetailsDrawer from "../ExcuseDetailsDrawer";
 import type { ExcuseRequest } from "../../types";
@@ -19,7 +19,9 @@ const request: ExcuseRequest = {
   studentId: "student-1",
   studentNameAr: "سارة علي",
   studentNameEn: "Sara Ali",
-  hasScopeContext: false,
+  scopeType: "SCHOOL",
+  scopeIds: {},
+  hasScopeContext: true,
   type: "ABSENCE",
   dateFrom: "2026-02-10",
   dateTo: "2026-02-10",
@@ -32,7 +34,8 @@ const request: ExcuseRequest = {
 };
 
 describe("ExcuseDetailsDrawer", () => {
-  it("shows unknown scope and prevents misleading scope-based editing", () => {
+  it("allows editing a pending request without backend scope fields", () => {
+    const onEdit = vi.fn();
     render(
       <ExcuseDetailsDrawer
         request={request}
@@ -41,11 +44,13 @@ describe("ExcuseDetailsDrawer", () => {
         onClose={vi.fn()}
         onApprove={vi.fn()}
         onReject={vi.fn()}
-        onEdit={vi.fn()}
+        onEdit={onEdit}
       />,
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent("scopeUnavailable");
-    expect(screen.getByRole("button", { name: "edit" })).toBeDisabled();
+    const editButton = screen.getByRole("button", { name: "edit" });
+    expect(editButton).toBeEnabled();
+    fireEvent.click(editButton);
+    expect(onEdit).toHaveBeenCalledWith(request);
   });
 });

@@ -11,7 +11,8 @@ export function getExcuseTimetableCandidates(
   const base = { academicYearId, termId };
   const term = { ...base, scopeType: "TERM" as const };
 
-  if (scopeType === "SCHOOL" || scopeType === "STAGE") return [];
+  if (scopeType === "SCHOOL") return [];
+  if (scopeType === "STAGE") return [];
 
   const grade = scopeIds?.gradeId
     ? { ...base, scopeType: "GRADE" as const, gradeId: scopeIds.gradeId }

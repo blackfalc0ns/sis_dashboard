@@ -149,7 +149,7 @@ export default function IncidentDetailsDrawer({
           </Button>
         )}
 
-        {!isReadOnly && (
+        {!isReadOnly && incident.sessionStatus === "SUBMITTED" && (
           <Button
             variant="primary"
             size="sm"

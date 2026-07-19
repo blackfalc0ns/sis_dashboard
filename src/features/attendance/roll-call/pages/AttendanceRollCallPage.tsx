@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Filter } from "lucide-react";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import Button from "@/components/ui/button/Button";
 import ScopeBreadcrumb from "@/features/attendance/shared/components/ScopeBreadcrumb";
@@ -36,6 +37,7 @@ import {
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   fetchEffectivePolicy,
+  fetchSessions,
 } from "../services/attendanceRollCallService";
 import {
   RollCallSubmissionError,
@@ -43,10 +45,6 @@ import {
 } from "../hooks/useRollCallSessionWorkspace";
 import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
 import { resolveTimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
-import {
-  createExcuseRequest,
-  updateExcuseRequest,
-} from "@/features/attendance/excuses/services/attendanceExcusesService";
 import { exportAttendanceSession } from "../utils/attendanceExport";
 import { computeAttendanceKpis } from "../utils/attendanceKpis";
 import AttendanceGlobalExportModal from "@/features/attendance/shared/components/AttendanceGlobalExportModal";
@@ -65,7 +63,11 @@ import {
   type AttendanceScopeIds,
 } from "@/features/attendance/shared/attendanceScope";
 import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
-import type { AttendanceEntry, AttendanceStatus } from "../types";
+import type {
+  AttendanceEntry,
+  AttendanceSessionMode,
+  AttendanceStatus,
+} from "../types";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 
 export default function AttendanceRollCallPage() {
@@ -74,6 +76,7 @@ export default function AttendanceRollCallPage() {
   const locale = useLocale();
   const router = useRouter();
   const { showSuccess, showError } = useToast();
+  const { hasPermission } = usePermissions();
 
   // Use unified term context
   const termContext = useAttendanceYearTermLayoutContext();
@@ -95,6 +98,9 @@ export default function AttendanceRollCallPage() {
     import("@/features/academics/timetable/types/timetableConfig").TimetablePeriod[]
   >([]);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
+  const [derivedPeriodSessions, setDerivedPeriodSessions] = useState<
+    import("../types").AttendanceSession[]
+  >([]);
 
   // UI state
   const [isContextLoading, setIsContextLoading] = useState(true);
@@ -105,9 +111,6 @@ export default function AttendanceRollCallPage() {
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSessionDrawer, setShowSessionDrawer] = useState(false);
-  const formalExcuseRequests = useRef(
-    new Map<string, { id: string; attachments: import("@/features/attendance/roll-call/types").AttachmentMeta[] }>(),
-  );
 
   // Filter state
   const [showFilters, setShowFilters] = useState(false);
@@ -223,6 +226,12 @@ export default function AttendanceRollCallPage() {
   );
 
   const periodData = periods.find((period) => period.id === selectedPeriodId);
+  const usesDerivedPeriodSessions =
+    policy?.mode === "DAILY" &&
+    policy.dailyComputationStrategy === "DERIVED_FROM_PERIODS";
+  const rollCallMode: AttendanceSessionMode = usesDerivedPeriodSessions
+    ? "PERIOD"
+    : policy?.mode || "DAILY";
   const sessionSelection = useMemo(
     () => ({
       yearId: termContext.yearId ?? undefined,
@@ -230,7 +239,7 @@ export default function AttendanceRollCallPage() {
       date,
       scopeType,
       scopeIds,
-      mode: policy?.mode,
+      mode: rollCallMode,
       periodId: selectedPeriodId ?? undefined,
       periodIndex: periodData?.index,
       periodNameAr: periodData?.nameAr,
@@ -238,12 +247,13 @@ export default function AttendanceRollCallPage() {
       enabled:
         Boolean(policy) &&
         isScopeSelectionComplete(scopeType, scopeIds) &&
-        (policy?.mode !== "PERIOD" || Boolean(selectedPeriodId)),
+        (rollCallMode !== "PERIOD" || Boolean(selectedPeriodId)),
     }),
     [
       date,
       periodData,
       policy,
+      rollCallMode,
       scopeIds,
       scopeType,
       selectedPeriodId,
@@ -257,6 +267,26 @@ export default function AttendanceRollCallPage() {
   const { saveDraft, submitDraft, unsubmit, resetDraft } = rollCall;
   const isReadOnly = termContext.isReadOnly;
   const isSubmitted = session?.status === "SUBMITTED";
+  const derivedPeriodStatuses = useMemo(() => {
+    const statuses: Record<string, "DRAFT" | "SUBMITTED"> = {};
+
+    for (const derivedSession of derivedPeriodSessions) {
+      if (derivedSession.periodId) {
+        statuses[derivedSession.periodId] = derivedSession.status;
+      }
+    }
+
+    if (usesDerivedPeriodSessions && session?.periodId) {
+      statuses[session.periodId] = session.status;
+    }
+
+    return statuses;
+  }, [derivedPeriodSessions, session, usesDerivedPeriodSessions]);
+  const canReopenForEdit =
+    Boolean(isSubmitted) &&
+    !isReadOnly &&
+    termContext.termStatus !== "closed" &&
+    hasPermission("attendance.rollcall.unsubmit");
   const shouldGuardNavigation = isDirty && !isReadOnly && !isSubmitted;
   const suppressNextPopStateRef = useRef(false);
 
@@ -287,7 +317,8 @@ export default function AttendanceRollCallPage() {
 
       // Status filter
       if (filters.status !== "ALL") {
-        if (filters.status === "UNMARKED" && entry?.status !== "UNMARKED") return false;
+        if (filters.status === "UNMARKED" && entry?.status !== "UNMARKED")
+          return false;
         if (filters.status !== "UNMARKED" && entry?.status !== filters.status)
           return false;
       }
@@ -367,7 +398,9 @@ export default function AttendanceRollCallPage() {
       } catch (error) {
         if (cancelled) return;
         console.error("Failed to load structure:", error);
-        setContextError(error instanceof Error ? error : new Error("structure-load-failed"));
+        setContextError(
+          error instanceof Error ? error : new Error("structure-load-failed"),
+        );
       }
     };
 
@@ -406,34 +439,40 @@ export default function AttendanceRollCallPage() {
         if (cancelled) return;
         setPolicy(effectivePolicy);
 
-        // Fetch timetable config if PERIOD mode
-        if (effectivePolicy?.mode === "PERIOD") {
-          const [gradeConfig, sectionConfig, classroomConfig] = await Promise.all([
-            scopeIds.gradeId
-              ? fetchTimetableConfig({
-                  academicYearId: termContext.yearId!,
-                  termId: termContext.termId!,
-                  scopeType: "GRADE",
-                  gradeId: scopeIds.gradeId,
-                })
-              : Promise.resolve(null),
-            scopeIds.sectionId
-              ? fetchTimetableConfig({
-                  academicYearId: termContext.yearId!,
-                  termId: termContext.termId!,
-                  scopeType: "SECTION",
-                  sectionId: scopeIds.sectionId,
-                })
-              : Promise.resolve(null),
-            scopeIds.classroomId
-              ? fetchTimetableConfig({
-                  academicYearId: termContext.yearId!,
-                  termId: termContext.termId!,
-                  scopeType: "CLASSROOM",
-                  classroomId: scopeIds.classroomId,
-                })
-              : Promise.resolve(null),
-          ]);
+        const usesDerivedPeriods =
+          effectivePolicy?.mode === "DAILY" &&
+          effectivePolicy.dailyComputationStrategy === "DERIVED_FROM_PERIODS";
+
+        // Derived daily policies still require period sessions. The backend
+        // derives the daily result from their submitted entries.
+        if (effectivePolicy?.mode === "PERIOD" || usesDerivedPeriods) {
+          const [gradeConfig, sectionConfig, classroomConfig] =
+            await Promise.all([
+              scopeIds.gradeId
+                ? fetchTimetableConfig({
+                    academicYearId: termContext.yearId!,
+                    termId: termContext.termId!,
+                    scopeType: "GRADE",
+                    gradeId: scopeIds.gradeId,
+                  })
+                : Promise.resolve(null),
+              scopeIds.sectionId
+                ? fetchTimetableConfig({
+                    academicYearId: termContext.yearId!,
+                    termId: termContext.termId!,
+                    scopeType: "SECTION",
+                    sectionId: scopeIds.sectionId,
+                  })
+                : Promise.resolve(null),
+              scopeIds.classroomId
+                ? fetchTimetableConfig({
+                    academicYearId: termContext.yearId!,
+                    termId: termContext.termId!,
+                    scopeType: "CLASSROOM",
+                    classroomId: scopeIds.classroomId,
+                  })
+                : Promise.resolve(null),
+            ]);
 
           const resolved = resolveTimetableConfig(
             null,
@@ -442,10 +481,22 @@ export default function AttendanceRollCallPage() {
             classroomConfig,
           );
           if (cancelled) return;
-          setPeriods(resolved.periods);
+          const policyPeriodIds = new Set(
+            effectivePolicy?.selectedPeriodIds || [],
+          );
+          const allowedPeriods =
+            policyPeriodIds.size > 0
+              ? resolved.periods.filter((period) => policyPeriodIds.has(period.id))
+              : resolved.periods;
+          setPeriods(allowedPeriods);
 
-          // Auto-select first period if none selected
-          setSelectedPeriodId((current) => current ?? resolved.periods[0]?.id ?? null);
+          // Keep the current period only while it remains allowed by policy.
+          setSelectedPeriodId(
+            (current) =>
+              current && allowedPeriods.some((period) => period.id === current)
+                ? current
+                : allowedPeriods[0]?.id ?? null,
+          );
         } else {
           setPeriods([]);
           setSelectedPeriodId(null);
@@ -455,7 +506,11 @@ export default function AttendanceRollCallPage() {
         console.error("Failed to load policy/timetable:", error);
         setPolicy(null);
         setPeriods([]);
-        setContextError(error instanceof Error ? error : new Error("attendance-context-load-failed"));
+        setContextError(
+          error instanceof Error
+            ? error
+            : new Error("attendance-context-load-failed"),
+        );
       } finally {
         if (!cancelled) setIsContextLoading(false);
       }
@@ -472,6 +527,62 @@ export default function AttendanceRollCallPage() {
     scopeType,
     scopeIds,
     date,
+  ]);
+
+  useEffect(() => {
+    if (
+      !usesDerivedPeriodSessions ||
+      !policy?.id ||
+      !termContext.yearId ||
+      !termContext.termId ||
+      !date ||
+      !isScopeSelectionComplete(scopeType, scopeIds)
+    ) {
+      setDerivedPeriodSessions([]);
+      return;
+    }
+
+    const yearId = termContext.yearId;
+    const termId = termContext.termId;
+    const policyId = policy.id;
+    let cancelled = false;
+    const loadDerivedPeriodSessions = async () => {
+      try {
+        const sessions = await fetchSessions(
+          yearId,
+          termId,
+          date,
+          date,
+          { scopeType, scopeIds },
+        );
+        if (cancelled) return;
+
+        setDerivedPeriodSessions(
+          sessions.filter(
+            (candidate) =>
+              candidate.mode === "PERIOD" && candidate.policyId === policyId,
+          ),
+        );
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load derived period sessions:", error);
+          setDerivedPeriodSessions([]);
+        }
+      }
+    };
+
+    void loadDerivedPeriodSessions();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    date,
+    policy?.id,
+    scopeIds,
+    scopeType,
+    termContext.termId,
+    termContext.yearId,
+    usesDerivedPeriodSessions,
   ]);
 
   // Handle entry change
@@ -521,89 +632,9 @@ export default function AttendanceRollCallPage() {
     }
   }, [session, saveDraft, t, tCommon, showSuccess, showError]);
 
-  const handleCreateExcuseRequest = useCallback(
-    async (studentId: string, reason: string, attachments: import("@/features/attendance/roll-call/types").AttachmentMeta[]) => {
-      if (!session || !termContext.yearId || !termContext.termId) {
-        throw new Error("Attendance session context is incomplete");
-      }
-
-      const student = roster.find((item) => item.id === studentId);
-      if (!student) throw new Error("Student was not found in the current roster");
-
-      const requestKey = `${session.id}:${studentId}`;
-      const existing = formalExcuseRequests.current.get(requestKey);
-      if (existing) {
-        await updateExcuseRequest(
-          existing.id,
-          { reasonAr: reason, reasonEn: reason, attachments },
-          existing.attachments,
-        );
-        formalExcuseRequests.current.set(requestKey, { ...existing, attachments });
-        return;
-      }
-
-      const request = await createExcuseRequest({
-        yearId: termContext.yearId,
-        termId: termContext.termId,
-        studentId,
-        studentNameAr: student.nameAr,
-        studentNameEn: student.nameEn,
-        studentNumber: student.studentNumber,
-        scopeType: session.scopeType,
-        scopeIds: session.scopeIds,
-        type: "ABSENCE",
-        dateFrom: session.date,
-        dateTo: session.date,
-        selectedPeriodIds: session.mode === "PERIOD" && session.periodId ? [session.periodId] : undefined,
-        reasonAr: reason,
-        reasonEn: reason,
-        attachments,
-      });
-      formalExcuseRequests.current.set(requestKey, { id: request.id, attachments });
-    },
-    [session, termContext.yearId, termContext.termId, roster],
-  );
-
   // Submit
   const handleSubmit = useCallback(async () => {
-    if (!session || !policy) return;
-
-    // Validate entries
-    const validationErrors: string[] = [];
-
-    entries.forEach((entry) => {
-      const student = roster.find((s) => s.id === entry.studentId);
-      const studentName = locale === "ar" ? student?.nameAr : student?.nameEn;
-
-      // Check EXCUSED entries
-      if (entry.status === "EXCUSED") {
-        if (!entry.excuseReason) {
-          validationErrors.push(
-            `${studentName}: ${t("excuse.requiredReason")}`,
-          );
-        }
-        if (
-          policy.requireAttachmentForExcuse &&
-          (!entry.excuseAttachments || entry.excuseAttachments.length === 0)
-        ) {
-          validationErrors.push(
-            `${studentName}: ${t("excuse.requiredAttachment")}`,
-          );
-        }
-      }
-
-      // Check EARLY_LEAVE entries
-      if (entry.status === "EARLY_LEAVE") {
-        if (!entry.minutesEarlyLeave || entry.minutesEarlyLeave < 1) {
-          validationErrors.push(`${studentName}: ${t("earlyLeave.required")}`);
-        }
-      }
-    });
-
-    if (validationErrors.length > 0) {
-      showError(validationErrors.join("\n"));
-      return;
-    }
+    if (!session) return;
 
     // Check completion
     if (kpis.unmarkedCount > 0) {
@@ -626,11 +657,7 @@ export default function AttendanceRollCallPage() {
     }
   }, [
     session,
-    policy,
-    entries,
     kpis,
-    roster,
-    locale,
     submitDraft,
     t,
     tCommon,
@@ -649,14 +676,7 @@ export default function AttendanceRollCallPage() {
       console.error("Failed to unsubmit:", error);
       showError(tCommon("error_saving"));
     }
-  }, [
-    session,
-    unsubmit,
-    t,
-    tCommon,
-    showSuccess,
-    showError,
-  ]);
+  }, [session, unsubmit, t, tCommon, showSuccess, showError]);
 
   const handleUnsubmitConfirm = useCallback(() => {
     setShowUnsubmitConfirm(false);
@@ -1070,9 +1090,11 @@ export default function AttendanceRollCallPage() {
   const scopeComplete = isScopeSelectionComplete(scopeType, scopeIds);
   const showNoPolicy = scopeComplete && !policy && !isContextLoading;
   const showNoTimetable =
-    policy?.mode === "PERIOD" && periods.length === 0 && !isContextLoading;
+    rollCallMode === "PERIOD" && periods.length === 0 && !isContextLoading;
   const pickerDisabled =
-    isReadOnly || Boolean(isSubmitted) || rollCall.isOpening || rollCall.isSaving;
+    isReadOnly ||
+    rollCall.isOpening ||
+    rollCall.isSaving;
 
   const sessionPickerProps = {
     scopeType,
@@ -1087,11 +1109,16 @@ export default function AttendanceRollCallPage() {
     onDateChange: handleDateChange,
     termStartDate: term?.startDate || "",
     termEndDate: term?.endDate || "",
-    mode: policy?.mode || ("DAILY" as const),
+    mode: rollCallMode,
+    isDailyDerivedFromPeriods: usesDerivedPeriodSessions,
     periods,
+    periodStatuses: derivedPeriodStatuses,
     selectedPeriodId,
     onPeriodChange: handlePeriodChange,
     sessionStatus: session?.status || null,
+    canReopenForEdit,
+    onReopenForEdit: () => setShowUnsubmitConfirm(true),
+    lockSessionContext: Boolean(isSubmitted),
     disabled: pickerDisabled,
   };
 
@@ -1100,7 +1127,9 @@ export default function AttendanceRollCallPage() {
     workspaceContent = (
       <AttendanceWorkspaceState
         title={t("workspace.contextError")}
-        action={<Button onClick={handleRetryContext}>{t("workspace.retry")}</Button>}
+        action={
+          <Button onClick={handleRetryContext}>{t("workspace.retry")}</Button>
+        }
       />
     );
   } else if (!scopeComplete) {
@@ -1128,10 +1157,18 @@ export default function AttendanceRollCallPage() {
     workspaceContent = (
       <AttendanceWorkspaceState
         title={t("workspace.previewError")}
-        action={<Button onClick={rollCall.retryPreview}>{t("workspace.retry")}</Button>}
+        action={
+          <Button onClick={rollCall.retryPreview}>
+            {t("workspace.retry")}
+          </Button>
+        }
       />
     );
-  } else if (!isContextLoading && !rollCall.isPreviewLoading && roster.length === 0) {
+  } else if (
+    !isContextLoading &&
+    !rollCall.isPreviewLoading &&
+    roster.length === 0
+  ) {
     workspaceContent = (
       <AttendanceWorkspaceState
         title={t("empty.noStudents")}
@@ -1143,13 +1180,22 @@ export default function AttendanceRollCallPage() {
       <div className="flex min-h-0 flex-1 flex-col gap-4">
         <div
           className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
-          style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background-secondary)" }}
+          style={{
+            borderColor: "var(--border-color)",
+            backgroundColor: "var(--background-secondary)",
+          }}
         >
           <div>
-            <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
+            <h3
+              className="font-semibold"
+              style={{ color: "var(--text-primary)" }}
+            >
               {t("workspace.openSession")}
             </h3>
-            <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+            <p
+              className="mt-1 text-sm"
+              style={{ color: "var(--text-secondary)" }}
+            >
               {t("workspace.openSessionDescription")}
             </p>
           </div>
@@ -1180,7 +1226,6 @@ export default function AttendanceRollCallPage() {
         entries={entries}
         policy={policy}
         onEntryChange={handleEntryChange}
-        onCreateExcuseRequest={handleCreateExcuseRequest}
         isReadOnly={isReadOnly || isSubmitted}
         searchQuery={filters.search}
       />
@@ -1195,7 +1240,7 @@ export default function AttendanceRollCallPage() {
           isReadOnly={isReadOnly}
           isSubmitted={isSubmitted}
           canSubmit={!isReadOnly && !isSubmitted}
-          termStatus={termContext.termStatus || "open"}
+          canReopenForEdit={canReopenForEdit}
           onSave={handleSave}
           onSubmit={handleSubmit}
           onUnsubmit={() => setShowUnsubmitConfirm(true)}
@@ -1225,7 +1270,6 @@ export default function AttendanceRollCallPage() {
           <RosterFiltersBar
             filters={filters}
             onFiltersChange={setFilters}
-            policy={policy}
             showFilters={showFilters}
             onToggleFilters={() => setShowFilters(!showFilters)}
           />
@@ -1253,7 +1297,9 @@ export default function AttendanceRollCallPage() {
       </AttendanceWorkspaceMobileActions>
 
       <AttendanceWorkspaceContentPanel
-        loading={isContextLoading || rollCall.isPreviewLoading || rollCall.isOpening}
+        loading={
+          isContextLoading || rollCall.isPreviewLoading || rollCall.isOpening
+        }
       >
         {workspaceContent}
       </AttendanceWorkspaceContentPanel>
@@ -1263,7 +1309,9 @@ export default function AttendanceRollCallPage() {
   return (
     <AttendanceWorkspaceShell
       readOnlyBanner={
-        isReadOnly ? <AttendanceReadOnlyBanner message={t("readonly_banner")} /> : null
+        isReadOnly ? (
+          <AttendanceReadOnlyBanner message={t("readonly_banner")} />
+        ) : null
       }
     >
       <AttendanceWorkspaceRail
@@ -1283,7 +1331,6 @@ export default function AttendanceRollCallPage() {
         onClose={() => setShowFiltersDrawer(false)}
         filters={filters}
         onFiltersChange={setFilters}
-        policy={policy}
         onApply={() => setShowFiltersDrawer(false)}
         onReset={handleResetFilters}
       />

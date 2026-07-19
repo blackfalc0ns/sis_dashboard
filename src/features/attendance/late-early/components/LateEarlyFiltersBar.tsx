@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { Search, RotateCcw, Download } from "lucide-react";
 import Input from "@/components/ui/input/Input";
 import DatePicker from "@/components/ui/input/DatePicker";
@@ -9,11 +9,9 @@ import Button from "@/components/ui/button/Button";
 import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
 import type { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { LateEarlyFilters } from "../types";
-import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
 
 interface LateEarlyFiltersBarProps {
   filters: LateEarlyFilters;
-  periods: TimetablePeriod[];
   stages: Stage[];
   grades: Grade[];
   sections: Section[];
@@ -25,7 +23,6 @@ interface LateEarlyFiltersBarProps {
 
 export default function LateEarlyFiltersBar({
   filters,
-  periods,
   stages,
   grades,
   sections,
@@ -36,12 +33,6 @@ export default function LateEarlyFiltersBar({
 }: LateEarlyFiltersBarProps) {
   const t = useTranslations("attendance.lateEarly.filters");
   const tCommon = useTranslations("common");
-  const locale = useLocale();
-
-  const periodOptions = periods.map((period) => ({
-    value: period.id,
-    label: locale === "ar" ? period.nameAr : period.nameEn,
-  }));
 
   return (
     <div className="space-y-4">
@@ -134,16 +125,6 @@ export default function LateEarlyFiltersBar({
           />
         </div>
 
-        <div className="lg:col-span-3">
-          {periodOptions.length > 0 && (
-            <Select
-              value={filters.periodId || ""}
-              onChange={(value) => onFiltersChange({ periodId: value || undefined })}
-              options={[{ value: "", label: t("allPeriods") }, ...periodOptions]}
-              selectSize="sm"
-            />
-          )}
-        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">

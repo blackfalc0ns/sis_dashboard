@@ -72,9 +72,9 @@ describe("attendanceExcusesService", () => {
         reasonEn: "Medical appointment",
         dateFrom: "2026-02-10",
         dateTo: "2026-02-10",
-        scopeType: undefined,
-        scopeIds: undefined,
-        hasScopeContext: false,
+        scopeType: "SCHOOL",
+        scopeIds: {},
+        hasScopeContext: true,
       }),
     ]);
 
@@ -105,7 +105,6 @@ describe("attendanceExcusesService", () => {
       studentId: "student-1",
       studentNameAr: "سارة علي",
       studentNameEn: "Sara Ali",
-      scopeType: "SCHOOL",
       type: "ABSENCE",
       dateFrom: "2026-02-10",
       dateTo: "2026-02-10",
@@ -156,7 +155,6 @@ describe("attendanceExcusesService", () => {
       studentId: "student-1",
       studentNameAr: "سارة علي",
       studentNameEn: "Sara Ali",
-      scopeType: "SCHOOL",
       type: "ABSENCE",
       dateFrom: "2026-02-10",
       dateTo: "2026-02-10",
@@ -197,8 +195,6 @@ describe("attendanceExcusesService", () => {
       studentId: "student-1",
       studentNameAr: "",
       studentNameEn: "Sara Ali",
-      scopeType: "GRADE",
-      scopeIds: { stageId: "stage-1", gradeId: "grade-1" },
       type: "LATE",
       dateFrom: "2026-02-10",
       dateTo: "2026-02-10",
@@ -338,7 +334,9 @@ describe("attendanceExcusesService", () => {
       attachmentCount: 1,
       createdById: "dc9dbefb-3e65-4950-bc77-d7f758355d44",
       decidedById: undefined,
-      hasScopeContext: false,
+      scopeType: "SCHOOL",
+      scopeIds: {},
+      hasScopeContext: true,
     });
   });
 

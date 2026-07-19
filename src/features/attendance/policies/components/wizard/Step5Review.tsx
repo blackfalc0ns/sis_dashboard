@@ -123,7 +123,7 @@ export default function Step5Review({
                 disabled={isReadOnly}
                 className="w-4 h-4"
               />
-              <span style={{ color: "var(--color-gray-700)" }} className="text-sm">{t("fields.notifyGuardians")}</span>
+              <span style={{ color: "var(--color-gray-700)" }} className="text-sm">{t("fields.notifyGuardiansOnAbsence")}</span>
             </label>
           </div>
         </div>
@@ -133,16 +133,6 @@ export default function Step5Review({
             {t("fields.notifyWhen")}
           </p>
           <div className="space-y-2">
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={formData.notifyOnAbsent}
-                onChange={(e) => onFieldChange("notifyOnAbsent", e.target.checked)}
-                disabled={isReadOnly}
-                className="w-4 h-4"
-              />
-              <span style={{ color: "var(--color-gray-700)" }} className="text-sm">{t("fields.notifyOnAbsent")}</span>
-            </label>
             <label className="flex items-center gap-3">
               <input
                 type="checkbox"
@@ -193,6 +183,16 @@ export default function Step5Review({
               {t(`mode.${formData.mode.toLowerCase()}`)}
             </span>
           </div>
+          {formData.mode === "DAILY" && (
+            <div className="flex justify-between">
+              <span style={{ color: "var(--color-gray-600)" }}>{t("fields.dailyComputation")}:</span>
+              <span style={{ color: "var(--color-gray-900)" }} className="font-medium">
+                {formData.dailyComputationStrategy === "DERIVED_FROM_PERIODS"
+                  ? t("computation.derived")
+                  : t("computation.manual")}
+              </span>
+            </div>
+          )}
           {formData.selectedPeriodIds && formData.selectedPeriodIds.length > 0 && (
             <div className="flex justify-between">
               <span style={{ color: "var(--color-gray-600)" }}>{t("fields.selectPeriods")}:</span>
@@ -214,6 +214,14 @@ export default function Step5Review({
               {formData.allowExcuses ? tCommon("yes") : tCommon("no")}
             </span>
           </div>
+          {formData.autoAbsentAfterMinutes != null && (
+            <div className="flex justify-between">
+              <span style={{ color: "var(--color-gray-600)" }}>{t("fields.autoAbsentAfter")}:</span>
+              <span style={{ color: "var(--color-gray-900)" }} className="font-medium">
+                {formData.autoAbsentAfterMinutes} {t("minutes")}
+              </span>
+            </div>
+          )}
         </div>
 
         {formData.scopeType !== "SCHOOL" && (

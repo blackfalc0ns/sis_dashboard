@@ -8,7 +8,6 @@ import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
 import Input from "@/components/ui/input/Input";
 import DatePicker from "@/components/ui/input/DatePicker";
-import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
 import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
@@ -16,23 +15,24 @@ import { getUploadRules } from "@/utils/upload/validateFile";
 import { fetchRoster } from "@/features/attendance/roll-call/services/attendanceRollCallService";
 import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
 import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
-import type { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
-import type { ExcuseRequest, ExcuseScopeType, ExcuseType, AttachmentMeta } from "../types";
+import type { ExcuseRequest, ExcuseType, AttachmentMeta } from "../types";
 import { formatLocalDate } from "../../utils/dateFormatting";
 import { getExcusePeriodKeysForSave } from "../utils/excusePeriodSelection";
 import { getThresholdState } from "@/features/attendance/shared/policyThresholds";
 import { fetchPolicies } from "@/features/attendance/policies/services/attendancePolicyService";
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
-import type { ExcusePolicyIssue } from "../utils/excusePolicyValidation";
+import type { AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
+import {
+  resolveEffectiveExcuseAttendancePolicy,
+  type ExcusePolicyIssue,
+} from "../utils/excusePolicyValidation";
 import { deriveExcusePolicyState } from "../utils/excusePolicyState";
 import { shouldLoadExcusePeriods } from "../utils/excusePeriodLoading";
 import { createTimetableConfigCache } from "../utils/timetableConfigCache";
-import { getReadyExcuseScope } from "../utils/excuseScopeReadiness";
 import {
   getExcuseTimetableCandidates,
   resolveExcuseTimetableConfig,
 } from "../utils/excuseTimetableScope";
-import type { AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
 import {
   ExcuseAttachmentLinkError,
   linkExcuseRequestAttachments,
@@ -47,10 +47,6 @@ interface ExcuseRequestModalProps {
   yearId: string;
   termId: string;
   termRange: { startDate: string; endDate: string };
-  stages: Stage[];
-  grades: Grade[];
-  sections: Section[];
-  classrooms: Classroom[];
   initialRequest?: ExcuseRequest | null;
   onClose: () => void;
   onRefresh: () => Promise<void>;
@@ -62,8 +58,6 @@ interface FormState {
   studentNameAr: string;
   studentNameEn: string;
   studentNumber?: string;
-  scopeType: ExcuseScopeType;
-  scopeIds?: AttendanceScopeIds;
   type: ExcuseType;
   dateFrom: string;
   dateTo: string;
@@ -80,6 +74,10 @@ interface RosterStudent {
   nameAr: string;
   nameEn: string;
   studentNumber: string;
+  stageId?: string;
+  gradeId?: string;
+  sectionId?: string;
+  classroomId?: string;
 }
 
 export default function ExcuseRequestModal({
@@ -88,10 +86,6 @@ export default function ExcuseRequestModal({
   yearId,
   termId,
   termRange,
-  stages,
-  grades,
-  sections,
-  classrooms,
   initialRequest,
   onClose,
   onRefresh,
@@ -107,8 +101,6 @@ export default function ExcuseRequestModal({
     studentNameAr: "",
     studentNameEn: "",
     studentNumber: "",
-    scopeType: "SCHOOL",
-    scopeIds: {},
     type: "ABSENCE",
     dateFrom: "",
     dateTo: "",
@@ -135,39 +127,60 @@ export default function ExcuseRequestModal({
   const [policySnapshot, setPolicySnapshot] = useState<AttendancePolicy[]>([]);
   const [policyLoading, setPolicyLoading] = useState(false);
   const [policyLoadFailed, setPolicyLoadFailed] = useState(false);
-  const [scopeSelectionExplicit, setScopeSelectionExplicit] = useState(false);
-  const modalWasOpen = useRef(false);
   const rosterRequestId = useRef(0);
   const timetableRequestId = useRef(0);
   const timetableConfigCache = useRef(
     createTimetableConfigCache(fetchTimetableConfig),
   );
 
+  // The backend resolves excuse requests at the school level and does not
+  // persist a grade, section, or classroom scope.
   const readyScope = useMemo(
-    () =>
-      getReadyExcuseScope(
-        form.scopeType,
-        form.scopeIds,
-        scopeSelectionExplicit,
-        form.type,
-      ),
-    [form.scopeType, form.scopeIds, form.type, scopeSelectionExplicit],
+    () => ({ scopeType: "SCHOOL" as const, scopeIds: {} }),
+    [],
   );
+  const studentScope = useMemo(() => {
+    const student = roster.find((item) => item.id === form.studentId);
+    if (!student?.gradeId) return null;
+
+    const scopeIds: AttendanceScopeIds = {
+      stageId: student.stageId,
+      gradeId: student.gradeId,
+      sectionId: student.sectionId,
+      classroomId: student.classroomId,
+    };
+    if (student.classroomId && student.sectionId) {
+      return { scopeType: "CLASSROOM" as const, scopeIds };
+    }
+    if (student.sectionId) return { scopeType: "SECTION" as const, scopeIds };
+    return { scopeType: "GRADE" as const, scopeIds };
+  }, [form.studentId, roster]);
+  const timetableScope = form.type === "ABSENCE" ? null : studentScope;
+  const policyScope = studentScope ?? readyScope;
   const policyState = useMemo(() => {
-    if (!readyScope) return { policy: null, issue: null };
     return deriveExcusePolicyState(policySnapshot, {
       dateFrom: form.dateFrom,
       dateTo:
         form.type === "ABSENCE"
           ? form.dateTo || form.dateFrom
           : form.dateFrom,
-      scopeType: readyScope.scopeType,
-      scopeIds: readyScope.scopeIds,
+      scopeType: policyScope.scopeType,
+      scopeIds: policyScope.scopeIds,
       attachments: form.attachments,
       reasonAr: form.reasonAr,
       reasonEn: form.reasonEn,
     });
-  }, [policySnapshot, readyScope, form.dateFrom, form.dateTo, form.type, form.attachments, form.reasonAr, form.reasonEn]);
+  }, [policySnapshot, policyScope, form.dateFrom, form.dateTo, form.type, form.attachments, form.reasonAr, form.reasonEn]);
+  const attendancePolicy = useMemo(
+    () =>
+      resolveEffectiveExcuseAttendancePolicy(
+        policySnapshot,
+        form.dateFrom,
+        policyScope.scopeType,
+        policyScope.scopeIds,
+      ),
+    [policySnapshot, form.dateFrom, policyScope],
+  );
   const resolvedPolicy = policyState.policy;
   const policyIssue: ExcusePolicyIssue | null =
     readyScope && !policyLoading && policyLoadFailed
@@ -178,18 +191,10 @@ export default function ExcuseRequestModal({
   const requireReason = resolvedPolicy?.requireExcuseReason ?? false;
   const requireAttachment = resolvedPolicy?.requireAttachmentForExcuse ?? false;
   const allowExcuses = resolvedPolicy?.allowExcuses ?? false;
+  const isDailyAttendance = attendancePolicy?.mode === "DAILY";
   const lateThresholdState = getThresholdState("LATE", form.minutesLate, resolvedPolicy);
   const earlyLeaveThresholdState = getThresholdState("EARLY_LEAVE", form.minutesEarlyLeave, resolvedPolicy);
-  const isPolicyBlocking = readyScope
-    ? !!policyIssue || !allowExcuses
-    : !initialRequest;
-  const isPeriodBased = form.type === "LATE" || form.type === "EARLY_LEAVE";
-  const needsEditAttendanceContext =
-    !!initialRequest && isPeriodBased && form.selectedPeriodIds.length === 0;
-  const isEditStudentVerified =
-    !needsEditAttendanceContext ||
-    roster.some((student) => student.id === form.studentId);
-
+  const isPolicyBlocking = !!policyIssue || !allowExcuses;
   // Initialize form when modal opens
   useEffect(() => {
     if (!isOpen) return;
@@ -201,8 +206,6 @@ export default function ExcuseRequestModal({
         studentNameAr: initialRequest.studentNameAr,
         studentNameEn: initialRequest.studentNameEn,
         studentNumber: initialRequest.studentNumber,
-        scopeType: initialRequest.scopeType ?? "SCHOOL",
-        scopeIds: initialRequest.scopeIds,
         type: initialRequest.type,
         dateFrom: initialRequest.dateFrom,
         dateTo: initialRequest.dateTo,
@@ -220,8 +223,6 @@ export default function ExcuseRequestModal({
         studentNameAr: "",
         studentNameEn: "",
         studentNumber: "",
-        scopeType: "SCHOOL",
-        scopeIds: {},
         type: "ABSENCE",
         dateFrom: termRange.startDate,
         dateTo: termRange.startDate,
@@ -238,11 +239,10 @@ export default function ExcuseRequestModal({
     setSaveError("");
     setPendingAttachmentRetry(null);
     setRosterError(false);
-    setScopeSelectionExplicit(!!initialRequest?.scopeIds);
   }, [isOpen, initialRequest, termRange.startDate]);
 
   useEffect(() => {
-    if (!isOpen || !yearId || !termId || (!!initialRequest && !readyScope)) {
+    if (!isOpen || !yearId || !termId) {
       setPolicySnapshot([]);
       setPolicyLoading(false);
       setPolicyLoadFailed(false);
@@ -297,7 +297,6 @@ export default function ExcuseRequestModal({
   useEffect(() => {
     if (
       !isOpen ||
-      (!!initialRequest && !needsEditAttendanceContext) ||
       !yearId ||
       !termId ||
       !form.dateFrom ||
@@ -332,22 +331,42 @@ export default function ExcuseRequestModal({
     };
 
     loadRoster();
-  }, [isOpen, initialRequest, needsEditAttendanceContext, yearId, termId, form.dateFrom, readyScope]);
+  }, [isOpen, yearId, termId, form.dateFrom, readyScope]);
 
-  // Load timetable periods for scope
+  useEffect(() => {
+    if (!isOpen || form.type === "ABSENCE" || !resolvedPolicy) return;
+
+    setForm((previous) => {
+      const selectedPeriodIds = isDailyAttendance
+        ? ["daily"]
+        : previous.selectedPeriodIds.filter((periodId) => periodId !== "daily");
+      if (
+        selectedPeriodIds.length === previous.selectedPeriodIds.length &&
+        selectedPeriodIds.every((periodId, index) => periodId === previous.selectedPeriodIds[index])
+      ) {
+        return previous;
+      }
+      return { ...previous, selectedPeriodIds };
+    });
+  }, [isOpen, form.type, resolvedPolicy, isDailyAttendance]);
+
+  // Daily attendance uses the backend's fixed "daily" period key. Period
+  // attendance uses the selected student's timetable scope.
   useEffect(() => {
     if (!isOpen) {
       timetableRequestId.current += 1;
-      modalWasOpen.current = false;
       setPeriods([]);
       setPeriodsError(false);
       return;
     }
 
-    const isModalOpening = !modalWasOpen.current;
-    modalWasOpen.current = true;
-
-    if (!shouldLoadExcusePeriods(form.type, isModalOpening)) {
+    if (
+      !shouldLoadExcusePeriods(form.type) ||
+      policyLoading ||
+      !resolvedPolicy ||
+      isDailyAttendance ||
+      !timetableScope
+    ) {
       setPeriods([]);
       setPeriodsError(false);
       return;
@@ -359,8 +378,8 @@ export default function ExcuseRequestModal({
         const candidates = getExcuseTimetableCandidates(
           yearId,
           termId,
-          form.scopeType,
-          form.scopeIds,
+          timetableScope.scopeType,
+          timetableScope.scopeIds,
         );
         if (candidates.length === 0) {
           setPeriods([]);
@@ -397,7 +416,16 @@ export default function ExcuseRequestModal({
     };
 
     loadPeriods();
-  }, [isOpen, yearId, termId, form.type, form.scopeType, form.scopeIds]);
+  }, [
+    isOpen,
+    yearId,
+    termId,
+    form.type,
+    policyLoading,
+    resolvedPolicy,
+    isDailyAttendance,
+    timetableScope,
+  ]);
 
   // Student options with locale-aware rendering
   const studentOptions = useMemo(
@@ -557,8 +585,6 @@ export default function ExcuseRequestModal({
         studentNameAr: form.studentNameAr,
         studentNameEn: form.studentNameEn,
         studentNumber: form.studentNumber,
-        scopeType: form.scopeType,
-        scopeIds: form.scopeIds,
         type: form.type,
         dateFrom: form.dateFrom,
         dateTo: form.type === "LATE" || form.type === "EARLY_LEAVE" ? form.dateFrom : form.dateTo,
@@ -586,43 +612,13 @@ export default function ExcuseRequestModal({
     }
   };
 
-  const handleScopeChange = (scopeType: ExcuseScopeType, scopeIds: AttendanceScopeIds) => {
-    if (isReadOnly) return;
-    setScopeSelectionExplicit(true);
-    
-    // Reset all student-related state when scope changes
-    setForm((prev) => ({
-      ...prev,
-      scopeType,
-      scopeIds,
-      studentId: "",
-      studentNameAr: "",
-      studentNameEn: "",
-      studentNumber: "",
-    }));
-  };
-
   const handleTypeChange = (type: ExcuseType) => {
     if (isReadOnly) return;
-
-    const requiresPreciseScope = type === "LATE" || type === "EARLY_LEAVE";
-    const hasBroadScope = form.scopeType === "SCHOOL" || form.scopeType === "STAGE";
-    if (requiresPreciseScope && hasBroadScope) setScopeSelectionExplicit(false);
 
     setForm((prev) => {
       return {
       ...prev,
       type,
-      ...(requiresPreciseScope && hasBroadScope
-        ? {
-            scopeType: "GRADE" as const,
-            scopeIds: {},
-            studentId: "",
-            studentNameAr: "",
-            studentNameEn: "",
-            studentNumber: "",
-          }
-        : {}),
       // For LATE/EARLY_LEAVE, ensure dateTo matches dateFrom (single date)
       dateTo: (type === "LATE" || type === "EARLY_LEAVE") ? prev.dateFrom : prev.dateTo,
       // Clear period selection when changing type
@@ -690,7 +686,7 @@ export default function ExcuseRequestModal({
             {tCommon("cancel")}
           </Button>
           {!isReadOnly && (
-            <Button variant="primary" onClick={handleSave} loading={saving} disabled={uploadingAttachments || policyLoading || isPolicyBlocking || periodsError || !isEditStudentVerified}>
+            <Button variant="primary" onClick={handleSave} loading={saving} disabled={uploadingAttachments || policyLoading || isPolicyBlocking || periodsError}>
               {pendingAttachmentRetry ? t("retryAttachments") : tCommon("save")}
             </Button>
           )}
@@ -751,49 +747,10 @@ export default function ExcuseRequestModal({
           </div>
         )}
 
-        {/* Scope and student */}
-        {!initialRequest || needsEditAttendanceContext ? (
+        {/* The backend supports choosing a student only when creating a request. */}
+        {!initialRequest ? (
           <section className="space-y-4 rounded-lg border p-4" style={{ borderColor: "var(--border-color)" }}>
-          {isPeriodBased && !readyScope && (
-            <div className="flex items-start gap-2 rounded-md p-3" style={{ backgroundColor: "var(--color-info-50)", color: "var(--color-info-700)" }}>
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-              <p className="text-sm">{t("preciseScopeRequired")}</p>
-            </div>
-          )}
-          <ScopePicker
-          scopeType={form.scopeType}
-          scopeIds={form.scopeIds || {}}
-          stages={stages}
-          grades={grades}
-          sections={sections}
-          classrooms={classrooms}
-          allowedScopeTypes={
-            isPeriodBased ? ["GRADE", "SECTION", "CLASSROOM"] : undefined
-          }
-          onScopeTypeChange={(scopeType) => handleScopeChange(scopeType, {})}
-          onScopeIdsChange={(scopeIds) =>
-            {
-              setScopeSelectionExplicit(true);
-              setForm((prev) => ({
-              ...prev,
-              scopeIds,
-              studentId: "",
-              studentNameAr: "",
-              studentNameEn: "",
-              studentNumber: "",
-              }));
-            }
-          }
-          errors={{}}
-          disabled={isReadOnly}
-        />
-
-        {/* Student Selection */}
-        {!readyScope ? (
-          <div className="rounded-md p-3 text-sm" style={{ backgroundColor: "var(--color-info-50)", color: "var(--color-info-700)" }}>
-            {t("selectScopeFirst")}
-          </div>
-        ) : rosterLoading ? (
+        {rosterLoading ? (
           <div className="flex items-center justify-center py-4">
             <PartialLoader />
           </div>
@@ -801,16 +758,6 @@ export default function ExcuseRequestModal({
           <div className="p-3 rounded" style={{ backgroundColor: "var(--color-accent-50)", color: "var(--color-accent-700)" }}>
             <p className="text-sm">{t("rosterLoadError")}</p>
           </div>
-        ) : initialRequest ? (
-          roster.some((student) => student.id === form.studentId) ? (
-            <div className="rounded-md p-3 text-sm" style={{ backgroundColor: "var(--color-success-50)", color: "var(--color-success-700)" }}>
-              {t("studentScopeVerified")}
-            </div>
-          ) : (
-            <div role="alert" className="rounded-md p-3 text-sm" style={{ backgroundColor: "var(--color-danger-50)", color: "var(--color-danger-700)" }}>
-              {t("studentOutsideScope")}
-            </div>
-          )
         ) : roster.length === 0 ? (
           <div className="p-3 rounded" style={{ backgroundColor: "var(--color-info-50)", color: "var(--color-info-700)" }}>
             <p className="text-sm">{t("noStudentsInScope")}</p>
@@ -1036,14 +983,13 @@ export default function ExcuseRequestModal({
           <p className="text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
             {t("attachments")} {requireAttachment ? "*" : ""}
           </p>
-          {!isReadOnly && (
-            <DragDropUploadArea
-              uploadArea="ATTENDANCE_EXCUSE"
-              onFilesSelected={handleFilesSelected}
-              isUploading={uploadingAttachments}
-              helperText={`${tUpload(rules.acceptLabelKey)} - ${Math.round(rules.maxSizeBytes / (1024 * 1024))}MB`}
-            />
-          )}
+          <DragDropUploadArea
+            uploadArea="ATTENDANCE_EXCUSE"
+            onFilesSelected={handleFilesSelected}
+            disabled={isReadOnly}
+            isUploading={uploadingAttachments}
+            helperText={`${tUpload(rules.acceptLabelKey)} - ${Math.round(rules.maxSizeBytes / (1024 * 1024))}MB`}
+          />
           {errors.attachments && (
             <p className="text-xs mt-1" style={{ color: "var(--color-accent-700)" }}>
               {errors.attachments}

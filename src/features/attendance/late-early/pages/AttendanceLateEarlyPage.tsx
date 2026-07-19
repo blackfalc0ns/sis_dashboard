@@ -9,14 +9,12 @@ import { useToast } from "@/components/ui/toast/Toast";
 import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
 import AttendanceScopeHeader from "@/features/attendance/shared/components/AttendanceScopeHeader";
 import AttendanceFiltersPanel from "@/features/attendance/shared/components/AttendanceFiltersPanel";
-import AttendanceDetailsCard from "@/features/attendance/shared/components/AttendanceDetailsCard";
 import AttendanceBottomDrawer from "@/features/attendance/shared/components/AttendanceBottomDrawer";
 import {
   AttendanceWorkspaceContentPanel,
   AttendanceWorkspaceHeader,
   AttendanceWorkspaceMobileActions,
   AttendanceWorkspaceShell,
-  AttendanceWorkspaceSplit,
   AttendanceWorkspaceStack,
   AttendanceWorkspaceState,
 } from "@/features/attendance/shared/components/AttendanceWorkspaceShell";
@@ -28,8 +26,6 @@ import {
   type Section,
   type Stage,
 } from "@/features/academics/academic-structure-tree/services/structureService";
-import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
-import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
 import { fetchIncidents, updateIncidentMinutes } from "../services/attendanceLateEarlyService";
 import { exportLateEarly } from "../utils/lateEarlyExport";
 import AttendanceGlobalExportModal from "@/features/attendance/shared/components/AttendanceGlobalExportModal";
@@ -83,7 +79,6 @@ export default function AttendanceLateEarlyPage() {
   const [grades, setGrades] = useState<Grade[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
-  const [periods, setPeriods] = useState<TimetablePeriod[]>([]);
 
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(false);
@@ -166,20 +161,15 @@ export default function AttendanceLateEarlyPage() {
     if (!termContext.yearId || !termContext.termId) return;
 
     const loadStructure = async () => {
-      const [structure, termConfig] = await Promise.all([
-        fetchStructureTree(termContext.yearId!, termContext.termId!),
-        fetchTimetableConfig({
-          academicYearId: termContext.yearId!,
-          termId: termContext.termId!,
-          scopeType: "TERM",
-        }),
-      ]);
+      const structure = await fetchStructureTree(
+        termContext.yearId!,
+        termContext.termId!,
+      );
 
       setStages(structure.stages);
       setGrades(structure.grades);
       setSections(structure.sections);
       setClassrooms(structure.classrooms);
-      setPeriods(termConfig?.periods || []);
     };
 
     loadStructure();
@@ -364,18 +354,22 @@ export default function AttendanceLateEarlyPage() {
 
   const handleOpenIncident = (incident: Incident) => {
     setSelectedIncident(incident);
-    if (isMobile) {
-      setDetailsDrawerOpen(true);
-    }
+    setDetailsDrawerOpen(true);
   };
 
   const handleEditMinutes = (incident: Incident) => {
-    if (isReadOnly) return;
+    if (isReadOnly || incident.sessionStatus !== "SUBMITTED") return;
     setEditingIncident(incident);
     setMinutesEditorOpen(true);
   };
 
-  const handleSaveMinutes = async (minutes: number) => {
+  const handleSaveMinutes = async ({
+    minutes,
+    correctionReason,
+  }: {
+    minutes: number;
+    correctionReason: string;
+  }) => {
     if (!editingIncident) return;
 
     try {
@@ -386,6 +380,7 @@ export default function AttendanceLateEarlyPage() {
         studentId: editingIncident.studentId,
         type: editingIncident.type,
         minutes,
+        correctionReason,
         incidentId: editingIncident.id,
       });
       showSuccess(t("minutesSaved"));
@@ -452,43 +447,28 @@ export default function AttendanceLateEarlyPage() {
         </AttendanceWorkspaceHeader>
 
         {!isMobile && (
-          <AttendanceWorkspaceSplit
-            main={
-              <>
-                <AttendanceFiltersPanel>
-                  <LateEarlyFiltersBar
-                    filters={{ ...filters, search: searchInput }}
-                    stages={stages}
-                    grades={grades}
-                    sections={sections}
-                    classrooms={classrooms}
-                    periods={periods}
-                    onFiltersChange={(patch) => {
-                      if ("search" in patch) {
-                        setSearchInput(patch.search || "");
-                      }
-                      setFilters((prev) => ({ ...prev, ...patch }));
-                    }}
-                    onResetFilters={resetFilters}
-                    onOpenExport={() => setShowExportModal(true)}
-                  />
-                </AttendanceFiltersPanel>
-                <AttendanceWorkspaceContentPanel loading={loading}>
-                  {incidentsBody}
-                </AttendanceWorkspaceContentPanel>
-              </>
-            }
-            details={
-              <AttendanceDetailsCard>
-                <IncidentDetailsDrawer
-                  incident={selectedIncident}
-                  isReadOnly={isReadOnly}
-                  onClose={() => setSelectedIncident(null)}
-                  onEditMinutes={handleEditMinutes}
-                />
-              </AttendanceDetailsCard>
-            }
-          />
+          <>
+            <AttendanceFiltersPanel>
+              <LateEarlyFiltersBar
+                filters={{ ...filters, search: searchInput }}
+                stages={stages}
+                grades={grades}
+                sections={sections}
+                classrooms={classrooms}
+                onFiltersChange={(patch) => {
+                  if ("search" in patch) {
+                    setSearchInput(patch.search || "");
+                  }
+                  setFilters((prev) => ({ ...prev, ...patch }));
+                }}
+                onResetFilters={resetFilters}
+                onOpenExport={() => setShowExportModal(true)}
+              />
+            </AttendanceFiltersPanel>
+            <AttendanceWorkspaceContentPanel loading={loading}>
+              {incidentsBody}
+            </AttendanceWorkspaceContentPanel>
+          </>
         )}
 
         {isMobile && (
@@ -518,7 +498,6 @@ export default function AttendanceLateEarlyPage() {
         grades={grades}
         sections={sections}
         classrooms={classrooms}
-        periods={periods}
         onClose={() => setFiltersDrawerOpen(false)}
         onApply={() => setFiltersDrawerOpen(false)}
         onFiltersChange={(patch) => {
@@ -531,11 +510,22 @@ export default function AttendanceLateEarlyPage() {
         onOpenExport={() => setShowExportModal(true)}
       />
 
-      <AttendanceBottomDrawer isOpen={detailsDrawerOpen} onClose={() => setDetailsDrawerOpen(false)}>
+      <AttendanceBottomDrawer
+        isOpen={detailsDrawerOpen}
+        onClose={() => {
+          setDetailsDrawerOpen(false);
+          setSelectedIncident(null);
+        }}
+        anchor={isMobile ? "bottom" : "left"}
+        heightClassName={isMobile ? "h-[80vh]" : "h-full w-[min(32rem,100vw)]"}
+      >
         <IncidentDetailsDrawer
           incident={selectedIncident}
           isReadOnly={isReadOnly}
-          onClose={() => setDetailsDrawerOpen(false)}
+          onClose={() => {
+            setDetailsDrawerOpen(false);
+            setSelectedIncident(null);
+          }}
           onEditMinutes={handleEditMinutes}
         />
       </AttendanceBottomDrawer>

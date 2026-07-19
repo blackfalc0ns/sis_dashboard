@@ -14,7 +14,7 @@ interface MinutesEditorModalProps {
   initialMinutes: number;
   isReadOnly: boolean;
   onClose: () => void;
-  onSave: (minutes: number) => Promise<void>;
+  onSave: (input: { minutes: number; correctionReason: string }) => Promise<void>;
 }
 
 export default function MinutesEditorModal({
@@ -31,35 +31,50 @@ export default function MinutesEditorModal({
   const locale = useLocale();
 
   const [minutes, setMinutes] = useState<string>("0");
-  const [error, setError] = useState<string>("");
+  const [correctionReason, setCorrectionReason] = useState("");
+  const [errors, setErrors] = useState({ minutes: "", correctionReason: "" });
   const [saving, setSaving] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
     setMinutes(String(initialMinutes));
-    setError("");
+    setCorrectionReason("");
+    setErrors({ minutes: "", correctionReason: "" });
     setSaving(false);
     setShowDiscardConfirm(false);
   }, [isOpen, initialMinutes]);
 
-  const dirty = useMemo(() => minutes !== String(initialMinutes), [minutes, initialMinutes]);
+  const dirty = useMemo(
+    () => minutes !== String(initialMinutes) || correctionReason.trim().length > 0,
+    [minutes, initialMinutes, correctionReason],
+  );
 
   const title = type === "LATE" ? t("editLateMinutes") : t("editEarlyLeaveMinutes");
 
   const validate = () => {
     if (minutes.trim() === "") {
-      setError(t("required"));
+      setErrors({ minutes: t("required"), correctionReason: "" });
       return false;
     }
 
     const numeric = Number(minutes);
-    if (!Number.isFinite(numeric) || numeric < 0) {
-      setError(t("invalidMinutes"));
+    if (!Number.isInteger(numeric) || numeric < 1) {
+      setErrors({ minutes: t("invalidMinutes"), correctionReason: "" });
       return false;
     }
 
-    setError("");
+    if (!correctionReason.trim()) {
+      setErrors({ minutes: "", correctionReason: t("correctionReasonRequired") });
+      return false;
+    }
+
+    if (correctionReason.trim().length > 1000) {
+      setErrors({ minutes: "", correctionReason: t("correctionReasonTooLong") });
+      return false;
+    }
+
+    setErrors({ minutes: "", correctionReason: "" });
     return true;
   };
 
@@ -76,7 +91,7 @@ export default function MinutesEditorModal({
 
     try {
       setSaving(true);
-      await onSave(Number(minutes));
+      await onSave({ minutes: Number(minutes), correctionReason: correctionReason.trim() });
       onClose();
     } finally {
       setSaving(false);
@@ -109,15 +124,15 @@ export default function MinutesEditorModal({
           <div className="relative">
             <Input
               type="number"
-              min={0}
+              min={1}
               required
               value={minutes}
               onChange={(event) => {
                 setMinutes(event.target.value);
-                if (error) setError("");
+                if (errors.minutes) setErrors((previous) => ({ ...previous, minutes: "" }));
               }}
               label={t("minutesLabel")}
-              error={error}
+              error={errors.minutes}
               disabled={isReadOnly || saving}
               className={locale === "ar" ? "pl-16" : "pr-16"}
             />
@@ -125,6 +140,20 @@ export default function MinutesEditorModal({
               <span className="text-sm text-gray-500">{tForm("minutes")}</span>
             </div>
           </div>
+          <Input
+            value={correctionReason}
+            onChange={(event) => {
+              setCorrectionReason(event.target.value);
+              if (errors.correctionReason) {
+                setErrors((previous) => ({ ...previous, correctionReason: "" }));
+              }
+            }}
+            label={t("correctionReason")}
+            error={errors.correctionReason}
+            disabled={isReadOnly || saving}
+            maxLength={1000}
+            required
+          />
         </div>
       </Modal>
 

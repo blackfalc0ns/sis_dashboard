@@ -7,7 +7,6 @@ import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
 import RollCallQuickPresets from "./RollCallQuickPresets";
-import type { AttendancePolicy } from "@/features/attendance/policies/types";
 import type { RosterFilters } from "./RosterFiltersBar";
 import type { AttendanceStatus } from "../types";
 
@@ -16,7 +15,6 @@ interface RollCallFiltersDrawerProps {
   onClose: () => void;
   filters: RosterFilters;
   onFiltersChange: (filters: RosterFilters) => void;
-  policy: AttendancePolicy | null;
   onApply: () => void;
   onReset: () => void;
 }
@@ -26,14 +24,11 @@ export default function RollCallFiltersDrawer({
   onClose,
   filters,
   onFiltersChange,
-  policy,
   onApply,
   onReset,
 }: RollCallFiltersDrawerProps) {
   const t = useTranslations("attendance.rollCall.filters");
   const tStatus = useTranslations("attendance.rollCall.filters.status");
-
-  const allowExcuses = policy?.allowExcuses ?? false;
 
   const statusOptions = [
     { value: "ALL", label: tStatus("all") },
@@ -41,7 +36,7 @@ export default function RollCallFiltersDrawer({
     { value: "PRESENT", label: tStatus("present") },
     { value: "ABSENT", label: tStatus("absent") },
     { value: "LATE", label: tStatus("late") },
-    ...(allowExcuses ? [{ value: "EXCUSED", label: tStatus("excused") }] : []),
+    { value: "EXCUSED", label: tStatus("excused") },
     { value: "EARLY_LEAVE", label: tStatus("earlyLeave") },
   ];
 
@@ -102,7 +97,6 @@ export default function RollCallFiltersDrawer({
           <RollCallQuickPresets
             selectedStatus={filters.status}
             onSelect={handlePresetSelect}
-            allowExcuses={allowExcuses}
           />
         </div>
 
@@ -122,9 +116,7 @@ export default function RollCallFiltersDrawer({
           />
         </div>
 
-        {/* Excuse Completeness (only if excuses allowed) */}
-        {allowExcuses && (
-          <div className="mb-4">
+        <div className="mb-4">
             <Select
               value={filters.excuseCompleteness || "ALL"}
               onChange={(value) =>
@@ -137,8 +129,7 @@ export default function RollCallFiltersDrawer({
               selectSize="sm"
               label={t("excuseLabel")}
             />
-          </div>
-        )}
+        </div>
 
         {/* Late Minutes Filter */}
         <div className="mb-4">

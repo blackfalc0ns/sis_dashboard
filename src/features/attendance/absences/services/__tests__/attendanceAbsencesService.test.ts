@@ -148,7 +148,7 @@ describe("attendanceAbsencesService", () => {
     mockedApiPatch.mockResolvedValue({});
 
     await updateExcuse(record, "Medical appointment");
-    await updateEarlyLeaveMinutes(record, 20);
+    await updateEarlyLeaveMinutes(record, 20, "Corrected departure time");
 
     expect(mockedApiPatch).toHaveBeenNthCalledWith(
       1,
@@ -164,8 +164,8 @@ describe("attendanceAbsencesService", () => {
       "/attendance/absences/incident-1/early-leave",
       {
         earlyLeaveMinutes: 20,
-        correctionReason: "Corrected early leave minutes",
-        note: "Corrected early leave minutes",
+        correctionReason: "Corrected departure time",
+        note: "Corrected departure time",
       },
     );
   });

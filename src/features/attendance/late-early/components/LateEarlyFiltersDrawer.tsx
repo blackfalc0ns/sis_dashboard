@@ -7,7 +7,6 @@ import Button from "@/components/ui/button/Button";
 import LateEarlyFiltersBar from "./LateEarlyFiltersBar";
 import type { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { LateEarlyFilters } from "../types";
-import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
 
 interface LateEarlyFiltersDrawerProps {
   isOpen: boolean;
@@ -16,7 +15,6 @@ interface LateEarlyFiltersDrawerProps {
   grades: Grade[];
   sections: Section[];
   classrooms: Classroom[];
-  periods: TimetablePeriod[];
   onClose: () => void;
   onFiltersChange: (patch: Partial<LateEarlyFilters>) => void;
   onResetFilters: () => void;
@@ -31,7 +29,6 @@ export default function LateEarlyFiltersDrawer({
   grades,
   sections,
   classrooms,
-  periods,
   onClose,
   onFiltersChange,
   onResetFilters,
@@ -60,7 +57,6 @@ export default function LateEarlyFiltersDrawer({
             grades={grades}
             sections={sections}
             classrooms={classrooms}
-            periods={periods}
             onFiltersChange={onFiltersChange}
             onResetFilters={onResetFilters}
             onOpenExport={onOpenExport}

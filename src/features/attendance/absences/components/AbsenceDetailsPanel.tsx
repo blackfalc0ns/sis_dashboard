@@ -9,7 +9,9 @@ import FilePreviewModal from "@/components/ui/file-preview-modal";
 import { formatAttendanceDateTime } from "@/features/attendance/utils/dateFormatting";
 import { formatFileSize } from "@/utils/upload/validateFile";
 import type { AttachmentMeta } from "@/features/attendance/roll-call/types";
+import type { StructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { AbsenceRecord } from "../types";
+import { getLocalizedStructureName } from "../utils/localizedStructureName";
 
 interface AbsenceDetailsPanelProps {
   record: AbsenceRecord | null;
@@ -17,6 +19,7 @@ interface AbsenceDetailsPanelProps {
   onEditExcuse: (record: AbsenceRecord) => void;
   onEditEarlyLeave: (record: AbsenceRecord) => void;
   isReadOnly: boolean;
+  structureTree: StructureTree | null;
 }
 
 export default function AbsenceDetailsPanel({
@@ -25,8 +28,10 @@ export default function AbsenceDetailsPanel({
   onEditExcuse,
   onEditEarlyLeave,
   isReadOnly,
+  structureTree,
 }: AbsenceDetailsPanelProps) {
   const t = useTranslations("attendance.absences.details");
+  const tTable = useTranslations("attendance.absences.table");
   const locale = useLocale();
   const router = useRouter();
   const [previewAttachment, setPreviewAttachment] = useState<AttachmentMeta | null>(null);
@@ -42,15 +47,18 @@ export default function AbsenceDetailsPanel({
     );
   }
 
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, { en: string; ar: string }> = {
-      ABSENT: { en: "Absent", ar: "غائب" },
-      LATE: { en: "Late", ar: "متأخر" },
-      EARLY_LEAVE: { en: "Early Leave", ar: "مغادرة مبكرة" },
-      EXCUSED: { en: "Excused", ar: "بعذر" },
-      UNMARKED: { en: "Unmarked", ar: "غير محدد" },
+  const getStatusLabel = (status: string, excusedFromStatus?: AbsenceRecord["excusedFromStatus"]) => {
+    const statusKeys: Record<string, "absent" | "late" | "earlyLeave" | "excused" | "unmarked"> = {
+      ABSENT: "absent",
+      LATE: "late",
+      EARLY_LEAVE: "earlyLeave",
+      EXCUSED: "excused",
+      UNMARKED: "unmarked",
     };
-    return locale === "ar" ? labels[status]?.ar : labels[status]?.en;
+    const label = (value: string) => tTable(`statusLabels.${statusKeys[value] || "unmarked"}`);
+    return status === "EXCUSED" && excusedFromStatus
+      ? tTable("statusTransition", { from: label(excusedFromStatus), to: label(status) })
+      : label(status);
   };
 
   const handleOpenStudentProfile = () => {
@@ -118,19 +126,19 @@ export default function AbsenceDetailsPanel({
                 <div>
                   <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("grade")}:</span>
                   <p style={{ color: "var(--color-gray-900)" }} className="text-sm">
-                    {(locale === "ar" ? record.gradeNameAr : record.gradeNameEn) || record.gradeNameEn || record.gradeNameAr || "-"}
+                    {getLocalizedStructureName(record, structureTree, "grade", locale)}
                   </p>
                 </div>
                 <div>
                   <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("section")}:</span>
                   <p style={{ color: "var(--color-gray-900)" }} className="text-sm">
-                    {(locale === "ar" ? record.sectionNameAr : record.sectionNameEn) || record.sectionNameEn || record.sectionNameAr || "-"}
+                    {getLocalizedStructureName(record, structureTree, "section", locale)}
                   </p>
                 </div>
                 <div>
                   <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("classroom")}:</span>
                   <p style={{ color: "var(--color-gray-900)" }} className="text-sm">
-                    {(locale === "ar" ? record.classroomNameAr : record.classroomNameEn) || record.classroomNameEn || record.classroomNameAr || "-"}
+                    {getLocalizedStructureName(record, structureTree, "classroom", locale)}
                   </p>
                 </div>
               </div>
@@ -174,7 +182,7 @@ export default function AbsenceDetailsPanel({
                 )}
                 <div>
                   <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("status")}:</span>
-                  <p style={{ color: "var(--color-gray-900)" }} className="text-sm font-medium">{getStatusLabel(record.status)}</p>
+                  <p style={{ color: "var(--color-gray-900)" }} className="text-sm font-medium">{getStatusLabel(record.status, record.excusedFromStatus)}</p>
                 </div>
                 {record.minutesLate ? (
                   <div>
@@ -251,12 +259,12 @@ export default function AbsenceDetailsPanel({
           </div>
         </div>
 
-        {record.granularity !== "DAILY_DERIVED" && !isReadOnly && (
+        {record.granularity !== "DAILY_DERIVED" && !isReadOnly && record.sessionStatus === "SUBMITTED" && (
           <div
             className="flex items-center gap-3 p-4 border-t shrink-0"
             style={{ borderColor: "var(--border-color)" }}
           >
-            {(record.status === "ABSENT" || record.status === "EXCUSED") && (
+            {record.status !== "EXCUSED" && (
               <Button
                 variant="outline"
                 size="sm"

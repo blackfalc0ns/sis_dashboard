@@ -473,7 +473,7 @@ export async function resolveEffectiveExcusePolicy(
   scopeType: AttendanceScopeType,
   scopeIds: AttendanceScopeIds | undefined,
   dateISO: string, // YYYY-MM-DD
-): Promise<EffectiveExcusePolicy> {
+): Promise<EffectiveExcusePolicy | null> {
   const response = await apiGet<unknown>(`${BASE}/effective`, {
     params: {
       academicYearId: yearId,
@@ -486,13 +486,7 @@ export async function resolveEffectiveExcusePolicy(
   const envelope = asRecord(response);
 
   if (!envelope.policy) {
-    return {
-      allowExcuses: true,
-      requireExcuseReason: false,
-      requireAttachmentForExcuse: false,
-      lateThresholdMinutes: 15,
-      earlyLeaveThresholdMinutes: 15,
-    };
+    return null;
   }
 
   const selectedPolicy = mapPolicy(envelope.policy, { yearId, termId });

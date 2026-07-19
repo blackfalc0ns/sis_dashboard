@@ -39,16 +39,19 @@ describe("getExcuseTimetableCandidates", () => {
     ]);
   });
 
-  it.each(["SCHOOL", "STAGE"] as const)(
-    "does not guess a timetable for %s scope",
-    (scopeType) => {
-      expect(
-        getExcuseTimetableCandidates("year-1", "term-1", scopeType, {
-          stageId: "stage-1",
-        }),
-      ).toEqual([]);
-    },
-  );
+  it("does not assume a timetable for school-scoped requests", () => {
+    expect(
+      getExcuseTimetableCandidates("year-1", "term-1", "SCHOOL"),
+    ).toEqual([]);
+  });
+
+  it("does not guess a timetable for stage scope", () => {
+    expect(
+      getExcuseTimetableCandidates("year-1", "term-1", "STAGE", {
+        stageId: "stage-1",
+      }),
+    ).toEqual([]);
+  });
 });
 
 describe("resolveExcuseTimetableConfig", () => {

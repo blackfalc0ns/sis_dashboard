@@ -46,6 +46,8 @@ const defaultProps = {
   selectedPeriodId: "period-1",
   onPeriodChange: vi.fn(),
   sessionStatus: "DRAFT" as const,
+  canReopenForEdit: false,
+  onReopenForEdit: vi.fn(),
 };
 
 describe("SessionPickerPanel", () => {
@@ -57,5 +59,23 @@ describe("SessionPickerPanel", () => {
     expect(screen.getByRole("button", { name: "sessionPicker.prev" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "sessionPicker.next" })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Period 1/ })).toBeDisabled();
+  });
+
+  it("explains the scope lock and offers reopening for a submitted session", () => {
+    const onReopenForEdit = vi.fn();
+    render(
+      <SessionPickerPanel
+        {...defaultProps}
+        sessionStatus="SUBMITTED"
+        canReopenForEdit
+        onReopenForEdit={onReopenForEdit}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "sessionPicker.submittedLockDescription",
+    );
+    screen.getByRole("button", { name: "sessionPicker.reopenForEdit" }).click();
+    expect(onReopenForEdit).toHaveBeenCalledOnce();
   });
 });

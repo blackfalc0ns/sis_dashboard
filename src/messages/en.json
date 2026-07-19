@@ -7595,7 +7595,14 @@
         "prev": "Previous",
         "next": "Next",
         "dailyMode": "Daily Attendance Mode",
+        "derivedDailyFromPeriods": "Daily attendance is calculated automatically from the selected period sessions. Submit each period to produce the daily result.",
+        "derivedDailyProgress": "{submitted} of {total} selected periods submitted.",
+        "derivedDailyReady": "All selected periods are submitted. The daily result is ready to be derived.",
         "status": "Session Status",
+        "submittedLockTitle": "This session has been submitted",
+        "submittedLockDescription": "Scope, date, and period are locked to protect the submitted attendance record. Reopen the session to change them.",
+        "submittedPeriodLockDescription": "Scope and date are locked to protect the submitted attendance record. You can select another period to continue attendance.",
+        "reopenForEdit": "Reopen for edit",
         "scopeTypes": {
           "classroom": "Classroom"
         },
@@ -7788,7 +7795,16 @@
         "viewOnly": "View only",
         "editExcuse": "Edit excuse",
         "editEarlyLeave": "Edit minutes",
-        "classroom": "Classroom"
+        "classroom": "Classroom",
+        "dailyStatus": "Daily - {status}",
+        "statusTransition": "{from} → {to}",
+        "statusLabels": {
+          "absent": "Absent",
+          "late": "Late",
+          "earlyLeave": "Early Leave",
+          "excused": "Excused",
+          "unmarked": "Unmarked"
+        }
       },
       "details": {
         "title": "Absence Details",
@@ -7823,7 +7839,9 @@
         "title": "Edit Early Leave Minutes",
         "minutesLabel": "Minutes left early",
         "helper": "Enter the number of minutes the student left early",
-        "invalidMinutes": "Minutes must be 0 or greater"
+        "invalidMinutes": "Minutes must be a whole number greater than 0",
+        "correctionReason": "Correction reason",
+        "invalidCorrectionReason": "Enter a correction reason of up to 1000 characters"
       },
       "emptyStates": {
         "noYearTerm": {
@@ -7943,7 +7961,10 @@
         "editEarlyLeaveMinutes": "Edit early leave minutes",
         "minutesLabel": "Minutes",
         "required": "Minutes are required",
-        "invalidMinutes": "Minutes must be 0 or greater",
+        "invalidMinutes": "Minutes must be a whole number greater than 0",
+        "correctionReason": "Correction reason",
+        "correctionReasonRequired": "A correction reason is required",
+        "correctionReasonTooLong": "Correction reason must be 1000 characters or fewer",
         "discardTitle": "Unsaved changes",
         "discardDescription": "You have unsaved changes. Discard them?"
       }
@@ -8108,6 +8129,23 @@
         "earlyLeave": "Early Leave",
         "decisionNote": "Decision note",
         "decisionNotePlaceholder": "Optional note",
+        "approvalUnavailable": "Approval is unavailable",
+        "noMatchingSubmittedAttendance": "There is no matching submitted attendance entry for this excuse. Ask the teacher to submit attendance, or edit the excuse dates and periods.",
+        "viewAttendance": "View attendance",
+        "checkingApprovalEligibility": "Checking matching attendance…",
+        "approvalEligibilityUnavailable": "Approval check unavailable",
+        "approvalEligibilityUnavailableDescription": "Attendance eligibility could not be confirmed. Refresh the request and try again before approving.",
+        "approvalEligibility": {
+          "ready_to_approveTitle": "Ready to approve",
+          "ready_to_approve": "Matching attendance is ready to be excused.",
+          "already_excusedTitle": "Attendance already excused",
+          "already_excused": "Matching attendance is already excused. This request may be a duplicate; review attendance or reject the request.",
+          "no_submitted_attendanceTitle": "Attendance has not been submitted",
+          "no_submitted_attendance": "No matching submitted attendance was found. Ask the teacher to submit attendance before approving this request.",
+          "status_does_not_matchTitle": "Attendance status does not match",
+          "status_does_not_match": "Matching attendance exists, but its status does not match this excuse type. Review attendance before approving.",
+          "eligibleEntries": "{count, plural, one {# attendance entry will be excused.} other {# attendance entries will be excused.}}"
+        },
         "cancel": "Cancel",
         "approve": "Approve",
         "reject": "Reject",
@@ -8276,6 +8314,7 @@
         "derived": "Derived",
         "periods": "Periods",
         "periodsCount": "periods",
+        "selectedPeriods": "{count, plural, one {# selected period} other {# selected periods}}",
         "noPeriodsSelected": "No periods selected",
         "none": "None",
         "notifications": "Notifications",
@@ -8376,6 +8415,7 @@
           "notifyTeachers": "Teachers",
           "notifyStudents": "Students",
           "notifyGuardians": "Guardians",
+          "notifyGuardiansOnAbsence": "Guardians when a student is absent",
           "notifyWhen": "Notify When",
           "notifyOnAbsent": "Student is Absent",
           "notifyOnLate": "Student is Late",
@@ -8425,6 +8465,8 @@
           "description": "Attendance is recorded per period only. Daily attendance (present/absent for the day) is automatically derived from the selected periods based on the threshold you set in the next step."
         },
         "selectPeriodsForDailyHelper": "These periods will be used to calculate daily attendance. If a student misses the threshold number of these periods, they will be marked absent for the day.",
+        "selectPeriodsOptionalHelper": "Optionally limit this policy to selected periods.",
+        "dailyAbsentThresholdSelectionDesc": "Mark the student absent for the day after missing {threshold} of the {selected} selected periods.",
         "thresholdExceedsSelected": "Threshold cannot exceed the number of selected periods. It will be automatically adjusted."
       }
     },
@@ -8528,6 +8570,18 @@
         "bySection": "By section",
         "byClassroom": "By classroom",
         "weekdayPattern": "Weekday pattern"
+      },
+      "derivedDaily": {
+        "title": "Derived daily absences",
+        "description": "Read-only daily absence results calculated from submitted period attendance.",
+        "empty": "No derived daily absences match the current filters.",
+        "student": "Student",
+        "studentId": "Student ID: {id}",
+        "date": "Date",
+        "missedPeriods": "Missed periods",
+        "evidence": "Submitted evidence",
+        "periodsValue": "{missed} of {required}",
+        "evidenceValue": "{count} period(s)"
       },
       "lateEarly": {
         "title": "Late / Early analysis",

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { useMediaQuery } from "@mui/material";
 import { Filter, Plus } from "lucide-react";
 import Button from "@/components/ui/button/Button";
@@ -9,24 +10,15 @@ import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
 import AttendanceFiltersPanel from "@/features/attendance/shared/components/AttendanceFiltersPanel";
-import AttendanceDetailsCard from "@/features/attendance/shared/components/AttendanceDetailsCard";
 import AttendanceBottomDrawer from "@/features/attendance/shared/components/AttendanceBottomDrawer";
 import {
   AttendanceWorkspaceContentPanel,
   AttendanceWorkspaceHeader,
   AttendanceWorkspaceMobileActions,
   AttendanceWorkspaceShell,
-  AttendanceWorkspaceSplit,
   AttendanceWorkspaceStack,
   AttendanceWorkspaceState,
 } from "@/features/attendance/shared/components/AttendanceWorkspaceShell";
-import {
-  fetchStructureTree,
-  type Stage,
-  type Grade,
-  type Section,
-  type Classroom,
-} from "@/features/academics/academic-structure-tree/services/structureService";
 import {
   fetchExcuseRequests,
   fetchExcuseRequestDetails,
@@ -35,7 +27,13 @@ import {
   deleteExcuseRequest,
   approveExcuseRequest,
   rejectExcuseRequest,
+  ExcuseApprovalEligibilityError,
 } from "../services/attendanceExcusesService";
+import type { DecisionResult } from "../components/DecisionModal";
+import {
+  getExcuseApprovalEligibility,
+  type ExcuseApprovalEligibility,
+} from "../services/excuseApprovalEligibility";
 import { ExcusePolicyValidationError, type ExcusePolicyIssue } from "../utils/excusePolicyValidation";
 import {
   resolveEffectiveExcusePolicy,
@@ -76,16 +74,12 @@ export default function AttendanceExcusesPage() {
   const t = useTranslations("attendance.excuses");
   const tCommon = useTranslations("common");
   const locale = useLocale();
+  const router = useRouter();
   const { showSuccess, showError } = useToast();
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   // Use unified term context
   const termContext = useAttendanceYearTermLayoutContext();
-
-  const [stages, setStages] = useState<Stage[]>([]);
-  const [grades, setGrades] = useState<Grade[]>([]);
-  const [sections, setSections] = useState<Section[]>([]);
-  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
 
   const [requests, setRequests] = useState<ExcuseRequest[]>([]);
   const [loading, setLoading] = useState(false);
@@ -104,6 +98,10 @@ export default function AttendanceExcusesPage() {
   const [editingRequest, setEditingRequest] = useState<ExcuseRequest | null>(null);
   const [decisionRequest, setDecisionRequest] = useState<ExcuseRequest | null>(null);
   const [decisionAction, setDecisionAction] = useState<"APPROVE" | "REJECT">("APPROVE");
+  const [approvalEligibility, setApprovalEligibility] =
+    useState<ExcuseApprovalEligibility | null>(null);
+  const [isApprovalEligibilityLoading, setIsApprovalEligibilityLoading] = useState(false);
+  const [hasApprovalEligibilityError, setHasApprovalEligibilityError] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ExcuseRequest | null>(null);
   const [selectedRequestPolicy, setSelectedRequestPolicy] = useState<EffectiveExcusePolicy | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -138,30 +136,12 @@ export default function AttendanceExcusesPage() {
   }, [termContext.yearId, termContext.termId, filters, showError, tCommon]);
 
   useEffect(() => {
-    if (!termContext.yearId || !termContext.termId) return;
-
-    const loadStructure = async () => {
-      const structure = await fetchStructureTree(termContext.yearId!, termContext.termId!);
-
-      setStages(structure.stages);
-      setGrades(structure.grades);
-      setSections(structure.sections);
-      setClassrooms(structure.classrooms);
-    };
-
-    loadStructure();
-  }, [termContext.yearId, termContext.termId]);
-
-  useEffect(() => {
     reloadRequests();
   }, [reloadRequests]);
 
   useEffect(() => {
-    const requestScopeType = selectedRequest?.scopeType;
     if (
       !selectedRequest ||
-      !selectedRequest.hasScopeContext ||
-      !requestScopeType ||
       !termContext.yearId ||
       !termContext.termId
     ) {
@@ -176,8 +156,8 @@ export default function AttendanceExcusesPage() {
         const policy = await resolveEffectiveExcusePolicy(
           termContext.yearId!,
           termContext.termId!,
-          requestScopeType,
-          selectedRequest.scopeIds,
+          "SCHOOL",
+          {},
           selectedRequest.dateFrom
         );
 
@@ -351,7 +331,7 @@ export default function AttendanceExcusesPage() {
     await reloadRequests();
   };
 
-  const handleApproveReject = async (note: string) => {
+  const handleApproveReject = async (note: string): Promise<DecisionResult | void> => {
     if (!decisionRequest) return;
 
     try {
@@ -367,6 +347,12 @@ export default function AttendanceExcusesPage() {
       await reloadRequests();
     } catch (error) {
       console.error("Decision failed", error);
+      if (error instanceof ExcuseApprovalEligibilityError) {
+        return {
+          keepOpen: true,
+          recoveryMessage: t("modal.noMatchingSubmittedAttendance"),
+        };
+      }
       if (error instanceof ExcusePolicyValidationError) {
         showError(getPolicyIssueMessage(error.issue));
       } else {
@@ -389,9 +375,23 @@ export default function AttendanceExcusesPage() {
     }
   };
 
-  const openDecision = (request: ExcuseRequest, action: "APPROVE" | "REJECT") => {
+  const openDecision = async (request: ExcuseRequest, action: "APPROVE" | "REJECT") => {
     setDecisionRequest(request);
     setDecisionAction(action);
+    setApprovalEligibility(null);
+    setHasApprovalEligibilityError(false);
+
+    if (action !== "APPROVE") return;
+
+    setIsApprovalEligibilityLoading(true);
+    try {
+      setApprovalEligibility(await getExcuseApprovalEligibility(request));
+    } catch (error) {
+      console.error("Failed to check excuse approval eligibility", error);
+      setHasApprovalEligibilityError(true);
+    } finally {
+      setIsApprovalEligibilityLoading(false);
+    }
   };
 
   const handleCreateRequest = async () => {
@@ -402,7 +402,7 @@ export default function AttendanceExcusesPage() {
   };
 
   const handleEditRequest = async (request: ExcuseRequest) => {
-    if (isReadOnly || !request.hasScopeContext || !request.scopeType) return;
+    if (isReadOnly) return;
     try {
       const detailedRequest = await fetchExcuseRequestDetails(request.id);
       setEditingRequest(detailedRequest);
@@ -417,7 +417,7 @@ export default function AttendanceExcusesPage() {
     try {
       const detailedRequest = await fetchExcuseRequestDetails(request.id);
       setSelectedRequest(detailedRequest);
-      if (isMobile) setShowDetailsDrawer(true);
+      setShowDetailsDrawer(true);
     } catch (error) {
       console.error("Failed to load excuse request details", error);
       showError(tCommon("error_loading"));
@@ -492,36 +492,19 @@ export default function AttendanceExcusesPage() {
         </AttendanceWorkspaceHeader>
 
         {!isMobile && (
-          <AttendanceWorkspaceSplit
-            main={
-              <>
-                <AttendanceFiltersPanel>
-                  <ExcusesFiltersBar
-                    filters={filters}
-                    onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
-                    onReset={resetFilters}
-                    onOpenExport={() => setShowExportModal(true)}
-                  />
-                </AttendanceFiltersPanel>
-                <AttendanceWorkspaceContentPanel loading={loading}>
-                  {requestsBody}
-                </AttendanceWorkspaceContentPanel>
-              </>
-            }
-            details={
-              <AttendanceDetailsCard>
-                <ExcuseDetailsDrawer
-                  request={selectedRequest}
-                  effectivePolicy={selectedRequestPolicy}
-                  isReadOnly={isReadOnly}
-                  onClose={() => setSelectedRequest(null)}
-                  onApprove={(request) => openDecision(request, "APPROVE")}
-                  onReject={(request) => openDecision(request, "REJECT")}
-                  onEdit={handleEditRequest}
-                />
-              </AttendanceDetailsCard>
-            }
-          />
+          <>
+            <AttendanceFiltersPanel>
+              <ExcusesFiltersBar
+                filters={filters}
+                onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
+                onReset={resetFilters}
+                onOpenExport={() => setShowExportModal(true)}
+              />
+            </AttendanceFiltersPanel>
+            <AttendanceWorkspaceContentPanel loading={loading}>
+              {requestsBody}
+            </AttendanceWorkspaceContentPanel>
+          </>
         )}
 
         {isMobile && (
@@ -563,12 +546,23 @@ export default function AttendanceExcusesPage() {
         onOpenExport={() => setShowExportModal(true)}
       />
 
-      <AttendanceBottomDrawer isOpen={showDetailsDrawer} onClose={() => setShowDetailsDrawer(false)} heightClassName="h-[85vh]">
+      <AttendanceBottomDrawer
+        isOpen={showDetailsDrawer}
+        onClose={() => {
+          setShowDetailsDrawer(false);
+          setSelectedRequest(null);
+        }}
+        anchor={isMobile ? "bottom" : "left"}
+        heightClassName={isMobile ? "h-[85vh]" : "h-full w-[min(32rem,100vw)]"}
+      >
         <ExcuseDetailsDrawer
           request={selectedRequest}
           effectivePolicy={selectedRequestPolicy}
           isReadOnly={isReadOnly}
-          onClose={() => setShowDetailsDrawer(false)}
+          onClose={() => {
+            setShowDetailsDrawer(false);
+            setSelectedRequest(null);
+          }}
           onApprove={(request) => openDecision(request, "APPROVE")}
           onReject={(request) => openDecision(request, "REJECT")}
           onEdit={handleEditRequest}
@@ -581,10 +575,6 @@ export default function AttendanceExcusesPage() {
         yearId={termContext.yearId || ""}
         termId={termContext.termId || ""}
         termRange={{ startDate: term?.startDate || "", endDate: term?.endDate || "" }}
-        stages={stages}
-        grades={grades}
-        sections={sections}
-        classrooms={classrooms}
         initialRequest={editingRequest}
         onClose={() => {
           setShowRequestModal(false);
@@ -600,6 +590,10 @@ export default function AttendanceExcusesPage() {
         action={decisionAction}
         onClose={() => setDecisionRequest(null)}
         onConfirm={handleApproveReject}
+        onViewAttendance={() => router.push(`/${locale}/attendance/roll-call`)}
+        approvalEligibility={approvalEligibility}
+        isApprovalEligibilityLoading={isApprovalEligibilityLoading}
+        approvalEligibilityError={hasApprovalEligibilityError}
       />
 
       <ConfirmDialog

@@ -10,7 +10,7 @@ import Input from "@/components/ui/input/Input";
 interface EarlyLeaveEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (minutes: number) => void;
+  onSave: (input: { minutes: number; correctionReason: string }) => Promise<void>;
   initialMinutes?: number;
   isReadOnly: boolean;
 }
@@ -28,23 +28,36 @@ export default function EarlyLeaveEditorModal({
   const locale = useLocale();
 
   const [minutes, setMinutes] = useState(0);
+  const [correctionReason, setCorrectionReason] = useState("");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setMinutes(initialMinutes);
+      setCorrectionReason("");
       setError("");
+      setSaving(false);
     }
   }, [isOpen, initialMinutes]);
 
-  const handleSave = () => {
-    if (minutes < 0) {
+  const handleSave = async () => {
+    if (!Number.isInteger(minutes) || minutes < 1) {
       setError(t("invalidMinutes"));
       return;
     }
+    if (!correctionReason.trim() || correctionReason.trim().length > 1000) {
+      setError(t("invalidCorrectionReason"));
+      return;
+    }
 
-    onSave(minutes);
-    onClose();
+    try {
+      setSaving(true);
+      await onSave({ minutes, correctionReason: correctionReason.trim() });
+      onClose();
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -76,9 +89,9 @@ export default function EarlyLeaveEditorModal({
                   setMinutes(parseInt(e.target.value) || 0);
                   setError("");
                 }}
-                disabled={isReadOnly}
-                min={0}
-                placeholder="0"
+                disabled={isReadOnly || saving}
+                min={1}
+                placeholder="1"
                 className={locale === "ar" ? "pl-16" : "pr-16"}
               />
               <div className={`absolute inset-y-0 ${locale === "ar" ? "left-0 pl-3" : "right-0 pr-3"} flex items-center pointer-events-none`}>
@@ -88,15 +101,26 @@ export default function EarlyLeaveEditorModal({
             {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
             <p style={{ color: "var(--color-neutral-500)" }} className="mt-1 text-xs">{t("helper")}</p>
           </div>
+          <Input
+            value={correctionReason}
+            onChange={(event) => {
+              setCorrectionReason(event.target.value);
+              setError("");
+            }}
+            label={t("correctionReason")}
+            maxLength={1000}
+            disabled={isReadOnly || saving}
+            required
+          />
         </div>
 
         {/* Footer */}
         <div style={{ borderTop: "1px solid var(--color-border)" }} className="flex items-center justify-end gap-3 mt-6 pt-6">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
             {tCommon("cancel")}
           </Button>
           {!isReadOnly && (
-            <Button variant="primary" onClick={handleSave}>
+            <Button variant="primary" onClick={handleSave} loading={saving} disabled={saving}>
               {tCommon("save")}
             </Button>
           )}

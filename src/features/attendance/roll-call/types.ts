@@ -25,10 +25,12 @@ export interface AttendanceSession {
     classroomId?: string;
   };
   mode: AttendanceSessionMode;
+  periodKey?: string;
   periodId?: string; // Canonical stable ID from TimetablePeriod.id (for PERIOD mode)
   periodIndex?: number; // Display/order only (derived from timetable period.index)
   periodNameAr?: string;
   periodNameEn?: string;
+  policyId?: string | null;
   status: AttendanceSessionStatus;
   createdAt: string;
   updatedAt: string;
@@ -67,6 +69,10 @@ export interface RosterStudent {
   studentNumber: string;
   photoUrl?: string;
   enrollmentId?: string;
+  stageId?: string;
+  gradeId?: string;
+  sectionId?: string;
+  classroomId?: string;
   currentStatus?: AttendanceStatus | null;
   entryId?: string | null;
   lateMinutes?: number | null;

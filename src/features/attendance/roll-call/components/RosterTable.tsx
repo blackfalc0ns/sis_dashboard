@@ -1,16 +1,12 @@
 ﻿"use client";
 
-import { useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { User, FileText, AlertCircle } from "lucide-react";
+import { User } from "lucide-react";
 import DataTable from "@/components/ui/data-table/DataTable";
 import Select from "@/components/ui/input/Select";
 import Input from "@/components/ui/input/Input";
-import Button from "@/components/ui/button/Button";
-import { useToast } from "@/components/ui/toast/Toast";
 import AttendanceStatusPill from "./AttendanceStatusPill";
-import ExcuseModal from "./ExcuseModal";
-import type { RosterStudent, AttendanceEntry, AttendanceStatus, AttachmentMeta } from "../types";
+import type { RosterStudent, AttendanceEntry, AttendanceStatus } from "../types";
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
 import { getThresholdState } from "@/features/attendance/shared/policyThresholds";
 
@@ -19,7 +15,6 @@ interface RosterTableProps {
   entries: AttendanceEntry[];
   policy: AttendancePolicy | null;
   onEntryChange: (studentId: string, updates: Partial<AttendanceEntry>) => void;
-  onCreateExcuseRequest?: (studentId: string, reason: string, attachments: AttachmentMeta[]) => void | Promise<void>;
   isReadOnly: boolean;
   searchQuery?: string;
 }
@@ -29,61 +24,25 @@ export default function RosterTable({
   entries,
   policy,
   onEntryChange,
-  onCreateExcuseRequest,
   isReadOnly,
   searchQuery = "",
 }: RosterTableProps) {
   const t = useTranslations("attendance.rollCall");
   const tStatus = useTranslations("attendance.rollCall.status");
-  const tExcuse = useTranslations("attendance.rollCall.excuse");
   const tForm = useTranslations("attendance.policies.form");
   const locale = useLocale();
-  const { showError } = useToast();
-
-  const [excuseModalOpen, setExcuseModalOpen] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-
-  const allowExcuses = policy?.allowExcuses ?? false;
-  const requireAttachment = policy?.requireAttachmentForExcuse ?? false;
 
   const statusOptions = [
     { value: "", label: "—" },
     { value: "PRESENT", label: tStatus("present") },
     { value: "ABSENT", label: tStatus("absent") },
     { value: "LATE", label: tStatus("late") },
-    ...(allowExcuses ? [{ value: "EXCUSED", label: tStatus("excused") }] : []),
     { value: "EARLY_LEAVE", label: tStatus("earlyLeave") },
   ];
 
   const handleStatusChange = (studentId: string, newStatus: string) => {
-    if (newStatus === "EXCUSED" && !allowExcuses) {
-      showError(t("excuse.notAllowed"));
-      return;
-    }
-
     onEntryChange(studentId, { status: newStatus as AttendanceStatus });
   };
-
-  const handleOpenExcuseModal = (studentId: string) => {
-    setSelectedStudentId(studentId);
-    setExcuseModalOpen(true);
-  };
-
-  const handleSaveExcuse = async (reason: string, attachments: AttachmentMeta[]) => {
-    if (selectedStudentId) {
-      if (onCreateExcuseRequest) {
-        await onCreateExcuseRequest(selectedStudentId, reason, attachments);
-      }
-      onEntryChange(selectedStudentId, {
-        excuseReason: reason,
-        excuseAttachments: attachments,
-      });
-    }
-  };
-
-  const selectedEntry = selectedStudentId
-    ? entries.find((e) => e.studentId === selectedStudentId)
-    : null;
 
   const columns = [
     {
@@ -117,7 +76,9 @@ export default function RosterTable({
       render: (_: unknown, row: RosterStudent) => {
         const entry = entries.find((e) => e.studentId === row.id);
 
-        if (isReadOnly) {
+        // Excused is an approval outcome managed by the Excuses workflow. It
+        // remains visible in Roll Call, but cannot be manually changed here.
+        if (isReadOnly || entry?.status === "EXCUSED") {
           return <AttendanceStatusPill status={entry?.status || null} size="sm" />;
         }
 
@@ -140,30 +101,7 @@ export default function RosterTable({
         const entry = entries.find((e) => e.studentId === row.id);
 
         if (entry?.status === "EXCUSED") {
-          const hasExcuse = entry.excuseReason || (entry.excuseAttachments?.length ?? 0) > 0;
-          const missingRequired = requireAttachment && (!entry.excuseAttachments || entry.excuseAttachments.length === 0);
-
-          return (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleOpenExcuseModal(row.id)}
-                leftIcon={<FileText className="w-3.5 h-3.5" />}
-              >
-                {hasExcuse ? tExcuse("edit") : tExcuse("add")}
-              </Button>
-              {hasExcuse && !missingRequired && (
-                <span className="text-xs" style={{ color: "var(--color-success-700)" }}>{tExcuse("added")}</span>
-              )}
-              {missingRequired && (
-                <span className="flex items-center gap-1 text-xs" style={{ color: "var(--color-accent-700)" }}>
-                  <AlertCircle className="w-3 h-3" />
-                  {tExcuse("requiredAttachment")}
-                </span>
-              )}
-            </div>
-          );
+          return <span style={{ color: "var(--color-neutral-500)" }} className="text-sm">—</span>;
         }
 
         if (entry?.status === "LATE") {
@@ -272,19 +210,6 @@ export default function RosterTable({
           showPagination={roster.length > 50}
         />
       </div>
-
-      <ExcuseModal
-        isOpen={excuseModalOpen}
-        onClose={() => {
-          setExcuseModalOpen(false);
-          setSelectedStudentId(null);
-        }}
-        onSave={handleSaveExcuse}
-        initialReason={selectedEntry?.excuseReason}
-        initialAttachments={selectedEntry?.excuseAttachments}
-        attachmentMode={requireAttachment ? "REQUIRED" : "OPTIONAL"}
-        isReadOnly={isReadOnly}
-      />
     </>
   );
 }

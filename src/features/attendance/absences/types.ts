@@ -33,6 +33,8 @@ export interface AbsenceRecord {
   };
   gradeNameAr?: string;
   gradeNameEn?: string;
+  stageNameAr?: string;
+  stageNameEn?: string;
   sectionNameAr?: string;
   sectionNameEn?: string;
   classroomNameAr?: string;
@@ -44,6 +46,8 @@ export interface AbsenceRecord {
   periodNameAr?: string;
   periodNameEn?: string;
   status: AttendanceIncidentType;
+  /** Status before a direct correction changed the incident to EXCUSED. */
+  excusedFromStatus?: Exclude<AttendanceIncidentType, "EXCUSED" | "UNMARKED">;
   minutesLate?: number;
   minutesEarlyLeave?: number;
   excuse?: {
@@ -53,6 +57,7 @@ export interface AbsenceRecord {
     createdAt: string;
   };
   sourceSessionId?: string;
+  sessionStatus?: "DRAFT" | "SUBMITTED";
   updatedAt: string;
 }
 

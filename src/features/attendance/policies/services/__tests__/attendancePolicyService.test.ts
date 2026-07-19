@@ -217,7 +217,7 @@ describe("attendancePolicyService", () => {
     );
   });
 
-  it("uses the default excuse policy when the effective policy is null", async () => {
+  it("returns null when the backend has no effective policy", async () => {
     mockedApiGet.mockResolvedValueOnce({
       policy: null,
       requestedScope: { scopeType: "SCHOOL", scopeKey: "school" },
@@ -232,13 +232,7 @@ describe("attendancePolicyService", () => {
         {},
         "2026-02-10",
       ),
-    ).resolves.toEqual({
-      allowExcuses: true,
-      requireExcuseReason: false,
-      requireAttachmentForExcuse: false,
-      lateThresholdMinutes: 15,
-      earlyLeaveThresholdMinutes: 15,
-    });
+    ).resolves.toBeNull();
   });
 
   it("preserves nullable thresholds and effective dates from the backend", async () => {

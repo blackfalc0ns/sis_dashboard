@@ -7590,7 +7590,14 @@
         "prev": "السابق",
         "next": "التالي",
         "dailyMode": "وضع الحضور اليومي",
+        "derivedDailyFromPeriods": "يُحتسب الحضور اليومي تلقائياً من جلسات الحصص المحددة. أرسل كل حصة لإظهار النتيجة اليومية.",
+        "derivedDailyProgress": "تم إرسال {submitted} من أصل {total} حصة محددة.",
+        "derivedDailyReady": "تم إرسال جميع الحصص المحددة. النتيجة اليومية جاهزة للاحتساب.",
         "status": "حالة الجلسة",
+        "submittedLockTitle": "تم تقديم هذه الجلسة",
+        "submittedLockDescription": "النطاق والتاريخ والحصة مقفلة لحماية سجل الحضور المقدم. أعد فتح الجلسة لتغييرها.",
+        "submittedPeriodLockDescription": "النطاق والتاريخ مقفلان لحماية سجل الحضور المقدم. يمكنك اختيار حصة أخرى لمتابعة تسجيل الحضور.",
+        "reopenForEdit": "إعادة فتح للتعديل",
         "scopeTypes": {
           "classroom": "فصل"
         },
@@ -7784,7 +7791,16 @@
         "viewOnly": "عرض فقط",
         "editExcuse": "تعديل العذر",
         "editEarlyLeave": "تعديل الدقائق",
-        "classroom": "الفصل"
+        "classroom": "الفصل",
+        "dailyStatus": "يومي - {status}",
+        "statusTransition": "{from} ← {to}",
+        "statusLabels": {
+          "absent": "غائب",
+          "late": "متأخر",
+          "earlyLeave": "مغادرة مبكرة",
+          "excused": "بعذر",
+          "unmarked": "غير محدد"
+        }
       },
       "details": {
         "title": "تفاصيل الغياب",
@@ -7819,7 +7835,9 @@
         "title": "تعديل دقائق المغادرة المبكرة",
         "minutesLabel": "دقائق المغادرة المبكرة",
         "helper": "أدخل عدد الدقائق التي غادر فيها الطالب مبكراً",
-        "invalidMinutes": "يجب أن تكون الدقائق 0 أو أكثر"
+        "invalidMinutes": "يجب أن تكون الدقائق رقمًا صحيحًا أكبر من صفر",
+        "correctionReason": "سبب التصحيح",
+        "invalidCorrectionReason": "أدخل سبب تصحيح لا يتجاوز 1000 حرف"
       },
       "emptyStates": {
         "noYearTerm": {
@@ -7939,7 +7957,10 @@
         "editEarlyLeaveMinutes": "تعديل دقائق المغادرة المبكرة",
         "minutesLabel": "الدقائق",
         "required": "الدقائق مطلوبة",
-        "invalidMinutes": "يجب أن تكون الدقائق 0 أو أكبر",
+        "invalidMinutes": "يجب أن تكون الدقائق رقمًا صحيحًا أكبر من صفر",
+        "correctionReason": "سبب التصحيح",
+        "correctionReasonRequired": "سبب التصحيح مطلوب",
+        "correctionReasonTooLong": "يجب ألا يزيد سبب التصحيح عن 1000 حرف",
         "discardTitle": "تغييرات غير محفوظة",
         "discardDescription": "لديك تغييرات غير محفوظة. هل تريد تجاهلها؟"
       }
@@ -8098,6 +8119,23 @@
         "earlyLeave": "مغادرة مبكرة",
         "decisionNote": "ملاحظة القرار",
         "decisionNotePlaceholder": "اكتب ملاحظة مختصرة (اختياري)",
+        "approvalUnavailable": "لا يمكن الموافقة حالياً",
+        "noMatchingSubmittedAttendance": "لا يوجد سجل حضور مُرسل يطابق هذا العذر. اطلب من المعلم إرسال الحضور، أو عدّل تواريخ العذر والحصص.",
+        "viewAttendance": "عرض الحضور",
+        "checkingApprovalEligibility": "جارٍ التحقق من الحضور المطابق…",
+        "approvalEligibilityUnavailable": "تعذر التحقق من إمكانية الموافقة",
+        "approvalEligibilityUnavailableDescription": "تعذر تأكيد أهلية الحضور. حدّث الطلب وحاول مجدداً قبل الموافقة.",
+        "approvalEligibility": {
+          "ready_to_approveTitle": "جاهز للموافقة",
+          "ready_to_approve": "سجل الحضور المطابق جاهز لإضافة العذر.",
+          "already_excusedTitle": "الحضور مسجل بعذر بالفعل",
+          "already_excused": "سجل الحضور المطابق مسجل بعذر بالفعل. قد يكون هذا الطلب مكرراً؛ راجع الحضور أو ارفض الطلب.",
+          "no_submitted_attendanceTitle": "لم يتم إرسال الحضور",
+          "no_submitted_attendance": "لم يتم العثور على حضور مُرسل يطابق الطلب. اطلب من المعلم إرسال الحضور قبل الموافقة على الطلب.",
+          "status_does_not_matchTitle": "حالة الحضور غير مطابقة",
+          "status_does_not_match": "يوجد سجل حضور مطابق، لكن حالته لا تتوافق مع نوع العذر. راجع الحضور قبل الموافقة.",
+          "eligibleEntries": "{count, plural, one {سيتم تسجيل عذر لسجل حضور واحد.} other {سيتم تسجيل عذر لـ # سجلات حضور.}}"
+        },
         "cancel": "إلغاء",
         "approve": "موافقة",
         "reject": "رفض",
@@ -8272,6 +8310,7 @@
         "derived": "مشتق",
         "periods": "الحصص",
         "periodsCount": "حصص",
+        "selectedPeriods": "{count, plural, zero {لم تُحدّد حصص} one {حصة محددة واحدة} two {حصتان محددتان} few {# حصص محددة} many {# حصة محددة} other {# حصة محددة}}",
         "noPeriodsSelected": "لم يتم اختيار حصص",
         "none": "لا يوجد",
         "notifications": "الإشعارات",
@@ -8372,6 +8411,7 @@
           "notifyTeachers": "المعلمون",
           "notifyStudents": "الطلاب",
           "notifyGuardians": "أولياء الأمور",
+          "notifyGuardiansOnAbsence": "أولياء الأمور عند غياب الطالب",
           "notifyWhen": "إشعار عند",
           "notifyOnAbsent": "غياب الطالب",
           "notifyOnLate": "تأخر الطالب",
@@ -8421,6 +8461,8 @@
           "description": "يتم تسجيل الحضور لكل حصة فقط. الحضور اليومي (حاضر/غائب لليوم) يُحتسب تلقائياً من الحصص المحددة بناءً على الحد الذي تضبطه في الخطوة التالية."
         },
         "selectPeriodsForDailyHelper": "ستُستخدم هذه الحصص لحساب الحضور اليومي. إذا فات الطالب عدد الحصص المحدد كحد، سيُسجل غائباً لليوم.",
+        "selectPeriodsOptionalHelper": "يمكنك اختيارياً قصر هذه السياسة على الحصص المحددة.",
+        "dailyAbsentThresholdSelectionDesc": "يُسجل الطالب غائباً لليوم عند فوات {threshold} من أصل {selected} حصة محددة.",
         "thresholdExceedsSelected": "لا يمكن أن يتجاوز الحد عدد الحصص المحددة. سيتم تعديله تلقائياً."
       }
     },
@@ -8524,6 +8566,18 @@
         "bySection": "حسب الشعبة",
         "byClassroom": "حسب الفصل",
         "weekdayPattern": "النمط حسب أيام الأسبوع"
+      },
+      "derivedDaily": {
+        "title": "حالات الغياب اليومية المشتقة",
+        "description": "نتائج غياب يومية للعرض فقط، تُحتسب من حضور الحصص المُرسل.",
+        "empty": "لا توجد حالات غياب يومية مشتقة تطابق الفلاتر الحالية.",
+        "student": "الطالب",
+        "studentId": "معرّف الطالب: {id}",
+        "date": "التاريخ",
+        "missedPeriods": "الحصص المتغيب عنها",
+        "evidence": "الحصص المُرسلة",
+        "periodsValue": "{missed} من {required}",
+        "evidenceValue": "{count} حصة"
       },
       "lateEarly": {
         "title": "اتجاهات التأخر والمغادرة المبكرة",

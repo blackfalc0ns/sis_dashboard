@@ -1,19 +1,16 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Tooltip } from "@mui/material";
 import type { AttendanceStatus } from "../types";
 
 interface RollCallQuickPresetsProps {
   selectedStatus: "ALL" | AttendanceStatus | "UNMARKED";
   onSelect: (status: "ALL" | AttendanceStatus | "UNMARKED") => void;
-  allowExcuses: boolean;
 }
 
 export default function RollCallQuickPresets({
   selectedStatus,
   onSelect,
-  allowExcuses,
 }: RollCallQuickPresetsProps) {
   const t = useTranslations("attendance.rollCall.filters");
 
@@ -27,12 +24,7 @@ export default function RollCallQuickPresets({
     { value: "UNMARKED", label: t("preset.unmarked") },
     { value: "ABSENT", label: t("preset.absent") },
     { value: "LATE", label: t("preset.late") },
-    {
-      value: "EXCUSED",
-      label: t("preset.excused"),
-      disabled: !allowExcuses,
-      tooltip: !allowExcuses ? t("excusesDisabledTooltip") : undefined,
-    },
+    { value: "EXCUSED", label: t("preset.excused") },
     { value: "EARLY_LEAVE", label: t("preset.earlyLeave") },
   ];
 
@@ -70,14 +62,6 @@ export default function RollCallQuickPresets({
             {preset.label}
           </button>
         );
-
-        if (preset.tooltip) {
-          return (
-            <Tooltip key={preset.value} title={preset.tooltip} arrow>
-              <span>{button}</span>
-            </Tooltip>
-          );
-        }
 
         return button;
       })}

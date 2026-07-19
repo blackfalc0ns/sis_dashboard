@@ -145,6 +145,10 @@ function resolveScopeIds(scopeType: ScopeType, item: BackendRecord, fallback?: A
 
 function mapRosterStudent(item: unknown): RosterStudent {
   const object = asRecord(item);
+  const stage = asRecord(object.stage);
+  const grade = asRecord(object.grade);
+  const section = asRecord(object.section);
+  const classroom = asRecord(object.classroom);
   const id = getString(object, ["id", "studentId"]);
   const displayName = getString(object, ["displayName", "name", "fullName", "studentName"], id);
   const nameEn = getString(object, ["nameEn", "studentNameEn", "displayNameEn", "displayName"], displayName);
@@ -157,6 +161,10 @@ function mapRosterStudent(item: unknown): RosterStudent {
     studentNumber: getString(object, ["studentNumber", "admissionNo", "studentCode", "code"], id),
     photoUrl: getOptionalString(object, ["photoUrl", "avatarUrl"]),
     enrollmentId: getOptionalString(object, ["enrollmentId"]),
+    stageId: getOptionalString(object, ["stageId"]) || getOptionalString(stage, ["id"]),
+    gradeId: getOptionalString(object, ["gradeId"]) || getOptionalString(grade, ["id"]),
+    sectionId: getOptionalString(object, ["sectionId"]) || getOptionalString(section, ["id"]),
+    classroomId: getOptionalString(object, ["classroomId"]) || getOptionalString(classroom, ["id"]),
     currentStatus:
       typeof object.currentStatus === "string"
         ? normalizeEntryStatus(object.currentStatus)
@@ -206,6 +214,7 @@ function mapSession(item: unknown, fallback?: Partial<AttendanceSession>): Atten
     scopeType,
     scopeIds: resolveScopeIds(scopeType, object, fallback?.scopeIds),
     mode: normalizeMode(object.mode || fallback?.mode),
+    periodKey: getOptionalString(object, ["periodKey"]) || fallback?.periodKey,
     periodId: getOptionalString(object, ["periodId"]) || fallback?.periodId,
     periodIndex: getNumber(object, ["periodIndex"]) ?? fallback?.periodIndex,
     periodNameAr:
@@ -214,6 +223,7 @@ function mapSession(item: unknown, fallback?: Partial<AttendanceSession>): Atten
     periodNameEn:
       getOptionalString(object, ["periodNameEn", "periodLabelEn"]) ||
       fallback?.periodNameEn,
+    policyId: getOptionalString(object, ["policyId"]) || fallback?.policyId,
     status: normalizeSessionStatus(object.status || fallback?.status),
     createdAt: getString(object, ["createdAt"], fallback?.createdAt || ""),
     updatedAt: getString(object, ["updatedAt"], fallback?.updatedAt || ""),

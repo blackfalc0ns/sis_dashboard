@@ -28,6 +28,7 @@ import AttendanceTrendChart from "../components/AttendanceTrendChart";
 import AbsenceAnalysisSection from "../components/AbsenceAnalysisSection";
 import LateEarlyAnalysisSection from "../components/LateEarlyAnalysisSection";
 import ExcusesAnalysisSection from "../components/ExcusesAnalysisSection";
+import DerivedDailyAbsencesSection from "../components/DerivedDailyAbsencesSection";
 import StudentRiskTable from "../components/StudentRiskTable";
 import SectionPerformanceTable from "../components/SectionPerformanceTable";
 import ReportsDrilldownDrawer, {
@@ -36,7 +37,11 @@ import ReportsDrilldownDrawer, {
 import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
 import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
 import { isScopeSelectionComplete } from "@/features/attendance/shared/attendanceScope";
-import { fetchAttendanceReportSummary } from "../services/attendanceReportsService";
+import {
+  fetchAttendanceReportSummary,
+  fetchDerivedDailyAbsences,
+  type DerivedDailyAbsenceReportRow,
+} from "../services/attendanceReportsService";
 import { exportAttendanceReports } from "../utils/exportReports";
 import { buildAttendanceReportsExportPayload } from "../utils/exportReports";
 import {
@@ -87,6 +92,9 @@ export default function AttendanceReportsPage() {
   const [filters, setFilters] =
     useState<AttendanceReportsFilters>(DEFAULT_FILTERS);
   const [report, setReport] = useState<AttendanceReportsData | null>(null);
+  const [derivedDailyAbsences, setDerivedDailyAbsences] = useState<
+    DerivedDailyAbsenceReportRow[]
+  >([]);
   const [loading, setLoading] = useState(false);
   const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
   const [drilldown, setDrilldown] = useState<ReportsDrilldownState | null>(
@@ -187,17 +195,27 @@ export default function AttendanceReportsPage() {
 
     if (!isScopeSelectionComplete(filters.scopeType, filters.scopeIds)) {
       setReport(null);
+      setDerivedDailyAbsences([]);
       return;
     }
 
     setLoading(true);
     try {
-      const data = await fetchAttendanceReportSummary({
+      const reportParams = {
         ...filters,
         yearId: termContext.yearId,
         termId: termContext.termId,
-      });
+      };
+      const [data, derivedRows] = await Promise.all([
+        fetchAttendanceReportSummary(reportParams),
+        fetchDerivedDailyAbsences(reportParams),
+      ]);
       setReport(data);
+      setDerivedDailyAbsences(
+        filters.studentId
+          ? derivedRows.filter((row) => row.studentId === filters.studentId)
+          : derivedRows,
+      );
     } catch (error) {
       console.error("Failed to load attendance reports", error);
       showError(tCommon("error_loading"));
@@ -835,6 +853,10 @@ export default function AttendanceReportsPage() {
                     ),
                   )
                 }
+              />
+              <DerivedDailyAbsencesSection
+                rows={derivedDailyAbsences}
+                attendanceRows={report.attendanceRows}
               />
               <LateEarlyAnalysisSection
                 analysis={report.lateEarlyAnalysis}

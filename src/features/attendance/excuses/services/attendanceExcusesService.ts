@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
+import { isApiError } from "@/lib/api-error";
 import type { AttendancePolicy } from "@/features/attendance/policies/types";
 import { fetchPolicies } from "@/features/attendance/policies/services/attendancePolicyService";
 import {
@@ -85,19 +86,6 @@ function normalizeStatus(value: unknown): ExcuseStatus {
   return String(value || "PENDING").toUpperCase() as ExcuseStatus;
 }
 
-function resolveScopeIds(scopeType: ExcuseScopeType, object: BackendRecord, fallback?: AttendanceScopeIds): AttendanceScopeIds | undefined {
-  const nested = object.scopeIds && typeof object.scopeIds === "object" ? (object.scopeIds as AttendanceScopeIds) : undefined;
-  if (nested) return nested;
-
-  const scopeKey = getOptionalString(object, ["scopeKey", "scopeId"]);
-  if (!scopeKey || scopeKey === "school") return fallback;
-  if (scopeType === "CLASSROOM") return { ...fallback, classroomId: scopeKey };
-  if (scopeType === "SECTION") return { ...fallback, sectionId: scopeKey };
-  if (scopeType === "GRADE") return { ...fallback, gradeId: scopeKey };
-  if (scopeType === "STAGE") return { ...fallback, stageId: scopeKey };
-  return fallback;
-}
-
 function normalizeDateRange(object: BackendRecord) {
   const dateFrom = getString(object, ["dateFrom", "fromDate", "date"], "");
   const dateTo = getString(object, ["dateTo", "toDate", "date"], dateFrom);
@@ -122,10 +110,6 @@ function mapAttachments(value: unknown): ExcuseRequest["attachments"] {
 function mapRequest(item: unknown, fallback?: { yearId?: string; termId?: string }): ExcuseRequest {
   const object = unwrapObject(item);
   const student = asRecord(object.student);
-  const scopeType =
-    typeof object.scopeType === "string"
-      ? (object.scopeType.toUpperCase() as ExcuseScopeType)
-      : undefined;
   const { dateFrom, dateTo } = normalizeDateRange(object);
   const reason = getString(object, ["reason", "reasonEn", "reasonAr"]);
   const studentNameEn = getString(
@@ -155,11 +139,11 @@ function mapRequest(item: unknown, fallback?: { yearId?: string; termId?: string
     studentNumber:
       getOptionalString(object, ["studentNumber", "admissionNo", "studentCode"]) ||
       getOptionalString(student, ["studentNumber"]),
-    scopeType,
-    scopeIds: scopeType ? resolveScopeIds(scopeType, object) : undefined,
-    hasScopeContext:
-      typeof object.scopeType === "string" ||
-      (!!object.scopeIds && typeof object.scopeIds === "object"),
+    // The current backend stores excuse requests at school scope and does not
+    // support scope fields in its request or response contract.
+    scopeType: "SCHOOL",
+    scopeIds: {},
+    hasScopeContext: true,
     type: String(object.type || "ABSENCE").toUpperCase() as ExcuseRequest["type"],
     dateFrom,
     dateTo,
@@ -328,8 +312,29 @@ export async function deleteExcuseRequest(id: string): Promise<void> {
 export async function approveExcuseRequest(id: string, decisionNote?: string, decidedBy?: string) {
   void decidedBy;
 
-  const response = await apiPost<unknown>(`${BASE}/${id}/approve`, { decisionNote });
-  return mapRequest(response);
+  try {
+    const response = await apiPost<unknown>(`${BASE}/${id}/approve`, { decisionNote });
+    return mapRequest(response);
+  } catch (error) {
+    if (
+      isApiError(error) &&
+      error.code === "validation.failed" &&
+      error.message === "No matching submitted attendance entry exists for this excuse"
+    ) {
+      throw new ExcuseApprovalEligibilityError(id, { cause: error });
+    }
+    throw error;
+  }
+}
+
+export class ExcuseApprovalEligibilityError extends Error {
+  constructor(
+    public readonly excuseRequestId: string,
+    options?: ErrorOptions,
+  ) {
+    super("No matching submitted attendance entry exists for this excuse", options);
+    this.name = "ExcuseApprovalEligibilityError";
+  }
 }
 
 export async function rejectExcuseRequest(id: string, decisionNote?: string, decidedBy?: string) {

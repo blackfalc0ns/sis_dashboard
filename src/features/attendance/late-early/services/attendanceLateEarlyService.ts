@@ -20,6 +20,7 @@ interface UpdateIncidentMinutesParams {
   studentId: string;
   type: "LATE" | "EARLY_LEAVE";
   minutes: number;
+  correctionReason: string;
   incidentId?: string;
 }
 
@@ -170,8 +171,11 @@ export async function fetchIncidents(params: FetchIncidentsParams): Promise<Inci
   });
 
   const incidents = unwrapArray(response)
-    .map((item) => mapIncident(item, params))
-    .filter((incident) => incident.type === "LATE" || incident.type === "EARLY_LEAVE");
+    .filter((item) => {
+      const status = String(asRecord(item).status || "").toUpperCase();
+      return status === "LATE" || status === "EARLY_LEAVE";
+    })
+    .map((item) => mapIncident(item, params));
 
   if (incidents.length === 0) return [];
 
@@ -219,8 +223,8 @@ export async function updateIncidentMinutes(params: UpdateIncidentMinutesParams)
 
     const response = await apiPatch<unknown>(`/attendance/absences/${params.incidentId}/early-leave`, {
       earlyLeaveMinutes: params.minutes,
-      correctionReason: "Corrected early leave minutes",
-      note: "Corrected early leave minutes",
+      correctionReason: params.correctionReason,
+      note: params.correctionReason,
     });
     return mapIncident(response, params);
   }
@@ -230,8 +234,8 @@ export async function updateIncidentMinutes(params: UpdateIncidentMinutesParams)
     {
       status: "LATE",
       lateMinutes: params.minutes,
-      correctionReason: "Corrected late minutes",
-      note: "Corrected late minutes",
+      correctionReason: params.correctionReason,
+      note: params.correctionReason,
     },
   );
 

@@ -28,23 +28,19 @@ export interface PolicyKpis {
  * Check if a policy has valid configuration
  */
 function isPolicyConfigComplete(policy: AttendancePolicy): boolean {
-  // All policies must be PERIOD mode now
-  if (policy.mode !== "PERIOD") {
-    return false;
-  }
-
-  // Must have periods selected
-  if (!policy.selectedPeriodIds || policy.selectedPeriodIds.length === 0) {
-    return false;
-  }
-
-  // Must have valid daily absent threshold
-  if (
-    !policy.absentIfMissedPeriodsCount ||
-    policy.absentIfMissedPeriodsCount < 1 ||
-    policy.absentIfMissedPeriodsCount > policy.selectedPeriodIds.length
-  ) {
-    return false;
+  // The backend requires period selection and a threshold whenever daily
+  // computation is derived from submitted period attendance.
+  if (policy.dailyComputationStrategy === "DERIVED_FROM_PERIODS") {
+    const periodCount = policy.selectedPeriodIds?.length || 0;
+    if (
+      periodCount === 0 ||
+      policy.absentIfMissedPeriodsCount === null ||
+      policy.absentIfMissedPeriodsCount === undefined ||
+      policy.absentIfMissedPeriodsCount < 1 ||
+      policy.absentIfMissedPeriodsCount > periodCount
+    ) {
+      return false;
+    }
   }
 
   // Check if notifications are enabled but no recipients/triggers
@@ -284,20 +280,22 @@ export function computePolicyKpis(
       ? Math.round((coveredSectionsCount / totalSectionsCount) * 100)
       : 0;
 
-  // C) Coverage by Mode (all should be PERIOD now)
+  // C) Coverage by mode
   const effectivePolicies = policies.filter((p) =>
     isPolicyEffective(p, today)
   );
 
+  const dailyPolicies = effectivePolicies.filter((p) => p.mode === "DAILY");
   const periodPolicies = effectivePolicies.filter((p) => p.mode === "PERIOD");
 
-  const hasDaily = false; // No longer supported
+  const hasDaily = dailyPolicies.length > 0;
   const hasPeriod = periodPolicies.length > 0;
-  const dailyCount = 0; // No longer supported
+  const dailyCount = dailyPolicies.length;
   const periodCount = periodPolicies.length;
 
-  // Derived daily count (all policies now derive daily from periods)
-  const derivedDailyCount = periodPolicies.length;
+  const derivedDailyCount = effectivePolicies.filter(
+    (policy) => policy.dailyComputationStrategy === "DERIVED_FROM_PERIODS",
+  ).length;
 
   // Notifications enabled count
   const notificationsEnabledCount = effectivePolicies.filter((p) =>
@@ -321,12 +319,12 @@ export function computePolicyKpis(
   );
 
   // G) Roll Call Ready
-  // Ready if coverage=100 AND conflicts=0 AND incompleteConfig=0 AND has valid period policies
+  // Ready if coverage=100 AND conflicts=0 AND every effective policy is complete.
   const isRollCallReady =
     coveragePercent === 100 &&
     conflictsCount === 0 &&
     incompleteConfigCount === 0 &&
-    hasPeriod;
+    (hasDaily || hasPeriod);
 
   return {
     activePoliciesCount,

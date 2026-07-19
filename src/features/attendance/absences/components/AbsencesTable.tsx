@@ -5,8 +5,10 @@ import { Edit2, FileText } from "lucide-react";
 import { Tooltip } from "@mui/material";
 import DataTable from "@/components/ui/data-table/DataTable";
 import { getAttendanceStatusStyle } from "@/features/attendance/shared/statusStyles";
+import type { StructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { AbsenceRecord } from "../types";
 import type { AttendanceStatus } from "@/features/attendance/roll-call/types";
+import { getLocalizedStructureName } from "../utils/localizedStructureName";
 
 interface AbsencesTableProps {
   records: AbsenceRecord[];
@@ -14,6 +16,7 @@ interface AbsencesTableProps {
   onEditExcuse: (record: AbsenceRecord) => void;
   onEditEarlyLeave: (record: AbsenceRecord) => void;
   isReadOnly: boolean;
+  structureTree: StructureTree | null;
 }
 
 export default function AbsencesTable({
@@ -22,40 +25,51 @@ export default function AbsencesTable({
   onEditExcuse,
   onEditEarlyLeave,
   isReadOnly,
+  structureTree,
 }: AbsencesTableProps) {
   const t = useTranslations("attendance.absences.table");
   const locale = useLocale();
 
-  const getStatusChip = (status: string, granularity: string) => {
+  const getStatusLabel = (status: string) => {
+    const statusKeys: Record<string, "absent" | "late" | "earlyLeave" | "excused" | "unmarked"> = {
+      ABSENT: "absent",
+      LATE: "late",
+      EARLY_LEAVE: "earlyLeave",
+      EXCUSED: "excused",
+      UNMARKED: "unmarked",
+    };
+    return t(`statusLabels.${statusKeys[status] || "unmarked"}`);
+  };
+
+  const getStatusChip = (row: AbsenceRecord) => {
+    const { status, granularity, excusedFromStatus } = row;
+
     if (granularity === "DAILY_DERIVED") {
       const style = getAttendanceStatusStyle(status as AttendanceStatus);
+      const statusLabel = status === "EXCUSED"
+        ? t("statusTransition", { from: getStatusLabel("ABSENT"), to: getStatusLabel(status) })
+        : getStatusLabel(status);
       return (
         <span 
           style={{ backgroundColor: style.bg, color: style.fg, borderColor: style.border }}
           className="inline-flex px-2 py-1 text-xs font-medium rounded border"
         >
-          {locale === "ar" ? "يومي" : "Daily"} - {status === "EXCUSED" ? (locale === "ar" ? "بعذر" : "Excused") : (locale === "ar" ? "غائب" : "Absent")}
+          {t("dailyStatus", { status: statusLabel })}
         </span>
       );
     }
 
     const style = getAttendanceStatusStyle(status as AttendanceStatus);
-    const labels: Record<string, { label: string; labelAr: string }> = {
-      ABSENT: { label: "Absent", labelAr: "غائب" },
-      LATE: { label: "Late", labelAr: "متأخر" },
-      EARLY_LEAVE: { label: "Early Leave", labelAr: "مغادرة مبكرة" },
-      EXCUSED: { label: "Excused", labelAr: "بعذر" },
-      UNMARKED: { label: "Unmarked", labelAr: "غير محدد" },
-    };
-
-    const label = labels[status] || labels.UNMARKED;
+    const statusLabel = status === "EXCUSED" && excusedFromStatus
+      ? t("statusTransition", { from: getStatusLabel(excusedFromStatus), to: getStatusLabel(status) })
+      : getStatusLabel(status);
 
     return (
       <span 
         style={{ backgroundColor: style.bg, color: style.fg, borderColor: style.border }}
         className="inline-flex px-2 py-1 text-xs font-medium rounded border"
       >
-        {locale === "ar" ? label.labelAr : label.label}
+        {statusLabel}
       </span>
     );
   };
@@ -90,7 +104,7 @@ export default function AbsencesTable({
       label: t("grade"),
       render: (_: unknown, row: AbsenceRecord) => (
         <div style={{ color: "var(--color-gray-700)" }} className="text-sm">
-          {row.gradeNameAr || row.gradeNameEn || "-"}
+          {getLocalizedStructureName(row, structureTree, "grade", locale)}
         </div>
       ),
     },
@@ -99,7 +113,7 @@ export default function AbsencesTable({
       label: t("section"),
       render: (_: unknown, row: AbsenceRecord) => (
         <div style={{ color: "var(--color-gray-700)" }} className="text-sm">
-          {row.sectionNameAr || row.sectionNameEn || "-"}
+          {getLocalizedStructureName(row, structureTree, "section", locale)}
         </div>
       ),
     },
@@ -108,14 +122,14 @@ export default function AbsencesTable({
       label: t("classroom"),
       render: (_: unknown, row: AbsenceRecord) => (
         <div style={{ color: "var(--color-gray-700)" }} className="text-sm">
-          {row.classroomNameAr || row.classroomNameEn || "-"}
+          {getLocalizedStructureName(row, structureTree, "classroom", locale)}
         </div>
       ),
     },
     {
       key: "status",
       label: t("status"),
-      render: (_: unknown, row: AbsenceRecord) => getStatusChip(row.status, row.granularity),
+      render: (_: unknown, row: AbsenceRecord) => getStatusChip(row),
     },
     {
       key: "period",
@@ -168,16 +182,18 @@ export default function AbsencesTable({
           return <span style={{ color: "var(--color-neutral-400)" }} className="text-xs">{t("viewOnly")}</span>;
         }
 
+        const canCorrect = !isReadOnly && row.sessionStatus === "SUBMITTED";
+
         return (
           <div className="flex items-center gap-2">
-            {(row.status === "ABSENT" || row.status === "EXCUSED") && (
+            {row.status !== "EXCUSED" && (
               <Tooltip title={t("editExcuse")} arrow>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     onEditExcuse(row);
                   }}
-                  disabled={isReadOnly}
+                  disabled={!canCorrect}
                   style={{ color: "var(--color-gray-600)" }}
                   className="p-1.5 hover:text-[var(--color-primary)] hover:bg-[var(--color-neutral-100)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -192,7 +208,7 @@ export default function AbsencesTable({
                     e.stopPropagation();
                     onEditEarlyLeave(row);
                   }}
-                  disabled={isReadOnly}
+                  disabled={!canCorrect}
                   style={{ color: "var(--color-gray-600)" }}
                   className="p-1.5 hover:text-[var(--color-primary)] hover:bg-[var(--color-neutral-100)] rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >

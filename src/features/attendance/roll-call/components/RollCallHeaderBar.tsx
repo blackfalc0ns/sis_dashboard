@@ -1,16 +1,22 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Save, Send, RotateCcw, Download, CheckCircle, Undo2 } from "lucide-react";
+import {
+  Save,
+  Send,
+  RotateCcw,
+  Download,
+  CheckCircle,
+  Undo2,
+} from "lucide-react";
 import Button from "@/components/ui/button/Button";
-import { usePermissions } from "@/hooks/usePermissions";
 
 interface RollCallHeaderBarProps {
   isDirty: boolean;
   isReadOnly: boolean;
   isSubmitted: boolean;
   canSubmit: boolean;
-  termStatus: "open" | "closed";
+  canReopenForEdit: boolean;
   onSave: () => void;
   onSubmit: () => void;
   onUnsubmit?: () => void;
@@ -26,7 +32,7 @@ export default function RollCallHeaderBar({
   isReadOnly,
   isSubmitted,
   canSubmit,
-  termStatus,
+  canReopenForEdit,
   onSave,
   onSubmit,
   onUnsubmit,
@@ -37,18 +43,12 @@ export default function RollCallHeaderBar({
   isSaving = false,
 }: RollCallHeaderBarProps) {
   const t = useTranslations("attendance.rollCall.actions");
-  const { hasPermission } = usePermissions();
-
-  const canUnsubmit = !isReadOnly && 
-                      isSubmitted && 
-                      termStatus === "open" && 
-                      hasPermission("attendance.rollcall.unsubmit") &&
-                      onUnsubmit;
+  const canUnsubmit = isSubmitted && canReopenForEdit && onUnsubmit;
 
   return (
     <div
       style={{ backgroundColor: "var(--background)" }}
-      className="rounded-lg border px-3 py-3"
+      className="rounded-lg border border-border px-3 py-3"
     >
       <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
         {/* Left: Bulk Actions */}

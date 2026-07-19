@@ -126,7 +126,7 @@ export default function LateEarlyTable({ incidents, isReadOnly, onView, onEditMi
               className="p-1.5 rounded disabled:opacity-50"
               style={{ color: "var(--text-secondary)" }}
               onClick={() => onEditMinutes(row)}
-              disabled={isReadOnly}
+              disabled={isReadOnly || row.sessionStatus !== "SUBMITTED"}
             >
               <PencilLine className="w-4 h-4" />
             </button>

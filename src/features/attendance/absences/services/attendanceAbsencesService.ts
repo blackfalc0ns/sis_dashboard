@@ -127,6 +127,15 @@ function mapAbsenceRecord(item: unknown, fallback: { yearId: string; termId: str
   const object = asRecord(item);
   const scopeType = String(object.scopeType || "SCHOOL").toUpperCase() as ScopeType;
   const status = normalizeStatus(object.status || object.type || object.itemType);
+  const minutesLate = getNumber(object, ["minutesLate", "lateMinutes"]);
+  const minutesEarlyLeave = getNumber(object, ["minutesEarlyLeave", "earlyLeaveMinutes"]);
+  const excusedFromStatus = status === "EXCUSED"
+    ? minutesEarlyLeave
+      ? "EARLY_LEAVE"
+      : minutesLate
+        ? "LATE"
+        : "ABSENT"
+    : undefined;
   const attachments = Array.isArray(object.attachments)
     ? (object.attachments as AttachmentMeta[])
     : Array.isArray(asRecord(object.excuse).attachments)
@@ -146,6 +155,8 @@ function mapAbsenceRecord(item: unknown, fallback: { yearId: string; termId: str
     studentNameEn: getString(object, ["studentNameEn", "nameEn", "displayNameEn", "studentNameAr"]),
     scopeType,
     scopeIds: resolveScopeIds(scopeType, object),
+    stageNameAr: getOptionalString(object, ["stageNameAr"]),
+    stageNameEn: getOptionalString(object, ["stageNameEn"]),
     gradeNameAr: getOptionalString(object, ["gradeNameAr"]),
     gradeNameEn: getOptionalString(object, ["gradeNameEn"]),
     sectionNameAr: getOptionalString(object, ["sectionNameAr"]),
@@ -159,8 +170,9 @@ function mapAbsenceRecord(item: unknown, fallback: { yearId: string; termId: str
     periodNameAr: getOptionalString(object, ["periodNameAr", "periodLabelAr"]),
     periodNameEn: getOptionalString(object, ["periodNameEn", "periodLabelEn"]),
     status,
-    minutesLate: getNumber(object, ["minutesLate", "lateMinutes"]),
-    minutesEarlyLeave: getNumber(object, ["minutesEarlyLeave", "earlyLeaveMinutes"]),
+    excusedFromStatus,
+    minutesLate,
+    minutesEarlyLeave,
     excuse: excuseReason || attachments
       ? {
           reasonAr: excuseReason,
@@ -170,6 +182,9 @@ function mapAbsenceRecord(item: unknown, fallback: { yearId: string; termId: str
         }
       : undefined,
     sourceSessionId: getOptionalString(object, ["sourceSessionId", "sessionId"]),
+    sessionStatus: getOptionalString(object, ["submittedAt"])
+      ? "SUBMITTED"
+      : "DRAFT",
     updatedAt: getString(object, ["updatedAt"], new Date().toISOString()),
   };
 }
@@ -223,24 +238,31 @@ export async function updateExcuse(
   record: AbsenceRecord,
   reason: string,
 ): Promise<void> {
+  if (!reason.trim() || reason.trim().length > 1000) {
+    throw new Error("Excuse reason must contain 1 to 1000 characters");
+  }
   await apiPatch(`${BASE}/${record.id}/excuse`, {
-    correctionReason: reason,
-    excuseReason: reason,
-    note: reason,
+    correctionReason: reason.trim(),
+    excuseReason: reason.trim(),
+    note: reason.trim(),
   });
 }
 
 export async function updateEarlyLeaveMinutes(
   record: AbsenceRecord,
-  minutes: number
+  minutes: number,
+  correctionReason: string,
 ): Promise<void> {
   if (!Number.isFinite(minutes) || minutes < 1) {
     throw new Error("Minutes must be at least 1");
   }
+  if (!correctionReason.trim() || correctionReason.trim().length > 1000) {
+    throw new Error("Correction reason must contain 1 to 1000 characters");
+  }
 
   await apiPatch(`${BASE}/${record.id}/early-leave`, {
     earlyLeaveMinutes: minutes,
-    correctionReason: "Corrected early leave minutes",
-    note: "Corrected early leave minutes",
+    correctionReason: correctionReason.trim(),
+    note: correctionReason.trim(),
   });
 }

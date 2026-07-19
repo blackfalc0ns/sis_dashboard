@@ -12,7 +12,6 @@ import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { FilterPanel } from "@/components/ui";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import { isPolicyConfigComplete, hasNotificationsEnabled } from "../utils/policyKpis";
-import { getPeriodDisplayLabel } from "../../utils/periodIdNormalization";
 import type { AttendancePolicy, AttendanceScopeType } from "../types";
 import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
 import type { Stage, Grade, Section, Classroom } from "@/features/academics/academic-structure-tree/services/structureService";
@@ -251,14 +250,22 @@ export default function PoliciesListPanel({
       label: t("list.tracking"),
       render: (_: unknown, row: AttendancePolicy) => {
         const selectedCount = row.selectedPeriodIds?.length || 0;
-        const threshold = row.absentIfMissedPeriodsCount || 0;
+        const isDerivedFromPeriods =
+          row.dailyComputationStrategy === "DERIVED_FROM_PERIODS";
+        const isManualDaily = row.mode === "DAILY" && !isDerivedFromPeriods;
+        const threshold = row.absentIfMissedPeriodsCount;
+        const trackingLabel = isManualDaily
+          ? `${t("form.daily")} · ${t("list.manual")}`
+          : isDerivedFromPeriods
+            ? `${t("form.daily")} · ${t("list.derived")}`
+            : t("form.period");
         
         return (
           <div className="flex flex-col gap-1">
             <span className="inline-flex px-2 py-1 text-xs font-medium rounded w-fit bg-purple-100 text-purple-800">
-              {t("form.period")}
+              {trackingLabel}
             </span>
-            {selectedCount > 0 && threshold > 0 && (
+            {isDerivedFromPeriods && selectedCount > 0 && threshold !== null && threshold !== undefined && (
               <Tooltip 
                 title={locale === "ar" 
                   ? `غائب إذا فات ${threshold} من ${selectedCount} حصص` 
@@ -267,10 +274,7 @@ export default function PoliciesListPanel({
                 arrow
               >
                 <span className="inline-flex px-2 py-1 text-xs font-medium rounded w-fit bg-teal-100 text-teal-800 cursor-help">
-                  {locale === "ar" 
-                    ? `${threshold}/${selectedCount} حصص` 
-                    : `${threshold}/${selectedCount} periods`
-                  }
+                  {t("list.derived")}: {threshold}/{selectedCount}
                 </span>
               </Tooltip>
             )}
@@ -283,6 +287,15 @@ export default function PoliciesListPanel({
       label: t("list.periods"),
       render: (_: unknown, row: AttendancePolicy) => {
         const periodCount = row.selectedPeriodIds?.length || 0;
+        const isDerivedFromPeriods =
+          row.dailyComputationStrategy === "DERIVED_FROM_PERIODS";
+        const usesPeriods =
+          row.mode === "PERIOD" ||
+          isDerivedFromPeriods;
+
+        if (!usesPeriods) {
+          return <span className="text-gray-400 text-sm">—</span>;
+        }
         
         if (periodCount === 0) {
           return (
@@ -294,10 +307,8 @@ export default function PoliciesListPanel({
           );
         }
 
-        const periodLabels = row.selectedPeriodIds?.map((id) => getPeriodDisplayLabel(id));
-
         return (
-          <Tooltip title={periodLabels?.join(", ") || ""} arrow>
+          <Tooltip title={t("list.selectedPeriods", { count: periodCount })} arrow>
             <span className="text-sm text-gray-700 cursor-help">
               {periodCount} {t("list.periodsCount")}
             </span>

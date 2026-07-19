@@ -7,12 +7,18 @@ import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
 import { FilterPanel } from "@/components/ui";
 import RollCallQuickPresets from "./RollCallQuickPresets";
-import type { AttendancePolicy } from "@/features/attendance/policies/types";
 import type { AttendanceStatus } from "../types";
 
 export interface RosterFilters {
   search: string;
-  status: "ALL" | "UNMARKED" | "PRESENT" | "ABSENT" | "LATE" | "EXCUSED" | "EARLY_LEAVE";
+  status:
+    | "ALL"
+    | "UNMARKED"
+    | "PRESENT"
+    | "ABSENT"
+    | "LATE"
+    | "EXCUSED"
+    | "EARLY_LEAVE";
   excuseCompleteness?: "ALL" | "COMPLETE" | "MISSING";
   lateMin?: number;
   earlyLeaveMin?: number;
@@ -21,7 +27,6 @@ export interface RosterFilters {
 interface RosterFiltersBarProps {
   filters: RosterFilters;
   onFiltersChange: (filters: RosterFilters) => void;
-  policy: AttendancePolicy | null;
   showFilters: boolean;
   onToggleFilters: () => void;
 }
@@ -29,14 +34,11 @@ interface RosterFiltersBarProps {
 export default function RosterFiltersBar({
   filters,
   onFiltersChange,
-  policy,
   showFilters,
   onToggleFilters,
 }: RosterFiltersBarProps) {
   const t = useTranslations("attendance.rollCall.filters");
   const tStatus = useTranslations("attendance.rollCall.filters.status");
-
-  const allowExcuses = policy?.allowExcuses ?? false;
 
   const statusOptions = [
     { value: "ALL", label: tStatus("all") },
@@ -44,7 +46,7 @@ export default function RosterFiltersBar({
     { value: "PRESENT", label: tStatus("present") },
     { value: "ABSENT", label: tStatus("absent") },
     { value: "LATE", label: tStatus("late") },
-    ...(allowExcuses ? [{ value: "EXCUSED", label: tStatus("excused") }] : []),
+    { value: "EXCUSED", label: tStatus("excused") },
     { value: "EARLY_LEAVE", label: tStatus("earlyLeave") },
   ];
 
@@ -64,13 +66,16 @@ export default function RosterFiltersBar({
     });
   };
 
-  const handlePresetSelect = (status: "ALL" | AttendanceStatus | "UNMARKED") => {
+  const handlePresetSelect = (
+    status: "ALL" | AttendanceStatus | "UNMARKED",
+  ) => {
     onFiltersChange({
       ...filters,
       status,
       // Clear numeric filters unless it's LATE or EARLY_LEAVE
       lateMin: status === "LATE" ? filters.lateMin : undefined,
-      earlyLeaveMin: status === "EARLY_LEAVE" ? filters.earlyLeaveMin : undefined,
+      earlyLeaveMin:
+        status === "EARLY_LEAVE" ? filters.earlyLeaveMin : undefined,
     });
   };
 
@@ -126,7 +131,6 @@ export default function RosterFiltersBar({
           <RollCallQuickPresets
             selectedStatus={filters.status}
             onSelect={handlePresetSelect}
-            allowExcuses={allowExcuses}
           />
         }
         filtersSlot={
@@ -144,21 +148,19 @@ export default function RosterFiltersBar({
               label={t("statusLabel")}
             />
 
-            {allowExcuses && (
-              <Select
-                value={filters.excuseCompleteness || "ALL"}
-                onChange={(value) =>
-                  onFiltersChange({
-                    ...filters,
-                    excuseCompleteness:
-                      value as RosterFilters["excuseCompleteness"],
-                  })
-                }
-                options={excuseCompletenessOptions}
-                selectSize="sm"
-                label={t("excuseLabel")}
-              />
-            )}
+            <Select
+              value={filters.excuseCompleteness || "ALL"}
+              onChange={(value) =>
+                onFiltersChange({
+                  ...filters,
+                  excuseCompleteness:
+                    value as RosterFilters["excuseCompleteness"],
+                })
+              }
+              options={excuseCompletenessOptions}
+              selectSize="sm"
+              label={t("excuseLabel")}
+            />
 
             <div>
               <label

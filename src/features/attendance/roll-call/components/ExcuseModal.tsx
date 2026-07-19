@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { FileText, X } from "lucide-react";
 import Modal from "@/components/ui/modal/Modal";
@@ -17,10 +17,7 @@ const EMPTY_ATTACHMENTS: AttachmentMeta[] = [];
 interface ExcuseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (
-    reason: string,
-    attachments: AttachmentMeta[],
-  ) => void | Promise<void>;
+  onSave: (reason: string, attachments: AttachmentMeta[]) => void | Promise<void>;
   initialReason?: string;
   initialAttachments?: AttachmentMeta[];
   attachmentMode: "OPTIONAL" | "REQUIRED" | "UNSUPPORTED";
@@ -39,19 +36,12 @@ export default function ExcuseModal({
   const t = useTranslations("attendance.rollCall.excuse");
   const tCommon = useTranslations("common");
   const tUpload = useTranslations("upload");
-
   const [reason, setReason] = useState("");
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([]);
-  const [errors, setErrors] = useState<{
-    reason?: string;
-    attachments?: string;
-    form?: string;
-  }>({});
-  const [previewAttachment, setPreviewAttachment] =
-    useState<AttachmentMeta | null>(null);
+  const [errors, setErrors] = useState<{ reason?: string; attachments?: string; form?: string }>({});
+  const [previewAttachment, setPreviewAttachment] = useState<AttachmentMeta | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
   const rules = getUploadRules("ATTENDANCE_EXCUSE");
 
   useEffect(() => {
@@ -67,7 +57,6 @@ export default function ExcuseModal({
         setPreviewAttachment(null);
       }
     });
-
     return () => window.cancelAnimationFrame(frameId);
   }, [initialAttachments, initialReason, isOpen]);
 
@@ -75,8 +64,8 @@ export default function ExcuseModal({
     setIsUploading(true);
     try {
       const uploaded = await uploadExcuseAttachments(files, uploadFile);
-      setAttachments((prev) => [
-        ...prev,
+      setAttachments((previous) => [
+        ...previous,
         ...uploaded.map((file) => ({
           id: file.id,
           name: file.name,
@@ -85,43 +74,32 @@ export default function ExcuseModal({
           uploadedAt: new Date().toISOString(),
         })),
       ]);
-      setErrors((prev) => ({ ...prev, attachments: undefined }));
+      setErrors((previous) => ({ ...previous, attachments: undefined }));
     } catch (error) {
       console.error("Failed to upload excuse attachment", error);
-      setErrors((prev) => ({ ...prev, attachments: tCommon("save_failed") }));
+      setErrors((previous) => ({ ...previous, attachments: tCommon("save_failed") }));
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleRemoveAttachment = (id: string) => {
-    setAttachments((prev) => prev.filter((a) => a.id !== id));
-  };
-
   const handleSave = async () => {
-    const newErrors: { reason?: string; attachments?: string; form?: string } =
-      {};
-
-    if (!reason.trim()) {
-      newErrors.reason = t("requiredReason");
-    }
-
+    const nextErrors: { reason?: string; attachments?: string } = {};
+    if (!reason.trim()) nextErrors.reason = t("requiredReason");
     if (attachmentMode === "REQUIRED" && attachments.length === 0) {
-      newErrors.attachments = t("requiredAttachment");
+      nextErrors.attachments = t("requiredAttachment");
     }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
       return;
     }
-
     setIsSaving(true);
     try {
       await onSave(reason, attachments);
       onClose();
     } catch (error) {
-      console.error("Failed to create excuse request", error);
-      setErrors((prev) => ({ ...prev, form: tCommon("save_failed") }));
+      console.error("Failed to save excuse", error);
+      setErrors((previous) => ({ ...previous, form: tCommon("save_failed") }));
     } finally {
       setIsSaving(false);
     }
@@ -131,157 +109,27 @@ export default function ExcuseModal({
     <>
       <Modal isOpen={isOpen} onClose={onClose} size="md" title={t("title")}>
         <div className="space-y-4">
-          {errors.form && (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {errors.form}
-            </p>
-          )}
+          {errors.form && <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{errors.form}</p>}
           <div>
-            <label
-              style={{ color: "var(--color-gray-700)" }}
-              className="block text-sm font-medium mb-2"
-            >
+            <label style={{ color: "var(--color-gray-700)" }} className="mb-2 block text-sm font-medium">
               {t("reason")} <span className="text-red-500">*</span>
             </label>
-            <textarea
-              value={reason}
-              onChange={(e) => {
-                setReason(e.target.value);
-                setErrors((prev) => ({ ...prev, reason: undefined }));
-              }}
-              disabled={isReadOnly}
-              rows={4}
-              style={{
-                borderColor: errors.reason
-                  ? "var(--color-accent-500)"
-                  : "var(--color-border)",
-                backgroundColor: isReadOnly
-                  ? "var(--color-neutral-50)"
-                  : "transparent",
-              }}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary ${
-                isReadOnly ? "cursor-not-allowed" : ""
-              }`}
-              placeholder={t("reasonPlaceholder")}
-            />
-            {errors.reason && (
-              <p className="mt-1 text-sm text-red-600">{errors.reason}</p>
-            )}
+            <textarea value={reason} onChange={(event) => { setReason(event.target.value); setErrors((previous) => ({ ...previous, reason: undefined })); }} disabled={isReadOnly} rows={4} className="w-full rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" placeholder={t("reasonPlaceholder")} />
+            {errors.reason && <p className="mt-1 text-sm text-red-600">{errors.reason}</p>}
           </div>
-
-          {attachmentMode !== "UNSUPPORTED" && (
-            <div>
-              <label
-                style={{ color: "var(--color-gray-700)" }}
-                className="block text-sm font-medium mb-2"
-              >
-                {t("attachments")}
-                {attachmentMode === "REQUIRED" && (
-                  <span className="text-red-500"> *</span>
-                )}
-              </label>
-
-              {!isReadOnly && (
-                <DragDropUploadArea
-                  onFilesSelected={handleFilesSelected}
-                  disabled={isSaving}
-                  isUploading={isUploading}
-                  uploadArea="ATTENDANCE_EXCUSE"
-                  helperText={`${tUpload(rules.acceptLabelKey)} - ${Math.round(rules.maxSizeBytes / (1024 * 1024))}MB`}
-                  multiple={true}
-                />
-              )}
-
-              {errors.attachments && (
-                <p className="mt-2 text-sm text-red-600">
-                  {errors.attachments}
-                </p>
-              )}
-
-              {attachments.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {attachments.map((att) => (
-                    <div
-                      key={att.id}
-                      style={{
-                        backgroundColor: "var(--color-neutral-50)",
-                        borderColor: "var(--color-border)",
-                      }}
-                      className="flex items-center justify-between gap-3 p-3 rounded-lg border"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setPreviewAttachment(att)}
-                        disabled={isSaving}
-                        className="flex items-center gap-3 flex-1 min-w-0 text-start"
-                      >
-                        <FileText
-                          style={{ color: "var(--color-neutral-400)" }}
-                          className="w-5 h-5 shrink-0"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p
-                            style={{ color: "var(--color-gray-900)" }}
-                            className="text-sm font-medium truncate"
-                          >
-                            {att.name}
-                          </p>
-                          <p
-                            style={{ color: "var(--color-neutral-500)" }}
-                            className="text-xs"
-                          >
-                            {formatFileSize(att.size)}
-                          </p>
-                        </div>
-                      </button>
-                      {!isReadOnly && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveAttachment(att.id)}
-                          disabled={isSaving}
-                          style={{ color: "var(--color-neutral-400)" }}
-                          className="transition-colors shrink-0"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          {attachmentMode !== "UNSUPPORTED" && <div>
+            <label style={{ color: "var(--color-gray-700)" }} className="mb-2 block text-sm font-medium">{t("attachments")}{attachmentMode === "REQUIRED" && <span className="text-red-500"> *</span>}</label>
+            {!isReadOnly && <DragDropUploadArea onFilesSelected={handleFilesSelected} disabled={isSaving} isUploading={isUploading} uploadArea="ATTENDANCE_EXCUSE" helperText={`${tUpload(rules.acceptLabelKey)} - ${Math.round(rules.maxSizeBytes / (1024 * 1024))}MB`} multiple />}
+            {errors.attachments && <p className="mt-2 text-sm text-red-600">{errors.attachments}</p>}
+            {attachments.length > 0 && <div className="mt-3 space-y-2">{attachments.map((attachment) => <div key={attachment.id} className="flex items-center justify-between gap-3 rounded-lg border p-3"><button type="button" onClick={() => setPreviewAttachment(attachment)} disabled={isSaving} className="flex min-w-0 flex-1 items-center gap-3 text-start"><FileText className="h-5 w-5 shrink-0" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{attachment.name}</p><p className="text-xs">{formatFileSize(attachment.size)}</p></div></button>{!isReadOnly && <button type="button" onClick={() => setAttachments((previous) => previous.filter((item) => item.id !== attachment.id))} disabled={isSaving}><X className="h-4 w-4" /></button>}</div>)}</div>}
+          </div>}
         </div>
-
-        <div
-          style={{ borderColor: "var(--color-border)" }}
-          className="flex items-center justify-end gap-3 mt-6 pt-6 border-t"
-        >
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isSaving || isUploading}
-          >
-            {tCommon("cancel")}
-          </Button>
-          {!isReadOnly && (
-            <Button
-              variant="primary"
-              onClick={handleSave}
-              disabled={isSaving || isUploading}
-              loading={isSaving}
-            >
-              {t("save")}
-            </Button>
-          )}
+        <div className="mt-6 flex justify-end gap-3 border-t pt-6">
+          <Button variant="outline" onClick={onClose} disabled={isSaving || isUploading}>{tCommon("cancel")}</Button>
+          {!isReadOnly && <Button variant="primary" onClick={handleSave} disabled={isSaving || isUploading} loading={isSaving}>{t("save")}</Button>}
         </div>
       </Modal>
-
-      <FilePreviewModal
-        attachment={previewAttachment}
-        isOpen={!!previewAttachment}
-        onClose={() => setPreviewAttachment(null)}
-      />
+      <FilePreviewModal attachment={previewAttachment} isOpen={!!previewAttachment} onClose={() => setPreviewAttachment(null)} />
     </>
   );
 }

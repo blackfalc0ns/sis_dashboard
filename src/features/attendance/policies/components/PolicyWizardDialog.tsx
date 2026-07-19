@@ -12,6 +12,7 @@ import {
   isAttendancePolicyConflict,
   type PolicyNameValidationResult,
 } from "../services/attendancePolicyService";
+import { isApiError } from "@/lib/api-error";
 import {
   getScopeSelectionMissingFields,
   isScopeSelectionComplete,
@@ -196,7 +197,12 @@ export default function PolicyWizardDialog({
   }, [isOpen, policy, term]);
 
   useEffect(() => {
-    if (!isOpen || formData.mode !== "PERIOD" || availablePeriods.length === 0)
+    if (
+      !isOpen ||
+      (formData.mode !== "PERIOD" &&
+        formData.dailyComputationStrategy !== "DERIVED_FROM_PERIODS") ||
+      availablePeriods.length === 0
+    )
       return;
 
     setFormData((prev) => {
@@ -232,7 +238,7 @@ export default function PolicyWizardDialog({
           prev.absentIfMissedPeriodsCount || nextPeriodIds.length || 1,
       };
     });
-  }, [isOpen, policy, availablePeriods, formData.mode]);
+  }, [isOpen, policy, availablePeriods, formData.mode, formData.dailyComputationStrategy]);
 
   async function loadAvailablePeriods() {
     if (!term) return;
@@ -293,14 +299,26 @@ export default function PolicyWizardDialog({
 
   // Load periods when dialog opens or scope changes (always needed now)
   useEffect(() => {
-    if (!isOpen || !term || formData.mode !== "PERIOD") {
+    if (
+      !isOpen ||
+      !term ||
+      (formData.mode !== "PERIOD" &&
+        formData.dailyComputationStrategy !== "DERIVED_FROM_PERIODS")
+    ) {
       setAvailablePeriods([]);
       return;
     }
 
     loadAvailablePeriods();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, formData.mode, formData.scopeType, formData.scopeIds, term]);
+  }, [
+    isOpen,
+    formData.mode,
+    formData.dailyComputationStrategy,
+    formData.scopeType,
+    formData.scopeIds,
+    term,
+  ]);
 
   const handleFieldChange = (
     field: keyof PolicyFormData,
@@ -320,6 +338,12 @@ export default function PolicyWizardDialog({
     ) {
       nameValidationRequestId.current += 1;
       setNameValidationStatus("idle");
+    }
+    if (field === "notifyGuardians") {
+      setFormData((prev) => ({ ...prev, notifyOnAbsent: value as boolean }));
+    }
+    if (field === "notifyOnAbsent") {
+      setFormData((prev) => ({ ...prev, notifyGuardians: value as boolean }));
     }
     if (["scopeType", "scopeIds", "isActive"].includes(field)) {
       setErrors((current) => {
@@ -415,8 +439,8 @@ export default function PolicyWizardDialog({
       )) {
         newErrors[field] = tValidation("required");
       }
-    } else if (step === 2 && formData.mode === "PERIOD") {
-      // Step 3: Period Selection (always required now)
+    } else if (step === 2 && formData.dailyComputationStrategy === "DERIVED_FROM_PERIODS") {
+      // The backend requires periods only for derived daily computation.
       if (
         !formData.selectedPeriodIds ||
         formData.selectedPeriodIds.length === 0
@@ -438,15 +462,15 @@ export default function PolicyWizardDialog({
         newErrors.earlyLeaveThresholdMinutes = tValidation("nonNegative");
       }
 
-      // Validate absentIfMissedPeriodsCount (required now)
+      // The backend requires this threshold only for derived daily computation.
       if (
-        formData.mode === "PERIOD" &&
+        formData.dailyComputationStrategy === "DERIVED_FROM_PERIODS" &&
         (formData.absentIfMissedPeriodsCount == null ||
           formData.absentIfMissedPeriodsCount < 1)
       ) {
         newErrors.absentIfMissedPeriodsCount = tValidation("thresholdRequired");
       } else if (
-        formData.mode === "PERIOD" &&
+        formData.dailyComputationStrategy === "DERIVED_FROM_PERIODS" &&
         formData.absentIfMissedPeriodsCount != null &&
         formData.selectedPeriodIds &&
         formData.absentIfMissedPeriodsCount > formData.selectedPeriodIds.length
@@ -467,22 +491,6 @@ export default function PolicyWizardDialog({
 
       }
 
-      if (term && formData.effectiveStartDate) {
-        if (
-          formData.effectiveStartDate < term.startDate ||
-          formData.effectiveStartDate > term.endDate
-        ) {
-          newErrors.effectiveStartDate = tValidation("dateOutOfTerm");
-        }
-      }
-      if (term && formData.effectiveEndDate) {
-        if (
-          formData.effectiveEndDate < term.startDate ||
-          formData.effectiveEndDate > term.endDate
-        ) {
-          newErrors.effectiveEndDate = tValidation("dateOutOfTerm");
-        }
-      }
     }
 
     setErrors(newErrors);
@@ -524,6 +532,15 @@ export default function PolicyWizardDialog({
           ),
         }));
         setActiveStep(1);
+      } else if (isApiError(error)) {
+        const details = error.details as { field?: string } | undefined;
+        const field = details?.field;
+        if (field === "selectedPeriodIds") {
+          setErrors((current) => ({ ...current, selectedPeriodIds: error.message }));
+          setActiveStep(2);
+        } else if (field) {
+          setErrors((current) => ({ ...current, [field]: error.message }));
+        }
       }
     } finally {
       setIsSaving(false);

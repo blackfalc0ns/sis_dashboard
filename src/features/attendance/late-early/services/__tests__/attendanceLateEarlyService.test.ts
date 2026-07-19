@@ -37,6 +37,16 @@ describe("attendanceLateEarlyService", () => {
           sourceSessionId: "session-1",
           updatedAt: "2026-02-10T08:00:00.000Z",
         },
+        {
+          id: "excused-absence-1",
+          academicYearId: "year-1",
+          termId: "term-1",
+          date: "2026-02-10",
+          studentId: "student-2",
+          status: "EXCUSED",
+          sourceSessionId: "session-1",
+          updatedAt: "2026-02-10T08:00:00.000Z",
+        },
       ],
     });
 
@@ -190,6 +200,7 @@ describe("attendanceLateEarlyService", () => {
       studentId: "student-1",
       type: "LATE",
       minutes: 10,
+      correctionReason: "Corrected arrival time",
     });
     await updateIncidentMinutes({
       yearId: "year-1",
@@ -199,6 +210,7 @@ describe("attendanceLateEarlyService", () => {
       type: "EARLY_LEAVE",
       minutes: 15,
       incidentId: "incident-1",
+      correctionReason: "Corrected departure time",
     });
 
     expect(mockedApiPost).toHaveBeenCalledWith(
@@ -206,16 +218,16 @@ describe("attendanceLateEarlyService", () => {
       {
         status: "LATE",
         lateMinutes: 10,
-        correctionReason: "Corrected late minutes",
-        note: "Corrected late minutes",
+        correctionReason: "Corrected arrival time",
+        note: "Corrected arrival time",
       },
     );
     expect(mockedApiPatch).toHaveBeenCalledWith(
       "/attendance/absences/incident-1/early-leave",
       {
         earlyLeaveMinutes: 15,
-        correctionReason: "Corrected early leave minutes",
-        note: "Corrected early leave minutes",
+        correctionReason: "Corrected departure time",
+        note: "Corrected departure time",
       },
     );
   });
