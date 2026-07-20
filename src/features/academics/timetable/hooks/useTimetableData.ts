@@ -105,6 +105,15 @@ interface UseTimetableDataParams {
   };
 }
 
+type SaveTimetableResult =
+  | { ok: true }
+  | {
+      ok: false;
+      error?: string;
+      hasConflicts?: boolean;
+      changesWereNotSaved?: boolean;
+    };
+
 type ScopeSelection = {
   scopeType: TimetableScopeType;
   gradeId?: string;
@@ -460,9 +469,7 @@ export function useTimetableData({
   const loadTimetableForScope = useCallback(async () => {
     const requestId = ++timetableRequestIdRef.current;
 
-    const hasTarget = scopeSelection.gradeId || scopeSelection.sectionId || scopeSelection.classroomId;
-
-    if (!enabled || !termId || !academicYearId || !isScopeSelectionNormalized || !hasTarget) {
+    if (!enabled || !termId || !academicYearId || !isScopeSelectionNormalized) {
       clearTimetableState();
       setTimetableLoading(false);
       return;
@@ -591,7 +598,7 @@ export function useTimetableData({
     }, [config]);
 
   const saveTimetable = useCallback(
-    async (entries: TimetableEntry[]) => {
+    async (entries: TimetableEntry[]): Promise<SaveTimetableResult> => {
       if (!config) {
         return { ok: false };
       }
@@ -606,13 +613,6 @@ export function useTimetableData({
             entry.id &&
             !entry.id.startsWith("temp-"),
         );
-
-        // Delete cleared entries from the backend
-        if (entriesToDelete.length > 0) {
-          await Promise.all(
-            entriesToDelete.map((entry) => deleteEntry(entry.id)),
-          );
-        }
 
         const bulkSaveRequest = buildBulkSaveTimetableRequest({
           termId,
@@ -635,6 +635,7 @@ export function useTimetableData({
           return {
             ok: false,
             error: message,
+            changesWereNotSaved: true,
           };
         }
 
@@ -647,6 +648,7 @@ export function useTimetableData({
           return {
             ok: false,
             error: message,
+            changesWereNotSaved: true,
           };
         }
 
@@ -659,12 +661,21 @@ export function useTimetableData({
             return {
               ok: false,
               hasConflicts: true,
+              changesWereNotSaved: true,
               error:
                 messages?.resolveConflictsBeforeSaving ??
                 "Resolve timetable conflicts before saving.",
             };
           }
+        }
 
+        if (entriesToDelete.length > 0) {
+          await Promise.all(
+            entriesToDelete.map((entry) => deleteEntry(entry.id)),
+          );
+        }
+
+        if (bulkSaveRequest.payload.items.length > 0) {
           const savedEntriesResponse = await bulkSaveEntries(
             bulkSaveRequest.payload,
           );

@@ -24,6 +24,7 @@ interface ReportsFiltersBarProps {
   onFiltersChange: (patch: Partial<AttendanceReportsFilters>) => void;
   onReset: () => void;
   onOpenExport: () => void;
+  onPrint?: () => void;
   exportDisabled?: boolean;
 }
 
@@ -37,6 +38,7 @@ export default function ReportsFiltersBar({
   onFiltersChange,
   onReset,
   onOpenExport,
+  onPrint,
   exportDisabled = false,
 }: ReportsFiltersBarProps) {
   const t = useTranslations("attendance.reportsPage.filters");
@@ -129,7 +131,9 @@ export default function ReportsFiltersBar({
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
         <ReportsExportActions
           onOpenExport={onOpenExport}
+          onPrint={onPrint}
           disabled={exportDisabled}
+          printLabel={tCommon("print")}
         />
         <Button variant="outline" onClick={onReset}>
           {t("reset")}

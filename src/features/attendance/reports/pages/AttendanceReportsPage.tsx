@@ -68,6 +68,8 @@ import {
   type AttendanceExportFormat,
   type ExportColumn,
 } from "@/features/attendance/shared/utils/attendanceExport";
+import { usePrint } from "@/components/print";
+import AttendanceReportPrintDocument from "../components/AttendanceReportPrintDocument";
 
 const DEFAULT_FILTERS: AttendanceReportsFilters = {
   scopeType: "SCHOOL",
@@ -106,6 +108,7 @@ export default function AttendanceReportsPage() {
   const [hasHydratedFiltersFromUrl, setHasHydratedFiltersFromUrl] =
     useState(false);
   const lastSyncedQuery = useRef<string | null>(null);
+  const printContentRef = useRef<HTMLDivElement>(null);
 
   const term = useMemo(
     () =>
@@ -503,6 +506,21 @@ export default function AttendanceReportsPage() {
       : term.nameEn || term.name
     : "";
 
+  const selectedScopeName = useMemo(
+    () =>
+      getAttendanceScopeLabel({
+        scopeType: filters.scopeType,
+        scopeIds: filters.scopeIds,
+        stages: structure?.stages || [],
+        grades: structure?.grades || [],
+        sections: structure?.sections || [],
+        classrooms: structure?.classrooms || [],
+        locale,
+        schoolLabel: t("scopeSchool"),
+      }),
+    [filters.scopeIds, filters.scopeType, locale, structure, t],
+  );
+
   const exportPayload = useMemo(() => {
     if (!report || !structure || !term) return null;
     return buildAttendanceReportsExportPayload({
@@ -511,16 +529,7 @@ export default function AttendanceReportsPage() {
       locale,
       yearName: selectedYearName,
       termName: selectedTermName,
-      scopeName: getAttendanceScopeLabel({
-        scopeType: filters.scopeType,
-        scopeIds: filters.scopeIds,
-        stages: structure.stages,
-        grades: structure.grades,
-        sections: structure.sections,
-        classrooms: structure.classrooms,
-        locale,
-        schoolLabel: t("scopeSchool"),
-      }),
+      scopeName: selectedScopeName,
       dateRange: `${filters.dateFrom || "-"} - ${filters.dateTo || "-"}`,
     });
   }, [
@@ -533,10 +542,16 @@ export default function AttendanceReportsPage() {
     report,
     selectedTermName,
     selectedYearName,
+    selectedScopeName,
     structure,
     t,
     term,
   ]);
+
+  const printReport = usePrint({
+    contentRef: printContentRef,
+    title: exportPayload?.title || (locale === "ar" ? "تقرير الحضور" : "Attendance report"),
+  });
 
   const handleExport = async (format: AttendanceExportFormat) => {
     if (!report || !structure || !term || !exportPayload) return;
@@ -775,6 +790,7 @@ export default function AttendanceReportsPage() {
                 }
                 onReset={resetFilters}
                 onOpenExport={() => setShowExportModal(true)}
+                onPrint={printReport}
                 exportDisabled={!exportPayload?.data.length}
               />
             </AttendanceFiltersPanel>
@@ -989,6 +1005,7 @@ export default function AttendanceReportsPage() {
             }
             onReset={resetFilters}
             onOpenExport={() => setShowExportModal(true)}
+            onPrint={printReport}
             exportDisabled={!exportPayload?.data.length}
           />
         </div>
@@ -1013,6 +1030,23 @@ export default function AttendanceReportsPage() {
           setExportDataset(value as ReportsExportDataset)
         }
       />
+
+      {exportPayload ? (
+        <div className="print-source" aria-hidden="true">
+          <div ref={printContentRef}>
+            <AttendanceReportPrintDocument
+              title={exportPayload.title}
+              locale={locale}
+              subtitle={t(`export.${exportDataset}`)}
+              academicYear={selectedYearName}
+              term={selectedTermName}
+              scope={selectedScopeName}
+              dateRange={`${filters.dateFrom || "-"} – ${filters.dateTo || "-"}`}
+              rows={exportPayload.data}
+            />
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

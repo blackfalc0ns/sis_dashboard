@@ -13,7 +13,6 @@ import {
   Send,
   EyeOff,
   CheckCircle,
-  Printer,
   School,
   GraduationCap,
 } from "lucide-react";
@@ -24,6 +23,7 @@ import EditSlotDialog from "./EditSlotDialog";
 import GenerateDialog from "./GenerateDialog";
 import TimetableConfigDialog from "./TimetableConfigDialog";
 import { AccessDenied, Button } from "@/components/ui";
+import { PrintButton, usePrint } from "@/components/print";
 import { useToast } from "@/components/ui/toast/Toast";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useBrandingProfile } from "@/features/settings/hooks/useBrandingProfile";
@@ -40,7 +40,6 @@ import {
   getDefaultRoomSuggestion as getSuggestedDefaultRoom,
   getRoomSource as resolveRoomSource,
 } from "@/features/academics/timetable/utils/roomRecommendations";
-import MainLoader from "@/components/ui/loaders/MainLoader";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useTimetableData } from "@/features/academics/timetable/hooks/useTimetableData";
 import { useTimetableGeneration } from "@/features/academics/timetable/hooks/useTimetableGeneration";
@@ -58,7 +57,6 @@ import {
   type ExportMetadata,
   formatExportDate,
 } from "@/features/academics/utils/exportAdapter";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import AcademicModuleEmptyState from "@/features/academics/components/shared/AcademicModuleEmptyState";
 
 interface TimetableViewProps {
@@ -137,11 +135,18 @@ export default function TimetableView({
   const [validationPanelOpen, setValidationPanelOpen] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [selectedSectionTabId, setSelectedSectionTabId] = useState<
+    string | null
+  >(null);
   const [isValidating, setIsValidating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isUnpublishing, setIsUnpublishing] = useState(false);
-  const [printTimestamp, setPrintTimestamp] = useState("");
+  const [printTimestamp] = useState("");
   const printMatrixRef = useRef<HTMLDivElement | null>(null);
+  const printTimetable = usePrint({
+    contentRef: printMatrixRef,
+    title: t("title"),
+  });
 
   // Edit Dialog State
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -484,7 +489,7 @@ export default function TimetableView({
   };
 
   const handleSave = async () => {
-    if (!hasTimetableTarget || !canEditTimetable) return;
+    if (!hasTimetableScope || !canEditTimetable) return;
 
     const saveResult = await saveTimetable(timetableEntries);
     if (saveResult.ok) {
@@ -494,12 +499,18 @@ export default function TimetableView({
       if (saveResult.hasConflicts) {
         setValidationPanelOpen(true);
       }
-      showToast(saveResult.error ?? t("actions.saveError"), "error");
+      const message = saveResult.error ?? t("actions.saveError");
+      showToast(
+        saveResult.changesWereNotSaved
+          ? `${message} ${t("errors.noChangesSaved")}`
+          : message,
+        "error",
+      );
     }
   };
 
   const handlePublish = async () => {
-    if (!hasTimetableTarget || !canWriteTimetable) return;
+    if (!hasTimetableScope || !canWriteTimetable) return;
 
     // Check for unsaved changes
     if (isDirty) {
@@ -552,7 +563,7 @@ export default function TimetableView({
     typeof reason === "string" ? reason : reason?.message;
 
   const confirmPublish = async () => {
-    if (!hasTimetableTarget || !canWriteTimetable) return;
+    if (!hasTimetableScope || !canWriteTimetable) return;
 
     setIsPublishing(true);
     try {
@@ -582,7 +593,7 @@ export default function TimetableView({
   };
 
   const handleUnpublish = async () => {
-    if (!hasTimetableTarget || !canWriteTimetable) return;
+    if (!hasTimetableScope || !canWriteTimetable) return;
 
     setIsUnpublishing(true);
     try {
@@ -613,7 +624,7 @@ export default function TimetableView({
   };
 
   const confirmReset = async () => {
-    if (!hasTimetableTarget || !canEditTimetable) return;
+    if (!hasTimetableScope || !canEditTimetable) return;
 
     try {
       await loadTimetable();
@@ -694,9 +705,7 @@ export default function TimetableView({
   const selectedClassroom = selectedClassroomId
     ? classrooms.find((item) => item.id === selectedClassroomId)
     : undefined;
-  const hasTimetableTarget = Boolean(
-    selectedGradeId || selectedSectionId || selectedClassroomId,
-  );
+  const hasTimetableScope = Boolean(academicYearId && termId);
   const editingClassroom = editingSlot
     ? classrooms.find((item) => item.id === editingSlot.classroomId)
     : selectedClassroom;
@@ -712,7 +721,12 @@ export default function TimetableView({
         gradeId: editingGradeId,
         currentSubjectId: editingSlot?.entry?.subjectId,
       }),
-    [editingGradeId, editingSlot?.entry?.subjectId, subjectAllocations, subjects],
+    [
+      editingGradeId,
+      editingSlot?.entry?.subjectId,
+      subjectAllocations,
+      subjects,
+    ],
   );
   const displayedClassrooms = useMemo(() => {
     if (selectedClassroom) {
@@ -733,7 +747,7 @@ export default function TimetableView({
         sectionIdsForGrade.has(classroom.sectionId),
       );
     }
-    return [];
+    return classrooms;
   }, [
     classrooms,
     sections,
@@ -741,6 +755,14 @@ export default function TimetableView({
     selectedGradeId,
     selectedSectionId,
   ]);
+  const displayedSections = sections.filter((section) =>
+    displayedClassrooms.some((classroom) => classroom.sectionId === section.id),
+  );
+  const activeSectionTabId = displayedSections.some(
+    (section) => section.id === selectedSectionTabId,
+  )
+    ? selectedSectionTabId
+    : displayedSections[0]?.id;
 
   const handleValidationOpen = useCallback(async () => {
     setIsValidating(true);
@@ -782,12 +804,53 @@ export default function TimetableView({
     [locale],
   );
 
+  const scopeChain = [
+    selectedStage && {
+      label: t("target.stage"),
+      name: getDisplayName(selectedStage),
+    },
+    selectedGrade && {
+      label: t("target.grade"),
+      name: getDisplayName(selectedGrade),
+    },
+    selectedSection && {
+      label: t("target.section"),
+      name: getDisplayName(selectedSection),
+    },
+    selectedClassroom && {
+      label: t("target.classroom"),
+      name: getDisplayName(selectedClassroom),
+    },
+  ].filter((segment): segment is { label: string; name: string } =>
+    Boolean(segment),
+  );
+
+  const getClassroomScopeChain = useCallback(
+    (classroom: Classroom) => {
+      const classroomSection = sections.find(
+        (section) => section.id === classroom.sectionId,
+      );
+      const classroomGrade = classroomSection
+        ? grades.find((grade) => grade.id === classroomSection.gradeId)
+        : undefined;
+      const classroomStage = classroomGrade
+        ? stages.find((stage) => stage.id === classroomGrade.stageId)
+        : undefined;
+
+      return [classroomStage, classroomGrade, classroomSection, classroom]
+        .filter(Boolean)
+        .map((entity) => getDisplayName(entity))
+        .join(" › ");
+    },
+    [getDisplayName, grades, sections, stages],
+  );
+
   const configSourceLabel = resolvedConfig
     ? t(`config.scope.${resolvedConfig.source.scope.toLowerCase()}`)
     : "";
 
   const handleExport = (format: AcademicsExportFormat) => {
-    if (!hasTimetableTarget || !resolvedConfig) return;
+    if (!hasTimetableScope || !resolvedConfig) return;
 
     const columns: ExportColumn[] = [
       { key: "classroom", label: t("target.classroom") },
@@ -913,32 +976,6 @@ export default function TimetableView({
     t,
   ]);
 
-  const handlePrint = () => {
-    if (typeof window === "undefined") return;
-
-    const printedAt = new Intl.DateTimeFormat(locale, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date());
-    setPrintTimestamp(printedAt);
-
-    const originalTitle = document.title;
-    document.title = "\u00A0";
-    const periodCount = resolvedConfig?.periods.length ?? 1;
-    const estimatedMatrixHeight = 54 + periodCount * 34;
-    const printableHeight = 710;
-    const scale = Math.min(1, printableHeight / estimatedMatrixHeight);
-    printMatrixRef.current?.style.setProperty(
-      "--timetable-print-scale",
-      String(Math.max(0.35, Number(scale.toFixed(2)))),
-    );
-
-    window.setTimeout(() => {
-      window.print();
-      document.title = originalTitle;
-    }, 0);
-  };
-
   if (!canViewTimetable) {
     return (
       <div className="flex h-full items-start justify-center p-6">
@@ -953,9 +990,7 @@ export default function TimetableView({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <MainLoader />
-      </div>
+      <TimetableLoadingSkeleton />
     );
   }
 
@@ -1219,33 +1254,33 @@ export default function TimetableView({
         />
       </div>
 
-      {hasTimetableTarget && (
+      {hasTimetableScope && (
         <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium text-gray-600">
                 {t("target.label")}
               </span>
-              {selectedStage && (
-                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                  {t("target.stage")}: {getDisplayName(selectedStage)}
-                </span>
-              )}
-              {selectedGrade && (
-                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                  {t("target.grade")}: {getDisplayName(selectedGrade)}
-                </span>
-              )}
-              {selectedSection && (
-                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                  {t("target.section")}: {getDisplayName(selectedSection)}
-                </span>
-              )}
-              {selectedClassroom && (
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                  {t("target.classroom")}: {getDisplayName(selectedClassroom)}
-                </span>
-              )}
+              <span
+                className="inline-flex flex-wrap items-center gap-x-1 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700"
+                aria-label={scopeChain
+                  .map((segment) => `${segment.label}: ${segment.name}`)
+                  .join(" > ")}
+              >
+                {scopeChain.length === 0
+                  ? t("config.scopeOptions.term")
+                  : scopeChain.map((segment, index) => (
+                      <span
+                        key={segment.label}
+                        className="inline-flex items-center gap-x-1"
+                      >
+                        {index > 0 && <span aria-hidden="true">›</span>}
+                        <span>
+                          {segment.label}: {segment.name}
+                        </span>
+                      </span>
+                    ))}
+              </span>
             </div>
             {resolvedConfig && (
               <div className="flex items-center gap-2 text-xs text-gray-600">
@@ -1259,7 +1294,7 @@ export default function TimetableView({
         </div>
       )}
 
-      {hasTimetableTarget && readOnlyBanner && (
+      {hasTimetableScope && readOnlyBanner && (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 lg:px-6">
           <div className="flex items-start gap-2">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -1268,7 +1303,7 @@ export default function TimetableView({
         </div>
       )}
 
-      {hasTimetableTarget && apiError && (
+      {hasTimetableScope && apiError && (
         <div className="border-b border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 lg:px-6 print:hidden">
           <div className="flex items-start gap-2">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -1278,7 +1313,7 @@ export default function TimetableView({
       )}
 
       {/* Action Bar */}
-      {hasTimetableTarget && (
+      {hasTimetableScope && (
         <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 print:hidden">
           {/* Desktop: Horizontal layout */}
           <div className="hidden lg:flex items-center justify-between">
@@ -1364,20 +1399,17 @@ export default function TimetableView({
                 {t("actions.validate")}
               </Button>
               <Button
-                onClick={handlePrint}
-                variant="secondary"
-                disabled={!hasTimetableTarget || !resolvedConfig}
-                leftIcon={<Printer className="w-4 h-4" />}
-              >
-                {t("actions.print")}
-              </Button>
-              <Button
                 onClick={() => setShowExportModal(true)}
                 variant="secondary"
-                disabled={!hasTimetableTarget || !resolvedConfig}
+                disabled={!hasTimetableScope || !resolvedConfig}
               >
                 {t("actions.export")}
               </Button>
+              <PrintButton
+                onClick={printTimetable}
+                disabled={!hasTimetableScope || !resolvedConfig}
+                label={t("actions.print")}
+              />
             </div>
             {isDirty && (
               <span className="text-sm text-orange-600">
@@ -1486,22 +1518,18 @@ export default function TimetableView({
                 {t("actions.validate")}
               </Button>
               <Button
-                onClick={handlePrint}
-                variant="secondary"
-                disabled={!hasTimetableTarget || !resolvedConfig}
-                leftIcon={<Printer className="w-4 h-4" />}
-                size="sm"
-              >
-                {t("actions.print")}
-              </Button>
-              <Button
                 onClick={() => setShowExportModal(true)}
                 variant="secondary"
-                disabled={!hasTimetableTarget || !resolvedConfig}
+                disabled={!hasTimetableScope || !resolvedConfig}
                 size="sm"
               >
                 {t("actions.export")}
               </Button>
+              <PrintButton
+                onClick={printTimetable}
+                disabled={!hasTimetableScope || !resolvedConfig}
+                label={t("actions.print")}
+              />
             </div>
 
             {/* Unsaved changes indicator */}
@@ -1516,7 +1544,7 @@ export default function TimetableView({
 
       {/* Grid */}
       <div className="flex-1 min-h-full overflow-auto p-3 lg:p-6 print:overflow-visible print:p-0">
-        {!hasTimetableTarget ? (
+        {!hasTimetableScope ? (
           <AcademicModuleEmptyState
             icon={AlertCircle}
             title={tEmpty("no_timetable_selection.title")}
@@ -1525,9 +1553,7 @@ export default function TimetableView({
           />
         ) : !resolvedConfig ? (
           timetableLoading ? (
-            <div className="flex h-full items-center justify-center min-h-[400px]">
-              <PartialLoader />
-            </div>
+            <TimetableLoadingSkeleton />
           ) : (
             <AcademicModuleEmptyState
               icon={Settings}
@@ -1600,22 +1626,54 @@ export default function TimetableView({
                 className="timetable-print-content space-y-6"
                 dir={locale === "ar" ? "rtl" : "ltr"}
               >
+                {displayedSections.length > 1 && (
+                  <div
+                    role="group"
+                    aria-label={t("target.section")}
+                    className="flex gap-2 overflow-x-auto border-b border-gray-200 pb-3 print:hidden"
+                  >
+                    {displayedSections.map((section) => {
+                      const isActive = section.id === activeSectionTabId;
+
+                      return (
+                        <button
+                          key={section.id}
+                          type="button"
+                          aria-pressed={isActive}
+                          onClick={() => setSelectedSectionTabId(section.id)}
+                          className={`shrink-0 rounded-lg border border-border px-3 py-2 text-sm font-medium transition-colors focus:outline-none${
+                            isActive
+                              ? "border-primary-600 bg-primary-600 text-white"
+                              : "border-gray-200 bg-white text-gray-700 hover:border-primary-300 hover:bg-primary-50"
+                          }`}
+                        >
+                          <span className="block max-w-64 truncate">
+                            {getDisplayName(section)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
                 {displayedClassrooms.map((classroom) => {
                   const classroomEntries = timetableEntries.filter(
                     (entry) => entry.classroomId === classroom.id,
                   );
+                  const classroomScopeChain = getClassroomScopeChain(classroom);
                   const showClassroomHeader = displayedClassrooms.length > 1;
+                  const isActive = classroom.sectionId === activeSectionTabId;
 
                   return (
-                    <section key={classroom.id} className="space-y-3 relative">
+                    <section
+                      key={classroom.id}
+                      aria-label={getDisplayName(classroom)}
+                      className={`relative space-y-3 ${
+                        isActive ? "" : "hidden print:block"
+                      }`}
+                    >
                       {showClassroomHeader && (
                         <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-900 print:rounded-none print:border-x-0 print:px-0">
-                          {t("target.classroom")}: {getDisplayName(classroom)}
-                        </div>
-                      )}
-                      {timetableLoading && !isLoading && (
-                        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/60 backdrop-blur-sm min-h-[200px]">
-                          <PartialLoader />
+                          {classroomScopeChain}
                         </div>
                       )}
                       <TimetableGrid
@@ -1651,7 +1709,7 @@ export default function TimetableView({
       </div>
 
       {/* Validation Drawer */}
-      {hasTimetableTarget && resolvedConfig && (
+      {hasTimetableScope && resolvedConfig && (
         <ValidationPanel
           open={validationPanelOpen}
           validationSummary={validationSummary}
@@ -1733,9 +1791,6 @@ export default function TimetableView({
           selectedSectionId={selectedSectionId}
           selectedClassroomId={selectedClassroomId}
           readOnly={!canEditTimetable}
-          grades={grades}
-          sections={sections}
-          classrooms={classrooms}
           locale={locale}
         />
       )}
@@ -1804,4 +1859,21 @@ function readOnlyBannerMessage({
     return publishedLockedMessage;
   }
   return null;
+}
+
+function TimetableLoadingSkeleton() {
+  return (
+    <div className="space-y-4 p-3 lg:p-6" aria-label="Loading timetable">
+      <div className="h-10 animate-pulse rounded-lg bg-gray-200" />
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+        <div className="h-12 animate-pulse bg-gray-200" />
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div
+            key={index}
+            className="h-20 animate-pulse border-t border-gray-200 bg-gray-50"
+          />
+        ))}
+      </div>
+    </div>
+  );
 }

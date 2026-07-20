@@ -127,6 +127,57 @@ body {
   font-family: var(--font-somar), system-ui, sans-serif;
 }
 
+/* Shared printed-document primitives. Use logical properties so Arabic and
+   English documents mirror naturally when `dir` changes. */
+.print-frame {
+  position: fixed;
+  inline-size: 0;
+  block-size: 0;
+  border: 0;
+  visibility: hidden;
+}
+
+.print-source {
+  position: fixed;
+  inset-inline-start: -100000px;
+  inset-block-start: 0;
+  inline-size: 210mm;
+  pointer-events: none;
+}
+
+.print-document {
+  box-sizing: border-box;
+  color: #172033;
+  font-family: var(--font-somar), "Cairo", Arial, sans-serif;
+  line-height: 1.5;
+}
+
+.print-document *, .print-document *::before, .print-document *::after { box-sizing: border-box; }
+.print-document__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; border-block-end: 2px solid var(--primary-color); padding-block-end: 1rem; margin-block-end: 1rem; }
+.print-document__eyebrow { margin: 0 0 .25rem; color: var(--primary-color); font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.print-document h1 { margin: 0; font-size: 1.5rem; line-height: 1.25; }
+.print-document__subtitle, .print-document__generated { margin: .35rem 0 0; color: #526075; font-size: .875rem; }
+.print-document__generated { white-space: nowrap; text-align: end; }
+.print-document__metadata { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem 1rem; margin: 0 0 1.25rem; }
+.print-document__metadata > div { min-inline-size: 0; border-inline-start: 3px solid var(--primary-color); padding-inline-start: .6rem; }
+.print-document__metadata > div:last-child { grid-column: 1 / -1; }
+.print-document__metadata dt { color: #526075; font-size: .75rem; }
+.print-document__metadata dd { margin: .15rem 0 0; font-weight: 600; }
+.print-document__date-range { white-space: nowrap; }
+.print-document__content { min-inline-size: 0; }
+.print-document__content table { inline-size: 100%; table-layout: fixed; border-collapse: collapse; }
+.print-document__content th, .print-document__content td { border: 1px solid #cbd5e1; overflow-wrap: anywhere; padding: .5rem; text-align: start; vertical-align: top; }
+.print-document__content th { background: #edf6f7; font-weight: 700; }
+.print-document__footer { border-block-start: 1px solid #cbd5e1; color: #526075; font-size: .75rem; margin-block-start: 1.5rem; padding-block-start: .75rem; text-align: center; }
+
+@media print {
+  @page { size: A4; margin: 14mm; }
+  html, body { background: #fff !important; overflow: visible !important; }
+  .print-document { inline-size: 100%; }
+  .print-document__content thead { display: table-header-group; }
+  .print-document__content tr, .print-document__metadata > div { break-inside: avoid; }
+}
+
 @keyframes onboarding-enter {
   from {
     opacity: 0;

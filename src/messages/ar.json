@@ -656,6 +656,7 @@
     "table_density": "كثافة الجدول",
     "density_comfortable": "مريح",
     "density_compact": "مضغوط",
+    "print": "طباعة",
     "accessDenied": {
       "title": "تم رفض الوصول",
       "description": "ليست لديك صلاحية لعرض هذا القسم."
@@ -6076,6 +6077,7 @@
         "configSection": "الإعدادات",
         "name": "الاسم",
         "scopeLabel": "النطاق",
+        "scopeLockedHelp": "ينطبق هذا الإعداد على الجدول المحدد أعلاه. غيّر عوامل تصفية الجدول لإعداد نطاق مختلف.",
         "weekStartDay": "بداية الأسبوع",
         "activeDays": "الأيام النشطة",
         "periodsSection": "الحصص",
@@ -6137,6 +6139,7 @@
         "noFilledSlotsToSave": "لا توجد خانات جدول ممتلئة للحفظ.",
         "noFilledSlotsToPublish": "لا توجد خانات جدول ممتلئة للنشر.",
         "resolveConflictsBeforeSaving": "حل تعارضات الجدول قبل الحفظ.",
+        "noChangesSaved": "لم يتم حفظ أي تغييرات. عالج المشكلات الموضحة ثم حاول مرة أخرى.",
         "resolveConflictsBeforePublishing": "حل تعارضات الجدول قبل النشر.",
         "config_not_found": "لا توجد إعدادات جدول لهذا النطاق.",
         "period_not_found": "الحصة المحددة لم تعد موجودة.",

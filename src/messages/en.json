@@ -661,6 +661,7 @@
     "table_density": "Table density",
     "density_comfortable": "Comfortable",
     "density_compact": "Compact",
+    "print": "Print",
     "accessDenied": {
       "title": "Access denied",
       "description": "You do not have permission to view this section."
@@ -6325,6 +6326,7 @@
         "configSection": "Config",
         "name": "Name",
         "scopeLabel": "Scope",
+        "scopeLockedHelp": "This configuration applies to the timetable selected above. Change the timetable filters to configure a different scope.",
         "weekStartDay": "Week start day",
         "activeDays": "Active days",
         "periodsSection": "Periods",
@@ -6386,6 +6388,7 @@
         "noFilledSlotsToSave": "No filled timetable slots to save.",
         "noFilledSlotsToPublish": "No filled timetable slots to publish.",
         "resolveConflictsBeforeSaving": "Resolve timetable conflicts before saving.",
+        "noChangesSaved": "No changes were saved. Resolve the highlighted issues and try again.",
         "resolveConflictsBeforePublishing": "Resolve timetable conflicts before publishing.",
         "config_not_found": "No timetable config exists for this scope.",
         "period_not_found": "The selected period no longer exists.",

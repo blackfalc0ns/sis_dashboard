@@ -17,11 +17,6 @@ import { Button } from "@/components/ui";
 import Modal from "@/components/ui/modal/Modal";
 import Select from "@/components/ui/input/Select";
 import type {
-  Classroom,
-  Grade,
-  Section,
-} from "@/features/academics/academic-structure-tree/services/structureService";
-import type {
   BackendTimetableConfigDto,
   BackendTimetablePeriodDto,
   CreatePeriodRequest,
@@ -59,9 +54,6 @@ interface TimetableConfigDialogProps {
   selectedSectionId: string;
   selectedClassroomId: string;
   readOnly: boolean;
-  grades: Grade[];
-  sections: Section[];
-  classrooms: Classroom[];
   locale: string;
 }
 
@@ -121,19 +113,17 @@ export default function TimetableConfigDialog({
   selectedSectionId,
   selectedClassroomId,
   readOnly,
-  grades,
-  sections,
-  classrooms,
   locale,
 }: TimetableConfigDialogProps) {
   const t = useTranslations("academics.timetable");
   const translateTimetableError = (code: TimetableErrorCode) =>
     t(`errors.${code.replace("academics.timetable.", "")}`);
+  const scopeType = defaultScopeType({
+    selectedGradeId,
+    selectedSectionId,
+    selectedClassroomId,
+  });
   const [name, setName] = useState("");
-  const [scopeType, setScopeType] = useState<TimetableScopeType>("TERM");
-  const [gradeId, setGradeId] = useState("");
-  const [sectionId, setSectionId] = useState("");
-  const [classroomId, setClassroomId] = useState("");
   const [weekStartDay, setWeekStartDay] = useState(0);
   const [activeDays, setActiveDays] = useState<number[]>([0, 1, 2, 3, 4]);
   const [periodForm, setPeriodForm] = useState<PeriodFormState>(
@@ -150,19 +140,7 @@ export default function TimetableConfigDialog({
     if (!open) {
       return;
     }
-    const nextScopeType = config?.scopeType
-      ? (config.scopeType.toUpperCase() as TimetableScopeType)
-      : defaultScopeType({
-          selectedGradeId,
-          selectedSectionId,
-          selectedClassroomId,
-        });
-
     setName(config?.name ?? t("config.defaultName"));
-    setScopeType(nextScopeType);
-    setGradeId(config?.gradeId ?? selectedGradeId);
-    setSectionId(config?.sectionId ?? selectedSectionId);
-    setClassroomId(config?.classroomId ?? selectedClassroomId);
     setWeekStartDay(config?.weekStartDay ?? 0);
     setActiveDays(config?.activeDays ?? [0, 1, 2, 3, 4]);
     setPeriodForm(emptyPeriodForm(nextPeriodIndex(periods)));
@@ -178,22 +156,6 @@ export default function TimetableConfigDialog({
     selectedSectionId,
     t,
   ]);
-
-  const filteredSections = useMemo(
-    () =>
-      gradeId
-        ? sections.filter((section) => section.gradeId === gradeId)
-        : sections,
-    [gradeId, sections],
-  );
-
-  const filteredClassrooms = useMemo(
-    () =>
-      sectionId
-        ? classrooms.filter((classroom) => classroom.sectionId === sectionId)
-        : classrooms,
-    [classrooms, sectionId],
-  );
 
   const sortedPeriods = useMemo(
     () => [...periods].sort((first, second) => first.index - second.index),
@@ -236,13 +198,6 @@ export default function TimetableConfigDialog({
         ? currentDays.filter((index) => index !== dayIndex)
         : [...currentDays, dayIndex].sort((first, second) => first - second),
     );
-  };
-
-  const handleScopeChange = (nextScope: string) => {
-    setScopeType(nextScope as TimetableScopeType);
-    setGradeId("");
-    setSectionId("");
-    setClassroomId("");
   };
 
   const saveConfig = async () => {
@@ -377,15 +332,15 @@ export default function TimetableConfigDialog({
         t("config.validation.atLeastOneDay"),
       ];
     }
-    if (scopeType === "GRADE" && !gradeId) {
+    if (scopeType === "GRADE" && !selectedGradeId) {
       validationErrors.fields.gradeId = [t("config.validation.selectGrade")];
     }
-    if (scopeType === "SECTION" && !sectionId) {
+    if (scopeType === "SECTION" && !selectedSectionId) {
       validationErrors.fields.sectionId = [
         t("config.validation.selectSection"),
       ];
     }
-    if (scopeType === "CLASSROOM" && !classroomId) {
+    if (scopeType === "CLASSROOM" && !selectedClassroomId) {
       validationErrors.fields.classroomId = [
         t("config.validation.selectClassroom"),
       ];
@@ -397,9 +352,9 @@ export default function TimetableConfigDialog({
     academicYearId,
     termId,
     scopeType,
-    gradeId: scopeType === "GRADE" ? gradeId : undefined,
-    sectionId: scopeType === "SECTION" ? sectionId : undefined,
-    classroomId: scopeType === "CLASSROOM" ? classroomId : undefined,
+    gradeId: scopeType === "GRADE" ? selectedGradeId : undefined,
+    sectionId: scopeType === "SECTION" ? selectedSectionId : undefined,
+    classroomId: scopeType === "CLASSROOM" ? selectedClassroomId : undefined,
     name: name.trim(),
     weekStartDay,
     activeDays,
@@ -492,67 +447,14 @@ export default function TimetableConfigDialog({
               />
               <FieldError errors={fieldErrors} field="name" />
             </label>
-            <Select
-              label={t("config.scopeLabel")}
-              value={scopeType}
-              onChange={handleScopeChange}
-              disabled={readOnly}
-              options={[
-                { value: "TERM", label: t("config.scopeOptions.term") },
-                { value: "GRADE", label: t("config.scopeOptions.grade") },
-                { value: "SECTION", label: t("config.scopeOptions.section") },
-                {
-                  value: "CLASSROOM",
-                  label: t("config.scopeOptions.classroom"),
-                },
-              ]}
-            />
-            {scopeType !== "TERM" && (
-              <Select
-                label={t("target.grade")}
-                value={gradeId}
-                onChange={(value) => {
-                  setGradeId(value);
-                  setSectionId("");
-                  setClassroomId("");
-                }}
-                disabled={readOnly}
-                error={firstFieldError(fieldErrors, "gradeId")}
-                options={grades.map((grade) => ({
-                  value: grade.id,
-                  label: locale === "ar" ? grade.nameAr : grade.nameEn,
-                }))}
-              />
-            )}
-            {(scopeType === "SECTION" || scopeType === "CLASSROOM") && (
-              <Select
-                label={t("target.section")}
-                value={sectionId}
-                onChange={(value) => {
-                  setSectionId(value);
-                  setClassroomId("");
-                }}
-                options={filteredSections.map((section) => ({
-                  value: section.id,
-                  label: locale === "ar" ? section.nameAr : section.nameEn,
-                }))}
-                disabled={readOnly || !gradeId}
-                error={firstFieldError(fieldErrors, "sectionId")}
-              />
-            )}
-            {scopeType === "CLASSROOM" && (
-              <Select
-                label={t("target.classroom")}
-                value={classroomId}
-                onChange={setClassroomId}
-                options={filteredClassrooms.map((classroom) => ({
-                  value: classroom.id,
-                  label: locale === "ar" ? classroom.nameAr : classroom.nameEn,
-                }))}
-                disabled={readOnly || !sectionId}
-                error={firstFieldError(fieldErrors, "classroomId")}
-              />
-            )}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+              <div className="font-medium text-gray-900">
+                {t("config.scopeLabel")}: {t(`config.scopeOptions.${scopeType.toLowerCase()}`)}
+              </div>
+              <p className="mt-1 text-xs text-gray-600">
+                {t("config.scopeLockedHelp")}
+              </p>
+            </div>
             <Select
               label={t("config.weekStartDay")}
               value={String(weekStartDay)}

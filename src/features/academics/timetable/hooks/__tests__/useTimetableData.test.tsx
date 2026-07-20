@@ -17,6 +17,7 @@ import { fetchRooms } from "@/features/academics/rooms/services/roomsService";
 import {
   bulkSaveEntries,
   checkConflicts,
+  deleteEntry,
   getConfig,
   getPublication,
   listEntries,
@@ -55,6 +56,7 @@ vi.mock("@/features/academics/rooms/services/roomsService", () => ({
 vi.mock("@/features/academics/timetable/services/timetableApiAdapter", () => ({
   bulkSaveEntries: vi.fn(),
   checkConflicts: vi.fn(),
+  deleteEntry: vi.fn(),
   getConfig: vi.fn(),
   getConflicts: vi.fn(),
   getPublication: vi.fn(),
@@ -74,6 +76,7 @@ const mockedFetchTeachers = vi.mocked(fetchTeachers);
 const mockedFetchRooms = vi.mocked(fetchRooms);
 const mockedBulkSaveEntries = vi.mocked(bulkSaveEntries);
 const mockedCheckConflicts = vi.mocked(checkConflicts);
+const mockedDeleteEntry = vi.mocked(deleteEntry);
 const mockedGetConfig = vi.mocked(getConfig);
 const mockedGetPublication = vi.mocked(getPublication);
 const mockedListEntries = vi.mocked(listEntries);
@@ -206,6 +209,25 @@ describe("useTimetableData", () => {
     ]);
   });
 
+  it("loads a term-wide config when no grade, section, or classroom is selected", async () => {
+    const { result } = renderHook(() =>
+      useTimetableData({
+        ...hookParams,
+        selectedGradeId: "",
+        selectedSectionId: "",
+        selectedClassroomId: "",
+      }),
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(mockedGetConfig).toHaveBeenCalledWith({
+      academicYearId: "year-1",
+      termId: "term-1",
+      scopeType: "TERM",
+    });
+  });
+
   it("bulk saves filled slots with resolved teacher-subject allocation ids", async () => {
     mockedCheckConflicts.mockResolvedValueOnce({ conflicts: [] });
     mockedBulkSaveEntries.mockResolvedValueOnce({ items: [backendEntry] });
@@ -230,6 +252,36 @@ describe("useTimetableData", () => {
         },
       ],
     });
+  });
+
+  it("does not delete cleared entries when another slot has a conflict", async () => {
+    mockedCheckConflicts.mockResolvedValueOnce({
+      conflicts: [{ code: "academics.timetable.entry_conflict" }],
+    });
+    const { result } = renderHook(() => useTimetableData(hookParams));
+
+    await waitFor(() => expect(result.current.config?.id).toBe("config-1"));
+    const entriesWithClearedSlot = [
+      {
+        ...result.current.timetableEntries[0],
+        subjectId: null,
+        teacherId: null,
+      },
+      { ...result.current.timetableEntries[0], id: "entry-2", dayKey: "tue" },
+    ];
+
+    let saveResult: Awaited<ReturnType<typeof result.current.saveTimetable>>;
+    await act(async () => {
+      saveResult = await result.current.saveTimetable(entriesWithClearedSlot);
+    });
+
+    expect(saveResult!).toMatchObject({
+      ok: false,
+      hasConflicts: true,
+      changesWereNotSaved: true,
+    });
+    expect(mockedDeleteEntry).not.toHaveBeenCalled();
+    expect(mockedBulkSaveEntries).not.toHaveBeenCalled();
   });
 
   it("surfaces backend error messages from timetable load failures", async () => {
