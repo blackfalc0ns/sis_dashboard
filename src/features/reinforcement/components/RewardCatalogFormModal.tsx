@@ -231,16 +231,6 @@ export default function RewardCatalogFormModal({
       }
     >
       <div className="space-y-4">
-        <RewardCatalogScopeFields
-          academicYears={academicYears}
-          defaultAcademicYearId={defaultAcademicYearId}
-          defaultTermId={defaultTermId}
-          value={scope}
-          onChange={setScope}
-          disabled={loading}
-          hideAcademicContextSelectors
-        />
-
         {/* Title fields */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Input

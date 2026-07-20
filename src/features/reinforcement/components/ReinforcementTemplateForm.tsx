@@ -51,7 +51,7 @@ const createEmptyStage = (): DraftStage => ({
   descriptionEn: "",
   descriptionAr: "",
   proofType: "none",
-  requiresApproval: false,
+  requiresApproval: true,
 });
 
 const createInitialDraft = (): TemplateDraft => ({
@@ -294,6 +294,7 @@ export default function ReinforcementTemplateForm({
           />
           <Input
             label={t("templates.form.rewardValue")}
+            type="number"
             value={draft.rewardValue}
             onChange={(event) =>
               setDraft({ ...draft, rewardValue: event.target.value })

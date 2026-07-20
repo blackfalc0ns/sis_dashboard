@@ -112,6 +112,21 @@ describe("ReinforcementTemplatesPage", () => {
     });
   });
 
+  it("requires approval for a new template stage by default", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(
+      await screen.findByRole("button", { name: "templates.form.create" }),
+    );
+
+    expect(
+      screen.getByRole("checkbox", {
+        name: "templates.form.requiresApproval",
+      }),
+    ).toBeChecked();
+  });
+
   it("passes backend-supported template filters when they change", async () => {
     const user = userEvent.setup();
     renderPage();

@@ -12,6 +12,7 @@ import {
   type AcademicStructureTree,
 } from "@/features/academics/services/academicStructureApiService";
 import {
+  fetchSubjectAllocations,
   type Subject,
   type SubjectAllocation,
 } from "@/features/academics/subjects/services/subjectsService";
@@ -380,7 +381,6 @@ export default function ReinforcementAcademicContextFilter({
     loading: false,
     error: null,
   });
-  const [providedSubjects, setProvidedSubjects] = useState<Subject[]>([]);
   const [loadedFilterOptions, setLoadedFilterOptions] =
     useState<ReinforcementFilterOptions | null>(null);
   const resolvedFilterOptions = filterOptions || loadedFilterOptions;
@@ -414,6 +414,7 @@ export default function ReinforcementAcademicContextFilter({
           subjectAllocations.data,
           tree.data.grades,
           next.stageId,
+          subjectDependsOnGrade ? next.gradeId : undefined,
         ).find((item) => item.id === next.subjectId),
         student: nextStudent,
       };
@@ -524,8 +525,6 @@ export default function ReinforcementAcademicContextFilter({
         loading: false,
         error: null,
       });
-      setProvidedSubjects((resolvedFilterOptions.subjects || []) as Subject[]);
-      setSubjectAllocations({ data: [], loading: false, error: null });
       return;
     }
 
@@ -539,7 +538,6 @@ export default function ReinforcementAcademicContextFilter({
 
     let cancelled = false;
     setTree((current) => ({ ...current, loading: true, error: null }));
-    setSubjectAllocations((current) => ({ ...current, loading: true, error: null }));
     setStudents((current) => ({ ...current, loading: true, error: null }));
     getReinforcementFilterOptions({
       academicYearId: value.academicYearId,
@@ -552,7 +550,6 @@ export default function ReinforcementAcademicContextFilter({
         if (!cancelled) {
           const message = error instanceof Error ? error.message : copy.error;
           setTree({ data: emptyTree, loading: false, error: message });
-          setSubjectAllocations({ data: [], loading: false, error: message });
           setStudents({ data: [], loading: false, error: message });
         }
       });
@@ -568,29 +565,48 @@ export default function ReinforcementAcademicContextFilter({
     value.termId,
   ]);
 
-  const filteredSubjects = useMemo(
-    () => {
-      if (!resolvedFilterOptions) {
-        return subjectsForStage(
-          subjectAllocations.data,
-          tree.data.grades,
-          value.stageId,
-          subjectDependsOnGrade ? value.gradeId : undefined,
-        );
-      }
+  /* Subject availability is owned by term allocations.  The selected grade
+   * narrows those allocations, and its stage is validated through the
+   * academic-structure tree in subjectsForStage. */
+  useEffect(() => {
+    if (!showSubject || !value.termId) {
+      setSubjectAllocations({ data: [], loading: false, error: null });
+      return;
+    }
 
-      return providedSubjects.filter((subject) => {
-        const record = subject as Subject & Record<string, unknown>;
-        const stageId = typeof record.stageId === "string" ? record.stageId : undefined;
-        const gradeId = typeof record.gradeId === "string" ? record.gradeId : undefined;
-        return (!stageId || !value.stageId || stageId === value.stageId) &&
-          (!gradeId || !value.gradeId || gradeId === value.gradeId);
+    let cancelled = false;
+    setSubjectAllocations({ data: [], loading: true, error: null });
+    fetchSubjectAllocations(value.termId)
+      .then((allocations) => {
+        if (!cancelled) {
+          setSubjectAllocations({ data: allocations, loading: false, error: null });
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setSubjectAllocations({
+            data: [],
+            loading: false,
+            error: error instanceof Error ? error.message : copy.error,
+          });
+        }
       });
-    },
+
+    return () => {
+      cancelled = true;
+    };
+  }, [copy.error, showSubject, value.termId]);
+
+  const filteredSubjects = useMemo(
+    () =>
+      subjectsForStage(
+        subjectAllocations.data,
+        tree.data.grades,
+        value.stageId,
+        subjectDependsOnGrade ? value.gradeId : undefined,
+      ),
     [
-      resolvedFilterOptions,
       subjectAllocations.data,
-      providedSubjects,
       subjectDependsOnGrade,
       tree.data.grades,
       value.gradeId,
@@ -732,6 +748,23 @@ export default function ReinforcementAcademicContextFilter({
 
   /* ─── Reset handler ─── */
   const handleReset = () => {
+    if (!showAcademicYearTerm) {
+      onChange(
+        buildSelection({
+          academicYearId: value.academicYearId,
+          termId: value.termId,
+          stageId: undefined,
+          gradeId: undefined,
+          sectionId: undefined,
+          classroomId: undefined,
+          subjectId: undefined,
+          studentId: undefined,
+          enrollmentId: undefined,
+        }),
+      );
+      return;
+    }
+
     persistContext(undefined, undefined);
     onChange(
       buildSelection({
@@ -950,7 +983,12 @@ export default function ReinforcementAcademicContextFilter({
               <Select
                 label={copy.subject}
                 value={value.subjectId || ""}
-                disabled={disabled || subjectAllocations.loading || !value.classroomId}
+                disabled={
+                  disabled ||
+                  subjectAllocations.loading ||
+                  !value.stageId ||
+                  (subjectDependsOnGrade && !value.gradeId)
+                }
                 options={compactOptions(
                   filteredSubjects.map((item) => toOption(item, locale)),
                 )}
