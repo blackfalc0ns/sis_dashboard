@@ -449,7 +449,11 @@ Post-creation success: `useToast().showSuccess()` with caveat about account acti
 ### 7.7 `EditTeacherDialog.tsx`
 
 Same sections as Create, using the same UI components, but:
-- Pre-populated from `TeacherDirectoryDetail`
+- Pre-populated from `TeacherDirectoryDetail`, except
+  `preferredDisplayLanguage`, which the response contract does not return
+- Initializes `preferredDisplayLanguage` from the current dashboard locale and
+  keeps the selector visible so the administrator explicitly controls the
+  compatibility-name projection when editing either language pair
 - Does NOT show employment status (use employment-status endpoint)
 - Does NOT show account/membership status fields
 - Uses diff builder to send minimal PATCH
