@@ -215,22 +215,12 @@ export default function CredentialsPage() {
   );
 
   useEffect(() => {
-    void hydrate();
+    queueMicrotask(() => void hydrate());
   }, [hydrate]);
 
   useEffect(() => {
-    void loadRoles();
+    queueMicrotask(() => void loadRoles());
   }, [loadRoles]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [hasPasswordFilter, mustChangePasswordFilter, roleFilter, search]);
-
-  useEffect(() => {
-    if (hasActiveFilters && !showFilters) {
-      setShowFilters(true);
-    }
-  }, [hasActiveFilters, showFilters]);
 
   const enrichCredential = (
     credential: RevealedCredential,
@@ -244,7 +234,7 @@ export default function CredentialsPage() {
     };
   };
 
-  const handleSingleGenerate = async (mustChangePassword: boolean) => {
+  const handleSingleGenerate = async () => {
     if (!selectedUser || !generateMode) {
       return;
     }
@@ -252,12 +242,8 @@ export default function CredentialsPage() {
     try {
       const credential =
         generateMode === "generate"
-          ? await generateUserCredential(selectedUser.userId, {
-              mustChangePassword,
-            })
-          : await regenerateUserCredential(selectedUser.userId, {
-              mustChangePassword,
-            });
+          ? await generateUserCredential(selectedUser.userId)
+          : await regenerateUserCredential(selectedUser.userId);
       setRevealedCredentials([enrichCredential(credential)]);
       setGenerateMode(null);
       setSelectedUser(null);
@@ -335,6 +321,7 @@ export default function CredentialsPage() {
     setRoleFilter("all");
     setHasPasswordFilter("all");
     setMustChangePasswordFilter("all");
+    setPage(1);
   };
 
   if (isLoading) {
@@ -386,7 +373,7 @@ export default function CredentialsPage() {
           ) : null}
           <div className="mb-4">
             <FilterPanel
-              showFilters={showFilters}
+              showFilters={showFilters || Boolean(hasActiveFilters)}
               onToggleFilters={() => setShowFilters((current) => !current)}
               hasActiveFilters={Boolean(hasActiveFilters)}
               toggleTitle={t("filters.button")}
@@ -398,7 +385,10 @@ export default function CredentialsPage() {
                   <div className="min-w-40 flex-1">
                     <Input
                       value={search}
-                      onChange={(event) => setSearch(event.target.value)}
+                      onChange={(event) => {
+                        setSearch(event.target.value);
+                        setPage(1);
+                      }}
                       placeholder={t("filters.search")}
                     />
                   </div>
@@ -418,7 +408,10 @@ export default function CredentialsPage() {
                   <Select
                     label={t("filters.role")}
                     value={roleFilter}
-                    onChange={setRoleFilter}
+                    onChange={(role) => {
+                      setRoleFilter(role);
+                      setPage(1);
+                    }}
                     searchable
                     searchPlaceholder={t("filters.role_search")}
                     noResultsText={t("filters.roles_no_results")}
@@ -433,7 +426,10 @@ export default function CredentialsPage() {
                   <Select
                     label={t("filters.has_password")}
                     value={hasPasswordFilter}
-                    onChange={setHasPasswordFilter}
+                    onChange={(hasPassword) => {
+                      setHasPasswordFilter(hasPassword);
+                      setPage(1);
+                    }}
                     options={[
                       { value: "all", label: tCommon("all") },
                       { value: "yes", label: t("yes") },
@@ -443,7 +439,10 @@ export default function CredentialsPage() {
                   <Select
                     label={t("filters.must_change")}
                     value={mustChangePasswordFilter}
-                    onChange={setMustChangePasswordFilter}
+                    onChange={(mustChangePassword) => {
+                      setMustChangePasswordFilter(mustChangePassword);
+                      setPage(1);
+                    }}
                     options={[
                       { value: "all", label: tCommon("all") },
                       { value: "yes", label: t("yes") },
@@ -534,7 +533,6 @@ export default function CredentialsPage() {
               generateTitle: t("generate.title"),
               regenerateTitle: t("generate.regenerate_title"),
               description: t("generate.description"),
-              mustChangePassword: t("generate.must_change_password"),
               cancel: tCommon("cancel"),
               generate: t("actions.generate"),
               regenerate: t("actions.regenerate"),
@@ -565,7 +563,7 @@ export default function CredentialsPage() {
               saving: tCommon("saving"),
               required: t("set.errors.required"),
               mismatch: t("set.errors.mismatch"),
-              minLength: t("set.errors.min_length"),
+              invalidLength: t("set.errors.invalid_length"),
               show: t("set.show"),
               hide: t("set.hide"),
             }}

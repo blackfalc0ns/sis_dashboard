@@ -1,22 +1,22 @@
 "use client";
 
-import { useState } from "react";
 import Button from "@/components/ui/button/Button";
 import Modal from "@/components/ui/modal/Modal";
 import type { CredentialStatusRecord } from "@/features/settings/credentials/types";
 
+type CredentialModalUser = Pick<CredentialStatusRecord, "fullName" | "username" | "loginEmail">;
+
 interface GenerateCredentialModalProps {
   isOpen: boolean;
   mode: "generate" | "regenerate";
-  user: CredentialStatusRecord | null;
+  user: CredentialModalUser | null;
   isSubmitting: boolean;
   onClose: () => void;
-  onSubmit: (mustChangePassword: boolean) => Promise<void>;
+  onSubmit: () => Promise<void>;
   labels: {
     generateTitle: string;
     regenerateTitle: string;
     description: string;
-    mustChangePassword: string;
     cancel: string;
     generate: string;
     regenerate: string;
@@ -33,8 +33,6 @@ export default function GenerateCredentialModal({
   onSubmit,
   labels,
 }: GenerateCredentialModalProps) {
-  const [mustChangePassword, setMustChangePassword] = useState(true);
-
   return (
     <Modal
       isOpen={isOpen}
@@ -49,7 +47,7 @@ export default function GenerateCredentialModal({
           <Button
             variant="primary"
             loading={isSubmitting}
-            onClick={() => void onSubmit(mustChangePassword)}
+            onClick={() => void onSubmit()}
           >
             {isSubmitting
               ? labels.generating
@@ -70,15 +68,6 @@ export default function GenerateCredentialModal({
             </p>
           </div>
         ) : null}
-        <label className="flex items-start gap-2 text-sm text-gray-700">
-          <input
-            type="checkbox"
-            className="mt-1 h-4 w-4 rounded border-gray-300"
-            checked={mustChangePassword}
-            onChange={(event) => setMustChangePassword(event.target.checked)}
-          />
-          <span>{labels.mustChangePassword}</span>
-        </label>
       </div>
     </Modal>
   );

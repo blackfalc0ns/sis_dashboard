@@ -11,3 +11,9 @@ describe("behavior navigation permissions", () => {
     });
   });
 });
+
+describe("teacher navigation permissions", () => {
+  it("requires the teacher-directory view permission", () => {
+    expect(navigationPermissionByKey.teachers).toBe("teachers.records.view");
+  });
+});

@@ -7,9 +7,11 @@ import Input from "@/components/ui/input/Input";
 import Modal from "@/components/ui/modal/Modal";
 import type { CredentialStatusRecord } from "@/features/settings/credentials/types";
 
+type CredentialModalUser = Pick<CredentialStatusRecord, "fullName" | "username" | "loginEmail">;
+
 interface SetPasswordModalProps {
   isOpen: boolean;
-  user: CredentialStatusRecord | null;
+  user: CredentialModalUser | null;
   isSubmitting: boolean;
   error?: string | null;
   onClose: () => void;
@@ -25,7 +27,7 @@ interface SetPasswordModalProps {
     saving: string;
     required: string;
     mismatch: string;
-    minLength: string;
+    invalidLength: string;
     show: string;
     hide: string;
   };
@@ -48,17 +50,20 @@ export default function SetPasswordModal({
   const [localError, setLocalError] = useState<string | null>(null);
 
   const isValid = useMemo(
-    () => password.trim().length >= 8 && password === confirmPassword,
+    () =>
+      password.length >= 1 &&
+      password.length <= 256 &&
+      password === confirmPassword,
     [confirmPassword, password],
   );
 
   const handleSubmit = async () => {
-    if (!password.trim() || !confirmPassword.trim()) {
+    if (!password || !confirmPassword) {
       setLocalError(labels.required);
       return;
     }
-    if (password.length < 8) {
-      setLocalError(labels.minLength);
+    if (password.length > 256) {
+      setLocalError(labels.invalidLength);
       return;
     }
     if (password !== confirmPassword) {

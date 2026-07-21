@@ -1,12 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { apiPost } from "@/lib/api";
 import {
+  generateUserCredential,
   getBulkCredentialPreviewPayloadKey,
   mapBulkCredentialPreviewResponse,
+  regenerateUserCredential,
 } from "../credentialsService";
 import type {
   BulkCredentialPreviewResponseDto,
   CredentialUserSummaryDto,
 } from "../../types";
+
+vi.mock("@/lib/api", () => ({ apiGet: vi.fn(), apiPost: vi.fn() }));
 
 const user: CredentialUserSummaryDto = {
   userId: "user-1",
@@ -80,5 +85,26 @@ describe("bulk credential preview contract", () => {
     });
 
     expect(first).toBe(second);
+  });
+});
+
+describe("single-user credential contract", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it.each([
+    ["generate", generateUserCredential],
+    ["regenerate", regenerateUserCredential],
+  ] as const)("posts %s without a request body", async (operation, call) => {
+    vi.mocked(apiPost).mockResolvedValue({
+      user: { userId: "user-1", fullName: "Nour Ali", username: "nour.ali", loginEmail: "nour@school.test", contactEmail: null },
+      temporaryPassword: "one-time-secret",
+      mustChangePassword: true,
+      generatedAt: "2026-07-21T09:00:00Z",
+      credentialVersion: 2,
+    });
+
+    await call("user-1");
+
+    expect(apiPost).toHaveBeenCalledWith(`/settings/users/user-1/credentials/${operation}`);
   });
 });

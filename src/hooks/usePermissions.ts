@@ -28,6 +28,8 @@ export type PermissionKey =
   | "students.notes.manage"
   | "students.lifecycle.manage"
   | "students.records.view"
+  | "teachers.records.view"
+  | "teachers.records.manage"
   | "attendance.rollcall.submit"
   | "attendance.rollcall.unsubmit"
   | "attendance.excuses.approve"
@@ -209,6 +211,7 @@ export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
     "admissions-enrollment": "students.enrollments.view",
     "students-list": "students.records.view",
     "guardians-list": "students.guardians.view",
+    teachers: "teachers.records.view",
     "profile-correction-requests": "students.records.view",
     "documents-center": "students.documents.view",
     "academics-overview": "academics.overview.view",

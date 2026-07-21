@@ -9211,7 +9211,7 @@
         "errors": {
           "required": "أدخل كلمة المرور وأكدها.",
           "mismatch": "كلمتا المرور غير متطابقتين.",
-          "min_length": "يجب ألا تقل كلمة المرور عن 8 أحرف."
+          "invalid_length": "يجب أن تتكون كلمة المرور من 1 إلى 256 حرفًا."
         }
       },
       "bulk": {
@@ -10001,6 +10001,7 @@
       "more": "إجراءات إضافية",
       "publish": "نشر",
       "archive": "أرشفة",
+      "rehire": "إعادة توظيف معلم مؤرشف",
       "togglePublish": "نشر / أرشفة",
       "badgesGuide": "دليل أصول الشارات",
       "manageBadges": "إدارة الشارات",
@@ -12041,7 +12042,12 @@
       "deactivate": "تعطيل",
       "delete": "حذف",
       "close": "إغلاق",
-      "cancel": "إلغاء"
+      "cancel": "إلغاء",
+      "confirm": "تأكيد",
+      "archive": "أرشفة",
+      "open_menu": "فتح إجراءات المعلم",
+      "back_to_list": "العودة إلى المعلمين",
+      "manage_allocations": "إدارة التوزيعات"
     },
     "columns": {
       "code": "الرمز",
@@ -12051,7 +12057,13 @@
       "status": "الحالة",
       "subjects_count": "عدد المواد",
       "assignment_summary": "ملخص التكليف",
-      "actions": "الإجراءات"
+      "actions": "الإجراءات",
+      "department": "القسم",
+      "specialization": "التخصص",
+      "employment_status": "التوظيف",
+      "account_status": "الحساب",
+      "credentials": "بيانات الدخول",
+      "completeness": "الملف"
     },
     "fields": {
       "code": "رمز المعلم",
@@ -12075,7 +12087,15 @@
       "notes_ar": "ملاحظات (عربي)",
       "notes_en": "ملاحظات (إنجليزي)",
       "status": "الحالة",
-      "classrooms": "الفصول"
+      "classrooms": "الفصول",
+      "username": "اسم المستخدم",
+      "login_email": "بريد تسجيل الدخول",
+      "contact_email": "بريد التواصل",
+      "preferred_language": "لغة العرض المفضلة",
+      "department": "القسم",
+      "specialization": "التخصص",
+      "employment_type": "نوع التوظيف",
+      "employment_status": "حالة التوظيف"
     },
     "gender": {
       "male": "ذكر",
@@ -12099,7 +12119,12 @@
       "stage": "المرحلة",
       "all_stages": "كل المراحل",
       "grade": "الصف",
-      "all_grades": "كل الصفوف"
+      "all_grades": "كل الصفوف",
+      "employment": "حالة التوظيف",
+      "account": "حالة الحساب",
+      "membership": "حالة العضوية",
+      "completeness": "اكتمال الملف",
+      "all": "الكل"
     },
     "summary": {
       "stages": "مراحل",
@@ -12136,7 +12161,10 @@
       "updated_at": "تاريخ التحديث",
       "no_value": "غير متوفر",
       "no_notes": "لا توجد ملاحظات",
-      "classrooms": "الفصول"
+      "classrooms": "الفصول",
+      "identity": "الهوية والتواصل",
+      "employment": "ملف التوظيف",
+      "schedule": "جدول العمل"
     },
     "dialog": {
       "create_title": "إضافة معلم",
@@ -12144,6 +12172,13 @@
       "create_action": "إنشاء معلم",
       "save_action": "حفظ التعديلات",
       "assignment_help": "حدد النطاق الأكاديمي الذي يدعمه هذا المعلم."
+    },
+    "rehire": {
+      "title": "إعادة توظيف معلم مؤرشف",
+      "archived_teacher_id": "معرّف المعلم المؤرشف",
+      "discovery_gap": "لا يمكن البحث عن المعلمين المؤرشفين بعد. أدخل معرّف المعلم المؤرشف من سجل تدقيق أو دعم مخول.",
+      "resulting_state": "تستعيد إعادة التوظيف الملف بحالة توظيف غير نشطة وحساب معطل وعضوية معلقة. تُحفظ بيانات الدخول.",
+      "success": "تمت استعادة المعلم بحالة غير نشطة."
     },
     "form": {
       "general_section": "المعلومات الأساسية",
@@ -12155,7 +12190,15 @@
       "no_stages": "لا توجد مراحل متاحة في السياق الأكاديمي الحالي.",
       "select_stage_first": "اختر مرحلة واحدة على الأقل أولاً.",
       "select_grade_first": "اختر صفًا واحدًا على الأقل أولاً.",
-      "select_section_first": "اختر شعبة واحدة على الأقل أولاً."
+      "select_section_first": "اختر شعبة واحدة على الأقل أولاً.",
+      "identity_section": "هوية تسجيل الدخول",
+      "profile_section": "الهوية ثنائية اللغة",
+      "employment_section": "ملف التوظيف",
+      "schedule_section": "جدول العمل",
+      "identity_modes": {
+        "username": "اسم المستخدم",
+        "loginEmail": "بريد تسجيل الدخول"
+      }
     },
     "change_password": {
       "title": "تغيير كلمة المرور",
@@ -12192,7 +12235,10 @@
       "delete_success": "تم حذف المعلم بنجاح.",
       "delete_failed": "فشل حذف المعلم.",
       "password_changed_success": "تم تغيير كلمة مرور المعلم بنجاح.",
-      "password_change_failed": "فشل تغيير كلمة مرور المعلم."
+      "password_change_failed": "فشل تغيير كلمة مرور المعلم.",
+      "activation_caveat": "قد يبقى الحساب في حالة دعوة بعد الإنشاء. لا تؤكد إمكانية تسجيل الدخول حتى يكتمل إعداد الحساب.",
+      "status_update_success": "تم تحديث حالة التوظيف بنجاح.",
+      "archive_success": "تمت أرشفة المعلم بنجاح."
     },
     "export": {
       "title": "تصدير المعلمين",
@@ -12228,6 +12274,10 @@
       }
     },
     "validation": {
+      "required": "هذا الحقل مطلوب.",
+      "experience_range": "يجب أن تكون الخبرة عدداً صحيحاً من 0 إلى 60.",
+      "work_time_pair": "يجب إدخال وقت البداية والنهاية معاً.",
+      "no_changes": "لا توجد تغييرات للحفظ.",
       "code_required": "رمز المعلم مطلوب.",
       "code_max_length": "رمز المعلم طويل جدًا.",
       "code_unique": "رمز المعلم يجب أن يكون فريدًا.",
@@ -12263,6 +12313,76 @@
       "password_confirmation_required": "تأكيد كلمة المرور مطلوب.",
       "password_mismatch": "تأكيد كلمة المرور غير متطابق.",
       "classrooms_required": "اختر فصلاً واحدًا على الأقل."
+    },
+    "statuses": {
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "terminated": "منتهي",
+      "invited": "مدعو",
+      "suspended": "موقوف",
+      "disabled": "معطل",
+      "transferred": "منقول"
+    },
+    "credentials": {
+      "missing": "بيانات الدخول مطلوبة",
+      "temporary_or_must_change": "كلمة مرور مؤقتة",
+      "must_change": "يجب تغيير كلمة المرور",
+      "set": "بيانات الدخول جاهزة",
+      "management_unavailable": "إجراءات بيانات الدخول غير متاحة عندما يكون الحساب موقوفًا أو معطلاً."
+    },
+    "errors": {
+      "identity_inconsistent": "حالة حساب هذا المعلم غير متسقة، لذلك تم إيقاف العملية بأمان.",
+      "identity_inconsistent_guidance": "تم تحديث أحدث حالة للمعلم. تواصل مع مسؤول النظام أو دعم الخادم لإصلاح سجلات المستخدم والعضوية المرتبطة قبل إعادة المحاولة.",
+      "trace_id": "معرّف التتبع للدعم"
+    },
+    "completeness": {
+      "complete": "مكتمل",
+      "incomplete": "غير مكتمل"
+    },
+    "languages": {
+      "ar": "العربية",
+      "en": "الإنجليزية"
+    },
+    "employment_types": {
+      "full_time": "دوام كامل",
+      "part_time": "دوام جزئي",
+      "contract": "عقد"
+    },
+    "lifecycle": {
+      "actions": {
+        "active": "تفعيل",
+        "inactive": "إيقاف مؤقت",
+        "terminated": "إنهاء"
+      },
+      "titles": {
+        "active": "تفعيل التوظيف",
+        "inactive": "إيقاف التوظيف",
+        "terminated": "إنهاء التوظيف"
+      },
+      "confirmations": {
+        "active": "هل تريد تفعيل توظيف هذا المعلم؟ ستظل فحوصات الحساب والعضوية في الخادم مطبقة.",
+        "inactive": "هل تريد إيقاف التوظيف وإلغاء الجلسات النشطة؟",
+        "terminated": "هل تريد إنهاء التوظيف؟ لا يمكن عكس ذلك من خلال مسار الحالة المعتاد."
+      },
+      "blockers": {
+        "employment_not_inactive": "يجب أن تكون حالة التوظيف غير نشطة حالياً.",
+        "profile_incomplete": "أكمل بيانات ملف المعلم المطلوبة أولاً.",
+        "credential_missing": "أنشئ كلمة مرور قبل التفعيل."
+      },
+      "effective_at": "وقت السريان (اختياري)",
+      "result_title": "اكتمل تغيير حالة التوظيف",
+      "revoked_sessions": "الجلسات الملغاة",
+      "current_allocations": "التوزيعات النشطة الحالية",
+      "reassignment_required": "تحتاج التكليفات التعليمية إلى مراجعة أو إعادة توزيع."
+    },
+    "archive": {
+      "title": "أرشفة المعلم",
+      "description": "هل تريد أرشفة {teacher}؟ سيختفي الملف من الدليل الحالي وقد تمنع التكليفات النشطة هذا الإجراء.",
+      "confirm": "أرشفة المعلم"
+    },
+    "not_found": {
+      "title": "المعلم غير موجود",
+      "description": "هذا المعلم غير متاح أو خارج نطاق المدرسة الحالية."
     },
     "work_days": {
       "sunday": "الأحد",

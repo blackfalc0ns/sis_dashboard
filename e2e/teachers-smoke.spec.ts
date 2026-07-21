@@ -1,120 +1,70 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import {
-  chooseSelectOption,
   expectNoPageErrors,
-  expectSharedAcademicsContextBar,
-  expandContextBar,
+  mockTeacherDirectory,
+  teacherRecord,
   trackPageErrors,
-  withTeachersQuery,
 } from "./teachers-test-helpers";
 
-test.describe("Teachers Migrated Smoke", () => {
-  test.describe.configure({ mode: "serial" });
-  test.use({ viewport: { width: 1700, height: 1100 } });
+test.describe("Teacher Directory", () => {
+  test.beforeEach(async ({ page }) => {
+    await mockTeacherDirectory(page);
+  });
 
-  test("teachers page renders under the shared academics layout and preserves academic context", async ({
-    page,
-  }) => {
+  test("renders contract-backed rows without academic context", async ({ page }) => {
     const pageErrors = trackPageErrors(page);
-
-    await page.goto(withTeachersQuery("/en/teachers"));
-    await page.waitForLoadState("networkidle");
-
-    await expectSharedAcademicsContextBar(page);
+    await page.goto("/en/teachers");
     await expect(page.getByRole("heading", { name: "Teachers Management" })).toBeVisible();
-    await expect(
-      page.getByText(
-        "Manage teacher profiles, assignments, passwords, and activation status.",
-      ),
-    ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Export" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Add Teacher" })).toBeVisible();
-    await expect(page).toHaveURL(/yearId=year-2/);
-    await expect(page).toHaveURL(/termId=term-2-1/);
-
-    await expandContextBar(page);
-    await chooseSelectOption(page, "Term", "Term 2");
-    await expect(page).toHaveURL(/termId=term-2-2/);
-    await page.reload();
-    await page.waitForLoadState("networkidle");
-    await expectSharedAcademicsContextBar(page);
-    await expect(page).toHaveURL(/termId=term-2-2/);
-    await expect(page.getByRole("button", { name: "Add Teacher" })).toBeVisible();
-
+    await expect(page.getByText(teacherRecord.displayName.fullName)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Academic Context" })).toHaveCount(0);
     await expectNoPageErrors(pageErrors);
   });
 
-  test("teachers filter query params hydrate, normalize, and keep dependent filters consistent", async ({
-    page,
-  }) => {
-    const pageErrors = trackPageErrors(page);
-
-    await page.goto(
-      withTeachersQuery("/en/teachers", {
-        search: "Ahmed",
-        status: "BOGUS",
-        gender: "INVALID",
-        stageId: "stage-1",
-        gradeId: "grade-7",
-      }),
-    );
-    await page.waitForLoadState("networkidle");
-
-    await expect(page).toHaveURL(/search=Ahmed/);
-    await expect(page).not.toHaveURL(/status=BOGUS/);
-    await expect(page).not.toHaveURL(/gender=INVALID/);
-    await expect(page).toHaveURL(/stageId=stage-1/);
-    await expect(page).not.toHaveURL(/gradeId=grade-7/);
-
-    await page.getByRole("button", { name: "Filters", exact: true }).click();
-    await chooseSelectOption(page, "Status", "Active");
-    await chooseSelectOption(page, "Gender", "Male");
-    await expect(page).toHaveURL(/status=ACTIVE/);
-    await expect(page).toHaveURL(/gender=MALE/);
-
-    await page.getByPlaceholder("Search by code, name, email, or phone").fill("Sara");
-    await expect(page).toHaveURL(/search=Sara/);
-    await page.reload();
-    await page.waitForLoadState("networkidle");
-    await expect(page).toHaveURL(/search=Sara/);
-    await expect(page).toHaveURL(/status=ACTIVE/);
-    await expect(page).toHaveURL(/gender=MALE/);
-
-    await expectNoPageErrors(pageErrors);
+  test("keeps supported server filters in the URL", async ({ page }) => {
+    await page.goto("/en/teachers?employmentStatus=ACTIVE&gender=FEMALE");
+    await expect(page).toHaveURL(/employmentStatus=ACTIVE/);
+    await expect(page).toHaveURL(/gender=FEMALE/);
+    await expect(page.getByText(teacherRecord.teacherCode)).toBeVisible();
   });
 
-  test("teachers page key dialogs, drawer, and export entry points open safely", async ({
-    page,
-  }) => {
-    const pageErrors = trackPageErrors(page);
+  test("debounces search into the server-backed URL", async ({ page }) => {
+    await page.goto("/en/teachers");
+    await page.getByPlaceholder("Search by code, name, email, or phone").fill("Nour");
+    await expect(page).toHaveURL(/search=Nour/);
+  });
 
-    await page.goto(withTeachersQuery("/en/teachers"));
-    await page.waitForLoadState("networkidle");
+  test("opens the dedicated teacher detail route", async ({ page }) => {
+    await page.goto("/en/teachers");
+    await page.getByText(teacherRecord.displayName.fullName).click();
+    await expect(page).toHaveURL(`/en/teachers/${teacherRecord.id}`);
+    await expect(page.getByText(teacherRecord.loginEmail)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Change Password" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Activate" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Terminate" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /rehire/i })).toHaveCount(0);
+  });
 
+  test("opens contract-scoped create, edit, and archive dialogs", async ({ page }) => {
+    await page.goto("/en/teachers");
     await page.getByRole("button", { name: "Add Teacher" }).click();
-    await expect(page.getByRole("dialog", { name: "Add Teacher" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "General Information" })).toBeVisible();
-    await expect(page.getByText("Teacher Code*")).toBeVisible();
-    await page.getByRole("button", { name: "Cancel" }).click();
-    await expect(page.getByRole("dialog", { name: "Add Teacher" })).toHaveCount(0);
-
-    await page.getByRole("button", { name: "View details" }).first().click();
-    await expect(page.getByRole("dialog", { name: "Teacher Details" })).toBeVisible();
-    await page.getByRole("button", { name: "Close" }).click();
-
-    await page.getByRole("button", { name: "Change password" }).first().click();
-    await expect(page.getByRole("heading", { name: "Change Password" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Add Teacher" })).toBeVisible();
     await page.getByRole("button", { name: "Cancel" }).click();
 
-    await page.getByRole("button", { name: "Delete" }).first().click();
-    await expect(page.getByRole("heading", { name: "Delete Teacher" })).toBeVisible();
+    await page.getByText(teacherRecord.displayName.fullName).click();
+    await page.getByRole("button", { name: "Edit" }).click();
+    await expect(page.getByRole("heading", { name: "Edit Teacher" })).toBeVisible();
     await page.getByRole("button", { name: "Cancel" }).click();
+    await page.getByRole("button", { name: "Archive" }).click();
+    await expect(page.getByRole("heading", { name: "Archive teacher" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Export" })).toHaveCount(0);
+  });
 
-    await page.getByRole("button", { name: "Export" }).click();
-    await expect(page.getByText("CSV", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Cancel" }).click();
-    await expect(page.getByText("CSV", { exact: true })).toHaveCount(0);
-
-    await expectNoPageErrors(pageErrors);
+  test("regenerates a teacher credential using the one-time reveal flow", async ({ page }) => {
+    await page.goto(`/en/teachers/${teacherRecord.id}`);
+    await page.getByRole("button", { name: "Regenerate temporary password" }).click();
+    const confirmation = page.getByRole("dialog");
+    await confirmation.getByRole("button", { name: "Regenerate temporary password" }).click();
+    await expect(page.getByText("MZ-7KQ9-PL2R")).toBeVisible();
+    await expect(page.getByText(/shown once only/i)).toBeVisible();
   });
 });

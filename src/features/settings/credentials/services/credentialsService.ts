@@ -9,7 +9,6 @@ import type {
   CredentialStatusListResponse,
   CredentialUserSummaryDto,
   FetchCredentialStatusParams,
-  GenerateCredentialRequest,
   GeneratedCredentialResponseDto,
   OneTimeCredentialResponse,
   SetCredentialPasswordRequest,
@@ -136,11 +135,9 @@ export async function generateBulkCredentials(
 
 export async function generateUserCredential(
   userId: string,
-  payload: GenerateCredentialRequest = {},
 ): Promise<OneTimeCredentialResponse> {
   const response = await apiPost<GeneratedCredentialResponseDto>(
     `/settings/users/${userId}/credentials/generate`,
-    payload,
   );
   return mapGeneratedCredentialResponse(response);
 }
@@ -158,11 +155,9 @@ export async function setUserCredentialPassword(
 
 export async function regenerateUserCredential(
   userId: string,
-  payload: GenerateCredentialRequest = {},
 ): Promise<OneTimeCredentialResponse> {
   const response = await apiPost<GeneratedCredentialResponseDto>(
     `/settings/users/${userId}/credentials/regenerate`,
-    payload,
   );
   return mapGeneratedCredentialResponse(response);
 }

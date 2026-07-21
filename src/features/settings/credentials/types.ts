@@ -52,10 +52,6 @@ export interface FetchCredentialStatusParams {
   credentialStatus?: CredentialStatusFilter | "all";
 }
 
-export interface GenerateCredentialRequest {
-  mustChangePassword?: boolean;
-}
-
 export interface SetCredentialPasswordRequest {
   password: string;
   forceResetOnLogin?: boolean;

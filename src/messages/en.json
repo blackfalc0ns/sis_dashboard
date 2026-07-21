@@ -9210,7 +9210,7 @@
         "errors": {
           "required": "Enter and confirm the password.",
           "mismatch": "Passwords do not match.",
-          "min_length": "Password must be at least 8 characters."
+          "invalid_length": "Password must contain between 1 and 256 characters."
         }
       },
       "bulk": {
@@ -10000,6 +10000,7 @@
       "more": "More actions",
       "publish": "Publish",
       "archive": "Archive",
+      "rehire": "Rehire archived teacher",
       "togglePublish": "Publish / archive",
       "badgesGuide": "Badge assets guide",
       "manageBadges": "Manage badges",
@@ -12040,7 +12041,12 @@
       "deactivate": "Deactivate",
       "delete": "Delete",
       "close": "Close",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "archive": "Archive",
+      "open_menu": "Open teacher actions",
+      "back_to_list": "Back to teachers",
+      "manage_allocations": "Manage allocations"
     },
     "columns": {
       "code": "Code",
@@ -12050,7 +12056,13 @@
       "status": "Status",
       "subjects_count": "Subjects",
       "assignment_summary": "Assignment Summary",
-      "actions": "Actions"
+      "actions": "Actions",
+      "department": "Department",
+      "specialization": "Specialization",
+      "employment_status": "Employment",
+      "account_status": "Account",
+      "credentials": "Credentials",
+      "completeness": "Profile"
     },
     "fields": {
       "code": "Teacher Code",
@@ -12074,7 +12086,15 @@
       "classrooms": "Classrooms",
       "notes_ar": "Notes (AR)",
       "notes_en": "Notes (EN)",
-      "status": "Status"
+      "status": "Status",
+      "username": "Username",
+      "login_email": "Login email",
+      "contact_email": "Contact email",
+      "preferred_language": "Preferred display language",
+      "department": "Department",
+      "specialization": "Specialization",
+      "employment_type": "Employment type",
+      "employment_status": "Employment status"
     },
     "gender": {
       "male": "Male",
@@ -12098,7 +12118,12 @@
       "stage": "Stage",
       "all_stages": "All stages",
       "grade": "Grade",
-      "all_grades": "All grades"
+      "all_grades": "All grades",
+      "employment": "Employment status",
+      "account": "Account status",
+      "membership": "Membership status",
+      "completeness": "Profile completeness",
+      "all": "All"
     },
     "summary": {
       "stages": "stages",
@@ -12135,7 +12160,10 @@
       "created_at": "Created At",
       "updated_at": "Updated At",
       "no_value": "Not provided",
-      "no_notes": "No notes added"
+      "no_notes": "No notes added",
+      "identity": "Identity and contact",
+      "employment": "Employment profile",
+      "schedule": "Work schedule"
     },
     "dialog": {
       "create_title": "Add Teacher",
@@ -12143,6 +12171,13 @@
       "create_action": "Create Teacher",
       "save_action": "Save Changes",
       "assignment_help": "Select the academic scope this teacher supports."
+    },
+    "rehire": {
+      "title": "Rehire archived teacher",
+      "archived_teacher_id": "Archived teacher ID",
+      "discovery_gap": "Archived teachers are not yet searchable. Enter the archived teacher ID from an authorized audit or support record.",
+      "resulting_state": "Rehire restores the profile as INACTIVE with a DISABLED account and SUSPENDED membership. Credentials are preserved.",
+      "success": "Teacher restored in an inactive state."
     },
     "form": {
       "general_section": "General Information",
@@ -12154,7 +12189,15 @@
       "no_stages": "No stages available for the current academic context.",
       "select_stage_first": "Select at least one stage first.",
       "select_grade_first": "Select at least one grade first.",
-      "select_section_first": "Select at least one section first."
+      "select_section_first": "Select at least one section first.",
+      "identity_section": "Login identity",
+      "profile_section": "Bilingual identity",
+      "employment_section": "Employment profile",
+      "schedule_section": "Work schedule",
+      "identity_modes": {
+        "username": "Username",
+        "loginEmail": "Login email"
+      }
     },
     "change_password": {
       "title": "Change Password",
@@ -12191,7 +12234,10 @@
       "delete_success": "Teacher deleted successfully.",
       "delete_failed": "Failed to delete the teacher.",
       "password_changed_success": "Teacher password changed successfully.",
-      "password_change_failed": "Failed to change the teacher password."
+      "password_change_failed": "Failed to change the teacher password.",
+      "activation_caveat": "The account may remain invited after creation. Do not promise login access until onboarding is completed.",
+      "status_update_success": "Employment status updated successfully.",
+      "archive_success": "Teacher archived successfully."
     },
     "export": {
       "title": "Export teachers",
@@ -12227,6 +12273,10 @@
       }
     },
     "validation": {
+      "required": "This field is required.",
+      "experience_range": "Experience must be a whole number from 0 to 60.",
+      "work_time_pair": "Start and end time must be provided together.",
+      "no_changes": "No changes to save.",
       "code_required": "Teacher code is required.",
       "code_max_length": "Teacher code is too long.",
       "code_unique": "Teacher code must be unique.",
@@ -12262,6 +12312,76 @@
       "password_min_length": "Password must be at least 8 characters.",
       "password_confirmation_required": "Password confirmation is required.",
       "password_mismatch": "Password confirmation does not match."
+    },
+    "statuses": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "terminated": "Terminated",
+      "invited": "Invited",
+      "suspended": "Suspended",
+      "disabled": "Disabled",
+      "transferred": "Transferred"
+    },
+    "credentials": {
+      "missing": "Credentials required",
+      "temporary_or_must_change": "Temporary password",
+      "must_change": "Must change password",
+      "set": "Credentials set",
+      "management_unavailable": "Credential actions are unavailable while this account is suspended or disabled."
+    },
+    "errors": {
+      "identity_inconsistent": "This teacher's account state is inconsistent, so the operation was stopped safely.",
+      "identity_inconsistent_guidance": "The latest teacher state was refreshed. Contact an administrator or backend support to repair the linked user and membership records before trying again.",
+      "trace_id": "Support trace ID"
+    },
+    "completeness": {
+      "complete": "Complete",
+      "incomplete": "Incomplete"
+    },
+    "languages": {
+      "ar": "Arabic",
+      "en": "English"
+    },
+    "employment_types": {
+      "full_time": "Full time",
+      "part_time": "Part time",
+      "contract": "Contract"
+    },
+    "lifecycle": {
+      "actions": {
+        "active": "Activate",
+        "inactive": "Inactivate",
+        "terminated": "Terminate"
+      },
+      "titles": {
+        "active": "Activate employment",
+        "inactive": "Inactivate employment",
+        "terminated": "Terminate employment"
+      },
+      "confirmations": {
+        "active": "Activate this teacher's employment? Backend account and membership checks still apply.",
+        "inactive": "Inactivate employment and revoke active sessions?",
+        "terminated": "Terminate employment? This cannot be reversed through the normal status workflow."
+      },
+      "blockers": {
+        "employment_not_inactive": "Employment must currently be inactive.",
+        "profile_incomplete": "Complete the required teacher profile first.",
+        "credential_missing": "Provision a password before activation."
+      },
+      "effective_at": "Effective at (optional)",
+      "result_title": "Employment transition complete",
+      "revoked_sessions": "Revoked sessions",
+      "current_allocations": "Current active allocations",
+      "reassignment_required": "Teaching assignments require review or reassignment."
+    },
+    "archive": {
+      "title": "Archive teacher",
+      "description": "Archive {teacher}? The profile will leave the live directory and active assignments may block this action.",
+      "confirm": "Archive teacher"
+    },
+    "not_found": {
+      "title": "Teacher not found",
+      "description": "This teacher is unavailable or outside your current school scope."
     },
     "work_days": {
       "sunday": "Sunday",
