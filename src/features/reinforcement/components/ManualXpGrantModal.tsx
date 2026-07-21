@@ -98,7 +98,9 @@ export default function ManualXpGrantModal({
       .finally(() => {
         if (!cancelled) setTasksLoading(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [selection.academicYearId, selection.termId]);
 
   useEffect(() => {
@@ -152,14 +154,21 @@ export default function ManualXpGrantModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, selection.academicYearId, selection.studentId, selection.termId, t]);
+  }, [
+    isOpen,
+    selection.academicYearId,
+    selection.studentId,
+    selection.termId,
+    t,
+  ]);
 
   const sourceOptions = useMemo(() => {
     const options = [{ value: "", label: t("xp.noSource") }];
     for (const task of tasks) {
-      const label = locale === "ar"
-        ? task.titleAr || task.titleEn || task.id
-        : task.titleEn || task.titleAr || task.id;
+      const label =
+        locale === "ar"
+          ? task.titleAr || task.titleEn || task.id
+          : task.titleEn || task.titleAr || task.id;
       options.push({ value: task.id, label });
     }
     return options;
@@ -176,10 +185,10 @@ export default function ManualXpGrantModal({
       setError(t("xp.validation.termRequired"));
       return;
     }
-    if (!selection.studentId || !selection.enrollmentId) {
-      setError(t("xp.validation.studentEnrollmentRequired"));
-      return;
-    }
+    // if (!selection.studentId || !selection.enrollmentId) {
+    //   setError(t("xp.validation.studentEnrollmentRequired"));
+    //   return;
+    // }
     if (!Number.isFinite(parsedAmount) || parsedAmount === 0) {
       setError(t("validation.xpAmountRequired"));
       return;
@@ -188,7 +197,10 @@ export default function ManualXpGrantModal({
       setError(t("validation.required"));
       return;
     }
-    if (policy?.allowedReasons.length && !policy.allowedReasons.includes(reason.trim())) {
+    if (
+      policy?.allowedReasons.length &&
+      !policy.allowedReasons.includes(reason.trim())
+    ) {
       setError(t("xp.validation.disallowedReason"));
       return;
     }
@@ -213,8 +225,10 @@ export default function ManualXpGrantModal({
             ? (nextError.details as Record<string, unknown>)
             : {};
         const messageKey = {
-          "reinforcement.xp.daily_cap_reached": "xp.policyInstructions.dailyCapReached",
-          "reinforcement.xp.weekly_cap_reached": "xp.policyInstructions.weeklyCapReached",
+          "reinforcement.xp.daily_cap_reached":
+            "xp.policyInstructions.dailyCapReached",
+          "reinforcement.xp.weekly_cap_reached":
+            "xp.policyInstructions.weeklyCapReached",
         }[nextError.code];
         const detailValue = (value: unknown): string | number =>
           typeof value === "string" || typeof value === "number" ? value : "-";
@@ -229,7 +243,9 @@ export default function ManualXpGrantModal({
             : nextError.message,
         );
       } else {
-        setError(nextError instanceof Error ? nextError.message : t("common.error"));
+        setError(
+          nextError instanceof Error ? nextError.message : t("common.error"),
+        );
       }
     } finally {
       setSaving(false);
@@ -287,15 +303,26 @@ export default function ManualXpGrantModal({
             <p className="font-semibold">{t("xp.policyInstructions.title")}</p>
             <p className="mt-1">{t("xp.policyInstructions.description")}</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              <span>{t("xp.dailyCap")}: {policy.dailyCap ?? t("xp.notSet")}</span>
-              <span>{t("xp.weeklyCap")}: {policy.weeklyCap ?? t("xp.notSet")}</span>
-              <span>{t("xp.cooldownMinutes")}: {policy.cooldownMinutes ?? t("xp.notSet")}</span>
+              <span>
+                {t("xp.dailyCap")}: {policy.dailyCap ?? t("xp.notSet")}
+              </span>
+              <span>
+                {t("xp.weeklyCap")}: {policy.weeklyCap ?? t("xp.notSet")}
+              </span>
+              <span>
+                {t("xp.cooldownMinutes")}:{" "}
+                {policy.cooldownMinutes ?? t("xp.notSet")}
+              </span>
               {summary?.totalXp !== undefined ? (
-                <span>{t("xp.policyInstructions.currentTotal")}: {summary.totalXp}</span>
+                <span>
+                  {t("xp.policyInstructions.currentTotal")}: {summary.totalXp}
+                </span>
               ) : null}
             </div>
             {policy.allowedReasons.length ? (
-              <p className="mt-2">{t("xp.allowedReasons")}: {policy.allowedReasons.join(", ")}</p>
+              <p className="mt-2">
+                {t("xp.allowedReasons")}: {policy.allowedReasons.join(", ")}
+              </p>
             ) : null}
           </div>
         ) : policyError ? (
@@ -317,7 +344,9 @@ export default function ManualXpGrantModal({
             options={sourceOptions}
             searchable
             searchPlaceholder={t("common.search") || "Search..."}
-            noOptionsText={tasksLoading ? t("common.loading") : t("xp.noTasksAvailable")}
+            noOptionsText={
+              tasksLoading ? t("common.loading") : t("xp.noTasksAvailable")
+            }
             disabled={tasksLoading}
           />
           <TextArea

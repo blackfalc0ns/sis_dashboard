@@ -7,16 +7,23 @@ import { useTranslations } from "next-intl";
 import { Calendar } from "lucide-react";
 import Modal from "@/components/ui/modal/Modal";
 import { Button } from "@/components/ui";
-import { Input, Select, TextArea, type SelectOption } from "@/components/ui/input";
+import {
+  Input,
+  Select,
+  TextArea,
+  type SelectOption,
+} from "@/components/ui/input";
 import { fetchSettingsRoles } from "@/features/settings/services/settingsRolesService";
 import { fetchSettingsUsers } from "@/features/settings/services/settingsUsersService";
-import type { RoleDefinition, SettingsUserRecord } from "@/features/settings/types";
+import type {
+  RoleDefinition,
+  SettingsUserRecord,
+} from "@/features/settings/types";
 
 export interface ScheduleInterviewFormData {
   date: string;
   time: string;
   interviewerUserId: string;
-  interviewerName: string;
   notes: string;
 }
 
@@ -43,7 +50,6 @@ function createInitialFormData(): ScheduleInterviewFormData {
     date: "",
     time: "",
     interviewerUserId: "",
-    interviewerName: "",
     notes: "",
   };
 }
@@ -161,7 +167,6 @@ export default function ScheduleInterviewModal({
 
     updateFormData({
       interviewerUserId: teacherUser?.id || "",
-      interviewerName: teacherUser?.fullName || "",
     });
     setValidationError(null);
   };
@@ -238,7 +243,6 @@ export default function ScheduleInterviewModal({
               error={validationError || teachersError || undefined}
               noOptionsText={t("no_active_teachers")}
             />
-
           </div>
         </div>
 

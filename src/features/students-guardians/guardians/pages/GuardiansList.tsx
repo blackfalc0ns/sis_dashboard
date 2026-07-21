@@ -459,13 +459,6 @@ export default function GuardiansList() {
           icon={Users}
           iconColor="#3b82f6"
           iconBgColor="#dbeafe"
-          chartData={[
-            { label: "M1", value: Math.max(0, kpis.total - 15) },
-            { label: "M2", value: Math.max(0, kpis.total - 10) },
-            { label: "M3", value: Math.max(0, kpis.total - 5) },
-            { label: "M4", value: kpis.total },
-          ]}
-          chartColor="#3b82f6"
         />
         <KPICardV2
           title={t("kpis.primary_guardians")}
@@ -474,13 +467,6 @@ export default function GuardiansList() {
           icon={Star}
           iconColor="#f59e0b"
           iconBgColor="#fef3c7"
-          chartData={[
-            { label: "M1", value: Math.max(0, kpis.primary - 8) },
-            { label: "M2", value: Math.max(0, kpis.primary - 5) },
-            { label: "M3", value: Math.max(0, kpis.primary - 3) },
-            { label: "M4", value: kpis.primary },
-          ]}
-          chartColor="#f59e0b"
         />
         <KPICardV2
           title={t("kpis.can_pickup")}
@@ -489,13 +475,6 @@ export default function GuardiansList() {
           icon={CheckCircle}
           iconColor="#10b981"
           iconBgColor="#d1fae5"
-          chartData={[
-            { label: "M1", value: Math.max(0, kpis.canPickup - 10) },
-            { label: "M2", value: Math.max(0, kpis.canPickup - 7) },
-            { label: "M3", value: Math.max(0, kpis.canPickup - 4) },
-            { label: "M4", value: kpis.canPickup },
-          ]}
-          chartColor="#10b981"
         />
         <KPICardV2
           title={t("kpis.receive_notifications")}
@@ -504,13 +483,6 @@ export default function GuardiansList() {
           icon={Mail}
           iconColor="#8b5cf6"
           iconBgColor="#ede9fe"
-          chartData={[
-            { label: "M1", value: Math.max(0, kpis.receiveNotifications - 12) },
-            { label: "M2", value: Math.max(0, kpis.receiveNotifications - 8) },
-            { label: "M3", value: Math.max(0, kpis.receiveNotifications - 4) },
-            { label: "M4", value: kpis.receiveNotifications },
-          ]}
-          chartColor="#8b5cf6"
         />
       </div>
 

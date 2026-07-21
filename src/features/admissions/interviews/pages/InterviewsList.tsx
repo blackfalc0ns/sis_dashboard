@@ -14,7 +14,14 @@ import {
   Edit,
   Download,
 } from "lucide-react";
-import { Button, DataTable, EmptyState, FilterPanel, Input, Select } from "@/components/ui";
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  FilterPanel,
+  Input,
+  Select,
+} from "@/components/ui";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import { KPICardV2 } from "@/components/ui/kpi-card";
@@ -42,7 +49,9 @@ export default function InterviewsList() {
   const { isReadOnly } = useAdmissionsYearTermContext();
   const { showToast } = useToast();
 
-  const [interviews, setInterviews] = useState<(Interview & { studentName: string })[]>([]);
+  const [interviews, setInterviews] = useState<
+    (Interview & { studentName: string })[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedInterview, setSelectedInterview] = useState<
     (Interview & { studentName: string }) | null
@@ -76,7 +85,12 @@ export default function InterviewsList() {
   const normalizeQueryValues = useCallback(
     (values: Record<"search" | "status", string>) => {
       const updates: Partial<Record<keyof typeof values, string | null>> = {};
-      const validStatuses = new Set(["all", "scheduled", "completed", "cancelled"]);
+      const validStatuses = new Set([
+        "all",
+        "scheduled",
+        "completed",
+        "cancelled",
+      ]);
 
       if (!validStatuses.has(values.status)) {
         updates.status = null;
@@ -110,9 +124,15 @@ export default function InterviewsList() {
     return interviews.filter((interview) => {
       const matchesSearch =
         searchQuery === "" ||
-        interview.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        interview.interviewer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        interview.applicationId.toLowerCase().includes(searchQuery.toLowerCase());
+        interview.studentName
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        interview.interviewer
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        interview.applicationId
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
 
       const matchesStatus =
         statusFilter === "all" || interview.status === statusFilter;
@@ -183,10 +203,7 @@ export default function InterviewsList() {
     router.push(`/${locale}/admissions/interviews/${interview.id}`);
   };
 
-  const handleRatingSubmit = async (
-    interviewId: string,
-    notes?: string,
-  ) => {
+  const handleRatingSubmit = async (interviewId: string, notes?: string) => {
     try {
       await completeInterview(interviewId, {
         status: "completed",
@@ -223,13 +240,6 @@ export default function InterviewsList() {
           icon={Calendar}
           iconColor="#3b82f6"
           iconBgColor="#dbeafe"
-          chartData={[
-            { label: "W1", value: 10 },
-            { label: "W2", value: 12 },
-            { label: "W3", value: 15 },
-            { label: "W4", value: kpis.total },
-          ]}
-          chartColor="#3b82f6"
         />
         <KPICardV2
           title={t("scheduled")}
@@ -238,13 +248,6 @@ export default function InterviewsList() {
           icon={Clock}
           iconColor="#f59e0b"
           iconBgColor="#fef3c7"
-          chartData={[
-            { label: "W1", value: 4 },
-            { label: "W2", value: 6 },
-            { label: "W3", value: 5 },
-            { label: "W4", value: kpis.scheduled },
-          ]}
-          chartColor="#f59e0b"
         />
         <KPICardV2
           title={t("completed")}
@@ -253,13 +256,6 @@ export default function InterviewsList() {
           icon={CheckCircle}
           iconColor="#10b981"
           iconBgColor="#d1fae5"
-          chartData={[
-            { label: "W1", value: 6 },
-            { label: "W2", value: 8 },
-            { label: "W3", value: 10 },
-            { label: "W4", value: kpis.completed },
-          ]}
-          chartColor="#10b981"
         />
       </div>
 
@@ -295,9 +291,7 @@ export default function InterviewsList() {
                 onChange={(e) => setValue("search", e.target.value, "replace")}
                 leftIcon={<Search className="w-4 h-4" />}
                 className={`placeholder:text-black/60 ${
-                  searchQuery
-                    ? "border-primary ring-2 ring-primary/20"
-                    : ""
+                  searchQuery ? "border-primary ring-2 ring-primary/20" : ""
                 }`}
               />
             </div>
@@ -319,11 +313,7 @@ export default function InterviewsList() {
               label={t("status")}
               value={statusFilter}
               onChange={(value) =>
-                setValue(
-                  "status",
-                  value as InterviewStatus | "all",
-                  "push",
-                )
+                setValue("status", value as InterviewStatus | "all", "push")
               }
               className="max-w-xs"
               options={[
@@ -364,7 +354,12 @@ export default function InterviewsList() {
       ) : (
         <DataTable
           columns={columns}
-          data={filteredInterviews as (Interview & { studentName: string; [key: string]: unknown })[]}
+          data={
+            filteredInterviews as (Interview & {
+              studentName: string;
+              [key: string]: unknown;
+            })[]
+          }
           onRowClick={handleRowClick}
           searchQuery={searchQuery}
           urlState={{
@@ -394,7 +389,9 @@ export default function InterviewsList() {
         mode="list"
         confirmLabel={t("export")}
         datasetCount={filteredInterviews.length}
-        emptyStateMessage={hasActiveFilters ? t("no_match") : t("no_interviews")}
+        emptyStateMessage={
+          hasActiveFilters ? t("no_match") : t("no_interviews")
+        }
       />
     </div>
   );

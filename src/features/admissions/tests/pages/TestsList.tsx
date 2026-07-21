@@ -15,7 +15,14 @@ import {
   Edit,
   Download,
 } from "lucide-react";
-import { Button, DataTable, EmptyState, FilterPanel, Input, Select } from "@/components/ui";
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  FilterPanel,
+  Input,
+  Select,
+} from "@/components/ui";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTestModal";
@@ -75,9 +82,7 @@ export default function TestsList() {
   }, [loadTests]);
 
   const normalizeQueryValues = useCallback(
-    (
-      values: Record<"search" | "status", string>,
-    ) => {
+    (values: Record<"search" | "status", string>) => {
       const updates: Partial<Record<keyof typeof values, string | null>> = {};
       const validStatuses = new Set([
         "all",
@@ -275,13 +280,6 @@ export default function TestsList() {
           icon={Calendar}
           iconColor="#3b82f6"
           iconBgColor="#dbeafe"
-          chartData={[
-            { label: "W1", value: 12 },
-            { label: "W2", value: 15 },
-            { label: "W3", value: 18 },
-            { label: "W4", value: kpis.total },
-          ]}
-          chartColor="#3b82f6"
         />
         <KPICardV2
           title={t("scheduled")}
@@ -290,13 +288,6 @@ export default function TestsList() {
           icon={Clock}
           iconColor="#f59e0b"
           iconBgColor="#fef3c7"
-          chartData={[
-            { label: "W1", value: 5 },
-            { label: "W2", value: 7 },
-            { label: "W3", value: 6 },
-            { label: "W4", value: kpis.scheduled },
-          ]}
-          chartColor="#f59e0b"
         />
         <KPICardV2
           title={t("completed")}
@@ -305,13 +296,6 @@ export default function TestsList() {
           icon={CheckCircle}
           iconColor="#10b981"
           iconBgColor="#d1fae5"
-          chartData={[
-            { label: "W1", value: 8 },
-            { label: "W2", value: 10 },
-            { label: "W3", value: 12 },
-            { label: "W4", value: kpis.completed },
-          ]}
-          chartColor="#10b981"
         />
         <KPICardV2
           title={t("average_score")}
@@ -320,13 +304,6 @@ export default function TestsList() {
           icon={CheckCircle}
           iconColor="#8b5cf6"
           iconBgColor="#ede9fe"
-          chartData={[
-            { label: "W1", value: 75 },
-            { label: "W2", value: 78 },
-            { label: "W3", value: 80 },
-            { label: "W4", value: kpis.avgScore },
-          ]}
-          chartColor="#8b5cf6"
         />
       </div>
 
@@ -371,9 +348,7 @@ export default function TestsList() {
                 suppressHydrationWarning
                 leftIcon={<Search className="w-4 h-4" />}
                 className={`placeholder:text-black/60 ${
-                  searchQuery
-                    ? "border-primary ring-2 ring-primary/20"
-                    : ""
+                  searchQuery ? "border-primary ring-2 ring-primary/20" : ""
                 }`}
               />
             </div>
@@ -396,11 +371,7 @@ export default function TestsList() {
                 label={t("status")}
                 value={statusFilter}
                 onChange={(value) =>
-                  setValue(
-                    "status",
-                    value as TestStatus | "all",
-                    "push",
-                  )
+                  setValue("status", value as TestStatus | "all", "push")
                 }
                 options={[
                   { value: "all", label: t("all_statuses") },
@@ -442,7 +413,12 @@ export default function TestsList() {
       ) : (
         <DataTable
           columns={columns}
-          data={filteredTests as (Test & { studentName: string; [key: string]: unknown })[]}
+          data={
+            filteredTests as (Test & {
+              studentName: string;
+              [key: string]: unknown;
+            })[]
+          }
           onRowClick={handleRowClick}
           searchQuery={searchQuery}
           urlState={{
