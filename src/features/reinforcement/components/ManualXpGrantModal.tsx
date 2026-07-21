@@ -185,10 +185,6 @@ export default function ManualXpGrantModal({
       setError(t("xp.validation.termRequired"));
       return;
     }
-    // if (!selection.studentId || !selection.enrollmentId) {
-    //   setError(t("xp.validation.studentEnrollmentRequired"));
-    //   return;
-    // }
     if (!Number.isFinite(parsedAmount) || parsedAmount === 0) {
       setError(t("validation.xpAmountRequired"));
       return;
@@ -210,7 +206,7 @@ export default function ManualXpGrantModal({
       await onSubmit({
         academicYearId: selection.academicYearId,
         termId: selection.termId,
-        studentId: selection.studentId,
+        studentId: selection.studentId!,
         enrollmentId: selection.enrollmentId,
         amount: parsedAmount,
         reason: reason.trim(),

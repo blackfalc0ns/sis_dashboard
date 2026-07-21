@@ -37,12 +37,8 @@ import type {
   DecisionType,
 } from "@/features/admissions/types/admissions";
 import { fetchApplicationById } from "@/features/admissions/applications/services/applicationsApiService";
-import {
-  createPlacementTest,
-} from "@/features/admissions/tests/services/testsApiService";
-import {
-  createInterview,
-} from "@/features/admissions/interviews/services/interviewsApiService";
+import { createPlacementTest } from "@/features/admissions/tests/services/testsApiService";
+import { createInterview } from "@/features/admissions/interviews/services/interviewsApiService";
 import {
   createDecision,
   getDecisionFriendlyErrorMessage,
@@ -68,21 +64,18 @@ export default function ApplicationDetailsPage({
     "students.guardians.manage",
     "students.enrollments.manage",
   ]);
-  const normalizeQueryValues = useCallback(
-    (values: Record<"tab", string>) => {
-      const validTabs = new Set([
-        "details",
-        "readiness",
-        "guardians",
-        "documents",
-        "tests",
-        "interviews",
-      ]);
+  const normalizeQueryValues = useCallback((values: Record<"tab", string>) => {
+    const validTabs = new Set([
+      "details",
+      "readiness",
+      "guardians",
+      "documents",
+      "tests",
+      "interviews",
+    ]);
 
-      return validTabs.has(values.tab) ? null : { tab: null };
-    },
-    [],
-  );
+    return validTabs.has(values.tab) ? null : { tab: null };
+  }, []);
   const { values, setValue } = useAdmissionsUrlQueryState<{
     tab: string;
   }>({
@@ -203,8 +196,9 @@ export default function ApplicationDetailsPage({
   const canScheduleAdmissionsStep = canScheduleAdmissionsSteps.includes(
     application.status,
   );
-  const canMakeDecision = application.dashboardState?.canProceedToDecision
-    ?? canMakeDecisionStatuses.includes(application.status);
+  const canMakeDecision =
+    application.dashboardState?.canProceedToDecision ??
+    canMakeDecisionStatuses.includes(application.status);
   const actionBlockers = application.dashboardState?.blockers ?? [];
   const finalDecisionMessage =
     application.status === "waitlisted"
@@ -265,7 +259,6 @@ export default function ApplicationDetailsPage({
         date: data.date,
         time: data.time,
         interviewerUserId: data.interviewerUserId,
-        interviewerName: data.interviewerName,
         notes: data.notes,
       });
       setIsScheduleInterviewOpen(false);
@@ -292,8 +285,7 @@ export default function ApplicationDetailsPage({
     } catch (decisionError) {
       console.error("Failed to create decision:", decisionError);
       showToast(
-        getDecisionFriendlyErrorMessage(decisionError) ||
-          t("decision_error"),
+        getDecisionFriendlyErrorMessage(decisionError) || t("decision_error"),
         "error",
       );
     } finally {
@@ -344,9 +336,7 @@ export default function ApplicationDetailsPage({
 
         {/* Content */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          {activeTab === "details" && (
-            <DetailsTab application={application} />
-          )}
+          {activeTab === "details" && <DetailsTab application={application} />}
           {activeTab === "readiness" && (
             <ApplicationReadinessPanel application={application} />
           )}
@@ -416,30 +406,33 @@ export default function ApplicationDetailsPage({
                 </>
               )}
               {canManageDecisions && canMakeDecision && (
-                <Button
-                  type="button"
-                  onClick={handleMakeDecision}
-                  size="sm"
-                >
+                <Button type="button" onClick={handleMakeDecision} size="sm">
                   {t("actions.make_decision")}
                 </Button>
               )}
-              {application.status === "accepted" && !application.registrationState?.registered && (
-                <Button
-                  type="button"
-                  onClick={handleEnroll}
-                  disabled={!canRegisterApplication || application.dashboardState?.canRegister === false}
-                  title={
-                    canRegisterApplication && application.dashboardState?.canRegister !== false
-                      ? undefined
-                      : application.dashboardState?.blockers?.map((blocker) => blocker.message).join("; ") || t("registration_blocked")
-                  }
-                  variant="success"
-                  size="sm"
-                >
-                  {t("actions.enroll_student")}
-                </Button>
-              )}
+              {application.status === "accepted" &&
+                !application.registrationState?.registered && (
+                  <Button
+                    type="button"
+                    onClick={handleEnroll}
+                    disabled={
+                      !canRegisterApplication ||
+                      application.dashboardState?.canRegister === false
+                    }
+                    title={
+                      canRegisterApplication &&
+                      application.dashboardState?.canRegister !== false
+                        ? undefined
+                        : application.dashboardState?.blockers
+                            ?.map((blocker) => blocker.message)
+                            .join("; ") || t("registration_blocked")
+                    }
+                    variant="success"
+                    size="sm"
+                  >
+                    {t("actions.enroll_student")}
+                  </Button>
+                )}
               {application.registrationState?.registered && (
                 <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
                   {t("actions.enrolled_status")}

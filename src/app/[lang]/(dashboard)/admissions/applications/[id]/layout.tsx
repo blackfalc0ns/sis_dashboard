@@ -29,7 +29,10 @@ import type {
   ApplicationStatus,
   DecisionType,
 } from "@/features/admissions/types/admissions";
-import { fetchApplicationById, submitApplication } from "@/features/admissions/applications/services/applicationsApiService";
+import {
+  fetchApplicationById,
+  submitApplication,
+} from "@/features/admissions/applications/services/applicationsApiService";
 import { createPlacementTest } from "@/features/admissions/tests/services/testsApiService";
 import { createInterview } from "@/features/admissions/interviews/services/interviewsApiService";
 import { useApplicationRelatedData } from "@/features/admissions/applications/hooks/useApplicationRelatedData";
@@ -84,7 +87,11 @@ export default function ApplicationProfileLayout({
   const [isSubmittingDecision, setIsSubmittingDecision] = useState(false);
   const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
 
-  const { activeTab, entityId: applicationId, handleTabClick } = useSectionTabs({
+  const {
+    activeTab,
+    entityId: applicationId,
+    handleTabClick,
+  } = useSectionTabs({
     basePath: ["admissions", "applications"],
     idParam: "id",
     tabs: visibleTabs,
@@ -150,7 +157,9 @@ export default function ApplicationProfileLayout({
         <div className="text-center py-12">
           <p className="text-gray-500">{t("not_found")}</p>
           <button
-            onClick={() => router.push(buildLocalePath(lang, "admissions", "applications"))}
+            onClick={() =>
+              router.push(buildLocalePath(lang, "admissions", "applications"))
+            }
             className="mt-4 px-4 py-2 bg-[#036b80] text-white rounded-lg"
           >
             {t("header.back_to_applications")}
@@ -170,7 +179,9 @@ export default function ApplicationProfileLayout({
     "under_review",
     "documents_pending",
   ];
-  const isFinalDecisionStatus = finalDecisionStatuses.includes(application.status);
+  const isFinalDecisionStatus = finalDecisionStatuses.includes(
+    application.status,
+  );
   const canScheduleAdmissionsStep = canScheduleAdmissionsSteps.includes(
     application.status,
   );
@@ -195,11 +206,15 @@ export default function ApplicationProfileLayout({
         <div className="bg-white rounded-xl shadow-sm mb-6">
           <div className="border-b border-gray-200 px-6 py-4">
             <button
-              onClick={() => router.push(buildLocalePath(lang, "admissions", "applications"))}
+              onClick={() =>
+                router.push(buildLocalePath(lang, "admissions", "applications"))
+              }
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
             >
               {locale === "ar" ? <ArrowRight /> : <ArrowLeft />}
-              <span className="text-sm font-medium">{t("header.back_to_applications")}</span>
+              <span className="text-sm font-medium">
+                {t("header.back_to_applications")}
+              </span>
             </button>
             <div className="flex items-center justify-between">
               <div>
@@ -207,7 +222,9 @@ export default function ApplicationProfileLayout({
                   {t("header.title")}
                 </h1>
                 <p className="text-sm text-gray-500 mt-1">
-                  {[application.studentName, displayGrade].filter(Boolean).join(" - ")}
+                  {[application.studentName, displayGrade]
+                    .filter(Boolean)
+                    .join(" - ")}
                 </p>
               </div>
               <StatusBadge status={application.status} size="md" />
@@ -240,9 +257,7 @@ export default function ApplicationProfileLayout({
         </div>
 
         {/* Content */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          {children}
-        </div>
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">{children}</div>
 
         {isReadOnly && <AdmissionsReadOnlyBanner />}
 
@@ -363,7 +378,6 @@ export default function ApplicationProfileLayout({
             date: data.date,
             time: data.time,
             interviewerUserId: data.interviewerUserId,
-            interviewerName: data.interviewerName,
             notes: data.notes,
           });
           await refreshApplication();
@@ -389,8 +403,7 @@ export default function ApplicationProfileLayout({
             setIsDecisionOpen(false);
           } catch (error) {
             showToast(
-              getDecisionFriendlyErrorMessage(error) ||
-                t("decision_error"),
+              getDecisionFriendlyErrorMessage(error) || t("decision_error"),
               "error",
             );
           } finally {
