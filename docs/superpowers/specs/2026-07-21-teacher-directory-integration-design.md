@@ -13,7 +13,7 @@ Replace the existing mock-based teacher feature with a contract-aligned implemen
 
 - Calls the real backend API through the existing `apiClient` (Axios) infrastructure
 - Models all 7 teacher directory endpoints with exact contract DTOs
-- Introduces TanStack Query for data fetching, caching, and cache invalidation
+- Uses repository-native React hooks for loading, mutation state, and explicit refreshes
 - Renders a two-page layout: teacher list + teacher detail
 - Supports three separate statuses (employment, account, membership)
 - Implements the employment transition matrix with confirmation dialogs
@@ -115,52 +115,60 @@ export const teacherApi = {
 
 ---
 
-## 4. React Query Layer
+## 4. Data Loading and Mutation State
 
-TanStack Query is not currently installed in this repository. The implementation
-will add `@tanstack/react-query` and a single `QueryClientProvider` in
-`src/app/providers.tsx` before adding teacher query hooks. The provider owns one
-stable `QueryClient` instance for the application; feature components must not
-create their own clients.
+No new data-fetching or state-management dependency is introduced. The feature
+uses React's existing `useState`, `useEffect`, `useCallback`, and `useRef`
+primitives with the repository's Axios helpers.
 
-### 4.1 Cache keys (`hooks/teacherQueryKeys.ts`)
+### 4.1 List hook (`hooks/useTeacherList.ts`)
 
-From contract §22:
+`useTeacherList(query: TeacherListQuery)` owns:
 
-```ts
-export const teacherKeys = {
-  all: ['teachers'] as const,
-  lists: () => [...teacherKeys.all, 'list'] as const,
-  list: (query: TeacherListQuery) => [...teacherKeys.lists(), query] as const,
-  details: () => [...teacherKeys.all, 'detail'] as const,
-  detail: (teacherId: string) => [...teacherKeys.details(), teacherId] as const,
-};
-```
+- `data: TeachersListResponse | null`;
+- `isLoading` for the initial request;
+- `isRefreshing` when existing rows remain visible during a refresh;
+- `error: ApiError | null`;
+- `refresh(): Promise<void>` for post-mutation and retry flows.
 
-### 4.2 Query hooks (`hooks/useTeacherQueries.ts`)
+The hook fetches whenever the normalized query changes. It uses an incrementing
+request sequence stored in `useRef` so an older response cannot overwrite a
+newer search/filter response after rapid URL changes.
 
-- `useTeacherList(query: TeacherListQuery)` — `useQuery` with `teacherKeys.list(query)`, calls `teacherApi.list(query)`
-- `useTeacherDetail(teacherId: string | undefined)` — `useQuery` with `teacherKeys.detail(teacherId!)`, enabled only when `teacherId` is defined
+### 4.2 Detail hook (`hooks/useTeacherDetail.ts`)
 
-### 4.3 Mutation hooks (`hooks/useTeacherMutations.ts`)
+`useTeacherDetail(teacherId: string | undefined)` owns the same loading, error,
+and refresh states for one teacher. It does not request until `teacherId` is
+defined. It also exposes `replaceTeacher(teacher)` so successful update and
+employment-transition responses immediately replace the displayed detail.
 
-- `useCreateTeacher()` — On success: seed detail cache, invalidate lists
-- `useUpdateTeacher()` — On success: replace detail cache, invalidate lists
-- `useChangeEmploymentStatus()` — On success: replace detail cache with `response.teacher`, invalidate lists
-- `useArchiveTeacher()` — On success: remove detail cache, invalidate all lists
-- `useRehireTeacher()` — On success: seed detail cache, invalidate lists
+### 4.3 Action hook (`hooks/useTeacherActions.ts`)
 
-### 4.4 Cache invalidation contract
+The action hook wraps the five mutation endpoints and tracks the active action
+without introducing a shared cache:
 
-| Mutation | Immediate update | Invalidate |
+- `createTeacher(input)` returns the created detail;
+- `updateTeacher(teacherId, input)` returns the updated detail;
+- `changeEmploymentStatus(teacherId, input)` returns the transition response;
+- `archiveTeacher(teacherId)` resolves only after the 204 response;
+- `rehireTeacher(teacherId, input)` returns the restored detail.
+
+The calling page coordinates local replacement, list refresh, navigation, and
+toasts. The hook does not hide backend errors; it rethrows them after clearing
+its loading state so the page or form can map them consistently.
+
+### 4.4 Refresh contract
+
+| Mutation | Immediate local update | Required refresh/navigation |
 |---|---|---|
-| Create | `setQueryData` detail with returned object | Lists (all) |
-| Update | `setQueryData` detail with returned object | Lists (all) |
-| Employment transition | `setQueryData` detail with `response.teacher` | Lists (all) |
-| Archive | `removeQueries` detail | Lists (all) |
-| Rehire | `setQueryData` detail with returned object | Lists (all) |
+| Create | Use returned detail for success feedback | Refresh list before showing the new row |
+| Update | Replace open detail with returned object | Refresh list when returning to or displaying it |
+| Employment transition | Replace open detail with `response.teacher` | Refresh list; show transition summary |
+| Archive | Clear the open detail | Navigate to list and refresh it |
+| Rehire | Retain returned detail in the headless action result | Refresh any caller-owned list when a discovery UI exists |
 
-On `409` from employment transitions: invalidate and refetch detail before resubmission.
+On lifecycle `409`, refresh the detail before allowing resubmission because the
+source state may have changed.
 
 ---
 
@@ -470,7 +478,7 @@ On success: Shows transition result via `Modal` with revoked session count, reas
 Uses existing `ConfirmDialog` with `severity="danger"`:
 - Description text from §14.5
 - `confirmLabel`: translated "Archive" label
-- On 204 success: navigate to list via `router.push`, invalidate caches, `useToast().showSuccess()`
+- On 204 success: navigate to list via `router.push`, refresh list state, `useToast().showSuccess()`
 - On 409 (active assignments): `useToast().showError()` with link text pointing to academic allocations
 
 ---
@@ -557,7 +565,7 @@ Files to **keep**:
 
 ### Gap 1 — Archived teacher discovery (§25.1)
 No archived teacher listing or archived-detail endpoint exists. The API service,
-request mapping, mutation hook, and tests will cover rehire, but this scope will
+request mapping, action hook, and tests will cover rehire, but this scope will
 not expose a rehire button or archived-teacher page. A visible rehire workflow is
 deferred until an authorized discovery mechanism supplies archived teacher IDs
 and the profile data needed to build the complete rehire payload.
@@ -578,8 +586,8 @@ Playwright setup.
 - API service tests mock `apiGet`, `apiPost`, `apiPatch`, and `apiDelete` and
   verify all seven paths, methods, query parameters, payloads, and the archive
   `void` response.
-- Query-hook tests use an isolated `QueryClient` per test and verify cache
-  seeding, replacement, removal, list invalidation, and lifecycle-409 refresh.
+- Data-hook tests verify loading/error transitions, stale-response protection,
+  explicit refreshes, local detail replacement, and lifecycle-409 refresh.
 - Utility tests cover form mapping, nullable-field normalization, minimal PATCH
   generation, bilingual-name coupling, work-time pairing, allowed lifecycle
   transitions, and pagination derivation.
@@ -591,8 +599,8 @@ Playwright setup.
 - `e2e/teachers-smoke.spec.ts` is rewritten around the contract-aligned list and
   detail routes, URL-backed server filters, permission gates, and safe dialog
   entry points.
-- Rehire remains headless in this scope: its service, request mapper, mutation,
-  and cache behavior are tested even though no archived-record UI is exposed.
+- Rehire remains headless in this scope: its service, request mapper, action,
+  and caller-refresh behavior are tested even though no archived-record UI is exposed.
 
 ---
 
@@ -615,4 +623,4 @@ From contract §24, scoped to Section 5.1:
 - [ ] 409 triggers state refresh
 - [ ] Archive 204 is not parsed as JSON
 - [ ] Assignment conflicts link to allocation management
-- [ ] Rehire service and cache behavior are covered without exposing an undiscoverable archived-record UI
+- [ ] Rehire service and refresh behavior are covered without exposing an undiscoverable archived-record UI
