@@ -7,6 +7,7 @@ import TeacherFormSections from "./TeacherFormSections";
 import { emptyCreateTeacherForm, createFormToRequest } from "@/features/teachers/utils/teacherFormMappers";
 import { validateTeacherForm } from "@/features/teachers/utils/teacherValidation";
 import { toTeacherUiError } from "@/features/teachers/utils/teacherErrors";
+import { checkUsernameAvailability } from "@/features/settings/login-identity/services/loginIdentityService";
 import type {
   CreateTeacherFormState,
   CreateTeacherRequest,
@@ -36,6 +37,19 @@ export default function CreateTeacherDialog(props: CreateTeacherDialogProps) {
       return;
     }
 
+    if (form.identity.identityMode === "username") {
+      try {
+        const availability = await checkUsernameAvailability(form.identity.username.trim());
+        if (!availability.available) {
+          setErrors({ username: availability.reason || "username_unavailable" });
+          return;
+        }
+      } catch {
+        setErrors({ form: t("messages.username_availability_failed") });
+        return;
+      }
+    }
+
     try {
       await props.onSubmit(createFormToRequest(form));
     } catch (submissionError) {
@@ -55,7 +69,7 @@ export default function CreateTeacherDialog(props: CreateTeacherDialogProps) {
       <div className="space-y-4">
         {errors.form ? <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errors.form}</p> : null}
         <Select label={t("fields.employment_status")} value={form.employmentStatus} onChange={(employmentStatus) => setForm({ ...form, employmentStatus: employmentStatus as "ACTIVE" | "INACTIVE" })} options={[{ value: "INACTIVE", label: t("statuses.inactive") }, { value: "ACTIVE", label: t("statuses.active") }]} required />
-        <TeacherFormSections form={form} errors={errors} onChange={(nextForm) => setForm({ ...nextForm, employmentStatus: form.employmentStatus })} />
+        <TeacherFormSections form={form} errors={errors} showIdentityTools onChange={(nextForm) => setForm({ ...nextForm, employmentStatus: form.employmentStatus })} />
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{t("messages.activation_caveat")}</p>
       </div>
     </Modal>

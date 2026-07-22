@@ -10,6 +10,51 @@ import {
   type Term,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 
+const ACADEMIC_CONTEXT_STORAGE_KEY = "sis-dashboard:academic-context";
+
+interface PersistedAcademicContext {
+  academicYearId: string;
+  termId: string;
+}
+
+export function readPersistedAcademicContext(): PersistedAcademicContext | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const storedContext = window.localStorage.getItem(ACADEMIC_CONTEXT_STORAGE_KEY);
+    if (!storedContext) return null;
+
+    const parsedContext: unknown = JSON.parse(storedContext);
+    if (
+      typeof parsedContext === "object" &&
+      parsedContext !== null &&
+      "academicYearId" in parsedContext &&
+      "termId" in parsedContext &&
+      typeof parsedContext.academicYearId === "string" &&
+      typeof parsedContext.termId === "string"
+    ) {
+      return parsedContext as PersistedAcademicContext;
+    }
+  } catch {
+    // A malformed or unavailable browser storage entry should not block the context.
+  }
+
+  return null;
+}
+
+export function persistAcademicContext(academicYearId: string, termId: string) {
+  if (typeof window === "undefined" || !academicYearId || !termId) return;
+
+  try {
+    window.localStorage.setItem(
+      ACADEMIC_CONTEXT_STORAGE_KEY,
+      JSON.stringify({ academicYearId, termId })
+    );
+  } catch {
+    // Browsers may deny storage access; URL state remains the fallback.
+  }
+}
+
 export interface UseAcademicYearTermContextOptions {
   preserveParams?: boolean;
   preferOpenTerm?: boolean;
@@ -133,8 +178,15 @@ export function useAcademicYearTermContext(
 
         setAcademicYears(years);
 
-        const requestedYearId = initialYearIdRef.current;
-        const requestedTermId = initialTermIdRef.current;
+        // A URL context is intentionally authoritative for deep links. When the
+        // destination has no context params, restore the user's last selection
+        // so moving between dashboard layouts does not reset it to the first year.
+        const persistedContext = readPersistedAcademicContext();
+        const requestedYearId =
+          initialYearIdRef.current || persistedContext?.academicYearId || null;
+        const requestedTermId =
+          initialTermIdRef.current ||
+          (!initialYearIdRef.current ? persistedContext?.termId ?? null : null);
         const selectedYear =
           years.find((year) => year.id === requestedYearId) || years[0] || null;
 
@@ -157,6 +209,10 @@ export function useAcademicYearTermContext(
         setAcademicYearId(selectedYear.id);
         setTermId(selectedTerm?.id || "");
         setTermStatus(selectedTerm?.status || "open");
+
+        if (selectedTerm) {
+          persistAcademicContext(selectedYear.id, selectedTerm.id);
+        }
 
         if (
           selectedTerm &&
@@ -226,6 +282,7 @@ export function useAcademicYearTermContext(
       setTermStatus(nextTerm?.status || "open");
 
       if (nextTerm) {
+        persistAcademicContext(yearId, nextTerm.id);
         syncUrl(yearId, nextTerm.id, nextTerm.status);
       }
 
@@ -243,6 +300,7 @@ export function useAcademicYearTermContext(
 
       setTermId(nextTermId);
       setTermStatus(nextTerm.status);
+      persistAcademicContext(academicYearId, nextTermId);
       syncUrl(academicYearId, nextTermId, nextTerm.status);
       return nextTerm;
     },

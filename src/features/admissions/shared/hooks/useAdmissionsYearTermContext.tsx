@@ -15,6 +15,10 @@ import {
   type AcademicYear,
   type Term,
 } from "@/features/academics/academic-structure-tree/services/structureService";
+import {
+  persistAcademicContext,
+  readPersistedAcademicContext,
+} from "@/features/academics/hooks/useAcademicYearTermContext";
 
 export type AdmissionsYearTermContextValue = {
   academicYears: AcademicYear[];
@@ -117,7 +121,11 @@ function useAdmissionsYearTermContextState(): AdmissionsYearTermContextValue {
 
       const urlYear = searchParams.get("year");
       const urlTerm = searchParams.get("term");
-      const selectedYear = years.find((year) => year.id === urlYear) ?? years[0];
+      const persistedContext = readPersistedAcademicContext();
+      const requestedYearId = urlYear || persistedContext?.academicYearId;
+      const requestedTermId =
+        urlTerm || (!urlYear ? persistedContext?.termId : undefined);
+      const selectedYear = years.find((year) => year.id === requestedYearId) ?? years[0];
 
       if (!selectedYear) {
         setYearIdState(null);
@@ -133,7 +141,7 @@ function useAdmissionsYearTermContextState(): AdmissionsYearTermContextValue {
       setTerms(nextTerms);
 
       const selectedTerm =
-        nextTerms.find((term) => term.id === urlTerm) ??
+        nextTerms.find((term) => term.id === requestedTermId) ??
         nextTerms.find((term) => term.status === "open") ??
         nextTerms[0];
 
@@ -147,6 +155,7 @@ function useAdmissionsYearTermContextState(): AdmissionsYearTermContextValue {
       setYearIdState(selectedYear.id);
       setTermIdState(selectedTerm.id);
       setTermStatus(selectedTerm.status);
+      persistAcademicContext(selectedYear.id, selectedTerm.id);
 
       if (urlYear !== selectedYear.id || urlTerm !== selectedTerm.id) {
         updateURL(selectedYear.id, selectedTerm.id);
@@ -222,6 +231,7 @@ function useAdmissionsYearTermContextState(): AdmissionsYearTermContextValue {
         setYearIdState(nextYearId);
         setTermIdState(nextTerm.id);
         setTermStatus(nextTerm.status);
+        persistAcademicContext(nextYearId, nextTerm.id);
         updateURL(nextYearId, nextTerm.id);
       } catch (err) {
         if (!isStaleRequest(requestId)) {
@@ -246,6 +256,7 @@ function useAdmissionsYearTermContextState(): AdmissionsYearTermContextValue {
 
       setTermIdState(nextTermId);
       setTermStatus(selectedTerm.status);
+      persistAcademicContext(yearId, nextTermId);
       updateURL(yearId, nextTermId);
     },
     [termId, terms, updateURL, yearId],
@@ -278,6 +289,7 @@ function useAdmissionsYearTermContextState(): AdmissionsYearTermContextValue {
         setYearIdState(nextYearId);
         setTermIdState(nextTermId);
         setTermStatus(selectedTerm.status);
+        persistAcademicContext(nextYearId, nextTermId);
         updateURL(nextYearId, nextTermId);
       } catch (err) {
         if (!isStaleRequest(requestId)) {

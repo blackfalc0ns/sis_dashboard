@@ -1,17 +1,11 @@
-import type { LessonPlan } from "../services/lessonPlansService";
 import type { LessonPlansScopeStatus } from "../hooks/useLessonPlansData";
 import type { LessonPlansMissingDataStatus } from "../components/lessonPlansMissingData";
 
 export function canEditLessonPlans(input: {
   canManage: boolean;
   termStatus: string;
-  plans: LessonPlan[];
 }) {
-  return (
-    input.canManage &&
-    input.termStatus !== "closed" &&
-    input.plans.every((plan) => plan.status !== "ARCHIVED")
-  );
+  return input.canManage && input.termStatus !== "closed";
 }
 
 export type LessonPlansViewState =

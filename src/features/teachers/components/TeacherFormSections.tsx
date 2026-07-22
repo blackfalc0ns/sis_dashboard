@@ -1,13 +1,24 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import {
   BilingualTextField,
+  Button,
   DatePicker,
   Input,
   Select,
   TextArea,
 } from "@/components/ui";
+import {
+  checkUsernameAvailability,
+  previewLoginIdentityUsername,
+} from "@/features/settings/login-identity/services/loginIdentityService";
+import type {
+  UsernameAvailabilityResponse,
+  UsernamePreviewResponse,
+} from "@/features/settings/login-identity/types";
 import type {
   EditTeacherFormState,
   TeacherFormErrors,
@@ -29,16 +40,76 @@ interface TeacherFormSectionsProps {
   errors: TeacherFormErrors;
   onChange: (form: EditTeacherFormState) => void;
   showIdentity?: boolean;
+  showIdentityTools?: boolean;
 }
 
 type SectionProps = TeacherFormSectionsProps & {
   requiredError: (field: string) => string | undefined;
 };
 
-function IdentitySection({ form, onChange, requiredError }: SectionProps) {
+function IdentitySection({ form, onChange, requiredError, showIdentityTools = false }: SectionProps) {
   const t = useTranslations("teachers");
-  const updateIdentity = (patch: Partial<EditTeacherFormState["identity"]>) =>
+  const tUsers = useTranslations("settings.users");
+  const [preview, setPreview] = useState<UsernamePreviewResponse | null>(null);
+  const [availability, setAvailability] = useState<UsernameAvailabilityResponse | null>(null);
+  const [identityError, setIdentityError] = useState<string | null>(null);
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  const updateIdentity = (patch: Partial<EditTeacherFormState["identity"]>) => {
+    if ("username" in patch || "identityMode" in patch) {
+      setPreview(null);
+      setAvailability(null);
+      setIdentityError(null);
+    }
     onChange({ ...form, identity: { ...form.identity, ...patch } });
+  };
+
+  const username = form.identity.username.trim();
+
+  useEffect(() => {
+    if (!showIdentityTools || form.identity.identityMode !== "username" || !username) return;
+
+    let cancelled = false;
+    const timeoutId = window.setTimeout(() => {
+      setIsPreviewing(true);
+      void previewLoginIdentityUsername(username)
+        .then((nextPreview) => {
+          if (!cancelled) setPreview(nextPreview);
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setPreview(null);
+            setIdentityError(tUsers("identity.preview_failed"));
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setIsPreviewing(false);
+        });
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [form.identity.identityMode, showIdentityTools, tUsers, username]);
+
+  const checkAvailability = async () => {
+    if (!username) {
+      setIdentityError(tUsers("identity.username_required"));
+      return;
+    }
+
+    setIsCheckingAvailability(true);
+    setIdentityError(null);
+    try {
+      setAvailability(await checkUsernameAvailability(username));
+    } catch {
+      setAvailability(null);
+      setIdentityError(tUsers("identity.availability_failed"));
+    } finally {
+      setIsCheckingAvailability(false);
+    }
+  };
 
   return (
     <section className="space-y-3">
@@ -52,9 +123,32 @@ function IdentitySection({ form, onChange, requiredError }: SectionProps) {
         ))}
       </div>
       {form.identity.identityMode === "username" ? (
-        <Input label={t("fields.username")} value={form.identity.username} onChange={(event) => updateIdentity({ username: event.target.value })} error={requiredError("username")} required />
+        <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <Input label={t("fields.username")} value={form.identity.username} onChange={(event) => updateIdentity({ username: event.target.value })} onBlur={() => void checkAvailability()} error={requiredError("username")} dir="ltr" required />
+          {showIdentityTools ? <>
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-medium text-gray-700">{tUsers("identity.generated_login_email")}</span>
+                {isPreviewing ? <Loader2 className="h-4 w-4 animate-spin text-gray-400" /> : null}
+              </div>
+              <p className="mt-1 break-all font-semibold text-gray-900">{preview?.loginEmail || tUsers("not_available")}</p>
+              <p className="mt-1 text-xs text-gray-500">{tUsers("identity.login_identity_note")}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" variant="secondary" size="sm" loading={isCheckingAvailability} disabled={!username || isCheckingAvailability} onClick={() => void checkAvailability()}>{tUsers("identity.check_availability")}</Button>
+              {availability ? <span className={`inline-flex items-center gap-1 text-sm ${availability.available ? "text-green-700" : "text-red-700"}`}>
+                {availability.available ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                {availability.available ? tUsers("identity.username_available") : availability.reason || tUsers("identity.username_unavailable")}
+              </span> : null}
+            </div>
+            {identityError ? <p className="text-sm text-red-600">{identityError}</p> : null}
+          </> : null}
+        </div>
       ) : (
-        <Input type="email" label={t("fields.login_email")} value={form.identity.loginEmail} onChange={(event) => updateIdentity({ loginEmail: event.target.value })} error={requiredError("loginEmail")} required />
+        <div className={showIdentityTools ? "space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3" : undefined}>
+          <Input type="email" label={t("fields.login_email")} value={form.identity.loginEmail} onChange={(event) => updateIdentity({ loginEmail: event.target.value })} error={requiredError("loginEmail")} dir="ltr" required />
+          {showIdentityTools ? <p className="text-xs text-gray-500">{t("form.legacy_login_email_help")}</p> : null}
+        </div>
       )}
       <div className="grid gap-3 md:grid-cols-2">
         <Input type="email" label={t("fields.contact_email")} value={form.identity.contactEmail} onChange={(event) => updateIdentity({ contactEmail: event.target.value })} />
@@ -140,7 +234,7 @@ function NotesSection({ form, onChange }: SectionProps) {
   );
 }
 
-export default function TeacherFormSections({ showIdentity = true, ...props }: TeacherFormSectionsProps) {
+export default function TeacherFormSections({ showIdentity = true, showIdentityTools = false, ...props }: TeacherFormSectionsProps) {
   const t = useTranslations("teachers");
   const sectionProps: SectionProps = {
     ...props,
@@ -149,7 +243,7 @@ export default function TeacherFormSections({ showIdentity = true, ...props }: T
 
   return (
     <div className="space-y-6">
-      {showIdentity ? <IdentitySection {...sectionProps} /> : null}
+      {showIdentity ? <IdentitySection {...sectionProps} showIdentityTools={showIdentityTools} /> : null}
       <ProfileSection {...sectionProps} />
       <EmploymentSection {...sectionProps} />
       <ScheduleSection {...sectionProps} />

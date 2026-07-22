@@ -77,6 +77,7 @@ export default function WeeksBoardMobile({
     <div className="space-y-2">
       {weeks.map((week) => {
         const weekPlan = plans.find((p) => p.weekIndex === week.weekIndex);
+        const isPlanReadOnly = isReadOnly || weekPlan?.status === "ARCHIVED";
         const items = weekPlan
           ? [...weekPlan.items].sort((a, b) => a.order - b.order)
           : [];
@@ -180,7 +181,7 @@ export default function WeeksBoardMobile({
                         ? t("week.noInstructionalDays")
                         : t("week.noLessonsPlanned")}
                     </p>
-                    {!isReadOnly && week.instructionalDays.length > 0 && (
+                    {!isPlanReadOnly && week.instructionalDays.length > 0 && (
                       <p className="mt-1 text-xs text-gray-500">
                         {t("week.dragLessonHere")}
                       </p>
@@ -200,7 +201,7 @@ export default function WeeksBoardMobile({
                         onStatusChange={onStatusChange}
                         onEditItem={onEditItem}
                         onRemove={onRemove}
-                        isReadOnly={isReadOnly}
+                        isReadOnly={isPlanReadOnly}
                         onReorder={onReorder}
                         disableMoveUp={index === 0}
                         disableMoveDown={index === items.length - 1}
@@ -211,7 +212,7 @@ export default function WeeksBoardMobile({
                 )}
 
                 {/* Add Lesson Button */}
-                {!isReadOnly && (
+                {!isPlanReadOnly && (
                   <button
                     onClick={() => onAddLesson(week.weekIndex)}
                     disabled={week.instructionalDays.length === 0}

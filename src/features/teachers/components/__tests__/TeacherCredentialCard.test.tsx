@@ -53,6 +53,15 @@ describe("TeacherCredentialCard", () => {
     expect(screen.queryByRole("button", { name: "actions.set_password" })).not.toBeInTheDocument();
   });
 
+  it("sends the password-reset request for the teacher user", async () => {
+    const user = userEvent.setup();
+    renderCredentialCard();
+
+    await user.click(screen.getByRole("button", { name: "actions.reset_password" }));
+
+    await waitFor(() => expect(apiPost).toHaveBeenCalledWith("/settings/users/user-1/reset-password", {}));
+  });
+
   it("keeps password-policy errors on the custom-password form", async () => {
     const user = userEvent.setup();
     vi.mocked(apiPost).mockRejectedValue(new ApiError("Password policy failed", 422, "iam.credentials.password_policy_failed"));

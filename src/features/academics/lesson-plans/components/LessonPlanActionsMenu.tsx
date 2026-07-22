@@ -22,6 +22,7 @@ export default function LessonPlanActionsMenu({
   onDelete: () => void;
 }) {
   const t = useTranslations("academics.lessonPlans.actions");
+  const isArchived = plan.status === "ARCHIVED";
   return (
     <DropdownMenu
       trigger={
@@ -38,40 +39,52 @@ export default function LessonPlanActionsMenu({
           )}
         </button>
       }
-      items={[
-        {
-          label: t("editPlan"),
-          value: "edit",
-          icon: <Edit3 className="h-4 w-4" />,
-          disabled: isReadOnly || isPending,
-          onClick: onEdit,
-        },
-        {
-          label: t("activatePlan"),
-          value: "activate",
-          icon: <Play className="h-4 w-4" />,
-          disabled:
-            isReadOnly ||
-            isPending ||
-            plan.status !== "DRAFT" ||
-            plan.items.length === 0,
-          onClick: onActivate,
-        },
-        {
-          label: t("archivePlan"),
-          value: "archive",
-          icon: <Archive className="h-4 w-4" />,
-          disabled: isReadOnly || isPending || plan.status === "ARCHIVED",
-          onClick: onArchive,
-        },
-        {
-          label: t("deletePlan"),
-          value: "delete",
-          icon: <Trash2 className="h-4 w-4" />,
-          disabled: isReadOnly || isPending,
-          onClick: onDelete,
-        },
-      ]}
+      items={
+        isArchived
+          ? [
+              {
+                label: t("deletePlan"),
+                value: "delete",
+                icon: <Trash2 className="h-4 w-4" />,
+                disabled: isReadOnly || isPending,
+                onClick: onDelete,
+              },
+            ]
+          : [
+              {
+                label: t("editPlan"),
+                value: "edit",
+                icon: <Edit3 className="h-4 w-4" />,
+                disabled: isReadOnly || isPending,
+                onClick: onEdit,
+              },
+              {
+                label: t("activatePlan"),
+                value: "activate",
+                icon: <Play className="h-4 w-4" />,
+                disabled:
+                  isReadOnly ||
+                  isPending ||
+                  plan.status !== "DRAFT" ||
+                  plan.items.length === 0,
+                onClick: onActivate,
+              },
+              {
+                label: t("archivePlan"),
+                value: "archive",
+                icon: <Archive className="h-4 w-4" />,
+                disabled: isReadOnly || isPending,
+                onClick: onArchive,
+              },
+              {
+                label: t("deletePlan"),
+                value: "delete",
+                icon: <Trash2 className="h-4 w-4" />,
+                disabled: isReadOnly || isPending,
+                onClick: onDelete,
+              },
+            ]
+      }
     />
   );
 }

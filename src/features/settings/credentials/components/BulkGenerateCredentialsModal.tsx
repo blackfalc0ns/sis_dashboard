@@ -15,6 +15,7 @@ import type { RoleDefinition } from "@/features/settings/types";
 interface BulkGenerateCredentialsModalProps {
   isOpen: boolean;
   roles: RoleDefinition[];
+  fixedRoleKey?: string;
   preview: BulkCredentialPreviewResponse | null;
   previewPayloadKey: string | null;
   isPreviewing: boolean;
@@ -52,6 +53,7 @@ interface BulkGenerateCredentialsModalProps {
 export default function BulkGenerateCredentialsModal({
   isOpen,
   roles,
+  fixedRoleKey,
   preview,
   previewPayloadKey,
   isPreviewing,
@@ -68,6 +70,14 @@ export default function BulkGenerateCredentialsModal({
   const [includeDisabledUsers, setIncludeDisabledUsers] = useState(false);
 
   const payload = useMemo<BulkCredentialPreviewRequest>(() => {
+    if (fixedRoleKey) {
+      return {
+        scope: "role",
+        roleKeys: [fixedRoleKey],
+        includeUsersWithPassword,
+        includeDisabledUsers,
+      };
+    }
     if (scope === "role" && roleKey) {
       return {
         scope,
@@ -81,7 +91,7 @@ export default function BulkGenerateCredentialsModal({
       includeUsersWithPassword,
       includeDisabledUsers,
     };
-  }, [includeDisabledUsers, includeUsersWithPassword, roleKey, scope]);
+  }, [fixedRoleKey, includeDisabledUsers, includeUsersWithPassword, roleKey, scope]);
 
   const payloadKey = getBulkCredentialPreviewPayloadKey(payload);
   const isPreviewCurrent = Boolean(preview && previewPayloadKey === payloadKey);
@@ -130,7 +140,7 @@ export default function BulkGenerateCredentialsModal({
             {error}
           </p>
         ) : null}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {!fixedRoleKey ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Select
             label={labels.status}
             value={scope}
@@ -153,7 +163,7 @@ export default function BulkGenerateCredentialsModal({
                 .map((role) => ({ value: role.key as string, label: role.name })),
             ]}
           />
-        </div>
+        </div> : null}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {[
             {

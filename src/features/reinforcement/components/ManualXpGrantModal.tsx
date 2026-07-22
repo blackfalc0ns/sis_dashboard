@@ -185,7 +185,7 @@ export default function ManualXpGrantModal({
       setError(t("xp.validation.termRequired"));
       return;
     }
-    if (!Number.isFinite(parsedAmount) || parsedAmount === 0) {
+    if (!Number.isInteger(parsedAmount) || parsedAmount < 1) {
       setError(t("validation.xpAmountRequired"));
       return;
     }
@@ -220,12 +220,19 @@ export default function ManualXpGrantModal({
           nextError.details && typeof nextError.details === "object"
             ? (nextError.details as Record<string, unknown>)
             : {};
+        const isWeeklyCapError =
+          nextError.code === "reinforcement.xp.weekly_cap_reached" ||
+          (nextError.code === "validation.failed" &&
+            "weeklyCap" in details &&
+            "currentXp" in details &&
+            "requestedAmount" in details);
         const messageKey = {
           "reinforcement.xp.daily_cap_reached":
             "xp.policyInstructions.dailyCapReached",
-          "reinforcement.xp.weekly_cap_reached":
-            "xp.policyInstructions.weeklyCapReached",
-        }[nextError.code];
+        }[nextError.code] ??
+          (isWeeklyCapError
+            ? "xp.policyInstructions.weeklyCapReached"
+            : undefined);
         const detailValue = (value: unknown): string | number =>
           typeof value === "string" || typeof value === "number" ? value : "-";
         setError(
@@ -329,6 +336,8 @@ export default function ManualXpGrantModal({
         <div className="grid gap-4 md:grid-cols-2">
           <Input
             type="number"
+            min={1}
+            step={1}
             label={t("xp.amount")}
             value={amount}
             onChange={(event) => setAmount(event.target.value)}

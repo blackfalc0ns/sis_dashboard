@@ -6,13 +6,14 @@ import { Button, DateTimePicker, Modal } from "@/components/ui";
 import { activationBlockers } from "@/features/teachers/utils/employmentTransitions";
 import type {
   ChangeTeacherEmploymentStatusRequest,
+  TeacherDirectoryListItem,
   TeacherDirectoryDetail,
   TeacherEmploymentStatus,
 } from "@/features/teachers/types/index";
 
 interface EmploymentTransitionDialogProps {
   isOpen: boolean;
-  teacher: TeacherDirectoryDetail;
+  teacher: TeacherDirectoryDetail | TeacherDirectoryListItem;
   targetStatus: TeacherEmploymentStatus;
   isSubmitting: boolean;
   onClose: () => void;
@@ -22,7 +23,7 @@ interface EmploymentTransitionDialogProps {
 export default function EmploymentTransitionDialog(props: EmploymentTransitionDialogProps) {
   const t = useTranslations("teachers");
   const [effectiveAt, setEffectiveAt] = useState<Date | null>(null);
-  const blockers = props.targetStatus === "ACTIVE" ? activationBlockers(props.teacher) : [];
+  const blockers = props.targetStatus === "ACTIVE" && "workingDays" in props.teacher ? activationBlockers(props.teacher) : [];
   const submit = () => props.onSubmit({
     employmentStatus: props.targetStatus,
     ...(effectiveAt ? { effectiveAt: effectiveAt.toISOString() } : {}),

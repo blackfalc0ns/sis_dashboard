@@ -14,6 +14,10 @@ import {
   fetchTermsByYear,
   type Term,
 } from "@/features/academics/academic-structure-tree/services/structureService";
+import {
+  persistAcademicContext,
+  readPersistedAcademicContext,
+} from "@/features/academics/hooks/useAcademicYearTermContext";
 
 export type StudentsGuardiansYearTermContext = {
   academicYears: Array<{ id: string; nameAr?: string; nameEn?: string; name: string }>;
@@ -109,8 +113,12 @@ function useStudentsGuardiansYearTermContextState(): StudentsGuardiansYearTermCo
 
       const urlYear = searchParams.get("year") || searchParams.get("yearId");
       const urlTerm = searchParams.get("term") || searchParams.get("termId");
+      const persistedContext = readPersistedAcademicContext();
+      const requestedYearId = urlYear || persistedContext?.academicYearId;
+      const requestedTermId =
+        urlTerm || (!urlYear ? persistedContext?.termId : undefined);
 
-      const selectedYear = years.find((year) => year.id === urlYear) || years[0];
+      const selectedYear = years.find((year) => year.id === requestedYearId) || years[0];
       if (!selectedYear) {
         setIsLoading(false);
         return;
@@ -120,7 +128,7 @@ function useStudentsGuardiansYearTermContextState(): StudentsGuardiansYearTermCo
       if (isStaleRequest(requestId)) return;
       setTerms(yearTerms);
 
-      let selectedTerm = yearTerms.find((term) => term.id === urlTerm);
+      let selectedTerm = yearTerms.find((term) => term.id === requestedTermId);
       if (!selectedTerm) {
         selectedTerm = yearTerms.find((term) => term.status === "open") || yearTerms[0];
       }
@@ -129,6 +137,7 @@ function useStudentsGuardiansYearTermContextState(): StudentsGuardiansYearTermCo
         setYearIdState(selectedYear.id);
         setTermIdState(selectedTerm.id);
         setTermStatus(selectedTerm.status);
+        persistAcademicContext(selectedYear.id, selectedTerm.id);
 
         if (urlYear !== selectedYear.id || urlTerm !== selectedTerm.id) {
           updateURL(selectedYear.id, selectedTerm.id);
@@ -202,6 +211,7 @@ function useStudentsGuardiansYearTermContextState(): StudentsGuardiansYearTermCo
         setYearIdState(newYearId);
         setTermIdState(defaultTerm.id);
         setTermStatus(defaultTerm.status);
+        persistAcademicContext(newYearId, defaultTerm.id);
         updateURL(newYearId, defaultTerm.id);
       } catch (err) {
         if (!isStaleRequest(requestId)) {
@@ -226,6 +236,7 @@ function useStudentsGuardiansYearTermContextState(): StudentsGuardiansYearTermCo
 
       setTermIdState(newTermId);
       setTermStatus(selectedTerm.status);
+      persistAcademicContext(yearId, newTermId);
       updateURL(yearId, newTermId);
     },
     [termId, terms, updateURL, yearId],
@@ -259,6 +270,7 @@ function useStudentsGuardiansYearTermContextState(): StudentsGuardiansYearTermCo
         setYearIdState(newYearId);
         setTermIdState(newTermId);
         setTermStatus(selectedTerm.status);
+        persistAcademicContext(newYearId, newTermId);
         updateURL(newYearId, newTermId);
       } catch (err) {
         if (!isStaleRequest(requestId)) {

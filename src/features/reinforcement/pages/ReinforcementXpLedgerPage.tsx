@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, Coins, Minus, Plus, RefreshCw, ShieldAlert, Sparkles, Wallet } from "lucide-react";
+import { AlertCircle, Coins, Minus, Plus, RefreshCw, ShieldAlert, Sparkles } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
@@ -92,6 +92,9 @@ export default function ReinforcementXpLedgerPage() {
     () => ({
       academicYearId: isUUID(context.academicYearId) ? context.academicYearId : undefined,
       termId: isUUID(context.termId) ? context.termId : undefined,
+      stageId: isUUID(context.stageId) ? context.stageId : undefined,
+      gradeId: isUUID(context.gradeId) ? context.gradeId : undefined,
+      sectionId: isUUID(context.sectionId) ? context.sectionId : undefined,
       studentId: isUUID(context.studentId) ? context.studentId : undefined,
       classroomId: isUUID(context.classroomId) ? context.classroomId : undefined,
       limit: 50,
@@ -99,6 +102,9 @@ export default function ReinforcementXpLedgerPage() {
     [
       context.academicYearId,
       context.classroomId,
+      context.gradeId,
+      context.sectionId,
+      context.stageId,
       context.studentId,
       context.termId,
     ],
@@ -108,9 +114,21 @@ export default function ReinforcementXpLedgerPage() {
     () => ({
       academicYearId: isUUID(context.academicYearId) ? context.academicYearId : undefined,
       termId: isUUID(context.termId) ? context.termId : undefined,
+      stageId: isUUID(context.stageId) ? context.stageId : undefined,
+      gradeId: isUUID(context.gradeId) ? context.gradeId : undefined,
+      sectionId: isUUID(context.sectionId) ? context.sectionId : undefined,
+      classroomId: isUUID(context.classroomId) ? context.classroomId : undefined,
       studentId: isUUID(context.studentId) ? context.studentId : undefined,
     }),
-    [context.academicYearId, context.studentId, context.termId],
+    [
+      context.academicYearId,
+      context.classroomId,
+      context.gradeId,
+      context.sectionId,
+      context.stageId,
+      context.studentId,
+      context.termId,
+    ],
   );
 
   const refreshLedger = useCallback(async () => {
@@ -118,13 +136,13 @@ export default function ReinforcementXpLedgerPage() {
     setLoading(true);
     setError(null);
     try {
-      const { academicYearId, termId, studentId } = summaryParams;
+      const { academicYearId, termId, ...scopeParams } = summaryParams;
       const summaryRequest =
         academicYearId &&
         termId &&
         isUUID(academicYearId) &&
         isUUID(termId)
-          ? getXpSummary({ academicYearId, termId, studentId })
+          ? getXpSummary({ academicYearId, termId, ...scopeParams })
           : Promise.resolve(null);
       const [ledgerResponse, nextSummary] = await Promise.all([
         listXpLedger(params),
@@ -238,7 +256,7 @@ export default function ReinforcementXpLedgerPage() {
         </div>
       ) : null}
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <KPICardV2
           title={t("xp.summary.totalXp")}
           value={Number(summary?.totalXp) || 0}
@@ -249,7 +267,7 @@ export default function ReinforcementXpLedgerPage() {
         />
         <KPICardV2
           title={t("xp.summary.studentsCount")}
-          value={Number(summary?.studentsCount ?? summary?.ledgerCount) || 0}
+          value={Number(summary?.studentsCount) || 0}
           icon={Coins}
           iconColor="#16a34a"
           iconBgColor="#dcfce7"
@@ -261,14 +279,6 @@ export default function ReinforcementXpLedgerPage() {
           icon={Minus}
           iconColor="#ef4444"
           iconBgColor="#fef2f2"
-          showChart={false}
-        />
-        <KPICardV2
-          title={t("xp.summary.balance")}
-          value={Number(summary?.balance ?? summary?.totalXp) || 0}
-          icon={Wallet}
-          iconColor="#7c3aed"
-          iconBgColor="#ede9fe"
           showChart={false}
         />
       </section>

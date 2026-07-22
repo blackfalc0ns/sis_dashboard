@@ -365,15 +365,6 @@ export interface ManualXpGrantPayload {
   dedupeKey?: string;
 }
 
-export interface ManualXpGrantResponse {
-  id?: string;
-  ledgerEntry?: XpLedgerEntry;
-  studentId?: string;
-  amount?: number;
-  balance?: number;
-  [key: string]: unknown;
-}
-
 export interface XpLedgerEntry {
   id: string;
   academicYearId: string;
@@ -420,10 +411,19 @@ export interface XpLedgerStudent {
 
 export interface ListXpLedgerParams {
   academicYearId?: string;
+  yearId?: string;
   termId?: string;
   studentId?: string;
-  page?: number;
+  classroomId?: string;
+  sectionId?: string;
+  gradeId?: string;
+  stageId?: string;
+  sourceType?: XpSourceType;
+  sourceId?: string;
+  occurredFrom?: string;
+  occurredTo?: string;
   limit?: number;
+  offset?: number;
   [key: string]: string | number | boolean | undefined;
 }
 
@@ -446,13 +446,32 @@ export interface GetXpSummaryParams {
 }
 
 export interface XpSummary {
-  totalXp?: number;
-  earnedXp?: number;
-  spentXp?: number;
-  balance?: number;
-  ledgerCount?: number;
-  [key: string]: unknown;
+  academicYearId: string;
+  termId: string;
+  scope: {
+    scopeType: XpPolicyScopeType;
+    scopeKey: string;
+    stageId: string | null;
+    gradeId: string | null;
+    sectionId: string | null;
+    classroomId: string | null;
+    studentId: string | null;
+  };
+  totalXp: number;
+  studentsCount: number;
+  averageXp: number;
+  bySourceType: Array<{
+    sourceType: XpSourceType;
+    amount: number;
+  }>;
+  topStudents: Array<{
+    studentId: string;
+    studentName: string | null;
+    totalXp: number;
+  }>;
 }
+
+export type ManualXpGrantResponse = XpLedgerEntry;
 
 export interface ReinforcementOverviewParams {
   academicYearId?: string;

@@ -19,6 +19,10 @@ import {
   fetchTermsByYear,
   type Term,
 } from "@/features/academics/academic-structure-tree/services/structureService";
+import {
+  persistAcademicContext,
+  readPersistedAcademicContext,
+} from "@/features/academics/hooks/useAcademicYearTermContext";
 
 export type AttendanceTermContext = {
   // Data
@@ -113,9 +117,13 @@ export function useAttendanceTermContext(): AttendanceTermContext {
       // Read URL params (support both year/term and yearId/termId for backward compatibility)
       const urlYear = searchParams.get("year") || searchParams.get("yearId");
       const urlTerm = searchParams.get("term") || searchParams.get("termId");
+      const persistedContext = readPersistedAcademicContext();
+      const requestedYearId = urlYear || persistedContext?.academicYearId;
+      const requestedTermId =
+        urlTerm || (!urlYear ? persistedContext?.termId : undefined);
 
       // Select year
-      const selectedYear = years.find((y) => y.id === urlYear) || years[0];
+      const selectedYear = years.find((y) => y.id === requestedYearId) || years[0];
       if (!selectedYear || isCancelled.current) return;
 
       // Load terms for selected year
@@ -125,7 +133,7 @@ export function useAttendanceTermContext(): AttendanceTermContext {
       setTerms(yearTerms);
 
       // Select term (prefer URL, then open term, then first term)
-      let selectedTerm = yearTerms.find((t) => t.id === urlTerm);
+      let selectedTerm = yearTerms.find((t) => t.id === requestedTermId);
       if (!selectedTerm) {
         selectedTerm = yearTerms.find((t) => t.status === "open") || yearTerms[0];
       }
@@ -134,6 +142,7 @@ export function useAttendanceTermContext(): AttendanceTermContext {
         setYearIdState(selectedYear.id);
         setTermIdState(selectedTerm.id);
         setTermStatus(selectedTerm.status);
+        persistAcademicContext(selectedYear.id, selectedTerm.id);
         setTermRange({
           startDate: selectedTerm.startDate,
           endDate: selectedTerm.endDate,
@@ -191,6 +200,7 @@ export function useAttendanceTermContext(): AttendanceTermContext {
             startDate: defaultTerm.startDate,
             endDate: defaultTerm.endDate,
           });
+          persistAcademicContext(newYearId, defaultTerm.id);
           updateURL(newYearId, defaultTerm.id);
         }
       } catch (err) {
@@ -221,6 +231,7 @@ export function useAttendanceTermContext(): AttendanceTermContext {
           startDate: selectedTerm.startDate,
           endDate: selectedTerm.endDate,
         });
+        persistAcademicContext(yearId, newTermId);
         updateURL(yearId, newTermId);
       }
     },
@@ -254,6 +265,7 @@ export function useAttendanceTermContext(): AttendanceTermContext {
             startDate: selectedTerm.startDate,
             endDate: selectedTerm.endDate,
           });
+          persistAcademicContext(newYearId, newTermId);
           updateURL(newYearId, newTermId);
         }
       } catch (err) {

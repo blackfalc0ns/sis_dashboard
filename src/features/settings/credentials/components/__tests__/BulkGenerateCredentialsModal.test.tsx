@@ -58,6 +58,36 @@ function renderModal(
 }
 
 describe("BulkGenerateCredentialsModal preview", () => {
+  it("locks a teacher-directory bulk action to the teacher role", async () => {
+    const user = userEvent.setup();
+    const onPreview = vi.fn().mockResolvedValue(undefined);
+    render(
+      <BulkGenerateCredentialsModal
+        isOpen
+        roles={[]}
+        fixedRoleKey="teacher"
+        preview={null}
+        previewPayloadKey={null}
+        isPreviewing={false}
+        isGenerating={false}
+        onClose={vi.fn()}
+        onPreview={onPreview}
+        onGenerate={vi.fn()}
+        labels={labels}
+      />,
+    );
+
+    expect(screen.queryByLabelText("Scope")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Preview" }));
+
+    expect(onPreview).toHaveBeenCalledWith({
+      scope: "role",
+      roleKeys: ["teacher"],
+      includeUsersWithPassword: false,
+      includeDisabledUsers: false,
+    });
+  });
+
   it("shows production counts and translated and fallback skip reasons", () => {
     renderModal({
       totalMatched: 26,

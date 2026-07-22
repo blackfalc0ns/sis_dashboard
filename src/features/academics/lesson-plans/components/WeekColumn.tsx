@@ -71,15 +71,16 @@ export default function WeekColumn({
   };
 
   const [dragOverColumn, setDragOverColumn] = useState(false);
+  const isPlanReadOnly = isReadOnly || plan?.status === "ARCHIVED";
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
-      if (!isReadOnly && week.instructionalDays.length > 0) {
+      if (!isPlanReadOnly && week.instructionalDays.length > 0) {
         setDragOverColumn(true);
       }
     },
-    [isReadOnly, week.instructionalDays.length],
+    [isPlanReadOnly, week.instructionalDays.length],
   );
 
   const handleDragLeave = useCallback(() => {
@@ -90,11 +91,11 @@ export default function WeekColumn({
     (e: React.DragEvent) => {
       e.preventDefault();
       setDragOverColumn(false);
-      if (!isReadOnly && week.instructionalDays.length > 0) {
+      if (!isPlanReadOnly && week.instructionalDays.length > 0) {
         onDrop(week.weekIndex);
       }
     },
-    [isReadOnly, onDrop, week.instructionalDays.length, week.weekIndex],
+    [isPlanReadOnly, onDrop, week.instructionalDays.length, week.weekIndex],
   );
 
   const items = plan ? [...plan.items].sort((a, b) => a.order - b.order) : [];
@@ -218,7 +219,7 @@ export default function WeekColumn({
                 <p className="text-sm font-medium text-gray-700">
                   {t("noLessonsPlanned")}
                 </p>
-                {!isReadOnly && (
+                {!isPlanReadOnly && (
                   <p className="text-xs text-gray-500">{t("dragLessonHere")}</p>
                 )}
               </div>
@@ -238,7 +239,7 @@ export default function WeekColumn({
                 onStatusChange={onStatusChange}
                 onEditItem={onEditItem}
                 onRemove={onRemove}
-                isReadOnly={isReadOnly}
+                isReadOnly={isPlanReadOnly}
                 onReorder={onReorder}
                 disableMoveUp={index === 0}
                 disableMoveDown={index === items.length - 1}

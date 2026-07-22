@@ -51,6 +51,16 @@ describe("TeacherDetailPage", () => {
     expect(screen.getByText("transition-dialog:ACTIVE")).toBeVisible();
   });
 
+  it("uses the safe employment transition when disabling an active teacher account", async () => {
+    const user = userEvent.setup();
+    mocks.detail.mockReturnValue({ teacher: { ...teacherFixture, employmentStatus: "ACTIVE" }, isLoading: false, error: null, refresh: mocks.refresh, replaceTeacher: vi.fn() });
+    render(<TeacherDetailPage teacherId="teacher-1" />);
+
+    await user.click(screen.getByRole("button", { name: "actions.disable_account" }));
+
+    expect(screen.getByText("transition-dialog:INACTIVE")).toBeVisible();
+  });
+
   it("hides every mutation action from view-only users", () => {
     mocks.canManage = false;
     render(<TeacherDetailPage teacherId="teacher-1" />);

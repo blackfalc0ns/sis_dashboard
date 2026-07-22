@@ -12,6 +12,7 @@ import type { SetCredentialPasswordRequest } from "@/features/settings/credentia
 import { useTeacherCredentialActions } from "@/features/teachers/hooks/useTeacherCredentialActions";
 import type { TeacherDirectoryDetail } from "@/features/teachers/types/index";
 import { isApiError } from "@/lib/api-error";
+import { triggerSettingsUserPasswordReset } from "@/features/settings/services/settingsUsersService";
 
 type GenerateMode = "generate" | "regenerate";
 
@@ -53,6 +54,7 @@ export default function TeacherCredentialCard({
   const { showError, showSuccess } = useToast();
   const [generateMode, setGenerateMode] = useState<GenerateMode | null>(null);
   const [isSetPasswordOpen, setIsSetPasswordOpen] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [setPasswordError, setSetPasswordError] = useState<string | null>(null);
   const credentials = useTeacherCredentialActions(teacher, onChanged);
   const credentialUser = {
@@ -85,11 +87,23 @@ export default function TeacherCredentialCard({
     }
   };
 
+  const resetPassword = async () => {
+    setIsResettingPassword(true);
+    try {
+      await triggerSettingsUserPasswordReset(teacher.userId);
+      showSuccess(tTeachers("messages.password_reset_sent"));
+    } catch (error) {
+      showError(isApiError(error) ? error.message : tCommon("save_failed"));
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div><h2 className="text-lg font-semibold text-gray-900">{t("table.title")}</h2><p className="mt-1 text-sm text-gray-500">{t("table.description")}</p></div>
-        {canManage && accountIsManageable ? <div className="flex flex-wrap gap-2"><Button variant="secondary" leftIcon={teacher.credentialSummary.hasPassword ? <RefreshCcw className="h-4 w-4" /> : <KeyRound className="h-4 w-4" />} onClick={() => setGenerateMode(teacher.credentialSummary.hasPassword ? "regenerate" : "generate")}>{teacher.credentialSummary.hasPassword ? t("actions.regenerate") : t("actions.generate")}</Button><Button variant="secondary" leftIcon={<LockKeyhole className="h-4 w-4" />} onClick={() => { setSetPasswordError(null); setIsSetPasswordOpen(true); }}>{t("actions.set_password")}</Button></div> : null}
+        {canManage && accountIsManageable ? <div className="flex flex-wrap gap-2"><Button variant="secondary" leftIcon={teacher.credentialSummary.hasPassword ? <RefreshCcw className="h-4 w-4" /> : <KeyRound className="h-4 w-4" />} onClick={() => setGenerateMode(teacher.credentialSummary.hasPassword ? "regenerate" : "generate")}>{teacher.credentialSummary.hasPassword ? t("actions.regenerate") : t("actions.generate")}</Button><Button variant="secondary" leftIcon={<LockKeyhole className="h-4 w-4" />} onClick={() => { setSetPasswordError(null); setIsSetPasswordOpen(true); }}>{t("actions.set_password")}</Button><Button variant="secondary" loading={isResettingPassword} onClick={() => void resetPassword()}>{tTeachers("actions.reset_password")}</Button></div> : null}
       </div>
       <CredentialSummary teacher={teacher} />
       {canManage && !accountIsManageable ? <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{tTeachers("credentials.management_unavailable")}</p> : null}

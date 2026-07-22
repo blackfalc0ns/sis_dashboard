@@ -8,7 +8,7 @@ describe("TeacherListTable", () => {
   it("renders the contract columns and navigates from a row", async () => {
     const user = userEvent.setup();
     const onView = vi.fn();
-    render(<TeacherListTable teachers={[teacherFixture]} page={1} pageSize={20} total={1} isLoading={false} searchQuery="" canManage={false} onPageChange={vi.fn()} onPageSizeChange={vi.fn()} onView={onView} onEdit={vi.fn()} />);
+    render(<TeacherListTable teachers={[teacherFixture]} page={1} pageSize={20} total={1} isLoading={false} searchQuery="" canManage={false} canManageCredentials={false} onPageChange={vi.fn()} onPageSizeChange={vi.fn()} onView={onView} onEdit={vi.fn()} onResetPassword={vi.fn()} onDisableAccount={vi.fn()} />);
 
     expect(screen.getAllByRole("columnheader")).toHaveLength(9);
     await user.click(screen.getByText("Nour Ali"));
@@ -20,11 +20,29 @@ describe("TeacherListTable", () => {
     const user = userEvent.setup();
     const onView = vi.fn();
     const onEdit = vi.fn();
-    render(<TeacherListTable teachers={[teacherFixture]} page={1} pageSize={20} total={1} isLoading={false} searchQuery="" canManage onPageChange={vi.fn()} onPageSizeChange={vi.fn()} onView={onView} onEdit={onEdit} />);
+    const onResetPassword = vi.fn();
+    const onDisableAccount = vi.fn();
+    render(<TeacherListTable teachers={[teacherFixture]} page={1} pageSize={20} total={1} isLoading={false} searchQuery="" canManage canManageCredentials onPageChange={vi.fn()} onPageSizeChange={vi.fn()} onView={onView} onEdit={onEdit} onResetPassword={onResetPassword} onDisableAccount={onDisableAccount} />);
 
     await user.click(screen.getByRole("button", { name: "actions.open_menu" }));
     await user.click(await screen.findByText("actions.edit"));
     expect(onEdit).toHaveBeenCalledWith(teacherFixture);
     expect(onView).not.toHaveBeenCalled();
+  });
+
+  it("offers credential reset and safe disable actions when permitted", async () => {
+    const user = userEvent.setup();
+    const onResetPassword = vi.fn();
+    const onDisableAccount = vi.fn();
+    const activeTeacher = { ...teacherFixture, employmentStatus: "ACTIVE" as const };
+    render(<TeacherListTable teachers={[activeTeacher]} page={1} pageSize={20} total={1} isLoading={false} searchQuery="" canManage canManageCredentials onPageChange={vi.fn()} onPageSizeChange={vi.fn()} onView={vi.fn()} onEdit={vi.fn()} onResetPassword={onResetPassword} onDisableAccount={onDisableAccount} />);
+
+    await user.click(screen.getByRole("button", { name: "actions.open_menu" }));
+    await user.click(await screen.findByText("actions.reset_password"));
+    expect(onResetPassword).toHaveBeenCalledWith(activeTeacher);
+
+    await user.click(screen.getByRole("button", { name: "actions.open_menu" }));
+    await user.click(await screen.findByText("actions.disable_account"));
+    expect(onDisableAccount).toHaveBeenCalledWith(activeTeacher);
   });
 });

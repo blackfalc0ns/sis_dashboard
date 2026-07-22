@@ -158,7 +158,6 @@ export default function LessonPlansPage() {
   const isReadOnly = !canEditLessonPlans({
     canManage: canManageLessonPlans,
     termStatus,
-    plans,
   });
   const filteredGrades = useMemo(
     () => getFilteredGrades(grades),
