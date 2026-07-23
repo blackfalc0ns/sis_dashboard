@@ -12044,7 +12044,6 @@
       "confirm": "Confirm",
       "archive": "Archive",
       "disable_account": "Disable account",
-      "reset_password": "Reset password",
       "rehire": "Rehire archived teacher",
       "open_menu": "Open teacher actions",
       "back_to_list": "Back to teachers",
@@ -12241,8 +12240,7 @@
       "activation_caveat": "The account may remain invited after creation. Do not promise login access until onboarding is completed.",
       "username_availability_failed": "Unable to verify username availability. Try again before creating the teacher.",
       "status_update_success": "Employment status updated successfully.",
-      "archive_success": "Teacher archived successfully.",
-      "password_reset_sent": "Password reset instructions sent."
+      "archive_success": "Teacher archived successfully."
     },
     "bulk": {
       "open": "Bulk generate credentials",

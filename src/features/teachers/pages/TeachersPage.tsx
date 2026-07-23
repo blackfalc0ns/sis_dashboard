@@ -21,7 +21,6 @@ import { useTeacherList } from "@/features/teachers/hooks/useTeacherList";
 import type { CreateTeacherRequest, RehireTeacherRequest, TeacherDirectoryListItem, TeacherListQuery } from "@/features/teachers/types/index";
 import type { BulkCredentialPreviewRequest, BulkCredentialPreviewResponse } from "@/features/settings/credentials/types";
 import { isApiError } from "@/lib/api-error";
-import { triggerSettingsUserPasswordReset } from "@/features/settings/services/settingsUsersService";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -71,7 +70,7 @@ export default function TeachersPage() {
   const locale = useLocale();
   const t = useTranslations("teachers");
   const router = useRouter();
-  const { showError, showInfo, showSuccess } = useToast();
+  const { showError, showSuccess } = useToast();
   const permissions = usePermissions();
   const canView = permissions.hasPermission("teachers.records.view");
   const canManage = permissions.hasPermission("teachers.records.manage");
@@ -157,14 +156,6 @@ export default function TeachersPage() {
       setIsBulkGenerating(false);
     }
   };
-  const resetTeacherPassword = async (teacher: TeacherDirectoryListItem) => {
-    try {
-      await triggerSettingsUserPasswordReset(teacher.userId);
-      showInfo(t("messages.password_reset_sent"));
-    } catch (error) {
-      showError(isApiError(error) ? error.message : t("messages.load_failed"));
-    }
-  };
   const disableTeacherAccount = async () => {
     if (!teacherToDisable) return;
     try {
@@ -187,7 +178,7 @@ export default function TeachersPage() {
         <TeacherFilterBar values={filterValues} showFilters={showFilters} onToggleFilters={() => setShowFilters((visible) => !visible)} onChange={changeFilter} onClear={() => reset(undefined, "replace")} labels={{ search: t("filters.search_placeholder"), filters: t("filters.title"), clear: t("filters.clear"), employment: t("filters.employment"), account: t("filters.account"), membership: t("filters.membership"), gender: t("filters.gender"), completeness: t("filters.completeness"), all: t("filters.all"), active: t("statuses.active"), inactive: t("statuses.inactive"), terminated: t("statuses.terminated"), invited: t("statuses.invited"), suspended: t("statuses.suspended"), disabled: t("statuses.disabled"), transferred: t("statuses.transferred"), male: t("gender.male"), female: t("gender.female"), complete: t("completeness.complete"), incomplete: t("completeness.incomplete") }} />
         {teachers.error ? <div className="rounded-2xl border border-red-200 bg-red-50 p-5"><p className="text-sm text-red-700">{t("messages.load_failed")}</p><Button className="mt-3" variant="secondary" onClick={() => void teachers.refresh()}>{t("states.retry")}</Button></div> : null}
         {!teachers.error && !teachers.isLoading && teachers.response?.items.length === 0 ? <EmptyState icon={<Users className="h-12 w-12" />} title={values.search || Object.values(filterValues).some(Boolean) ? t("empty.filtered_title") : t("empty.title")} message={values.search || Object.values(filterValues).some(Boolean) ? t("empty.filtered_description") : t("empty.description")} /> : null}
-        {!teachers.error && (teachers.isLoading || teachers.response?.items.length) ? <TeacherListTable teachers={teachers.response?.items ?? []} page={Number(values.page)} pageSize={Number(values.limit)} total={teachers.response?.pagination.total ?? 0} isLoading={teachers.isLoading || teachers.isRefreshing} searchQuery={debouncedSearch} canManage={canManage} canManageCredentials={canManageCredentials} onPageChange={(page) => setValues({ page: String(page) })} onPageSizeChange={(limit) => setValues({ limit: String(limit), page: "1" })} onView={(teacher) => openTeacher(teacher.id)} onEdit={(teacher) => openTeacher(teacher.id)} onResetPassword={(teacher) => void resetTeacherPassword(teacher)} onDisableAccount={setTeacherToDisable} /> : null}
+        {!teachers.error && (teachers.isLoading || teachers.response?.items.length) ? <TeacherListTable teachers={teachers.response?.items ?? []} page={Number(values.page)} pageSize={Number(values.limit)} total={teachers.response?.pagination.total ?? 0} isLoading={teachers.isLoading || teachers.isRefreshing} searchQuery={debouncedSearch} canManage={canManage} onPageChange={(page) => setValues({ page: String(page) })} onPageSizeChange={(limit) => setValues({ limit: String(limit), page: "1" })} onView={(teacher) => openTeacher(teacher.id)} onEdit={(teacher) => openTeacher(teacher.id)} onDisableAccount={setTeacherToDisable} /> : null}
       </div>
       {showCreate ? <CreateTeacherDialog isOpen isSubmitting={actions.activeAction === "create"} onClose={() => setShowCreate(false)} onSubmit={createTeacher} /> : null}
       {showRehire ? <RehireTeacherDialog isOpen isSubmitting={actions.activeAction === "rehire"} onClose={() => setShowRehire(false)} onSubmit={rehireTeacher} /> : null}

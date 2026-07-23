@@ -19,12 +19,10 @@ interface TeacherListTableProps {
   isLoading: boolean;
   searchQuery: string;
   canManage: boolean;
-  canManageCredentials: boolean;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   onView: (teacher: TeacherDirectoryListItem) => void;
   onEdit: (teacher: TeacherDirectoryListItem) => void;
-  onResetPassword: (teacher: TeacherDirectoryListItem) => void;
   onDisableAccount: (teacher: TeacherDirectoryListItem) => void;
 }
 
@@ -65,7 +63,6 @@ export default function TeacherListTable(props: TeacherListTableProps) {
             items={[
               { label: t("actions.view_details"), value: "view", onClick: () => props.onView(teacher) },
               ...(props.canManage ? [{ label: t("actions.edit"), value: "edit", onClick: () => props.onEdit(teacher) }] : []),
-              ...(props.canManageCredentials && (teacher.accountStatus === "ACTIVE" || teacher.accountStatus === "INVITED") ? [{ label: t("actions.reset_password"), value: "reset-password", onClick: () => props.onResetPassword(teacher) }] : []),
               ...(props.canManage && teacher.employmentStatus === "ACTIVE" ? [{ label: t("actions.disable_account"), value: "disable-account", onClick: () => props.onDisableAccount(teacher) }] : []),
             ]}
           />
