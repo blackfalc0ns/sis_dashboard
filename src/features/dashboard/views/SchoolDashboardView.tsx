@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 
 import ActivitiesCard from "../components/ActivitiesCard";
+import DashboardAnalysisCards from "../components/DashboardAnalysisCards";
+import DashboardAnalysisCharts from "../components/DashboardAnalysisCharts";
 import DashboardIntelligencePanel from "../components/DashboardIntelligencePanel";
 import FilterBar from "../components/FilterBar";
 import QuickActionPanel from "../components/QuickActionPanel";
@@ -44,6 +46,7 @@ import type {
   DashboardViewAlert,
 } from "@/features/dashboard/mappers/dashboardViewMapper";
 import type {
+  DashboardCommandCenterResponse,
   DashboardModuleListItem,
   DashboardModulePage,
 } from "@/features/dashboard/types/dashboardApi.types";
@@ -163,6 +166,14 @@ export default function SchoolDashboardView({
   moduleErrors,
   onLoadModuleDetails,
 }: SchoolDashboardViewProps) {
+  const [commandCenterAnalysis, setCommandCenterAnalysis] =
+    useState<DashboardCommandCenterResponse | null>(null);
+  const handleCommandCenterChange = useCallback(
+    (commandCenter: DashboardCommandCenterResponse | null) => {
+      setCommandCenterAnalysis(commandCenter);
+    },
+    [],
+  );
   const pathname = usePathname();
   const locale = useLocale();
   const t = useTranslations("dashboard_new");
@@ -185,11 +196,10 @@ export default function SchoolDashboardView({
 
   return (
     <div
-      className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(3,107,128,0.10),transparent_30%),linear-gradient(180deg,#f8fbfc_0%,#f4f7f8_52%,#ffffff_100%)] p-4 sm:p-6 md:p-8"
+      className="min-h-screen bg-white p-4 sm:p-6 md:p-8"
       dir={locale === "ar" ? "rtl" : "ltr"}
     >
       <div className="mx-auto max-w-[1600px] space-y-6">
-        <LightModeDropdown />
         <DashboardHeader
           activityFeedState={activityFeedState}
           alertsState={alertsState}
@@ -200,8 +210,14 @@ export default function SchoolDashboardView({
           summaryState={summaryState}
           t={t}
         />
+        <LightModeDropdown />
+        <DashboardIntelligencePanel
+          onCommandCenterChange={handleCommandCenterChange}
+        />
 
-        <DashboardIntelligencePanel />
+        <DashboardAnalysisCards commandCenter={commandCenterAnalysis} />
+
+        <DashboardAnalysisCharts commandCenter={commandCenterAnalysis} />
 
         <DashboardActionRow
           alertsState={alertsState}
@@ -284,7 +300,7 @@ function DashboardHeader({
 }: DashboardHeaderProps) {
   if (summaryState.status === "loading") {
     return (
-      <header className="rounded-2xl border border-gray-200/80 bg-white/90 p-6 shadow-[0_16px_45px_rgba(15,23,42,0.07)] backdrop-blur-sm">
+      <header className="rounded-2xl border border-border bg-white/90 p-6">
         <DashboardPartialLoading label={t("dashboard.loading_summary")} />
       </header>
     );
@@ -312,9 +328,9 @@ function DashboardHeader({
   });
 
   return (
-    <header className="relative overflow-hidden rounded-2xl border border-primary-100 bg-[linear-gradient(115deg,#ffffff_10%,#f1fbfc_58%,#e6f5f6_100%)] p-6 shadow-[0_20px_50px_rgba(3,107,128,0.12)] sm:p-7">
+    <header className="relative overflow-hidden rounded-2xl border border-primary-100 bg-white p-6 sm:p-7">
       <div className="pointer-events-none absolute -left-20 -top-24 h-52 w-52 rounded-full bg-primary/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 -right-16 h-48 w-48 rounded-full bg-cyan-300/30 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -right-16 h-48 w-48 rounded-full blur-3xl" />
       <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-sm font-bold text-primary-700">
@@ -332,7 +348,9 @@ function DashboardHeader({
                 value: context.academicYearName,
               })}
             </span>
-            <span className="rounded-full border border-white/80 bg-white/70 px-3 py-1.5 shadow-sm">{t("dashboard.term", { value: context.termName })}</span>
+            <span className="rounded-full border border-white/80 bg-white/70 px-3 py-1.5 shadow-sm">
+              {t("dashboard.term", { value: context.termName })}
+            </span>
             <span className="rounded-full border border-white/80 bg-white/70 px-3 py-1.5 shadow-sm">
               {t("dashboard.last_updated", {
                 value: formattedGeneratedAt(
@@ -440,7 +458,7 @@ function ActionRequiredPanel({
             <Link
               key={alertEntry.id}
               href={localizedPath(pathname, alertEntry.actionTarget)}
-            className="inline-flex items-center justify-center rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white transition-colors duration-200 hover:bg-hover focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
+              className="inline-flex items-center justify-center rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white transition-colors duration-200 hover:bg-hover focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
             >
               {alertEntry.actionLabel}
             </Link>

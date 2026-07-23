@@ -66,7 +66,11 @@ const emptyState: IntelligenceState = {
 
 const chartColors = ["#036b80", "#0ea5a4", "#f59e0b", "#7c3aed"];
 
-export default function DashboardIntelligencePanel() {
+export default function DashboardIntelligencePanel({
+  onCommandCenterChange,
+}: {
+  onCommandCenterChange?: (commandCenter: DashboardCommandCenterResponse | null) => void;
+}) {
   const locale = useLocale();
   const t = useTranslations("dashboard_new.command_center");
   const { academicYearId, termId } = useAcademicYearTermLayoutContext();
@@ -104,9 +108,10 @@ export default function DashboardIntelligencePanel() {
     });
     const analyticsResults = await Promise.allSettled(analyticsRequests);
 
+    const commandCenter = commandResult.status === "fulfilled" ? commandResult.value : null;
+    onCommandCenterChange?.(commandCenter);
     setState({
-      commandCenter:
-        commandResult.status === "fulfilled" ? commandResult.value : null,
+      commandCenter,
       widgets: widgetsResult.status === "fulfilled" ? widgetsResult.value.widgets : [],
       analytics: analyticsResults.flatMap((result) =>
         result.status === "fulfilled" ? [result.value] : [],
@@ -121,7 +126,7 @@ export default function DashboardIntelligencePanel() {
     });
     setHasLoaded(true);
     setIsLoading(false);
-  }, [academicYearId, termId]);
+  }, [academicYearId, onCommandCenterChange, termId]);
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void load(analyticsRange), 0);
