@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import ActivitiesCard from "../components/ActivitiesCard";
+import DashboardIntelligencePanel from "../components/DashboardIntelligencePanel";
 import FilterBar from "../components/FilterBar";
 import QuickActionPanel from "../components/QuickActionPanel";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
@@ -184,10 +185,10 @@ export default function SchoolDashboardView({
 
   return (
     <div
-      className="min-h-screen bg-gray-50/50 p-4 sm:p-6 md:p-8"
+      className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(3,107,128,0.10),transparent_30%),linear-gradient(180deg,#f8fbfc_0%,#f4f7f8_52%,#ffffff_100%)] p-4 sm:p-6 md:p-8"
       dir={locale === "ar" ? "rtl" : "ltr"}
     >
-      <div className="space-y-6">
+      <div className="mx-auto max-w-[1600px] space-y-6">
         <LightModeDropdown />
         <DashboardHeader
           activityFeedState={activityFeedState}
@@ -199,6 +200,8 @@ export default function SchoolDashboardView({
           summaryState={summaryState}
           t={t}
         />
+
+        <DashboardIntelligencePanel />
 
         <DashboardActionRow
           alertsState={alertsState}
@@ -258,7 +261,7 @@ function DashboardActionRow({
   t: ReturnType<typeof useTranslations>;
 }) {
   return (
-    <section className="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+    <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
       <ActionRequiredPanel
         alertsState={alertsState}
         pathname={pathname}
@@ -281,7 +284,7 @@ function DashboardHeader({
 }: DashboardHeaderProps) {
   if (summaryState.status === "loading") {
     return (
-      <header className="mb-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <header className="rounded-2xl border border-gray-200/80 bg-white/90 p-6 shadow-[0_16px_45px_rgba(15,23,42,0.07)] backdrop-blur-sm">
         <DashboardPartialLoading label={t("dashboard.loading_summary")} />
       </header>
     );
@@ -289,7 +292,7 @@ function DashboardHeader({
 
   if (summaryState.status === "error") {
     return (
-      <header className="mb-5 rounded-xl border border-red-200 bg-white p-5 shadow-sm">
+      <header className="rounded-2xl border border-red-200 bg-white p-6 shadow-[0_16px_45px_rgba(15,23,42,0.07)]">
         <SectionError
           title={t("dashboard.unavailable")}
           message={summaryState.message}
@@ -309,24 +312,28 @@ function DashboardHeader({
   });
 
   return (
-    <header className="mb-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-sm font-semibold text-primary-700">
-            <School className="h-4 w-4" />
+    <header className="relative overflow-hidden rounded-2xl border border-primary-100 bg-[linear-gradient(115deg,#ffffff_10%,#f1fbfc_58%,#e6f5f6_100%)] p-6 shadow-[0_20px_50px_rgba(3,107,128,0.12)] sm:p-7">
+      <div className="pointer-events-none absolute -left-20 -top-24 h-52 w-52 rounded-full bg-primary/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -right-16 h-48 w-48 rounded-full bg-cyan-300/30 blur-3xl" />
+      <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-sm font-bold text-primary-700">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-white shadow-sm">
+              <School className="h-4 w-4" />
+            </span>
             {context.schoolName}
           </div>
-          <h1 className="mt-2 text-2xl font-bold text-gray-950">
+          <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-gray-950 sm:text-4xl">
             {t("dashboard.title")}
           </h1>
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-600">
-            <span>
+          <div className="mt-4 flex flex-wrap gap-2 text-sm font-medium text-gray-700">
+            <span className="rounded-full border border-white/80 bg-white/70 px-3 py-1.5 shadow-sm">
               {t("dashboard.academic_year", {
                 value: context.academicYearName,
               })}
             </span>
-            <span>{t("dashboard.term", { value: context.termName })}</span>
-            <span>
+            <span className="rounded-full border border-white/80 bg-white/70 px-3 py-1.5 shadow-sm">{t("dashboard.term", { value: context.termName })}</span>
+            <span className="rounded-full border border-white/80 bg-white/70 px-3 py-1.5 shadow-sm">
               {t("dashboard.last_updated", {
                 value: formattedGeneratedAt(
                   context.generatedAt,
@@ -338,24 +345,24 @@ function DashboardHeader({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 lg:max-w-md lg:justify-end">
           <Link
             href={localizedPath(pathname, "/attendance/reports")}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-xl border border-primary-100 bg-white/90 px-4 py-2.5 text-sm font-bold text-gray-700 shadow-sm transition-colors duration-200 hover:border-primary-200 hover:bg-white focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
           >
             <FileText className="h-4 w-4" />
             {t("dashboard.reports")}
           </Link>
           <Link
             href={localizedPath(pathname, "/settings")}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-xl border border-primary-100 bg-white/90 px-4 py-2.5 text-sm font-bold text-gray-700 shadow-sm transition-colors duration-200 hover:border-primary-200 hover:bg-white focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
           >
             <Settings2 className="h-4 w-4" />
             {t("dashboard.settings")}
           </Link>
           <button
             onClick={onRefresh}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-hover disabled:cursor-wait disabled:opacity-70 focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-[0_8px_20px_rgba(3,107,128,0.22)] transition-colors duration-200 hover:bg-hover disabled:cursor-wait disabled:opacity-70 focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
             disabled={isRefreshing}
           >
             <RefreshCw
@@ -385,7 +392,7 @@ function ActionRequiredPanel({
 }) {
   if (alertsState.status === "loading") {
     return (
-      <section className="mb-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-gray-200/80 bg-white/90 p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
         <DashboardPartialLoading label={t("alerts_page.loading")} />
       </section>
     );
@@ -393,7 +400,7 @@ function ActionRequiredPanel({
 
   if (alertsState.status === "error") {
     return (
-      <section className="mb-5 rounded-xl border border-red-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-red-200 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
         <SectionError
           title={t("alerts_page.unavailable")}
           message={alertsState.message}
@@ -419,7 +426,7 @@ function ActionRequiredPanel({
     prioritizedAlerts.length > visibleAlerts.length;
 
   return (
-    <section className="mb-5 rounded-xl border border-red-200 bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border border-red-200/90 bg-white/95 p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
       <ActionRequiredHeader
         alertsHref={dashboardAlertsPath(pathname)}
         hasMoreAlerts={hasMoreAlerts}
@@ -433,7 +440,7 @@ function ActionRequiredPanel({
             <Link
               key={alertEntry.id}
               href={localizedPath(pathname, alertEntry.actionTarget)}
-              className="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-hover focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
+            className="inline-flex items-center justify-center rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white transition-colors duration-200 hover:bg-hover focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
             >
               {alertEntry.actionLabel}
             </Link>
@@ -452,7 +459,7 @@ function ActionRequiredPanel({
 
 function EmptyAlertState({ t }: { t: ReturnType<typeof useTranslations> }) {
   return (
-    <section className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+    <section className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-5 shadow-[0_12px_35px_rgba(15,23,42,0.04)]">
       <div className="flex items-center gap-3">
         <CheckCircle2 className="h-5 w-5 text-emerald-600" />
         <div>
@@ -482,7 +489,7 @@ function ActionRequiredHeader({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
           <AlertCircle className="h-5 w-5" />
         </div>
         <div>
@@ -497,7 +504,7 @@ function ActionRequiredHeader({
       {hasMoreAlerts ? (
         <Link
           href={alertsHref}
-          className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
+          className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition-colors duration-200 hover:bg-red-100 focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
         >
           {t("dashboard.alerts.view_all")}
         </Link>
@@ -514,7 +521,7 @@ function ActionRequiredItem({
   const toneStyle = toneStyles[alertEntry.tone];
 
   return (
-    <article className="py-4 first:pt-0 last:pb-0">
+    <article className="rounded-xl py-3 transition-colors duration-200 hover:bg-gray-50 first:pt-0 last:pb-0">
       <div className="flex gap-3">
         <span
           className={`mt-2 h-2 w-2 shrink-0 rounded-full ${toneStyle.dot}`}
@@ -577,11 +584,11 @@ function DashboardTabs({
   t: ReturnType<typeof useTranslations>;
 }) {
   return (
-    <div className="mb-5 overflow-x-auto">
+    <div className="overflow-x-auto pb-1">
       <div
         role="tablist"
         aria-label={t("dashboard.tabs.aria_label")}
-        className="inline-flex min-w-full gap-2 rounded-xl border border-gray-200 bg-white p-1 shadow-sm sm:min-w-0"
+        className="inline-flex min-w-full gap-1.5 rounded-2xl border border-gray-200/80 bg-white/90 p-1.5 shadow-[0_10px_28px_rgba(15,23,42,0.05)] sm:min-w-0"
       >
         {tabs.map((dashboardTab) => {
           const isActive = dashboardTab.id === activeTab;
@@ -600,10 +607,10 @@ function DashboardTabs({
               aria-selected={isActive}
               aria-controls={`panel-${dashboardTab.id}`}
               onClick={() => onTabChange(dashboardTab.id)}
-              className={`shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 ${
+              className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 ${
                 isActive
-                  ? "bg-primary text-white"
-                  : "text-gray-700 hover:bg-gray-50 hover:text-gray-950"
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-gray-700 hover:bg-primary-50 hover:text-primary-800"
               }`}
             >
               {label}
@@ -646,7 +653,7 @@ function DashboardTabContent({
       }
       if (state === "error") {
         return (
-          <section className="rounded-xl border border-red-200 bg-white p-5 shadow-sm">
+          <section className="rounded-2xl border border-red-200 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
             <SectionError
               title={
                 t("dashboard.modules_unavailable") || "Modules Unavailable"
@@ -670,7 +677,7 @@ function DashboardTabContent({
 
     if (summaryState.status === "error") {
       return (
-        <section className="rounded-xl border border-red-200 bg-white p-5 shadow-sm">
+        <section className="rounded-2xl border border-red-200 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
           <SectionError
             title={t("dashboard.modules_unavailable")}
             message={summaryState.message}
@@ -698,7 +705,7 @@ function DashboardTabContent({
       role="tabpanel"
       aria-labelledby={`tab-${activeTab}`}
       tabIndex={0}
-      className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 rounded-xl"
+      className="rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2"
     >
       {renderInnerContent()}
     </div>
@@ -727,7 +734,7 @@ function PersistentDashboardDetails({
   );
 
   return (
-    <section className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+    <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
       <DashboardActivityPanel
         activityFeedState={activityFeedState}
         locale={locale}
@@ -752,7 +759,7 @@ function DashboardActivityPanel({
 }) {
   if (activityFeedState.status === "loading") {
     return (
-      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-gray-200/80 bg-white/90 p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
         <DashboardPartialLoading label={t("activity_page.loading")} />
       </section>
     );
@@ -760,7 +767,7 @@ function DashboardActivityPanel({
 
   if (activityFeedState.status === "error") {
     return (
-      <section className="rounded-xl border border-red-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-red-200 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
         <SectionError
           title={t("activity_page.unavailable")}
           message={activityFeedState.message}
@@ -869,7 +876,7 @@ function ModuleCardGrid({
   t: ReturnType<typeof useTranslations>;
 }) {
   return (
-    <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+    <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
       {moduleCards.map((moduleCard) => (
         <ModuleSummaryCard
           key={moduleCard.id}
@@ -927,7 +934,7 @@ function TopKpiGrid({
 
   if (summaryState.status === "error") {
     return (
-      <section className="mb-5 rounded-xl border border-red-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-red-200 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
         <SectionError
           title={t("dashboard.kpis_unavailable")}
           message={summaryState.message}
@@ -937,7 +944,7 @@ function TopKpiGrid({
   }
 
   return (
-    <section className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {summaryState.data.topKpis.map((topKpi) => (
         <TopKpiCard key={topKpi.id} locale={locale} topKpi={topKpi} t={t} />
       ))}
@@ -958,13 +965,14 @@ function TopKpiCard({
   const numberLocale = locale === "ar" ? "ar-EG" : "en";
 
   return (
-    <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-gray-300 hover:shadow-md transition-all duration-200">
+    <article className="group relative overflow-hidden rounded-2xl border border-gray-200/80 bg-white/90 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition-all duration-200 hover:border-primary-200 hover:shadow-[0_18px_38px_rgba(3,107,128,0.12)]">
+      <div className={`absolute inset-x-0 top-0 h-1 ${toneStyle.dot}`} />
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-gray-600">
+          <p className="text-sm font-bold text-gray-600">
             {t(`dashboard.top_kpis.${topKpi.id}.label`)}
           </p>
-          <p className="mt-2 text-3xl font-bold text-gray-950">
+          <p className="mt-2 text-3xl font-extrabold tracking-tight text-gray-950">
             {topKpi.value.toLocaleString(numberLocale)}
           </p>
           <p className="mt-1 text-xs font-medium text-gray-600">
@@ -975,7 +983,7 @@ function TopKpiCard({
           </p>
         </div>
         <div
-          className={`rounded-full border ${toneStyle.border} ${toneStyle.bg} p-2`}
+          className={`rounded-xl border ${toneStyle.border} ${toneStyle.bg} p-2.5 shadow-sm`}
         >
           <BarChart3 className={`h-4 w-4 ${toneStyle.icon}`} />
         </div>
@@ -1000,16 +1008,16 @@ function ModuleSummaryCard({
   const toneStyle = toneStyles[stateTone];
 
   return (
-    <article className="flex min-h-[320px] flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:border-gray-300 hover:shadow-md transition-all duration-200">
+    <article className="flex min-h-[320px] flex-col rounded-2xl border border-gray-200/80 bg-white/90 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition-all duration-200 hover:border-primary-200 hover:shadow-[0_18px_38px_rgba(3,107,128,0.10)]">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
-            className={`rounded-lg border ${toneStyle.border} ${toneStyle.bg} p-2`}
+            className={`rounded-xl border ${toneStyle.border} ${toneStyle.bg} p-2.5 shadow-sm`}
           >
             <Icon className={`h-5 w-5 ${toneStyle.icon}`} />
           </div>
           <div>
-            <h2 className="text-base font-bold text-gray-950">
+            <h2 className="text-base font-extrabold text-gray-950">
               {t(`dashboard.modules.${moduleCard.id}.title`)}
             </h2>
             <p className="mt-1 text-xs font-medium text-gray-600">
@@ -1030,7 +1038,7 @@ function ModuleSummaryCard({
         {localizedModuleHighlights(moduleCard, t).map((highlight) => (
           <span
             key={highlight}
-            className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600"
+            className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-600"
           >
             {highlight}
           </span>
@@ -1040,7 +1048,7 @@ function ModuleSummaryCard({
       {moduleCard.actionLabel && moduleCard.actionTarget ? (
         <Link
           href={localizedPath(pathname, moduleCard.actionTarget)}
-          className="mt-auto pt-5 text-sm font-semibold text-primary-700 hover:text-hover focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none rounded cursor-pointer transition-colors duration-200"
+          className="mt-auto inline-flex w-fit items-center rounded-lg pt-5 text-sm font-bold text-primary-700 transition-colors duration-200 hover:text-hover focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer"
         >
           {localizedModuleAction(moduleCard, t)}
         </Link>
@@ -1068,7 +1076,7 @@ function ModuleMetrics({
         return (
           <div
             key={metricEntry.label}
-            className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
+            className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2.5"
           >
             <dt className="text-sm text-gray-600">
               {localizedMetricLabel(metricEntry.label, t)}
@@ -1098,7 +1106,7 @@ function SetupChecklist({
         return (
           <div
             key={setupItem.label}
-            className="flex items-start gap-3 rounded-lg bg-gray-50 px-3 py-2"
+            className="flex items-start gap-3 rounded-xl bg-gray-50 px-3 py-2.5"
           >
             {isReady ? (
               <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />
@@ -1134,7 +1142,7 @@ function ModuleStateBadge({
 
   return (
     <span
-      className={`rounded-full border ${toneStyle.border} ${toneStyle.bg} px-2.5 py-1 text-xs font-semibold ${toneStyle.text}`}
+      className={`rounded-full border ${toneStyle.border} ${toneStyle.bg} px-2.5 py-1 text-xs font-bold ${toneStyle.text}`}
     >
       {t(`dashboard.module_state.${state}`)}
     </span>
@@ -1388,7 +1396,7 @@ function DeferredFeatureList({
   const shouldScrollVersionNotes = deferredFeatures.length > 7;
 
   return (
-    <aside className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <aside className="rounded-2xl border border-gray-200/80 bg-white/90 p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
       <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-950">
         <BarChart3 className="h-5 w-5 text-gray-600" />
         {t("dashboard.version_notes")}

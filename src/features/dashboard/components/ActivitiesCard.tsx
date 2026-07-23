@@ -25,9 +25,9 @@ export default function ActivitiesCard({
     : t("activity_card.view_all");
 
   return (
-    <div className="bg-white rounded-[20px] p-8 shadow-(--main-box-shadow) border border-border flex flex-col gap-1 h-full">
+    <div className="flex h-full flex-col gap-1 rounded-2xl border border-gray-200/80 bg-white/90 p-6 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-bold text-gray-900">
+        <h3 className="text-lg font-extrabold text-gray-900">
           {t("activity_card.title")}
         </h3>
       </div>
@@ -48,9 +48,9 @@ export default function ActivitiesCard({
         {activityFeed.items.map((activityEntry) => (
           <div
             key={activityEntry.id}
-            className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-start gap-3 rounded-xl p-3 transition-colors duration-200 hover:bg-gray-50"
           >
-            <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-50 text-cyan-700">
+            <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700">
               <Activity className="h-5 w-5" />
             </div>
             <div className="flex-1 min-w-0">

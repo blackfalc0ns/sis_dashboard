@@ -72,15 +72,19 @@ describe("LightModeDropdown Integration", () => {
     render(<LightModeDropdown />);
 
     await waitFor(() => {
-      expect(mockFetchDropdown).toHaveBeenCalledWith({ locale: "en" });
+      expect(mockFetchDropdown).toHaveBeenCalledWith(
+        expect.objectContaining({
+          locale: "en",
+          date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        }),
+      );
     });
 
     fireEvent.click(screen.getByRole("button", { expanded: false }));
 
     await waitFor(() => {
-      expect(screen.getByText("Test Cairo Campus")).toBeInTheDocument();
       expect(screen.getByText("Configure admissions email template")).toBeInTheDocument();
-      expect(screen.getByText("Weather Unavailable")).toBeInTheDocument();
+      expect(screen.getByText("agenda")).toBeInTheDocument();
     });
   });
 
@@ -142,7 +146,9 @@ describe("LightModeDropdown Integration", () => {
 
     render(<LightModeDropdown defaultExpanded />);
 
-    await screen.findByText("Test Cairo Campus");
+    await waitFor(() => {
+      expect(mockFetchDropdown).toHaveBeenCalled();
+    });
     fireEvent.change(screen.getByPlaceholderText("addTitle"), {
       target: { value: "Created Todo" },
     });

@@ -6,8 +6,6 @@ import {
   ClipboardCheck,
   FileText,
   Megaphone,
-  Printer,
-  Upload,
   UserPlus,
 } from "lucide-react";
 import { useMemo } from "react";
@@ -31,8 +29,11 @@ export default function QuickActionPanel() {
   );
 
   return (
-    <aside className="h-full rounded-xl bg-white p-4 shadow-sm">
-      <h3 className="mb-5 text-base font-bold text-gray-900">{t("title")}</h3>
+    <aside className="h-full rounded-2xl border border-gray-200/80 bg-white/90 p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
+      <div className="mb-5 flex items-center justify-between">
+        <h3 className="text-base font-extrabold text-gray-900">{t("title")}</h3>
+        <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_0_4px_rgba(3,107,128,0.10)]" aria-hidden="true" />
+      </div>
       <QuickActionLinks actions={quickActions} />
       <DashboardAnnouncementDraftForm
         locale={locale}
@@ -44,14 +45,14 @@ export default function QuickActionPanel() {
 
 function QuickActionLinks({ actions }: { actions: QuickAction[] }) {
   return (
-    <div className="mb-6 grid grid-cols-2 gap-2">
+    <div className="mb-6 grid grid-cols-2 gap-2.5">
       {actions.map((action) => {
         const Icon = action.icon;
         return (
           <Link
             key={action.id}
             href={action.href}
-            className="group flex items-center gap-2 rounded-lg px-3 py-2.5 text-lg font-medium transition-all hover:opacity-95 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900 cursor-pointer duration-200"
+            className="group flex items-center gap-2 rounded-xl px-3 py-3 text-lg font-medium shadow-sm transition-[box-shadow,filter] duration-200 hover:brightness-95 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900 cursor-pointer"
             style={{
               backgroundColor: action.color,
               borderColor: action.color,
