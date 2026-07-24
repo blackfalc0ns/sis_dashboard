@@ -6,6 +6,7 @@ import "@/features/dashboard/__tests__/dashboardI18nMock";
 
 vi.mock("@/features/dashboard/services/dashboardApiService", () => ({
   fetchLightModeDropdown: vi.fn(),
+  fetchDashboardWidgets: vi.fn(),
   fetchDashboardTodos: vi.fn(),
   createDashboardTodo: vi.fn(),
   updateDashboardTodo: vi.fn(),
@@ -13,11 +14,30 @@ vi.mock("@/features/dashboard/services/dashboardApiService", () => ({
 }));
 
 const mockFetchDropdown = vi.mocked(api.fetchLightModeDropdown);
+const mockFetchDashboardWidgets = vi.mocked(api.fetchDashboardWidgets);
 const mockCreateTodo = vi.mocked(api.createDashboardTodo);
 const mockUpdateTodo = vi.mocked(api.updateDashboardTodo);
 
 describe("LightModeDropdown Integration", () => {
   it("loads dropdown details when the page opens", async () => {
+    mockFetchDashboardWidgets.mockResolvedValue({
+      generatedAt: "2026-07-15T09:00:00.000Z",
+      widgets: [],
+      summary: { total: 0, byType: {}, bySource: {} },
+      filters: { source: null, type: "calendar-card", limit: 1 },
+      deferred: {
+        customLayouts: "deferred",
+        widgetPreferences: "deferred",
+        analyticsCharts: "available",
+        weatherWidgets: "deferred",
+        todoWidgets: "available",
+        analyticsStandalone: "available",
+        todosStandalone: "persisted",
+        calendarTodoComposition: "available",
+        plannerCalendar: "available",
+        crossModulePlannerItems: "available",
+      },
+    });
     mockFetchDropdown.mockResolvedValue({
       location: {
         label: "Test Cairo Campus",
@@ -83,12 +103,35 @@ describe("LightModeDropdown Integration", () => {
     fireEvent.click(screen.getByRole("button", { expanded: false }));
 
     await waitFor(() => {
-      expect(screen.getByText("Configure admissions email template")).toBeInTheDocument();
+      expect(
+        screen.getByText("Configure admissions email template"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText("Must be done by term start"),
+      ).toBeInTheDocument();
       expect(screen.getByText("agenda")).toBeInTheDocument();
     });
   });
 
   it("uses the server-selected school date and persisted Todo ID when creating a Todo", async () => {
+    mockFetchDashboardWidgets.mockResolvedValue({
+      generatedAt: "2026-07-15T09:00:00.000Z",
+      widgets: [],
+      summary: { total: 0, byType: {}, bySource: {} },
+      filters: { source: null, type: "calendar-card", limit: 1 },
+      deferred: {
+        customLayouts: "deferred",
+        widgetPreferences: "deferred",
+        analyticsCharts: "available",
+        weatherWidgets: "deferred",
+        todoWidgets: "available",
+        analyticsStandalone: "available",
+        todosStandalone: "persisted",
+        calendarTodoComposition: "available",
+        plannerCalendar: "available",
+        crossModulePlannerItems: "available",
+      },
+    });
     mockFetchDropdown.mockResolvedValue({
       location: {
         label: "Test Cairo Campus",
@@ -152,13 +195,16 @@ describe("LightModeDropdown Integration", () => {
     fireEvent.change(screen.getByPlaceholderText("addTitle"), {
       target: { value: "Created Todo" },
     });
+    fireEvent.change(screen.getByPlaceholderText("addDescription"), {
+      target: { value: "Created from planner details" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "add" }));
 
     await waitFor(() => {
       expect(mockCreateTodo).toHaveBeenCalledWith({
         date: "2026-07-15",
         title: "Created Todo",
-        notes: null,
+        notes: "Created from planner details",
         priority: "normal",
       });
     });
@@ -171,5 +217,61 @@ describe("LightModeDropdown Integration", () => {
         status: "completed",
       });
     });
+  });
+
+  it("keeps the edit form open when saving a Todo fails", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    mockFetchDropdown.mockResolvedValue({
+      location: {
+        label: "Test Cairo Campus",
+        city: "Cairo",
+        country: "Egypt",
+        timezone: "Africa/Cairo",
+      },
+      weather: {
+        status: "provider_not_configured",
+        current: {
+          temperature: null,
+          lowTemperature: null,
+          feelsLike: null,
+          condition: "Weather Unavailable",
+        },
+        emptyState: { message: "Weather provider is not configured." },
+      },
+      planner: {
+        timezone: "Africa/Cairo",
+        date: "2026-07-15",
+        eventDates: [],
+        todos: [
+          {
+            todoId: "todo-1",
+            date: "2026-07-15",
+            title: "Retryable Todo",
+            notes: "Keep this note",
+            status: "pending",
+            priority: "normal",
+            sortOrder: 0,
+            completedAt: null,
+            createdAt: "2026-07-15T09:00:00.000Z",
+            updatedAt: "2026-07-15T09:00:00.000Z",
+          },
+        ],
+      },
+    });
+    mockUpdateTodo.mockRejectedValueOnce(new Error("Network error"));
+
+    render(<LightModeDropdown defaultExpanded />);
+
+    await screen.findByText("Retryable Todo");
+    fireEvent.click(screen.getByRole("button", { name: "edit" }));
+    fireEvent.click(screen.getByRole("button", { name: "save" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent("updateFailed");
+      expect(screen.getByRole("button", { name: "save" })).toBeInTheDocument();
+    });
+    consoleError.mockRestore();
   });
 });

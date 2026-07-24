@@ -13022,6 +13022,7 @@
     "tenDayForecast": "توقعات 10 أيام",
     "clock": "الساعة",
     "calendar": "التقويم",
+    "calendarUnavailable": "مؤشرات تواريخ المهام غير متاحة مؤقتًا.",
     "previousMonth": "الشهر السابق",
     "nextMonth": "الشهر التالي",
     "previousDay": "اليوم السابق",
@@ -13054,6 +13055,7 @@
     "edit": "تعديل",
     "save": "حفظ",
     "update": "تحديث",
+    "updateFailed": "تعذر حفظ التغييرات. حاول مرة أخرى.",
     "cancel": "إلغاء"
   },
   "app_download": {

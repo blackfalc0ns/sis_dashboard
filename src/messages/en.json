@@ -13033,6 +13033,7 @@
     "tenDayForecast": "10-Day Forecast",
     "clock": "Clock",
     "calendar": "Calendar",
+    "calendarUnavailable": "Task-date indicators are temporarily unavailable.",
     "previousMonth": "Previous month",
     "nextMonth": "Next month",
     "previousDay": "Previous day",
@@ -13065,6 +13066,7 @@
     "edit": "Edit",
     "save": "Save",
     "update": "Update",
+    "updateFailed": "Could not save changes. Please try again.",
     "cancel": "Cancel"
   },
   "app_download": {
