@@ -64,19 +64,21 @@ export default function GuardianAccountLinkModal({
     if (!isOpen) {
       return;
     }
-    setMode("create");
-    setUsername("");
-    setContactEmail(guardian?.email || "");
-    setTemporaryPasswordMode("generate");
-    setPreviewEmail("");
-    setError(null);
-    setLinkedResponse(null);
-    setSelectedUser(null);
+    void Promise.resolve().then(() => {
+      setMode("create");
+      setUsername("");
+      setContactEmail(guardian?.email || "");
+      setTemporaryPasswordMode("generate");
+      setPreviewEmail("");
+      setError(null);
+      setLinkedResponse(null);
+      setSelectedUser(null);
+    });
   }, [guardian, isOpen]);
 
   useEffect(() => {
     if (!isOpen || mode !== "create" || !username.trim()) {
-      setPreviewEmail("");
+      void Promise.resolve().then(() => setPreviewEmail(""));
       return;
     }
 

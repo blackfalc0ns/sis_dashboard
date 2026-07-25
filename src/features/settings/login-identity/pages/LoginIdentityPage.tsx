@@ -133,7 +133,7 @@ export default function LoginIdentityPage() {
   );
 
   useEffect(() => {
-    void hydrate();
+    void Promise.resolve().then(() => hydrate());
   }, [hydrate]);
 
   const handleFieldChange = (

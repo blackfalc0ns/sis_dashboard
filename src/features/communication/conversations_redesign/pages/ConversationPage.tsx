@@ -125,8 +125,8 @@ export default function ConversationPage({
       selectedConversationId &&
       !visibleConversations.some((item) => item.id === selectedConversationId)
     ) {
-      setSelectedConversationId(null);
-      setShowMobileThread(false);
+    void Promise.resolve().then(() => setSelectedConversationId(null));
+    void Promise.resolve().then(() => setShowMobileThread(false));
     }
   }, [initialConversationId, selectedConversationId, visibleConversations]);
 

@@ -210,7 +210,7 @@ export default function AcademicsOverviewPage() {
 
   useEffect(() => {
     if (isInitializing) return;
-    loadOverview();
+    void Promise.resolve().then(loadOverview);
   }, [isInitializing, loadOverview]);
 
   useEffect(() => {

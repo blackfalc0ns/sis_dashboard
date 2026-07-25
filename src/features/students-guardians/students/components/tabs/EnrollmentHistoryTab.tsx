@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   GraduationCap,
   Calendar,
@@ -12,10 +12,7 @@ import {
   Student,
   StudentEnrollment,
 } from "@/features/students-guardians/students/types";
-import {
-  getEnrollmentHistory,
-  getPlacementHistory,
-} from "@/features/students-guardians/students/services/enrollmentService";
+import { getEnrollmentHistory } from "@/features/students-guardians/students/services/enrollmentService";
 import {
   fetchCurrentEnrollment,
   fetchEnrollmentHistory,
@@ -37,11 +34,6 @@ export default function EnrollmentHistoryTab({
   >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const placementHistory = useMemo(
-    () => getPlacementHistory(student.id),
-    [student.id],
-  );
-
   useEffect(() => {
     let isCancelled = false;
 
@@ -117,25 +109,6 @@ export default function EnrollmentHistoryTab({
       month: "short",
       day: "numeric",
     });
-  };
-
-  const getMovementLabel = (actionType: string) => {
-    switch (actionType) {
-      case "enrolled":
-        return t("movement.enrolled");
-      case "transferred_internal":
-        return t("movement.transferred_internal");
-      case "transferred_external":
-        return t("movement.transferred_external");
-      case "withdrawn":
-        return t("movement.withdrawn");
-      case "promoted":
-        return t("movement.promoted");
-      case "reassigned_bulk":
-        return t("movement.reassigned_bulk");
-      default:
-        return actionType;
-    }
   };
 
   if (isLoading) {

@@ -28,7 +28,7 @@ export function useNotifications(guardianId: string) {
   }, [guardianId]);
 
   useEffect(() => {
-    loadNotifications();
+    void Promise.resolve().then(loadNotifications);
 
     // Poll for new notifications every 30 seconds
     const interval = setInterval(loadNotifications, 30000);

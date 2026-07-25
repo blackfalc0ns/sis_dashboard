@@ -74,30 +74,34 @@ export default function EventDialog({
     if (isOpen) {
       if (event) {
         // Edit mode
-        setTitle(event.title);
-        setType(event.type);
-        setAllDay(event.allDay);
-        setStartDate(parseCalendarDate(event.startDate));
-        setEndDate(parseCalendarDate(event.endDate));
-        setScopeType(event.scopeType);
-        setScopeId(event.scopeId || "");
-        setDescription(event.description || "");
-        setNotes(event.notes || "");
+        void Promise.resolve().then(() => {
+          setTitle(event.title);
+          setType(event.type);
+          setAllDay(event.allDay);
+          setStartDate(parseCalendarDate(event.startDate));
+          setEndDate(parseCalendarDate(event.endDate));
+          setScopeType(event.scopeType);
+          setScopeId(event.scopeId || "");
+          setDescription(event.description || "");
+          setNotes(event.notes || "");
+        });
       } else {
         // Create mode
         const dateObj = prefilledDate || new Date();
 
-        setTitle("");
-        setType("OTHER");
-        setAllDay(true);
-        setStartDate(dateObj);
-        setEndDate(dateObj);
-        setScopeType("SCHOOL");
-        setScopeId("");
-        setDescription("");
-        setNotes("");
+        void Promise.resolve().then(() => {
+          setTitle("");
+          setType("OTHER");
+          setAllDay(true);
+          setStartDate(dateObj);
+          setEndDate(dateObj);
+          setScopeType("SCHOOL");
+          setScopeId("");
+          setDescription("");
+          setNotes("");
+        });
       }
-      setErrors({});
+      void Promise.resolve().then(() => setErrors({}));
     }
   }, [isOpen, event, prefilledDate]);
 

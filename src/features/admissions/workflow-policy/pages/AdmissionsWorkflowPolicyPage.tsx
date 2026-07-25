@@ -39,8 +39,10 @@ export default function AdmissionsWorkflowPolicyPage() {
   }, [canView]);
 
   useEffect(() => {
-    if (isPermissionsReady && canView) void loadPolicy();
-    else if (isPermissionsReady) setIsLoading(false);
+    if (isPermissionsReady && canView) void Promise.resolve().then(loadPolicy);
+    else if (isPermissionsReady) {
+      void Promise.resolve().then(() => setIsLoading(false));
+    }
   }, [canView, isPermissionsReady, loadPolicy]);
 
   const savePolicy = async (changes: UpdateAdmissionWorkflowPolicy) => {

@@ -73,7 +73,7 @@ export default function HomeworkGradeSyncPanel({
   }, [canView, homeworkId, showError, t, tHomeworkError]);
 
   useEffect(() => {
-    void loadStatus();
+    void Promise.resolve().then(loadStatus);
   }, [loadStatus]);
 
   const loadAssessments = useCallback(async () => {
@@ -118,7 +118,7 @@ export default function HomeworkGradeSyncPanel({
   ]);
 
   useEffect(() => {
-    void loadAssessments();
+    void Promise.resolve().then(loadAssessments);
   }, [loadAssessments]);
 
   const selectOptions = linkedAssessmentOption(status, assessmentOptions);

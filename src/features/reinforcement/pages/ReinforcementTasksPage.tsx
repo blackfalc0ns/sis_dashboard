@@ -220,7 +220,7 @@ export default function ReinforcementTasksPage() {
   }, [refreshTasks]);
 
   useEffect(() => {
-    setFilterOptionsLoaded(false);
+      void Promise.resolve().then(() => setFilterOptionsLoaded(false));
   }, [context.academicYearId, context.termId]);
 
   const handleDuplicate = async (

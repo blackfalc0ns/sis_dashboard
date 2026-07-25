@@ -39,7 +39,7 @@ export default function AbsencesFiltersDrawer({
 
   // Update draft when filters change externally
   useEffect(() => {
-    setDraftFilters(filters);
+    void Promise.resolve().then(() => setDraftFilters(filters));
   }, [filters]);
 
   const statusOptions: { value: "ALL" | AttendanceIncidentType; label: string }[] = [

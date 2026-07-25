@@ -58,8 +58,8 @@ export default function RewardCatalogScopeFields({
     }
 
     let active = true;
-    setLoadingTerms(true);
-    setTermsError(false);
+    void Promise.resolve().then(() => setLoadingTerms(true));
+    void Promise.resolve().then(() => setTermsError(false));
     void fetchTermsByYear(value.academicYearId)
       .then((nextTerms) => {
         if (!active) return;

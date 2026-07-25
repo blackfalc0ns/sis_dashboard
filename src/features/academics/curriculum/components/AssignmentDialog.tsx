@@ -49,21 +49,25 @@ export default function AssignmentDialog({
   useEffect(() => {
     if (isOpen) {
       if (assignment) {
-        setTitleAr(assignment.titleAr);
-        setTitleEn(assignment.titleEn);
-        setDescriptionAr(assignment.descriptionAr || "");
-        setDescriptionEn(assignment.descriptionEn || "");
-        setDueDate(assignment.dueDate ? new Date(assignment.dueDate) : null);
-        setMaxScore(assignment.maxScore ?? "");
+        void Promise.resolve().then(() => {
+          setTitleAr(assignment.titleAr);
+          setTitleEn(assignment.titleEn);
+          setDescriptionAr(assignment.descriptionAr || "");
+          setDescriptionEn(assignment.descriptionEn || "");
+          setDueDate(assignment.dueDate ? new Date(assignment.dueDate) : null);
+          setMaxScore(assignment.maxScore ?? "");
+        });
       } else {
-        setTitleAr("");
-        setTitleEn("");
-        setDescriptionAr("");
-        setDescriptionEn("");
-        setDueDate(null);
-        setMaxScore("");
+        void Promise.resolve().then(() => {
+          setTitleAr("");
+          setTitleEn("");
+          setDescriptionAr("");
+          setDescriptionEn("");
+          setDueDate(null);
+          setMaxScore("");
+        });
       }
-      setErrors({});
+      void Promise.resolve().then(() => setErrors({}));
     }
   }, [isOpen, assignment]);
 

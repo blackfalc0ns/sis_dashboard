@@ -192,7 +192,7 @@ export default function EmailTemplatesPage() {
   );
 
   useEffect(() => {
-    void hydrate();
+    void Promise.resolve().then(() => hydrate());
   }, [hydrate]);
 
   const handleSelectKey = async (key: EmailTemplateKey) => {

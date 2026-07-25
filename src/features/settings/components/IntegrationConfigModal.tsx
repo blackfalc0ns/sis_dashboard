@@ -27,8 +27,10 @@ export default function IntegrationConfigModal({
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setValues(integration?.configuration.values || {});
-    setIsSaving(false);
+    void Promise.resolve().then(() => {
+      setValues(integration?.configuration.values || {});
+    });
+    void Promise.resolve().then(() => setIsSaving(false));
   }, [integration]);
 
   const isValid = useMemo(() => {

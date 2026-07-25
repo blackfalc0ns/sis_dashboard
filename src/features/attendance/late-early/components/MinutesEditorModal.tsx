@@ -38,11 +38,13 @@ export default function MinutesEditorModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    setMinutes(String(initialMinutes));
-    setCorrectionReason("");
-    setErrors({ minutes: "", correctionReason: "" });
-    setSaving(false);
-    setShowDiscardConfirm(false);
+    void Promise.resolve().then(() => {
+      setMinutes(String(initialMinutes));
+      setCorrectionReason("");
+      setErrors({ minutes: "", correctionReason: "" });
+      setSaving(false);
+      setShowDiscardConfirm(false);
+    });
   }, [isOpen, initialMinutes]);
 
   const dirty = useMemo(

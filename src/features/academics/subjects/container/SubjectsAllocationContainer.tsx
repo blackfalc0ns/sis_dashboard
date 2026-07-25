@@ -127,7 +127,7 @@ export default function SubjectsAllocationContainer() {
 
   // Load data when year/term changes
   useEffect(() => {
-    void loadSubjectAllocationData();
+    void Promise.resolve().then(loadSubjectAllocationData);
   }, [loadSubjectAllocationData]);
 
   const contextBarActions = useMemo(

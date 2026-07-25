@@ -26,8 +26,10 @@ export default function InterviewRatingModal({
 
   useEffect(() => {
     if (isOpen) {
-      setNotes(interview.notes || "");
-      setIsSubmitting(false);
+      void Promise.resolve().then(() => {
+        setNotes(interview.notes || "");
+        setIsSubmitting(false);
+      });
     }
   }, [interview.id, interview.notes, isOpen]);
 

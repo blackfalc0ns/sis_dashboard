@@ -136,7 +136,7 @@ export default function AttendanceExcusesPage() {
   }, [termContext.yearId, termContext.termId, filters, showError, tCommon]);
 
   useEffect(() => {
-    reloadRequests();
+    void Promise.resolve().then(reloadRequests);
   }, [reloadRequests]);
 
   useEffect(() => {
@@ -145,7 +145,7 @@ export default function AttendanceExcusesPage() {
       !termContext.yearId ||
       !termContext.termId
     ) {
-      setSelectedRequestPolicy(null);
+      void Promise.resolve().then(() => setSelectedRequestPolicy(null));
       return;
     }
 
@@ -182,7 +182,13 @@ export default function AttendanceExcusesPage() {
   // Update filters when term changes
   useEffect(() => {
     if (term) {
-      setFilters((prev) => ({ ...prev, dateFrom: term.startDate, dateTo: term.endDate }));
+      void Promise.resolve().then(() => {
+        setFilters((prev) => ({
+          ...prev,
+          dateFrom: term.startDate,
+          dateTo: term.endDate,
+        }));
+      });
     }
   }, [term]);
 

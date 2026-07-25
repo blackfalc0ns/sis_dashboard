@@ -60,8 +60,10 @@ export default function BulkActionDialog({
 
   useEffect(() => {
     if (open) {
-      setApplyError(null);
-      setApplySummary(null);
+      void Promise.resolve().then(() => {
+        setApplyError(null);
+        setApplySummary(null);
+      });
     }
   }, [open]);
 

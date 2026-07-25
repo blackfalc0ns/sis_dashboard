@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { ChevronLeft, ChevronRight, Plus, Filter, X, LayoutGrid, List, Calendar as CalendarIcon, RefreshCw } from "lucide-react";
 import Button from "@/components/ui/button/Button";
@@ -226,8 +226,6 @@ export default function CalendarToolbar({
   onViewChange,
   displayMode,
   onDisplayModeChange,
-  academicYearId,
-  termId,
   scopeIdFilter,
   onScopeIdFilterChange,
   stages,

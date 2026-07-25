@@ -175,12 +175,14 @@ export default function AssignmentBuilderPage({
     if (selectedQuestionId) {
       const question = questions.find((q) => q.id === selectedQuestionId);
       if (question) {
-        setQuestionDraft(question);
-        setLastSavedQuestion(question);
+        void Promise.resolve().then(() => {
+          setQuestionDraft(question);
+          setLastSavedQuestion(question);
+        });
       }
     } else {
-      setQuestionDraft(null);
-      setLastSavedQuestion(null);
+      void Promise.resolve().then(() => setQuestionDraft(null));
+      void Promise.resolve().then(() => setLastSavedQuestion(null));
     }
   }, [selectedQuestionId, questions]);
 

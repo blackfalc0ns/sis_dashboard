@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, it, expect, vi } from "vitest";
 import EventDialog from "../EventDialog";
 import type { AcademicEvent } from "../../services/calendarService";
@@ -75,7 +75,7 @@ describe("EventDialog", () => {
     expect(screen.getByText("add_event")).toBeInTheDocument();
   });
 
-  it("localizes the selected scope target label for Arabic", () => {
+  it("localizes the selected scope target label for Arabic", async () => {
     intlMock.locale = "ar";
     renderComponent({
       event: {
@@ -85,10 +85,10 @@ describe("EventDialog", () => {
       },
     });
 
-    expect(screen.getByText("الصف الأول")).toBeInTheDocument();
+    expect(await screen.findByText("الصف الأول")).toBeInTheDocument();
   });
 
-  it("shows separate description and notes fields when editing", () => {
+  it("shows separate description and notes fields when editing", async () => {
     renderComponent({
       event: {
         ...existingEvent,
@@ -97,11 +97,13 @@ describe("EventDialog", () => {
       },
     });
 
-    expect(screen.getByLabelText("description (optional)")).toHaveValue(
-      "Public event details",
-    );
-    expect(screen.getByLabelText("notes (optional)")).toHaveValue(
-      "Internal planning notes",
-    );
+    await waitFor(() => {
+      expect(screen.getByLabelText("description (optional)")).toHaveValue(
+        "Public event details",
+      );
+      expect(screen.getByLabelText("notes (optional)")).toHaveValue(
+        "Internal planning notes",
+      );
+    });
   });
 });

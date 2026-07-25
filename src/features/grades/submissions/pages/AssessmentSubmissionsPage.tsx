@@ -105,7 +105,7 @@ export default function AssessmentSubmissionsPage({ assessmentId }: { assessment
 
   useEffect(() => {
     const controller = new AbortController();
-    void loadSubmissions(controller.signal);
+    void Promise.resolve().then(() => loadSubmissions(controller.signal));
     return () => controller.abort();
   }, [loadSubmissions]);
 

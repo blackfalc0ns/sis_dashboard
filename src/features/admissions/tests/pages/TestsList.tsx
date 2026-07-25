@@ -78,7 +78,7 @@ export default function TestsList() {
   }, [showToast]);
 
   useEffect(() => {
-    void loadTests();
+    void Promise.resolve().then(loadTests);
   }, [loadTests]);
 
   const normalizeQueryValues = useCallback(

@@ -30,7 +30,7 @@ export default function AbsenceHeatmap({ data }: AbsenceHeatmapProps) {
     let isCancelled = false;
 
     if (isContextLoading) {
-      setIsLoading(true);
+    void Promise.resolve().then(() => setIsLoading(true));
       return () => {
         isCancelled = true;
       };

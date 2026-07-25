@@ -44,21 +44,26 @@ export default function EditConversationDialog({
   useEffect(() => {
     if (open && conversation) {
       const record = conversation as Record<string, unknown>;
-      setTitle(
-        conversation.title ??
-        (typeof record.titleEn === "string" ? record.titleEn : "") ??
-        "",
-      );
-      setDescription(
-        typeof record.description === "string" ? record.description :
-        typeof record.descriptionEn === "string" ? record.descriptionEn : "",
-      );
-      setIsReadOnly(Boolean(record.isReadOnly));
-      setIsPinned(Boolean(record.isPinned));
-      setAvatarPreview(null);
-      setAvatarFile(null);
-      setFormError(null);
-      setFieldErrors({});
+      void Promise.resolve().then(() => {
+        setTitle(
+          conversation.title ??
+            (typeof record.titleEn === "string" ? record.titleEn : "") ??
+            "",
+        );
+        setDescription(
+          typeof record.description === "string"
+            ? record.description
+            : typeof record.descriptionEn === "string"
+              ? record.descriptionEn
+              : "",
+        );
+        setIsReadOnly(Boolean(record.isReadOnly));
+        setIsPinned(Boolean(record.isPinned));
+        setAvatarPreview(null);
+        setAvatarFile(null);
+        setFormError(null);
+        setFieldErrors({});
+      });
     }
   }, [open, conversation]);
 

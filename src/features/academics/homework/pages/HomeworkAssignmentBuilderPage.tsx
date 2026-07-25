@@ -189,24 +189,26 @@ export default function HomeworkAssignmentBuilderPage({
 
   useEffect(() => {
     if (!canView) return;
-    void refresh();
+    void Promise.resolve().then(refresh);
   }, [canView, refresh]);
 
   useEffect(() => {
     if (!selectedQuestionId) {
-      setQuestionDraft(null);
+      void Promise.resolve().then(() => setQuestionDraft(null));
       return;
     }
     const selected =
       questions.find((question) => question.id === selectedQuestionId) || null;
-    setQuestionDraft(selected);
+    void Promise.resolve().then(() => setQuestionDraft(selected));
   }, [questions, selectedQuestionId]);
 
   useEffect(() => {
     if (!assignmentDraft) return;
-    setValidationErrors(
-      validateHomeworkAssignment(assignmentDraft, questions, tValidation),
-    );
+    void Promise.resolve().then(() => {
+      setValidationErrors(
+        validateHomeworkAssignment(assignmentDraft, questions, tValidation),
+      );
+    });
   }, [assignmentDraft, questions, tValidation]);
 
   const isAssignmentDirty = useMemo(() => {

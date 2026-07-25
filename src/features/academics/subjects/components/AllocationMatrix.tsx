@@ -88,8 +88,10 @@ export default function AllocationMatrix({
 
   // Initialize local allocations
   useEffect(() => {
-    setLocalAllocations(allocations);
-    setOriginalAllocations(allocations);
+    void Promise.resolve().then(() => {
+      setLocalAllocations(allocations);
+      setOriginalAllocations(allocations);
+    });
   }, [allocations]);
 
   const getAllocation = (gradeId: string, subjectId: string): number => {

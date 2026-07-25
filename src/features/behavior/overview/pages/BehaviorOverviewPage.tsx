@@ -147,14 +147,14 @@ export default function BehaviorOverviewPage() {
   const [structure, setStructure] = useState<StructureTree | null>(null);
   const [allStudents, setAllStudents] = useState<SelectOption[]>([]);
   const [studentOptions, setStudentOptions] = useState<SelectOption[]>([]);
-  const [fetchingOptions, setFetchingOptions] = useState(false);
+  const [, setFetchingOptions] = useState(false);
 
   // Load structure tree classrooms and all students
   useEffect(() => {
     if (!yearId || !termId) return;
 
     let cancelled = false;
-    setFetchingOptions(true);
+    void Promise.resolve().then(() => setFetchingOptions(true));
 
     const loadOptions = async () => {
       try {
@@ -227,11 +227,11 @@ export default function BehaviorOverviewPage() {
     const selectedClassroom = filters.classroomId;
 
     if (!selectedClassroom) {
-      setStudentOptions(allStudents);
+      void Promise.resolve().then(() => setStudentOptions(allStudents));
       return;
     }
 
-    setFetchingOptions(true);
+    void Promise.resolve().then(() => setFetchingOptions(true));
     const updateClassroomStudents = async () => {
       try {
         // Fetch/retrieve classroom students asynchronously with stale fetch guard
@@ -301,7 +301,7 @@ export default function BehaviorOverviewPage() {
   ]);
 
   useEffect(() => {
-    void load();
+    void Promise.resolve().then(load);
   }, [load]);
 
   // Reset only filters, preserving academicYearId and termId

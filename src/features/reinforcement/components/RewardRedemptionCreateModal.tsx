@@ -248,7 +248,7 @@ export default function RewardRedemptionCreateModal({
     if (!isOpen) return;
 
     const active = { current: true };
-    void loadLookups(active);
+    void Promise.resolve().then(() => loadLookups(active));
 
     return () => {
       active.current = false;

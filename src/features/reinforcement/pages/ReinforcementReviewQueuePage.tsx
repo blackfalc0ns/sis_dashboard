@@ -259,7 +259,7 @@ export default function ReinforcementReviewQueuePage() {
   // Load filter options
   useEffect(() => {
     if (!canView || !academicYearId || !termId) {
-      setOptionsLoading(false);
+      void Promise.resolve().then(() => setOptionsLoading(false));
       return;
     }
 

@@ -156,15 +156,17 @@ export function useMessageAttachments(
         fetchedIdsRef.current.delete(messageId);
       }
     });
-    setAttachmentsByMessageId((current) => {
-      const next = Object.fromEntries(
-        Object.entries(current).filter(([messageId]) =>
-          nextMessageIds.has(messageId),
-        ),
-      );
-      return Object.keys(next).length === Object.keys(current).length
-        ? current
-        : next;
+    void Promise.resolve().then(() => {
+      setAttachmentsByMessageId((current) => {
+        const next = Object.fromEntries(
+          Object.entries(current).filter(([messageId]) =>
+            nextMessageIds.has(messageId),
+          ),
+        );
+        return Object.keys(next).length === Object.keys(current).length
+          ? current
+          : next;
+      });
     });
   }, [messageIds]);
 
@@ -292,11 +294,12 @@ export function useMessageAttachments(
     await Promise.all(
       attachments.map((attachment) => deleteAttachment(messageId, attachment.id)),
     );
-    setAttachmentsByMessageId((current) => {
+    void Promise.resolve().then(() => setAttachmentsByMessageId((current) => {
       if (!current[messageId]) return current;
-      const { [messageId]: _removed, ...next } = current;
+      const next = { ...current };
+      delete next[messageId];
       return next;
-    });
+    }));
   }, []);
 
   useEffect(() => {

@@ -339,8 +339,10 @@ export default function ReinforcementTaskTargetSelector({
   }, [academicYearId, copy.error, termId]);
 
   useEffect(() => {
-    setSelection(scope === "school" && schoolId ? { school: schoolId } : {});
-    setDuplicateError("");
+    void Promise.resolve().then(() => {
+      setSelection(scope === "school" && schoolId ? { school: schoolId } : {});
+    });
+    void Promise.resolve().then(() => setDuplicateError(""));
   }, [academicYearId, schoolId, scope, termId]);
 
   const optionsByScope = useMemo<

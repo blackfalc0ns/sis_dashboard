@@ -108,7 +108,9 @@ export default function LessonPlansPage() {
     libraryQueryState.search,
   );
   useEffect(() => {
-    setLibrarySearchInput(libraryQueryState.search);
+    void Promise.resolve().then(() => {
+      setLibrarySearchInput(libraryQueryState.search);
+    });
   }, [libraryQueryState.search]);
   const {
     stages,

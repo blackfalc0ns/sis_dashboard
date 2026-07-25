@@ -72,8 +72,10 @@ export function useApplicationRegistration({
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    setIsLoading(true);
-    setError(null);
+    void Promise.resolve().then(() => {
+      setIsLoading(true);
+      setError(null);
+    });
     void loadRegistrationContext(applicationId, academicYearId, termId)
       .then((loadedContext) => {
         if (cancelled) return;

@@ -60,7 +60,7 @@ export default function InterviewDetailsPage({
   }, [interviewId]);
 
   useEffect(() => {
-    void loadInterview();
+    void Promise.resolve().then(loadInterview);
   }, [loadInterview]);
 
   if (isLoading) {

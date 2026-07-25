@@ -75,8 +75,10 @@ export default function MoveLessonDialog(props: MoveLessonDialogProps) {
   const [entry, setEntry] = useState<BackendTimetableEntryDto | null>(null);
   useEffect(() => {
     if (plannedDate && validDays.includes(plannedDate)) return;
-    setPlannedDate(validDays[0] ?? "");
-    setEntry(null);
+    void Promise.resolve().then(() => {
+      setPlannedDate(validDays[0] ?? "");
+      setEntry(null);
+    });
   }, [plannedDate, validDays]);
   const formatDate = (date: string) =>
     new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(

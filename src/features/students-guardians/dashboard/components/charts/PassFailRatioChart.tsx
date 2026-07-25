@@ -45,8 +45,8 @@ export default function PassFailRatioChart() {
     let isCancelled = false;
 
     if (isContextLoading) {
-      setAllStudents([]);
-      setIsLoading(true);
+      void Promise.resolve().then(() => setAllStudents([]));
+    void Promise.resolve().then(() => setIsLoading(true));
       return () => {
         isCancelled = true;
       };

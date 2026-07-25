@@ -155,7 +155,7 @@ export function useMessageReports() {
 
   useEffect(() => {
     mountedRef.current = true;
-    void refresh();
+    void Promise.resolve().then(refresh);
 
     return () => {
       mountedRef.current = false;

@@ -43,8 +43,8 @@ export function useConversation(conversationId: string) {
 
   useEffect(() => {
     mountedRef.current = true;
-    setIsLoading(true);
-    void refresh();
+    void Promise.resolve().then(() => setIsLoading(true));
+    void Promise.resolve().then(refresh);
     return () => {
       mountedRef.current = false;
     };

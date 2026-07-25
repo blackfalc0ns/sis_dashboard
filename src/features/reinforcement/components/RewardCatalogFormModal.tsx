@@ -82,55 +82,57 @@ export default function RewardCatalogFormModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    if (initialData) {
-      setTitleEn(initialData.titleEn || "");
-      setTitleAr(initialData.titleAr || "");
-      setDescriptionEn(initialData.descriptionEn || "");
-      setDescriptionAr(initialData.descriptionAr || "");
-      setType(initialData.type || "physical");
-      setMinTotalXp(
+    void Promise.resolve().then(() => {
+      if (initialData) {
+        setTitleEn(initialData.titleEn || "");
+        setTitleAr(initialData.titleAr || "");
+        setDescriptionEn(initialData.descriptionEn || "");
+        setDescriptionAr(initialData.descriptionAr || "");
+        setType(initialData.type || "physical");
+        setMinTotalXp(
         initialData.minTotalXp != null ? String(initialData.minTotalXp) : "",
-      );
-      setStockQuantity(
-        initialData.stockQuantity != null
-          ? String(initialData.stockQuantity)
-          : "",
-      );
-      setStockRemaining(
-        initialData.stockRemaining != null
-          ? String(initialData.stockRemaining)
-          : "",
-      );
-      setIsUnlimited(initialData.isUnlimited ?? false);
-      setSortOrder(
-        initialData.sortOrder != null ? String(initialData.sortOrder) : "",
-      );
-      setScope({
-        isGlobal: !initialData.academicYearId,
-        academicYearId: initialData.academicYearId || null,
-        termId: initialData.termId || null,
-      });
-      setImageFileId(initialData.imageFileId);
-    } else {
-      setTitleEn("");
-      setTitleAr("");
-      setDescriptionEn("");
-      setDescriptionAr("");
-      setType("physical");
-      setMinTotalXp("");
-      setStockQuantity("");
-      setStockRemaining("");
-      setIsUnlimited(false);
-      setSortOrder("");
-      setScope({
-        isGlobal: false,
-        academicYearId: defaultAcademicYearId || null,
-        termId: defaultTermId || null,
-      });
-      setImageFileId(undefined);
-    }
-    setImageUploading(false);
-    setValidationError(null);
+        );
+        setStockQuantity(
+          initialData.stockQuantity != null
+            ? String(initialData.stockQuantity)
+            : "",
+        );
+        setStockRemaining(
+          initialData.stockRemaining != null
+            ? String(initialData.stockRemaining)
+            : "",
+        );
+        setIsUnlimited(initialData.isUnlimited ?? false);
+        setSortOrder(
+          initialData.sortOrder != null ? String(initialData.sortOrder) : "",
+        );
+        setScope({
+          isGlobal: !initialData.academicYearId,
+          academicYearId: initialData.academicYearId || null,
+          termId: initialData.termId || null,
+        });
+        setImageFileId(initialData.imageFileId);
+      } else {
+        setTitleEn("");
+        setTitleAr("");
+        setDescriptionEn("");
+        setDescriptionAr("");
+        setType("physical");
+        setMinTotalXp("");
+        setStockQuantity("");
+        setStockRemaining("");
+        setIsUnlimited(false);
+        setSortOrder("");
+        setScope({
+          isGlobal: false,
+          academicYearId: defaultAcademicYearId || null,
+          termId: defaultTermId || null,
+        });
+        setImageFileId(undefined);
+      }
+      setImageUploading(false);
+      setValidationError(null);
+    });
   }, [defaultAcademicYearId, defaultTermId, isOpen, initialData]);
 
   const typeOptions = REWARD_TYPE_OPTIONS.map((opt) => ({
@@ -279,6 +281,16 @@ export default function RewardCatalogFormModal({
           disabled={loading}
           onChange={setImageFileId}
           onUploadingChange={setImageUploading}
+        />
+
+        <RewardCatalogScopeFields
+          academicYears={academicYears}
+          defaultAcademicYearId={defaultAcademicYearId}
+          defaultTermId={defaultTermId}
+          value={scope}
+          onChange={setScope}
+          disabled={loading}
+          hideAcademicContextSelectors
         />
 
         {/* Type select */}

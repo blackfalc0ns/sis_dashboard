@@ -86,10 +86,10 @@ export default function ReinforcementTaskModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    setDraft(initialDraft);
-    setAssignmentScope("student");
-    setTargetId("");
-    setIsSaving(false);
+    void Promise.resolve().then(() => setDraft(initialDraft));
+    void Promise.resolve().then(() => setAssignmentScope("student"));
+    void Promise.resolve().then(() => setTargetId(""));
+    void Promise.resolve().then(() => setIsSaving(false));
   }, [isOpen]);
 
   const handleAddTarget = () => {

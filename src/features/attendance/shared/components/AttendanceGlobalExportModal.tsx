@@ -45,8 +45,10 @@ export default function AttendanceGlobalExportModal({
 
   useEffect(() => {
     if (!isOpen) {
-      setFormat("csv");
-      setIsExporting(false);
+      void Promise.resolve().then(() => {
+        setFormat("csv");
+        setIsExporting(false);
+      });
     }
   }, [isOpen]);
 

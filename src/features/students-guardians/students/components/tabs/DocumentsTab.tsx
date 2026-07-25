@@ -84,7 +84,7 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
   }, [student.id]);
 
   useEffect(() => {
-    void loadDocuments();
+    void Promise.resolve().then(loadDocuments);
   }, [loadDocuments]);
 
   const handleUploadDocument = async (documentData: DocumentUploadData) => {

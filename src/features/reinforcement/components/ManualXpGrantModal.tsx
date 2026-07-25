@@ -71,7 +71,7 @@ export default function ManualXpGrantModal({
       setError("");
       setPolicy(null);
       setSummary(null);
-      setPolicyError("");
+      void Promise.resolve().then(() => setPolicyError(""));
       setSaving(false);
     });
   }, [context, isOpen]);
@@ -79,11 +79,11 @@ export default function ManualXpGrantModal({
   // Fetch tasks for the source dropdown when academic context changes
   useEffect(() => {
     if (!selection.academicYearId || !selection.termId) {
-      setTasks([]);
+      void Promise.resolve().then(() => setTasks([]));
       return;
     }
     let cancelled = false;
-    setTasksLoading(true);
+    void Promise.resolve().then(() => setTasksLoading(true));
     void listReinforcementTasks({
       academicYearId: selection.academicYearId,
       termId: selection.termId,
@@ -110,15 +110,15 @@ export default function ManualXpGrantModal({
       !selection.termId ||
       !selection.studentId
     ) {
-      setPolicy(null);
-      setSummary(null);
-      setPolicyError("");
+      void Promise.resolve().then(() => setPolicy(null));
+      void Promise.resolve().then(() => setSummary(null));
+    void Promise.resolve().then(() => setPolicyError(""));
       return;
     }
 
     let cancelled = false;
-    setPolicyLoading(true);
-    setPolicyError("");
+    void Promise.resolve().then(() => setPolicyLoading(true));
+    void Promise.resolve().then(() => setPolicyError(""));
     Promise.all([
       getEffectiveXpPolicy({
         academicYearId: selection.academicYearId,

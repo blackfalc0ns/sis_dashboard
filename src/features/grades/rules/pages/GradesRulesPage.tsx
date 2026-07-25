@@ -50,7 +50,7 @@ export default function GradesRulesPage({
   useEffect(() => {
     if (!academicYearId || !termId) return;
     let active = true;
-    setLoading(true);
+    void Promise.resolve().then(() => setLoading(true));
     void Promise.all([
       fetchGradesFiltersData(academicYearId, termId),
       ruleId ? fetchGradeRules(academicYearId, termId) : Promise.resolve([]),

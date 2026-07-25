@@ -92,21 +92,27 @@ export default function CurriculumEditor({
   const [viewMode, setViewMode] = useState<"form" | "learningContent">("form");
 
   useLayoutEffect(() => {
-    setFieldErrors({});
-    setFormMessages([]);
-    setPendingDeleteNode(null);
-    setViewMode("form");
+    void Promise.resolve().then(() => {
+      setFieldErrors({});
+      setFormMessages([]);
+      setPendingDeleteNode(null);
+      setViewMode("form");
+    });
     if (!selectedNode) {
-      setFormData(emptyForm);
-      setOriginalData(emptyForm);
+      void Promise.resolve().then(() => {
+        setFormData(emptyForm);
+        setOriginalData(emptyForm);
+      });
       onDirtyChange(false);
       return;
     }
 
     if (selectedNode.type === "unit") {
       if (selectedNode.id === "new") {
-        setFormData(emptyForm);
-        setOriginalData(emptyForm);
+        void Promise.resolve().then(() => {
+          setFormData(emptyForm);
+          setOriginalData(emptyForm);
+        });
       } else {
         const unit = units.find((u) => u.id === selectedNode.id);
         if (unit) {
@@ -117,14 +123,18 @@ export default function CurriculumEditor({
             estimatedLessons: unit.estimatedLessons?.toString() ?? "",
             estimatedMinutes: "",
           };
-          setFormData(data);
-          setOriginalData(data);
+          void Promise.resolve().then(() => {
+            setFormData(data);
+            setOriginalData(data);
+          });
         }
       }
     } else if (selectedNode.type === "lesson") {
       if (selectedNode.id.startsWith("new-")) {
-        setFormData(emptyForm);
-        setOriginalData(emptyForm);
+        void Promise.resolve().then(() => {
+          setFormData(emptyForm);
+          setOriginalData(emptyForm);
+        });
       } else {
         const lesson = lessons.find((l) => l.id === selectedNode.id);
         if (lesson) {
@@ -135,8 +145,10 @@ export default function CurriculumEditor({
             estimatedLessons: "",
             estimatedMinutes: lesson.estimatedMinutes?.toString() ?? "",
           };
-          setFormData(data);
-          setOriginalData(data);
+          void Promise.resolve().then(() => {
+            setFormData(data);
+            setOriginalData(data);
+          });
         }
       }
     }
@@ -144,7 +156,7 @@ export default function CurriculumEditor({
 
   useEffect(() => {
     const dirty = JSON.stringify(formData) !== JSON.stringify(originalData);
-    setIsDirty(dirty);
+    void Promise.resolve().then(() => setIsDirty(dirty));
     onDirtyChange(dirty);
   }, [formData, originalData, onDirtyChange]);
 

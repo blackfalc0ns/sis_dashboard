@@ -167,7 +167,7 @@ export default function NedaaSettingsPage() {
     let cancelled = false;
 
     if (!canViewSettings) {
-      setIsLoading(false);
+      void Promise.resolve().then(() => setIsLoading(false));
       return () => {
         cancelled = true;
       };

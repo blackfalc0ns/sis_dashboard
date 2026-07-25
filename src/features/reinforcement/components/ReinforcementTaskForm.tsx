@@ -129,7 +129,7 @@ export default function ReinforcementTaskForm({
 
   useEffect(() => {
     if (isInitializing) return;
-    setDraft((current) => {
+    void Promise.resolve().then(() => setDraft((current) => {
       if (
         current.context.academicYearId === academicYearId &&
         current.context.termId === termId
@@ -153,7 +153,7 @@ export default function ReinforcementTaskForm({
         },
         targets: [],
       };
-    });
+    }));
   }, [academicYearId, isInitializing, termId]);
 
   const stageErrors = useMemo(() => {

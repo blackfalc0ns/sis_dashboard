@@ -219,10 +219,10 @@ export function useConversationJoinRequests(
   useEffect(() => {
     mountedRef.current = true;
     if (enabled) {
-      setIsLoading(true);
-      void refresh();
+    void Promise.resolve().then(() => setIsLoading(true));
+    void Promise.resolve().then(refresh);
     } else {
-      setIsLoading(false);
+      void Promise.resolve().then(() => setIsLoading(false));
     }
     return () => {
       mountedRef.current = false;

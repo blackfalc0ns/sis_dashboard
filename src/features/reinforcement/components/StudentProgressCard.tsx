@@ -9,7 +9,6 @@ import {
   Clock3,
   Coins,
   ListChecks,
-  UserRound,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import type {

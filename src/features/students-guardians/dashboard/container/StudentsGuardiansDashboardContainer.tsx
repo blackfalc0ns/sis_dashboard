@@ -35,9 +35,9 @@ export default function StudentsGuardiansDashboardContainer() {
     }
 
     if (!yearId) {
-      setAllStudents([]);
-      setLoadError(null);
-      setIsLoading(false);
+      void Promise.resolve().then(() => setAllStudents([]));
+    void Promise.resolve().then(() => setLoadError(null));
+      void Promise.resolve().then(() => setIsLoading(false));
 
       return () => {
         isCancelled = true;

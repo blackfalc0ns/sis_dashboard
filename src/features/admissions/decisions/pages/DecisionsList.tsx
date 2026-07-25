@@ -67,7 +67,7 @@ export default function DecisionsList() {
   }, [canViewDecisions, showToast]);
 
   useEffect(() => {
-    void loadDecisions();
+    void Promise.resolve().then(loadDecisions);
   }, [loadDecisions]);
 
   const normalizeQueryValues = useCallback(

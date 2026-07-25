@@ -37,11 +37,11 @@ export default function RewardCatalogImageField({
 
   useEffect(() => {
     if (!value) {
-      setFileName("");
+      void Promise.resolve().then(() => setFileName(""));
     } else if (existingFile?.id === value) {
-      setFileName(existingFile.originalName);
+      void Promise.resolve().then(() => setFileName(existingFile.originalName));
     }
-    setError(null);
+      void Promise.resolve().then(() => setError(null));
   }, [existingFile, value]);
 
   const setUploadState = (next: boolean) => {

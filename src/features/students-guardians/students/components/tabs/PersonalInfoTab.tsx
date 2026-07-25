@@ -166,7 +166,7 @@ export default function PersonalInfoTab({
 
   // Keep form in sync when parent refreshes the student prop
   useEffect(() => {
-    setFormData(buildFormData(student));
+    void Promise.resolve().then(() => setFormData(buildFormData(student)));
   }, [student]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────

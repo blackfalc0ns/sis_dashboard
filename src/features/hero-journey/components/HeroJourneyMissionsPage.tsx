@@ -265,8 +265,8 @@ export default function HeroJourneyMissionsPage() {
     }
 
     let cancelled = false;
-    setIsMissionOptionsLoading(true);
-    setMissionOptionsError(null);
+    void Promise.resolve().then(() => setIsMissionOptionsLoading(true));
+    void Promise.resolve().then(() => setMissionOptionsError(null));
 
     void Promise.all([
       fetchStructureTree(academicYearId, termId),
@@ -366,7 +366,7 @@ export default function HeroJourneyMissionsPage() {
 
   useEffect(() => {
     if (!canViewHero || !academicYearId || !termId || missions.length === 0) {
-      setLessonNameById({});
+      void Promise.resolve().then(() => setLessonNameById({}));
       return;
     }
 
@@ -459,9 +459,11 @@ export default function HeroJourneyMissionsPage() {
     }
 
     if (!academicYearId || !termId) {
-      setMissions([]);
-      setLoadError(t("messages.selectAcademicContext"));
-      setIsLoading(false);
+      void Promise.resolve().then(() => setMissions([]));
+      void Promise.resolve().then(() => {
+        setLoadError(t("messages.selectAcademicContext"));
+      });
+      void Promise.resolve().then(() => setIsLoading(false));
       return;
     }
 
@@ -470,7 +472,7 @@ export default function HeroJourneyMissionsPage() {
     }
 
     let cancelled = false;
-    setIsLoading(true);
+    void Promise.resolve().then(() => setIsLoading(true));
 
     void getHeroJourneyMissions(missionFilters)
       .then((result) => {

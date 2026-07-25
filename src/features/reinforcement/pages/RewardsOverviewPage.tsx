@@ -310,7 +310,7 @@ export default function RewardsOverviewPage() {
   // Load filter options
   useEffect(() => {
     if (!canView || !academicYearId || !termId) {
-      setOptionsLoading(false);
+      void Promise.resolve().then(() => setOptionsLoading(false));
       return;
     }
     
@@ -341,16 +341,16 @@ export default function RewardsOverviewPage() {
   useEffect(() => {
     if (academicContextLoading || optionsLoading) return;
     if (!academicYearId || !termId) {
-      setCascadeValue({});
+      void Promise.resolve().then(() => setCascadeValue({}));
       if (values.studentId) setValue("studentId", "");
       return;
     }
     if (!academicOptions.students) return;
 
     if (!values.studentId) {
-      setCascadeValue((current) =>
+      void Promise.resolve().then(() => setCascadeValue((current) =>
         current.studentId ? {} : current,
-      );
+      ));
       return;
     }
 
@@ -358,20 +358,20 @@ export default function RewardsOverviewPage() {
       (student) => student.id === values.studentId || student.studentId === values.studentId,
     );
     if (!selectedStudent) {
-      setCascadeValue({});
+      void Promise.resolve().then(() => setCascadeValue({}));
       setValue("studentId", "");
       return;
     }
 
     const asString = (value: unknown): string | undefined =>
       typeof value === "string" && value ? value : undefined;
-    setCascadeValue({
+      void Promise.resolve().then(() => setCascadeValue({
       stageId: asString(selectedStudent.stageId),
       gradeId: asString(selectedStudent.gradeId),
       sectionId: asString(selectedStudent.sectionId),
       classroomId: asString(selectedStudent.classroomId),
       studentId: values.studentId,
-    });
+      }));
   }, [academicContextLoading, academicOptions.students, academicYearId, optionsLoading, setValue, termId, values.studentId]);
 
   const fetchData = useCallback(async () => {

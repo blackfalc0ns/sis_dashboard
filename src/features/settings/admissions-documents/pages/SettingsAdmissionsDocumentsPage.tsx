@@ -62,7 +62,7 @@ export default function SettingsAdmissionsDocumentsPage() {
   }, [schoolId, t]);
 
   useEffect(() => {
-    void loadDocuments();
+    void Promise.resolve().then(loadDocuments);
   }, [loadDocuments]);
 
   const handleExport = (format: SettingsExportFormat) => {

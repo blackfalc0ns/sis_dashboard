@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useSchoolBrandingEditor } from "../hooks/useSchoolBrandingEditor";
 import type { SchoolBrandingEditorCopy } from "../hooks/useSchoolBrandingEditor";
@@ -96,6 +96,9 @@ describe("useSchoolBrandingEditor", () => {
       useSchoolBrandingEditor({ initialProfile: emptyProfile, copy, onSave }),
     );
 
+    await act(async () => {
+      await Promise.resolve();
+    });
     await act(() => result.current.save());
 
     expect(onSave).not.toHaveBeenCalled();
@@ -126,7 +129,7 @@ describe("useSchoolBrandingEditor", () => {
     expect(result.current.isDirty).toBe(false);
   });
 
-  it("replaces the draft and cancel baseline when the source profile changes", () => {
+  it("replaces the draft and cancel baseline when the source profile changes", async () => {
     const onSave = vi.fn();
     const { result, rerender } = renderHook(
       ({ profile }) =>
@@ -138,7 +141,9 @@ describe("useSchoolBrandingEditor", () => {
     act(() => result.current.changeText("city", "Alexandria"));
     rerender({ profile: refreshedProfile });
 
-    expect(result.current.profile).toEqual(refreshedProfile);
+    await waitFor(() => {
+      expect(result.current.profile).toEqual(refreshedProfile);
+    });
     act(() => result.current.changeText("city", "Luxor"));
     act(() => result.current.cancel());
     expect(result.current.profile).toEqual(refreshedProfile);

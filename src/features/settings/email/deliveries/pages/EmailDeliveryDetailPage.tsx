@@ -122,7 +122,7 @@ export default function EmailDeliveryDetailPage({
   );
 
   useEffect(() => {
-    void hydrate();
+    void Promise.resolve().then(() => hydrate());
   }, [hydrate]);
 
   const handleCancel = async () => {

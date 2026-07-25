@@ -59,15 +59,17 @@ export default function SubjectDialog({
         isActive: subject?.isActive ?? true,
       };
 
-      setNameAr(initialValues.nameAr);
-      setNameEn(initialValues.nameEn);
-      setCode(initialValues.code);
-      setColor(initialValues.color);
-      setIsActive(initialValues.isActive);
-      setOriginalValues(initialValues);
-      setIsDirty(false);
-      setErrors({});
-      setBilingualErrors({});
+      void Promise.resolve().then(() => {
+        setNameAr(initialValues.nameAr);
+        setNameEn(initialValues.nameEn);
+        setCode(initialValues.code);
+        setColor(initialValues.color);
+        setIsActive(initialValues.isActive);
+        setOriginalValues(initialValues);
+        setIsDirty(false);
+        setErrors({});
+        setBilingualErrors({});
+      });
     }
   }, [isOpen, subject]);
 
@@ -88,7 +90,7 @@ export default function SubjectDialog({
       currentValues.color !== originalValues.color ||
       currentValues.isActive !== originalValues.isActive;
 
-    setIsDirty(dirty);
+    void Promise.resolve().then(() => setIsDirty(dirty));
   }, [nameAr, nameEn, code, color, isActive, originalValues]);
 
   const validateForm = (): boolean => {

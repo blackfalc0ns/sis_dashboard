@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { ArrowRight, Plus, Edit2, ChevronUp, ChevronDown } from "lucide-react";
 import Select from "@/components/ui/input/Select";

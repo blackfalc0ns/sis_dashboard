@@ -2,7 +2,7 @@
 
 import { Snackbar, Alert, AlertColor } from "@mui/material";
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react";
-import { announceToScreenReader, createAriaLive } from "@/lib/accessibility/ariaHelpers";
+import { announceToScreenReader } from "@/lib/accessibility/ariaHelpers";
 
 interface ToastContextType {
   showToast: (message: string, severity?: AlertColor) => void;

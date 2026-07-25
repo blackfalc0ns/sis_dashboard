@@ -227,7 +227,7 @@ export function useCommunicationPolicy() {
     };
     policyListeners.add(listener);
     if (!cachedPolicy) {
-      void refresh();
+    void Promise.resolve().then(refresh);
     } else {
       void getAdminOverview()
         .then((response) => {

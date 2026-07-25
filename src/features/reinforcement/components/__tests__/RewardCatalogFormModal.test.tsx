@@ -162,7 +162,7 @@ describe("RewardCatalogFormModal", () => {
     );
 
     await user.click(
-      screen.getByText("rewardsModule.catalog.form.globalReward"),
+      await screen.findByText("rewardsModule.catalog.form.globalReward"),
     );
     await user.click(
       screen.getByRole("button", {

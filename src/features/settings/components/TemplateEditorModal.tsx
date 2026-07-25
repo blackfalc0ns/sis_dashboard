@@ -27,19 +27,21 @@ export default function TemplateEditorModal({
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setDraft(
-      template
-        ? {
-            ...template,
-            variables: [...template.variables],
-            template: {
-              ...template.template,
-              channels: [...template.template.channels],
-            },
-          }
-        : null,
-    );
-    setIsSaving(false);
+    void Promise.resolve().then(() => {
+      setDraft(
+        template
+          ? {
+              ...template,
+              variables: [...template.variables],
+              template: {
+                ...template.template,
+                channels: [...template.template.channels],
+              },
+            }
+          : null,
+      );
+      setIsSaving(false);
+    });
   }, [template]);
 
   const handleSave = async () => {

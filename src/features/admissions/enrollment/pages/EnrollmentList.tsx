@@ -39,7 +39,7 @@ export default function EnrollmentList() {
     try { const [nextEnrollments, nextYears] = await Promise.all([fetchEnrollments(status === "all" ? undefined : { status }), fetchEnrollmentAcademicYears()]); setDtos(nextEnrollments); setAcademicYears(nextYears); }
     catch { setError(t("load_error")); } finally { setLoading(false); }
   }, [canView, status, t]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void Promise.resolve().then(load); }, [load]);
   useEffect(() => { if (!canViewStudents) return; void fetchStudents().then(setStudents).catch(() => setStudents([])); }, [canViewStudents]);
   useEffect(() => {
     if (!canViewStudents || dtos.length === 0) return; let active = true;

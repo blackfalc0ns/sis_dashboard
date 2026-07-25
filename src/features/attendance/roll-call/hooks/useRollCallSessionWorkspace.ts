@@ -169,20 +169,22 @@ export function useRollCallSessionWorkspace(
   useEffect(() => {
     const generation = ++previewGeneration.current;
     ++openGeneration.current;
-    setIsOpening(false);
-    setSession(null);
-    setEntries([]);
-    setOriginalEntries([]);
+    void Promise.resolve().then(() => {
+      setIsOpening(false);
+      setSession(null);
+      setEntries([]);
+      setOriginalEntries([]);
+    });
 
     if (!hasRequiredSelection(previewSelection)) {
-      setRoster([]);
-      setLoadError(null);
-      setIsPreviewLoading(false);
+      void Promise.resolve().then(() => setRoster([]));
+      void Promise.resolve().then(() => setLoadError(null));
+      void Promise.resolve().then(() => setIsPreviewLoading(false));
       return;
     }
 
-    setIsPreviewLoading(true);
-    setLoadError(null);
+    void Promise.resolve().then(() => setIsPreviewLoading(true));
+    void Promise.resolve().then(() => setLoadError(null));
     fetchRoster(previewSelection.scopeType, previewSelection.scopeIds, {
       yearId: previewSelection.yearId,
       termId: previewSelection.termId,

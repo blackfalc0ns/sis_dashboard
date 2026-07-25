@@ -247,7 +247,7 @@ export function useCommunicationOverview() {
 
   useEffect(() => {
     mountedRef.current = true;
-    void refresh();
+    void Promise.resolve().then(refresh);
 
     return () => {
       mountedRef.current = false;
@@ -259,7 +259,7 @@ export function useCommunicationOverview() {
 
   useEffect(() => {
     if (resyncVersion > 0) {
-      void refresh();
+    void Promise.resolve().then(refresh);
     }
   }, [refresh, resyncVersion]);
 

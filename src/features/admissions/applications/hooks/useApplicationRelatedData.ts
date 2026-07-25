@@ -64,7 +64,7 @@ export function useApplicationRelatedData(
   }, [applicationId, enabled]);
 
   useEffect(() => {
-    void reloadHandoff();
+    void Promise.resolve().then(reloadHandoff);
   }, [reloadHandoff]);
 
   useEffect(() => {

@@ -17,7 +17,9 @@ export function SetupGuideCard() {
   const key = dismissedKey(result.schoolId);
 
   useEffect(() => {
-    setIsDismissed(sessionStorage.getItem(key) === "true");
+    void Promise.resolve().then(() => {
+      setIsDismissed(sessionStorage.getItem(key) === "true");
+    });
   }, [key]);
 
   if (result.evaluation.isComplete || isDismissed) {

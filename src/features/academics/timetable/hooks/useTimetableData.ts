@@ -881,11 +881,11 @@ export function useTimetableData({
   ]);
 
   useEffect(() => {
-    loadAcademicDependencies();
+    void Promise.resolve().then(loadAcademicDependencies);
   }, [loadAcademicDependencies]);
 
   useEffect(() => {
-    loadTimetableForScope();
+    void Promise.resolve().then(loadTimetableForScope);
   }, [loadTimetableForScope]);
 
   return {

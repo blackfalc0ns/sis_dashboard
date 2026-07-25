@@ -136,8 +136,10 @@ export function OrganizationSetupStep({
   const [isEditing, setIsEditing] = useState(profile === null);
 
   useEffect(() => {
-    setSavedProfile(createInitialProfile(profile));
-    setIsEditing(profile === null);
+    void Promise.resolve().then(() => {
+      setSavedProfile(createInitialProfile(profile));
+    });
+    void Promise.resolve().then(() => setIsEditing(profile === null));
   }, [profile]);
 
   const editor = useSchoolBrandingEditor({

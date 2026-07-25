@@ -6,7 +6,6 @@ import type { StudentWithEnrollmentContext } from "@/features/students-guardians
 import type {
   Student,
   StudentGuardian,
-  StudentStatus,
   UpdateStudentPayload,
 } from "@/features/students-guardians/students/types";
 
@@ -83,37 +82,37 @@ export const createStudentsApiAdapter = (
         body: JSON.stringify(payload),
       }),
     ),
-  getStudentsByStatus: (_status: StudentStatus) => {
+  getStudentsByStatus: () => {
     throw new Error("students_api_sync_not_supported");
   },
-  getStudentsByGrade: (_grade) => {
+  getStudentsByGrade: () => {
     throw new Error("students_api_sync_not_supported");
   },
   getAtRiskStudents: () => {
     throw new Error("students_api_sync_not_supported");
   },
-  searchStudents: (_query) => {
+  searchStudents: () => {
     throw new Error("students_api_sync_not_supported");
   },
-  getStudentGuardians: (_studentId) => {
+  getStudentGuardians: () => {
     throw new Error("students_api_sync_not_supported");
   },
-  getPrimaryGuardian: (_studentId) => {
+  getPrimaryGuardian: () => {
     throw new Error("students_api_sync_not_supported");
   },
-  getGuardianStudents: (_guardianId) => {
+  getGuardianStudents: () => {
     throw new Error("students_api_sync_not_supported");
   },
   getAllGuardians: () => {
     throw new Error("students_api_sync_not_supported");
   },
-  getGuardianById: (_guardianId) => {
+  getGuardianById: () => {
     throw new Error("students_api_sync_not_supported");
   },
-  getStudentDocuments: (_studentId) => {
+  getStudentDocuments: () => {
     throw new Error("students_api_sync_not_supported");
   },
-  getMissingDocuments: (_studentId) => {
+  getMissingDocuments: () => {
     throw new Error("students_api_sync_not_supported");
   },
   getStudentsWithEnrollment: () => {

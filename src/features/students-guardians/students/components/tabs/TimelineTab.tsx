@@ -17,7 +17,7 @@ import type {
 } from "@/features/students-guardians/students/types";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { useTranslations } from "next-intl";
-import { EmptyState, FilterPanel, Select } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 interface TimelineTabProps {
@@ -27,7 +27,7 @@ interface TimelineTabProps {
 export default function TimelineTab({ student }: TimelineTabProps) {
   const t = useTranslations("students_guardians.profile.timeline");
   const [events, setEvents] = useState<StudentTimelineEvent[]>([]);
-  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [typeFilter] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

@@ -33,9 +33,7 @@ import {
 } from "lucide-react";
 import type { ReactionType } from "@/features/communication/types/message.types";
 import EmojiPicker, { type EmojiClickData, EmojiStyle, Theme } from "emoji-picker-react";
-import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
-import TextArea from "@/components/ui/input/TextArea";
 import Avatar from "@/features/communication/conversations_redesign/components/Avatar";
 import { CenteredState } from "@/features/communication/conversations_redesign/components/PanelLayout";
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
@@ -107,7 +105,6 @@ export function MessagesPanel({
   onAttachFile,
   onDeleteAttachment,
   onDeleteMessage,
-  onEditMessage,
   onStartEdit,
   onLoadOlder,
   onInfo,
@@ -368,8 +365,6 @@ function MessageBubble({
   userDisplayNames: UserDisplayNameMap;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [draftBody, setDraftBody] = useState(message.body ?? "");
   const [isActionPending, setIsActionPending] = useState(false);
   const senderName = isOwn
     ? currentUserName || labels.you

@@ -180,8 +180,10 @@ export default function AllocationMatrixView({
   const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
-    setLocalAllocations(teacherAllocations);
-    setOriginalAllocations(teacherAllocations);
+    void Promise.resolve().then(() => {
+      setLocalAllocations(teacherAllocations);
+      setOriginalAllocations(teacherAllocations);
+    });
   }, [teacherAllocations]);
 
   useEffect(() => {

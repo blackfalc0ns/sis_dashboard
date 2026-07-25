@@ -51,7 +51,7 @@ export default function ReinforcementProgressTab({
   }, [canView, fallbackError, params, studentId]);
 
   useEffect(() => {
-    if (isPermissionsReady) void loadProgress();
+    if (isPermissionsReady) void Promise.resolve().then(loadProgress);
   }, [isPermissionsReady, loadProgress]);
 
   if (!isPermissionsReady) {

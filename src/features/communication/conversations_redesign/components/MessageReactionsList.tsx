@@ -1,18 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  Angry,
-  Frown,
-  HandHeart,
-  Heart,
-  Laugh,
-  Loader2,
-  SmilePlus,
-  ThumbsDown,
-  ThumbsUp,
-} from "lucide-react";
-import type { ComponentType } from "react";
+import { Loader2 } from "lucide-react";
 import { getReactions } from "@/features/communication/api/communication.service";
 import type {
   MessageReaction,
@@ -22,28 +11,6 @@ import type { ConversationRedesignLabels } from "@/features/communication/conver
 import type { UserDisplayNameMap } from "@/features/communication/conversations_redesign/types";
 import { displayNameForUserId } from "@/features/communication/conversations_redesign/utils/displayNames";
 import { formatTime } from "@/features/communication/conversations_redesign/utils/formatters";
-
-/* ------------------------------------------------------------------ */
-/* Reaction metadata                                                   */
-/* ------------------------------------------------------------------ */
-
-const reactionMeta: Record<
-  string,
-  {
-    labelKey: keyof Pick<ConversationRedesignLabels, "like" | "reactionAdded">;
-    icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
-    color: string;
-  }
-> = {
-  like: { labelKey: "like", icon: HandHeart, color: "text-blue-600" },
-  love: { labelKey: "like", icon: Heart, color: "text-rose-500" },
-  laugh: { labelKey: "like", icon: Laugh, color: "text-amber-500" },
-  wow: { labelKey: "like", icon: SmilePlus, color: "text-amber-600" },
-  sad: { labelKey: "like", icon: Frown, color: "text-indigo-500" },
-  angry: { labelKey: "like", icon: Angry, color: "text-red-600" },
-  thumbs_up: { labelKey: "like", icon: ThumbsUp, color: "text-blue-600" },
-  thumbs_down: { labelKey: "like", icon: ThumbsDown, color: "text-slate-600" },
-};
 
 const reactionLabel: Record<string, { en: string; ar: string }> = {
   like: { en: "Thanks / Like", ar: "شكراً / إعجاب" },
@@ -126,7 +93,7 @@ export default function MessageReactionsList({
   }, [messageId, locale]);
 
   useEffect(() => {
-    void fetchReactions();
+    void Promise.resolve().then(fetchReactions);
   }, [fetchReactions]);
 
   /* Group reactions by type for the filter tabs */

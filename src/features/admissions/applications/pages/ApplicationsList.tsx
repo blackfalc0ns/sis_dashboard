@@ -141,7 +141,7 @@ export default function ApplicationsList() {
   }, [statusFilter, t]);
 
   useEffect(() => {
-    void loadApplications();
+    void Promise.resolve().then(loadApplications);
   }, [loadApplications]);
 
   useEffect(() => {

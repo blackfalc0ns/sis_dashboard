@@ -372,7 +372,7 @@ describe("AttachmentCard Voice Waveform", () => {
       />
     );
 
-    const waveform = await screen.findByTestId("waveform-container");
+    await screen.findByTestId("waveform-container");
     const audioElement = container.querySelector("audio") as HTMLAudioElement;
     expect(audioElement).toBeInTheDocument();
 

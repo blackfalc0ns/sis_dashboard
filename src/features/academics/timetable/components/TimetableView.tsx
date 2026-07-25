@@ -280,10 +280,12 @@ export default function TimetableView({
 
   // Sync internal refs for normalization
   useEffect(() => {
-    setInternalStages(stages);
-    setInternalGrades(grades);
-    setInternalSections(sections);
-    setInternalClassrooms(classrooms);
+    void Promise.resolve().then(() => {
+      setInternalStages(stages);
+      setInternalGrades(grades);
+      setInternalSections(sections);
+      setInternalClassrooms(classrooms);
+    });
   }, [stages, grades, sections, classrooms]);
   const { handleGenerate, applyGenerated } = useTimetableGeneration({
     termId,

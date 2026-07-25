@@ -201,24 +201,26 @@ export default function ExcuseRequestModal({
 
     if (initialRequest) {
       // Editing existing request
-      setForm({
-        studentId: initialRequest.studentId,
-        studentNameAr: initialRequest.studentNameAr,
-        studentNameEn: initialRequest.studentNameEn,
-        studentNumber: initialRequest.studentNumber,
-        type: initialRequest.type,
-        dateFrom: initialRequest.dateFrom,
-        dateTo: initialRequest.dateTo,
-        selectedPeriodIds: initialRequest.selectedPeriodIds || [],
-        minutesLate: initialRequest.minutesLate,
-        minutesEarlyLeave: initialRequest.minutesEarlyLeave,
-        reasonAr: initialRequest.reasonAr,
-        reasonEn: initialRequest.reasonEn,
-        attachments: initialRequest.attachments,
+      void Promise.resolve().then(() => {
+        setForm({
+          studentId: initialRequest.studentId,
+          studentNameAr: initialRequest.studentNameAr,
+          studentNameEn: initialRequest.studentNameEn,
+          studentNumber: initialRequest.studentNumber,
+          type: initialRequest.type,
+          dateFrom: initialRequest.dateFrom,
+          dateTo: initialRequest.dateTo,
+          selectedPeriodIds: initialRequest.selectedPeriodIds || [],
+          minutesLate: initialRequest.minutesLate,
+          minutesEarlyLeave: initialRequest.minutesEarlyLeave,
+          reasonAr: initialRequest.reasonAr,
+          reasonEn: initialRequest.reasonEn,
+          attachments: initialRequest.attachments,
+        });
       });
     } else {
       // Creating new request
-      setForm({
+      void Promise.resolve().then(() => setForm({
         studentId: "",
         studentNameAr: "",
         studentNameEn: "",
@@ -232,20 +234,22 @@ export default function ExcuseRequestModal({
         reasonAr: "",
         reasonEn: "",
         attachments: [],
-      });
+      }));
     }
 
-    setErrors({});
-    setSaveError("");
-    setPendingAttachmentRetry(null);
-    setRosterError(false);
+    void Promise.resolve().then(() => setErrors({}));
+    void Promise.resolve().then(() => setSaveError(""));
+    void Promise.resolve().then(() => setPendingAttachmentRetry(null));
+    void Promise.resolve().then(() => setRosterError(false));
   }, [isOpen, initialRequest, termRange.startDate]);
 
   useEffect(() => {
     if (!isOpen || !yearId || !termId) {
-      setPolicySnapshot([]);
-      setPolicyLoading(false);
-      setPolicyLoadFailed(false);
+      void Promise.resolve().then(() => {
+        setPolicySnapshot([]);
+        setPolicyLoading(false);
+        setPolicyLoadFailed(false);
+      });
       return;
     }
 
@@ -303,8 +307,10 @@ export default function ExcuseRequestModal({
       !readyScope
     ) {
       rosterRequestId.current += 1;
-      setRoster([]);
-      setRosterLoading(false);
+      void Promise.resolve().then(() => {
+        setRoster([]);
+        setRosterLoading(false);
+      });
       return;
     }
 
@@ -336,17 +342,21 @@ export default function ExcuseRequestModal({
   useEffect(() => {
     if (!isOpen || form.type === "ABSENCE" || !resolvedPolicy) return;
 
-    setForm((previous) => {
-      const selectedPeriodIds = isDailyAttendance
-        ? ["daily"]
-        : previous.selectedPeriodIds.filter((periodId) => periodId !== "daily");
-      if (
-        selectedPeriodIds.length === previous.selectedPeriodIds.length &&
-        selectedPeriodIds.every((periodId, index) => periodId === previous.selectedPeriodIds[index])
-      ) {
-        return previous;
-      }
-      return { ...previous, selectedPeriodIds };
+    void Promise.resolve().then(() => {
+      setForm((previous) => {
+        const selectedPeriodIds = isDailyAttendance
+          ? ["daily"]
+          : previous.selectedPeriodIds.filter((periodId) => periodId !== "daily");
+        if (
+          selectedPeriodIds.length === previous.selectedPeriodIds.length &&
+          selectedPeriodIds.every(
+            (periodId, index) => periodId === previous.selectedPeriodIds[index],
+          )
+        ) {
+          return previous;
+        }
+        return { ...previous, selectedPeriodIds };
+      });
     });
   }, [isOpen, form.type, resolvedPolicy, isDailyAttendance]);
 
@@ -355,8 +365,10 @@ export default function ExcuseRequestModal({
   useEffect(() => {
     if (!isOpen) {
       timetableRequestId.current += 1;
-      setPeriods([]);
-      setPeriodsError(false);
+      void Promise.resolve().then(() => {
+        setPeriods([]);
+        setPeriodsError(false);
+      });
       return;
     }
 
@@ -367,8 +379,8 @@ export default function ExcuseRequestModal({
       isDailyAttendance ||
       !timetableScope
     ) {
-      setPeriods([]);
-      setPeriodsError(false);
+      void Promise.resolve().then(() => setPeriods([]));
+      void Promise.resolve().then(() => setPeriodsError(false));
       return;
     }
 

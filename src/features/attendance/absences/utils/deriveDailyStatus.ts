@@ -63,14 +63,11 @@ export function deriveDailyStatus(
   // Count missed periods among selected periods
   let missedCount = 0;
   let allMissedAreExcused = true;
-  let hasUnmarked = false;
-
   for (const periodId of selectedPeriodIds) {
     const sessionId = periodToSessionMap.get(periodId);
 
     if (!sessionId) {
       // No submitted session found for this period - this is UNMARKED
-      hasUnmarked = true;
       continue;
     }
 
@@ -81,7 +78,6 @@ export function deriveDailyStatus(
 
     if (!entry) {
       // No entry found - this is UNMARKED
-      hasUnmarked = true;
       continue;
     }
 
@@ -91,9 +87,6 @@ export function deriveDailyStatus(
     } else if (entry.status === "EXCUSED") {
       missedCount++;
       // Keep allMissedAreExcused true
-    } else if (entry.status === "UNMARKED") {
-      // Explicitly marked as UNMARKED
-      hasUnmarked = true;
     }
   }
 

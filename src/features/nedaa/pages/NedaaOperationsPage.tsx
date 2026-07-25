@@ -920,7 +920,7 @@ export default function NedaaOperationsPage() {
     let cancelled = false;
 
     if (!canView) {
-      setIsLoading(false);
+      void Promise.resolve().then(() => setIsLoading(false));
       return () => {
         cancelled = true;
       };

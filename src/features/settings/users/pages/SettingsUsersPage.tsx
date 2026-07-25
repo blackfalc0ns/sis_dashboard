@@ -119,7 +119,7 @@ export default function SettingsUsersPage() {
   const hasHydratedListRef = useRef(false);
 
   useEffect(() => {
-    setPage(1);
+    void Promise.resolve().then(() => setPage(1));
   }, [search, roleFilter, statusFilter]);
 
   useEffect(() => {
@@ -257,7 +257,7 @@ export default function SettingsUsersPage() {
 
   useEffect(() => {
     if (hasActiveFilters && !showFilters) {
-      setShowFilters(true);
+      void Promise.resolve().then(() => setShowFilters(true));
     }
   }, [hasActiveFilters, showFilters]);
 

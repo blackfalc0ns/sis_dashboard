@@ -124,15 +124,17 @@ export default function AddLessonDialog({
       const initialWeek = weeks.find(
         (week) => week.weekIndex.toString() === initialWeekIndex,
       );
-      setSelectedWeekIndex(initialWeekIndex);
-      setSelectedPlannedDate(
-        getAvailableInstructionalDays(
-          initialWeek,
-          termStartDate,
-          termEndDate,
-          timetableConfig,
-        )[0] || "",
-      );
+      void Promise.resolve().then(() => {
+        setSelectedWeekIndex(initialWeekIndex);
+        setSelectedPlannedDate(
+          getAvailableInstructionalDays(
+            initialWeek,
+            termStartDate,
+            termEndDate,
+            timetableConfig,
+          )[0] || "",
+        );
+      });
     }
   }, [isOpen, preselectedWeekIndex, termEndDate, termStartDate, timetableConfig, weeks]);
 

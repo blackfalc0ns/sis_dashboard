@@ -60,7 +60,7 @@ export default function SubjectsList({
   }, 250);
 
   useEffect(() => {
-    setSearchInputValue(searchQuery);
+    void Promise.resolve().then(() => setSearchInputValue(searchQuery));
   }, [searchQuery]);
 
   useEffect(

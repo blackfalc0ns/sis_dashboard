@@ -49,20 +49,26 @@ export function YearDialog({
   useEffect(() => {
     if (isOpen) {
       if (editYear) {
-        setNameAr(editYear.nameAr || "");
-        setNameEn(editYear.nameEn || "");
-        setStartDate(new Date(editYear.startDate));
-        setEndDate(new Date(editYear.endDate));
-        setIsActive(editYear.isActive === false ? "inactive" : "active");
+        void Promise.resolve().then(() => {
+          setNameAr(editYear.nameAr || "");
+          setNameEn(editYear.nameEn || "");
+          setStartDate(new Date(editYear.startDate));
+          setEndDate(new Date(editYear.endDate));
+          setIsActive(editYear.isActive === false ? "inactive" : "active");
+        });
       } else {
-        setNameAr("");
-        setNameEn("");
-        setStartDate(null);
-        setEndDate(null);
-        setIsActive("active");
+        void Promise.resolve().then(() => {
+          setNameAr("");
+          setNameEn("");
+          setStartDate(null);
+          setEndDate(null);
+          setIsActive("active");
+        });
       }
-      setErrors({});
-      setBilingualErrors({});
+      void Promise.resolve().then(() => {
+        setErrors({});
+        setBilingualErrors({});
+      });
     }
   }, [isOpen, editYear]);
 
@@ -262,14 +268,18 @@ export function TermDialog({
   useEffect(() => {
     if (isOpen) {
       if (editTerm) {
-        setNameAr(editTerm.nameAr || "");
-        setNameEn(editTerm.nameEn || "");
-        setStartDate(new Date(editTerm.startDate));
-        setEndDate(new Date(editTerm.endDate));
-        setStatus(editTerm.status || "open");
+        void Promise.resolve().then(() => {
+          setNameAr(editTerm.nameAr || "");
+          setNameEn(editTerm.nameEn || "");
+          setStartDate(new Date(editTerm.startDate));
+          setEndDate(new Date(editTerm.endDate));
+          setStatus(editTerm.status || "open");
+        });
       } else {
-        setNameAr("");
-        setNameEn("");
+        void Promise.resolve().then(() => {
+          setNameAr("");
+          setNameEn("");
+        });
         
         // Auto-suggest start date
         const sortedTerms = [...existingTerms].sort(
@@ -289,19 +299,25 @@ export function TermDialog({
           suggestedStart = yearStartDate;
         }
 
-        setStartDate(suggestedStart);
+        void Promise.resolve().then(() => setStartDate(suggestedStart));
 
         // Auto-suggest end date (16 weeks from start)
         if (suggestedStart) {
           suggestedEnd = dayjs(suggestedStart).add(16, "week").toDate();
-          setEndDate(suggestedEnd <= yearEndDate ? suggestedEnd : yearEndDate);
+          void Promise.resolve().then(() => {
+            setEndDate(
+              suggestedEnd! <= yearEndDate ? suggestedEnd! : yearEndDate,
+            );
+          });
         } else {
-          setEndDate(null);
+          void Promise.resolve().then(() => setEndDate(null));
         }
-        setStatus("open");
+        void Promise.resolve().then(() => setStatus("open"));
       }
-      setErrors({});
-      setBilingualErrors({});
+      void Promise.resolve().then(() => {
+        setErrors({});
+        setBilingualErrors({});
+      });
     }
   }, [isOpen, editTerm, existingTerms, yearStartDate, yearEndDate]);
 

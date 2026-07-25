@@ -133,7 +133,7 @@ export default function HeroJourneyTab({ student, academicYearId, termId }: { st
     } catch { setError(loadError); }
     finally { setLoading(false); }
   }, [loadError, query, rewardsQuery, student.id]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void Promise.resolve().then(load); }, [load]);
 
   const canGrantXp = isPermissionsReady && hasPermission("reinforcement.hero.progress.manage");
   const canAwardBadge = isPermissionsReady && hasPermission("reinforcement.hero.progress.manage");

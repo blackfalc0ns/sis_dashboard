@@ -178,8 +178,10 @@ export default function LearningContentPanel({
   }, [curriculumId, lessonId, t, unitId]);
 
   useEffect(() => {
-    resetFormToCreate();
-    void loadItems();
+    void Promise.resolve().then(() => {
+      resetFormToCreate();
+      void loadItems();
+    });
   }, [curriculumId, lessonId, loadItems, resetFormToCreate, unitId]);
 
   const updateFormField = <Field extends Exclude<keyof ContentForm, "id">>(

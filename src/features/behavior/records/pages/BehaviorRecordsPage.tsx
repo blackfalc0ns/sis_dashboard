@@ -97,7 +97,7 @@ export default function BehaviorRecordsPage() {
   ]);
 
   useEffect(() => {
-    void loadRecords();
+    void Promise.resolve().then(loadRecords);
   }, [loadRecords]);
 
   const handleTableAction = (action: BehaviorTableAction, record: BehaviorRecord) => {

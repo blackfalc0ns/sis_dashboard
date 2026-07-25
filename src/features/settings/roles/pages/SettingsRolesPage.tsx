@@ -146,13 +146,17 @@ export default function SettingsRolesPage() {
 
   useEffect(() => {
     if (!canViewPermissionCatalog) {
-      setPermissions([]);
-      setPermissionCatalogState("forbidden");
+      void Promise.resolve().then(() => setPermissions([]));
+      void Promise.resolve().then(() => {
+        setPermissionCatalogState("forbidden");
+      });
       return;
     }
 
     let isCancelled = false;
-    setPermissionCatalogState("loading");
+      void Promise.resolve().then(() => {
+        setPermissionCatalogState("loading");
+      });
 
     void fetchSettingsPermissions()
       .then((nextPermissions) => {
@@ -236,7 +240,7 @@ export default function SettingsRolesPage() {
   }, [groupedPermissions]);
 
   useEffect(() => {
-    setExpandedModules((current) => {
+    void Promise.resolve().then(() => setExpandedModules((current) => {
       const next = { ...current };
       permissionMatrix.forEach(({ module }) => {
         if (typeof next[module] === "undefined") {
@@ -244,7 +248,7 @@ export default function SettingsRolesPage() {
         }
       });
       return next;
-    });
+    }));
   }, [permissionMatrix]);
 
   const handleExport = (format: SettingsExportFormat) => {

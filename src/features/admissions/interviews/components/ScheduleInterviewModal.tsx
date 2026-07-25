@@ -89,9 +89,11 @@ export default function ScheduleInterviewModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    setFormData(createInitialFormData());
-    setValidationError(null);
-    setIsSubmitting(false);
+    void Promise.resolve().then(() => {
+      setFormData(createInitialFormData());
+      setValidationError(null);
+      setIsSubmitting(false);
+    });
   }, [isOpen]);
 
   useEffect(() => {

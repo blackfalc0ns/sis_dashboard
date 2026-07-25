@@ -236,14 +236,19 @@ export default function RegistrationWizardPage() {
       .catch(() => setErrors([t("errors.load_years_failed")]));
   }, [t]);
   useEffect(() => {
-    if (!form.enrollment.academicYearId) return setTerms([]);
+    if (!form.enrollment.academicYearId) {
+      void Promise.resolve().then(() => setTerms([]));
+      return;
+    }
     void fetchTermsByYear(form.enrollment.academicYearId)
       .then(setTerms)
       .catch(() => setTerms([]));
   }, [form.enrollment.academicYearId]);
   useEffect(() => {
-    if (!form.enrollment.academicYearId || !form.enrollment.termId)
-      return setTree(null);
+    if (!form.enrollment.academicYearId || !form.enrollment.termId) {
+      void Promise.resolve().then(() => setTree(null));
+      return;
+    }
     void fetchStructureTree(
       form.enrollment.academicYearId,
       form.enrollment.termId,

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import InvitesPanel from "@/features/communication/conversations_redesign/components/InvitesPanel";
 import { conversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";

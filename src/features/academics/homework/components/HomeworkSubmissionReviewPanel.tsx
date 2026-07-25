@@ -348,7 +348,7 @@ export default function HomeworkSubmissionReviewPanel({
   );
 
   useEffect(() => {
-    void loadSubmissions();
+    void Promise.resolve().then(loadSubmissions);
   }, [loadSubmissions]);
 
   useEffect(() => {
@@ -359,7 +359,7 @@ export default function HomeworkSubmissionReviewPanel({
         if (active) {
           setQuestions(list);
         }
-      } catch (error) {
+      } catch {
         // Quietly fail
       }
     };
@@ -371,7 +371,7 @@ export default function HomeworkSubmissionReviewPanel({
 
   useEffect(() => {
     if (!selectedSubmissionId || !canView) return;
-    void loadSubmissionDetail(selectedSubmissionId);
+    void Promise.resolve().then(() => loadSubmissionDetail(selectedSubmissionId));
   }, [canView, loadSubmissionDetail, selectedSubmissionId]);
 
   const getQuestionTypeLabel = useCallback(
@@ -1375,15 +1375,6 @@ export default function HomeworkSubmissionReviewPanel({
         </div>
       )}
       </div>
-    </div>
-  );
-}
-
-function SummaryItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-gray-50 p-3">
-      <div className="text-xs font-medium uppercase text-gray-500">{label}</div>
-      <div className="mt-1 text-sm font-semibold text-gray-900">{value}</div>
     </div>
   );
 }

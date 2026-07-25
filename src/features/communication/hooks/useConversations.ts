@@ -394,8 +394,8 @@ export function useConversations() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setPage(1);
-    setHasMore(true);
+    void Promise.resolve().then(() => setPage(1));
+    void Promise.resolve().then(() => setHasMore(true));
   }, [filters.search, filters.status, filters.type]);
 
   const refresh = useCallback(async (pageToFetch: number = 1) => {
@@ -482,7 +482,7 @@ export function useConversations() {
 
   useEffect(() => {
     mountedRef.current = true;
-    void refresh();
+    void Promise.resolve().then(() => refresh());
 
     return () => {
       mountedRef.current = false;
@@ -494,7 +494,7 @@ export function useConversations() {
 
   useEffect(() => {
     if (resyncVersion > 0) {
-      void refresh();
+    void Promise.resolve().then(() => refresh());
     }
   }, [refresh, resyncVersion]);
 

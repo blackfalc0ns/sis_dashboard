@@ -297,7 +297,7 @@ export default function CreateHomeworkPage() {
 
   useEffect(() => {
     if (!academicYearId || !termId || !canManage || isInitializing) {
-      setAllocationOptions([]);
+      void Promise.resolve().then(() => setAllocationOptions([]));
       return;
     }
 
@@ -340,9 +340,11 @@ export default function CreateHomeworkPage() {
   }, [academicYearId, canManage, isInitializing, locale, showError, t, termId]);
 
   useEffect(() => {
-    setEligibleStudents([]);
-    setStudentSearch("");
-    setDraft((current) => ({ ...current, studentIds: [] }));
+    void Promise.resolve().then(() => {
+      setEligibleStudents([]);
+      setStudentSearch("");
+      setDraft((current) => ({ ...current, studentIds: [] }));
+    });
 
     if (!selectedAllocation || !effectiveDraft.academicYearId) {
       return;

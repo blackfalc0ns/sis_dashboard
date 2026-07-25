@@ -53,8 +53,10 @@ export default function DecisionModal({
     : null;
 
   useEffect(() => {
-    setNote("");
-    setRecoveryMessage(null);
+    void Promise.resolve().then(() => {
+      setNote("");
+      setRecoveryMessage(null);
+    });
   }, [isOpen, request?.id, action]);
 
   const handleConfirm = async () => {

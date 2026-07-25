@@ -61,15 +61,17 @@ export default function ScheduleTestModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    setForm({ ...initialForm, applicationId, studentName });
-    setSubjectsError(null);
-    setApplicationsError(null);
+    void Promise.resolve().then(() => {
+      setForm({ ...initialForm, applicationId, studentName });
+      setSubjectsError(null);
+      setApplicationsError(null);
+    });
   }, [applicationId, isOpen, studentName]);
 
   useEffect(() => {
     if (!isOpen || applicationId) return;
     let cancelled = false;
-    setIsLoadingApplications(true);
+    void Promise.resolve().then(() => setIsLoadingApplications(true));
     void fetchApplications()
       .then((items) => {
         if (!cancelled) setApplications(items);
@@ -91,7 +93,7 @@ export default function ScheduleTestModal({
   useEffect(() => {
     if (!isOpen || !termId) return;
     let cancelled = false;
-    setIsLoadingSubjects(true);
+    void Promise.resolve().then(() => setIsLoadingSubjects(true));
     void fetchSubjects()
       .then((items) => {
         if (!cancelled) setSubjects(items.filter((subject) => subject.isActive));

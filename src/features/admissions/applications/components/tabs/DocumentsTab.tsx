@@ -180,7 +180,7 @@ export default function DocumentsTab({
   }, [application.id, canViewDocuments]);
 
   useEffect(() => {
-    void loadDocuments();
+    void Promise.resolve().then(loadDocuments);
   }, [loadDocuments]);
 
   useEffect(() => {

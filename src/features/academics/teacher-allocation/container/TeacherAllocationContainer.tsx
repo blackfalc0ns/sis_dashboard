@@ -61,9 +61,9 @@ export default function TeacherAllocationContainer() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [apiErrorTraceId, setApiErrorTraceId] = useState<string | undefined>();
   const [isSaving, setIsSaving] = useState(false);
-  const [validationSummary, setValidationSummary] =
+  const [, setValidationSummary] =
     useState<TeacherAllocationValidationResponse | null>(null);
-  const [teacherLoads, setTeacherLoads] = useState<TeacherLoadViewModel[] | null>(null);
+  const [, setTeacherLoads] = useState<TeacherLoadViewModel[] | null>(null);
 
   // UI State
   const [validationPanelOpen, setValidationPanelOpen] = useState(false);
@@ -131,7 +131,7 @@ export default function TeacherAllocationContainer() {
 
   // Load data when year/term changes
   useEffect(() => {
-    void loadTeacherAllocationData();
+    void Promise.resolve().then(loadTeacherAllocationData);
   }, [loadTeacherAllocationData]);
 
   const contextBarActions = useMemo(

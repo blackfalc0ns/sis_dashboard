@@ -121,7 +121,7 @@ export default function CreateAssessmentPage() {
     }
 
     if (!academicYearId || !termId) {
-      setIsLoading(false);
+      void Promise.resolve().then(() => setIsLoading(false));
       return;
     }
 
@@ -178,7 +178,11 @@ export default function CreateAssessmentPage() {
 
   useEffect(() => {
     if (!draft || subjects.some((subject) => subject.id === draft.subjectId)) return;
-    setDraft((current) => (current ? { ...current, subjectId: subjects[0]?.id || "" } : current));
+    void Promise.resolve().then(() => {
+      setDraft((current) =>
+        current ? { ...current, subjectId: subjects[0]?.id || "" } : current,
+      );
+    });
   }, [draft, subjects]);
 
   const handleBack = () => {

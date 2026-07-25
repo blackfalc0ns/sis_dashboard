@@ -121,11 +121,11 @@ export default function EmailCampaignsPage() {
   );
 
   useEffect(() => {
-    void hydrate();
+    void Promise.resolve().then(() => hydrate());
   }, [hydrate]);
 
   useEffect(() => {
-    setPage(1);
+    void Promise.resolve().then(() => setPage(1));
   }, [status]);
 
   const handlePreviewRecipients = async (values: CampaignComposerValues) => {

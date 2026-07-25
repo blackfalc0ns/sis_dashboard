@@ -100,7 +100,7 @@ vi.mock("@/features/communication/conversations_redesign/components/Conversation
 }));
 
 vi.mock("@/features/communication/conversations_redesign/components/ConversationTabs", () => ({
-  default: ({ activeTab, onTabChange }: { activeTab: string; onTabChange: (tab: string) => void }) => (
+  default: ({ onTabChange }: { activeTab: string; onTabChange: (tab: string) => void }) => (
     <div data-testid="conversation-tabs">
       <button data-testid="tab-messages" onClick={() => onTabChange("messages")}>Messages</button>
       <button data-testid="tab-participants" onClick={() => onTabChange("participants")}>Participants</button>

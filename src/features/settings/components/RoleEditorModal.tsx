@@ -37,15 +37,17 @@ export default function RoleEditorModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    setName(
-      mode === "edit"
-        ? initialValues?.name || ""
-        : mode === "clone" && sourceRoleName
-          ? `${sourceRoleName} Copy`
-          : "",
-    );
-    setDescription(mode === "edit" ? initialValues?.description || "" : "");
-    setIsSaving(false);
+    void Promise.resolve().then(() => {
+      setName(
+        mode === "edit"
+          ? initialValues?.name || ""
+          : mode === "clone" && sourceRoleName
+            ? `${sourceRoleName} Copy`
+            : "",
+      );
+      setDescription(mode === "edit" ? initialValues?.description || "" : "");
+      setIsSaving(false);
+    });
   }, [
     initialValues?.description,
     initialValues?.name,

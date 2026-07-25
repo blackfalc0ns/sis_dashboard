@@ -72,7 +72,7 @@ export default function ReinforcementFilterToolbar({
     if (searchKey) {
       const externalValue = values[searchKey] || "";
       if (externalValue !== localSearchValue && externalValue === "") {
-        setLocalSearchValue("");
+      void Promise.resolve().then(() => setLocalSearchValue(""));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

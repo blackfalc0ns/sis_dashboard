@@ -19,25 +19,6 @@ function recordValue(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
-function notificationMessageId(notification: Record<string, unknown>) {
-  const deepLink = recordValue(notification.deepLink);
-  const type = stringValue(notification.type);
-
-  if (deepLink?.type === "conversation_message") {
-    return (
-      stringValue(deepLink.messageId) ??
-      stringValue(notification.sourceId) ??
-      stringValue(notification.source_id)
-    );
-  }
-
-  if (type?.startsWith("message_")) {
-    return stringValue(notification.sourceId) ?? stringValue(notification.source_id);
-  }
-
-  return undefined;
-}
-
 function isAnnouncementNotification(notification: Record<string, unknown>) {
   const deepLink = recordValue(notification.deepLink) ?? recordValue(notification.deep_link);
   const sourceType =

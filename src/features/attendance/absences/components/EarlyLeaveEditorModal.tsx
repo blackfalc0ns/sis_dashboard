@@ -34,10 +34,12 @@ export default function EarlyLeaveEditorModal({
 
   useEffect(() => {
     if (isOpen) {
-      setMinutes(initialMinutes);
-      setCorrectionReason("");
-      setError("");
-      setSaving(false);
+      void Promise.resolve().then(() => {
+        setMinutes(initialMinutes);
+        setCorrectionReason("");
+        setError("");
+        setSaving(false);
+      });
     }
   }, [isOpen, initialMinutes]);
 

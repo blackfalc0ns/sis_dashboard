@@ -70,30 +70,32 @@ export default function NedaaGateFormModal({
       return;
     }
 
-    setName(initialGate?.name || "");
-    setCode(initialGate?.code || "");
-    setCampus(initialGate?.campus || "");
-    setStatus(initialGate?.status || "open");
-    setIsActive(initialGate?.isActive ?? true);
-    setSortOrder(String(initialGate?.sortOrder ?? 0));
-    setLocation(
-      initialGate?.location.latitude !== null &&
-        initialGate?.location.latitude !== undefined &&
-        initialGate.location.longitude !== null &&
-        initialGate.location.longitude !== undefined
-        ? {
-            latitude: initialGate.location.latitude,
-            longitude: initialGate.location.longitude,
-            label: initialGate.name,
-            formattedAddress: initialGate.campus || initialGate.name,
-          }
-        : null,
-    );
-    setIsLocationValid(true);
-    setWaitingZones(initialGate?.waitingZones || []);
-    setNotes(initialGate?.notes || "");
-    setIsSubmitting(false);
-    setSubmitError(null);
+    void Promise.resolve().then(() => {
+      setName(initialGate?.name || "");
+      setCode(initialGate?.code || "");
+      setCampus(initialGate?.campus || "");
+      setStatus(initialGate?.status || "open");
+      setIsActive(initialGate?.isActive ?? true);
+      setSortOrder(String(initialGate?.sortOrder ?? 0));
+      setLocation(
+        initialGate?.location.latitude !== null &&
+          initialGate?.location.latitude !== undefined &&
+          initialGate.location.longitude !== null &&
+          initialGate.location.longitude !== undefined
+          ? {
+              latitude: initialGate.location.latitude,
+              longitude: initialGate.location.longitude,
+              label: initialGate.name,
+              formattedAddress: initialGate.campus || initialGate.name,
+            }
+          : null,
+      );
+      setIsLocationValid(true);
+      setWaitingZones(initialGate?.waitingZones || []);
+      setNotes(initialGate?.notes || "");
+      setIsSubmitting(false);
+      setSubmitError(null);
+    });
   }, [initialGate, isOpen]);
 
   const normalizedCode = useMemo(

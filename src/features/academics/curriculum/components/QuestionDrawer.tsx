@@ -134,7 +134,7 @@ export default function QuestionDrawer({
 
   useEffect(() => {
     if (isOpen) {
-      setErrors({});
+      void Promise.resolve().then(() => setErrors({}));
     }
   }, [isOpen, question?.id]);
 

@@ -160,9 +160,11 @@ export default function AcademicCalendarPage() {
     const requestId = ++structureRequestIdRef.current;
 
     if (!academicYearId || !termId) {
-      setStages([]);
-      setGrades([]);
-      setSections([]);
+      void Promise.resolve().then(() => {
+        setStages([]);
+        setGrades([]);
+        setSections([]);
+      });
       return;
     }
 
@@ -306,37 +308,37 @@ export default function AcademicCalendarPage() {
     const nextDateKey = formatCalendarDate(queryState.currentDate);
     const currentDateKey = formatCalendarDate(currentDate);
     if (nextDateKey !== currentDateKey) {
-      setCurrentDate(queryState.currentDate);
+      void Promise.resolve().then(() => setCurrentDate(queryState.currentDate));
     }
   }, [queryState.currentDate, currentDate]);
 
   useEffect(() => {
     if (queryState.typeFilters.join(",") !== typeFilters.join(",")) {
-      setTypeFilters(queryState.typeFilters);
+      void Promise.resolve().then(() => setTypeFilters(queryState.typeFilters));
     }
   }, [queryState.typeFilters, typeFilters]);
 
   useEffect(() => {
     if (queryState.scopeFilter !== scopeFilter) {
-      setScopeFilter(queryState.scopeFilter);
+      void Promise.resolve().then(() => setScopeFilter(queryState.scopeFilter));
     }
   }, [queryState.scopeFilter, scopeFilter]);
 
   useEffect(() => {
     if (queryState.scopeIdFilter !== scopeIdFilter) {
-      setScopeIdFilter(queryState.scopeIdFilter);
+      void Promise.resolve().then(() => setScopeIdFilter(queryState.scopeIdFilter));
     }
   }, [queryState.scopeIdFilter, scopeIdFilter]);
 
   useEffect(() => {
     if (queryState.view !== view) {
-      setView(queryState.view);
+      void Promise.resolve().then(() => setView(queryState.view));
     }
   }, [queryState.view, view]);
 
   useEffect(() => {
     if (queryState.displayMode !== displayMode) {
-      setDisplayMode(queryState.displayMode);
+      void Promise.resolve().then(() => setDisplayMode(queryState.displayMode));
     }
   }, [queryState.displayMode, displayMode]);
 
@@ -421,12 +423,12 @@ export default function AcademicCalendarPage() {
       return;
     }
 
-    void loadEvents();
+    void Promise.resolve().then(loadEvents);
   }, [isInitializing, loadEvents]);
 
   // Apply filters when events or filters change
   useEffect(() => {
-    setFilteredEvents(filterEvents(events));
+    void Promise.resolve().then(() => setFilteredEvents(filterEvents(events)));
   }, [events, filterEvents]);
 
   const updateURL = useCallback(

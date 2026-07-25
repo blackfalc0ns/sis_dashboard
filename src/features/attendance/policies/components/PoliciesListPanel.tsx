@@ -171,7 +171,7 @@ export default function PoliciesListPanel({
 
   useEffect(() => {
     if (hasActiveFilters && !showFilters) {
-      setShowFilters(true);
+      void Promise.resolve().then(() => setShowFilters(true));
     }
   }, [hasActiveFilters, showFilters]);
 

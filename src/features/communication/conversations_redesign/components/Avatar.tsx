@@ -21,11 +21,11 @@ export default function Avatar({
   // Fetch avatar from fileId with auth
   useEffect(() => {
     if (avatarUrl) {
-      setResolvedUrl(avatarUrl);
+      void Promise.resolve().then(() => setResolvedUrl(avatarUrl));
       return;
     }
     if (!fileId) {
-      setResolvedUrl(undefined);
+      void Promise.resolve().then(() => setResolvedUrl(undefined));
       return;
     }
 

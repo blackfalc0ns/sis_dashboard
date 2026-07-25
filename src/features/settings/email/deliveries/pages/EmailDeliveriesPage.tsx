@@ -104,11 +104,11 @@ export default function EmailDeliveriesPage() {
   );
 
   useEffect(() => {
-    void hydrate();
+    void Promise.resolve().then(() => hydrate());
   }, [hydrate]);
 
   useEffect(() => {
-    setPage(1);
+    void Promise.resolve().then(() => setPage(1));
   }, [kind, status]);
 
   const handleCancel = async (batch: EmailDeliveryBatch) => {

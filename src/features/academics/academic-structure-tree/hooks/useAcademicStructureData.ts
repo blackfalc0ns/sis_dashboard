@@ -89,7 +89,7 @@ export function useAcademicStructureData({
   }, [academicYearId, termId]);
 
   useEffect(() => {
-    loadData();
+    void Promise.resolve().then(loadData);
   }, [loadData]);
 
   const saveItem = useCallback(

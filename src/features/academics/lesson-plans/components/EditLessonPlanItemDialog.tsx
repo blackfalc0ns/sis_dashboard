@@ -81,12 +81,14 @@ export default function EditLessonPlanItemDialog(props: Props) {
   const [slot, setSlot] = useState<BackendTimetableEntryDto | null>(null);
   useEffect(() => {
     if (plannedDate && validDays.includes(plannedDate)) return;
-    setPlannedDate(
-      validDays.includes(props.item.plannedDate ?? "")
-        ? props.item.plannedDate!
-        : (validDays[0] ?? ""),
-    );
-    setSlot(null);
+    void Promise.resolve().then(() => {
+      setPlannedDate(
+        validDays.includes(props.item.plannedDate ?? "")
+          ? props.item.plannedDate!
+          : (validDays[0] ?? ""),
+      );
+      setSlot(null);
+    });
   }, [plannedDate, props.item.plannedDate, validDays]);
   const formatDate = (date: string) =>
     new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(

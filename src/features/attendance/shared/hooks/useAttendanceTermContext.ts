@@ -17,6 +17,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   fetchAcademicYears,
   fetchTermsByYear,
+  type AcademicYear,
   type Term,
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import {
@@ -26,7 +27,7 @@ import {
 
 export type AttendanceTermContext = {
   // Data
-  academicYears: Array<{ id: string; nameAr?: string; nameEn?: string; status?: string }>;
+  academicYears: AcademicYear[];
   terms: Term[];
   yearId: string | null;
   termId: string | null;
@@ -54,7 +55,7 @@ export function useAttendanceTermContext(): AttendanceTermContext {
   const pathname = usePathname();
 
   // State
-  const [academicYears, setAcademicYears] = useState<Array<{ id: string; nameAr?: string; nameEn?: string; status?: string }>>([]);
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [yearId, setYearIdState] = useState<string | null>(null);
   const [termId, setTermIdState] = useState<string | null>(null);
@@ -168,7 +169,7 @@ export function useAttendanceTermContext(): AttendanceTermContext {
   // Initialize on mount
   useEffect(() => {
     isCancelled.current = false;
-    initialize();
+    void Promise.resolve().then(initialize);
 
     return () => {
       isCancelled.current = true;

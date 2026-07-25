@@ -116,7 +116,7 @@ export default function RoomsView({
   const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
 
   useEffect(() => {
-    setSearchInputValue(queryState.searchQuery);
+    void Promise.resolve().then(() => setSearchInputValue(queryState.searchQuery));
   }, [queryState.searchQuery]);
 
   const syncQueryParams = useCallback(
@@ -181,7 +181,7 @@ export default function RoomsView({
   }, [canViewRooms, schoolId, showToast, t]);
 
   useEffect(() => {
-    void loadRooms();
+    void Promise.resolve().then(loadRooms);
   }, [loadRooms]);
 
   const openAddRoomDialog = () => {

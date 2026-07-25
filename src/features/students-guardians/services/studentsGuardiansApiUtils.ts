@@ -46,22 +46,6 @@ const pickBoolean = (
   return fallback;
 };
 
-const pickNumber = (
-  source: ApiRecord,
-  keys: string[],
-  fallback = 0,
-): number => {
-  for (const key of keys) {
-    const value = source[key];
-    if (typeof value === "number") return value;
-    if (typeof value === "string" && value.trim() !== "") {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) return parsed;
-    }
-  }
-  return fallback;
-};
-
 const pickStringList = (source: ApiRecord, keys: string[]): string[] => {
   for (const key of keys) {
     const value = source[key];

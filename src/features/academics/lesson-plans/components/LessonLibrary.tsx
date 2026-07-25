@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import { Clock3, GripVertical, Plus, Search } from "lucide-react";
@@ -40,9 +40,6 @@ export default function LessonLibrary({
   isReadOnly,
 }: LessonLibraryProps) {
   const t = useTranslations("academics.lessonPlans.library");
-  const locale = useLocale();
-  const isRTL = locale === "ar";
-
   // Get planned lesson IDs - recalculate whenever plans change
   const plannedLessonIds = useMemo(() => {
     const ids = new Set<string>();

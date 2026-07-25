@@ -209,12 +209,14 @@ export default function ReinforcementXpPoliciesPage() {
   );
 
   useEffect(() => {
-    setPolicyTargets([]);
+      void Promise.resolve().then(() => setPolicyTargets([]));
   }, [context.academicYearId, context.termId]);
 
   useEffect(() => {
-    setEffectivePolicy(null);
-    setEffectivePolicyStudentLabel(null);
+      void Promise.resolve().then(() => setEffectivePolicy(null));
+      void Promise.resolve().then(() => {
+        setEffectivePolicyStudentLabel(null);
+      });
   }, [
     activeFilter,
     context.academicYearId,
@@ -266,7 +268,7 @@ export default function ReinforcementXpPoliciesPage() {
   }, [refreshPolicies]);
 
   useEffect(() => {
-    void loadPolicyTargetOptions();
+    void Promise.resolve().then(loadPolicyTargetOptions);
   }, [loadPolicyTargetOptions]);
 
   const handleCreate = async (payload: CreateXpPolicyPayload) => {
@@ -322,8 +324,8 @@ export default function ReinforcementXpPoliciesPage() {
 
   useEffect(() => {
     if (!isEffectiveStudentPickerOpen) return;
-    setEffectiveStudentId("");
-    void loadEffectiveStudents();
+      void Promise.resolve().then(() => setEffectiveStudentId(""));
+      void Promise.resolve().then(loadEffectiveStudents);
   }, [isEffectiveStudentPickerOpen, loadEffectiveStudents]);
 
   const openEffectiveStudentPicker = () => {

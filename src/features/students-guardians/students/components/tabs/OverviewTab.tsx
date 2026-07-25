@@ -2,7 +2,7 @@
 
 "use client";
 
-import { AlertTriangle, TrendingUp, Award, AlertCircle } from "lucide-react";
+import { AlertTriangle, TrendingUp, Award } from "lucide-react";
 import { LineChart } from "@mui/x-charts/LineChart";
 import { useTranslations } from "next-intl";
 import {

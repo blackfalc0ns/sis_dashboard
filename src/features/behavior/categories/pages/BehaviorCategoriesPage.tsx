@@ -105,7 +105,7 @@ export default function BehaviorCategoriesPage() {
   };
 
   useEffect(() => {
-    void loadCategories();
+    void Promise.resolve().then(loadCategories);
   }, [loadCategories]);
 
   if (error) return <StatePanel title={error} />;

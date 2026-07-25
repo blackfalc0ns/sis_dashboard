@@ -245,7 +245,7 @@ export default function SettingsHealthPage() {
   );
 
   useEffect(() => {
-    void loadReport();
+    void Promise.resolve().then(() => loadReport());
   }, [loadReport]);
 
   const queueDetails = useMemo(

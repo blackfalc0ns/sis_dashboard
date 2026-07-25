@@ -77,7 +77,7 @@ export default function BehaviorReviewsPage() {
   }, [debouncedSearch, filters, yearId, termId, t]);
 
   useEffect(() => {
-    void loadReviewQueue();
+    void Promise.resolve().then(loadReviewQueue);
   }, [loadReviewQueue]);
 
   const handleApprove = (item: BehaviorReviewQueueItem) => {

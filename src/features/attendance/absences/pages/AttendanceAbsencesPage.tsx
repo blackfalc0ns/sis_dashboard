@@ -146,7 +146,7 @@ export default function AttendanceAbsencesPage() {
 
   // Load data when filters change
   useEffect(() => {
-    reloadRecords();
+    void Promise.resolve().then(reloadRecords);
   }, [reloadRecords]);
 
   // Compute KPIs

@@ -119,7 +119,7 @@ export default function AttendanceReportsPage() {
   useEffect(() => {
     if (!term) return;
 
-    setHasHydratedFiltersFromUrl(false);
+    void Promise.resolve().then(() => setHasHydratedFiltersFromUrl(false));
 
     const fallbackFilters: AttendanceReportsFilters = {
       ...DEFAULT_FILTERS,
@@ -136,12 +136,16 @@ export default function AttendanceReportsPage() {
       "summary",
     );
 
-    setFilters((prev) =>
-      areReportsFiltersEqual(prev, nextFilters) ? prev : nextFilters,
-    );
-    setExportDataset((prev) =>
-      prev === nextExportDataset ? prev : nextExportDataset,
-    );
+    void Promise.resolve().then(() => {
+      setFilters((prev) =>
+        areReportsFiltersEqual(prev, nextFilters) ? prev : nextFilters,
+      );
+    });
+    void Promise.resolve().then(() => {
+      setExportDataset((prev) =>
+        prev === nextExportDataset ? prev : nextExportDataset,
+      );
+    });
   }, [searchParams, term]);
 
   useEffect(() => {
@@ -165,7 +169,7 @@ export default function AttendanceReportsPage() {
       areReportsFiltersEqual(filters, urlFilters) &&
       exportDataset === urlExportDataset
     ) {
-      setHasHydratedFiltersFromUrl(true);
+      void Promise.resolve().then(() => setHasHydratedFiltersFromUrl(true));
     }
   }, [exportDataset, filters, searchParams, term]);
 
@@ -228,7 +232,7 @@ export default function AttendanceReportsPage() {
   }, [filters, showError, tCommon, termContext.termId, termContext.yearId]);
 
   useEffect(() => {
-    loadReport();
+    void Promise.resolve().then(loadReport);
   }, [loadReport]);
 
   useEffect(() => {

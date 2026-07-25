@@ -53,10 +53,12 @@ export default function AdmissionsGlobalExportModal({
 
   useEffect(() => {
     if (!isOpen) {
-      setExportType("data");
-      setFormat("csv");
-      setSelectedDatasets(["leads", "applications"]);
-      setIsExporting(false);
+      void Promise.resolve().then(() => {
+        setExportType("data");
+        setFormat("csv");
+        setSelectedDatasets(["leads", "applications"]);
+        setIsExporting(false);
+      });
     }
   }, [isOpen]);
 

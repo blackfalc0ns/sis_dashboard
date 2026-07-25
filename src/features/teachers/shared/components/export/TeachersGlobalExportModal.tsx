@@ -33,8 +33,8 @@ export default function TeachersGlobalExportModal({
 
   useEffect(() => {
     if (!isOpen) {
-      setFormat("csv");
-      setIsExporting(false);
+      void Promise.resolve().then(() => setFormat("csv"));
+      void Promise.resolve().then(() => setIsExporting(false));
     }
   }, [isOpen]);
 

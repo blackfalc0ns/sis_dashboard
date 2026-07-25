@@ -372,14 +372,14 @@ export default function AttendanceRollCallPage() {
 
   useEffect(() => {
     if (hasActiveFilters && !showFilters) {
-      setShowFilters(true);
+      void Promise.resolve().then(() => setShowFilters(true));
     }
   }, [hasActiveFilters, showFilters]);
 
   // Load structure tree
   useEffect(() => {
     if (!termContext.yearId || !termContext.termId) {
-      setIsContextLoading(false);
+      void Promise.resolve().then(() => setIsContextLoading(false));
       return;
     }
 
@@ -413,14 +413,14 @@ export default function AttendanceRollCallPage() {
   // Load policy and timetable when scope/date changes
   useEffect(() => {
     if (!termContext.yearId || !termContext.termId || !date) {
-      setIsContextLoading(false);
+      void Promise.resolve().then(() => setIsContextLoading(false));
       return;
     }
 
     if (!isScopeSelectionComplete(scopeType, scopeIds)) {
-      setPolicy(null);
-      setPeriods([]);
-      setIsContextLoading(false);
+      void Promise.resolve().then(() => setPolicy(null));
+      void Promise.resolve().then(() => setPeriods([]));
+      void Promise.resolve().then(() => setIsContextLoading(false));
       return;
     }
 
@@ -538,7 +538,7 @@ export default function AttendanceRollCallPage() {
       !date ||
       !isScopeSelectionComplete(scopeType, scopeIds)
     ) {
-      setDerivedPeriodSessions([]);
+      void Promise.resolve().then(() => setDerivedPeriodSessions([]));
       return;
     }
 

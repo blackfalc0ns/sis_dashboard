@@ -135,10 +135,10 @@ export function useReinforcementUrlFilters(
   // Sync debounced search into values
   useEffect(() => {
     if (!debounceKey) return;
-    setValues((prev) => {
+    void Promise.resolve().then(() => setValues((prev) => {
       if (prev[debounceKey] === debouncedSearch) return prev;
       return { ...prev, [debounceKey]: debouncedSearch };
-    });
+    }));
   }, [debouncedSearch, debounceKey]);
 
   // ─── URL sync ────────────────────────────────────────────────────────────

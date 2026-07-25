@@ -45,15 +45,6 @@ export function createTestUser(overrides: Partial<MeResponse> = {}): MeResponse 
 
 // ─── Render Options ──────────────────────────────────────────────────────────
 
-export interface RenderWithProvidersOptions extends Omit<RenderOptions, "wrapper"> {
-  /** Override the test user returned by useAuth. Pass `null` for unauthenticated state. */
-  user?: MeResponse | null;
-  /** Override the locale returned by useLocale ('en' or 'ar'). Defaults to 'en'. */
-  locale?: "en" | "ar";
-  /** Override the mock socket instance used by useCommunicationSocket. */
-  socket?: MockSocket;
-}
-
 // ─── Module Mocks ────────────────────────────────────────────────────────────
 
 /**
@@ -161,15 +152,9 @@ export function setupCommunicationMocks() {
  */
 export function renderWithProviders(
   ui: ReactElement,
-  options: RenderWithProvidersOptions = {},
+  renderOptions: Omit<RenderOptions, "wrapper"> = {},
 ) {
-  const { user, locale, socket, ...renderOptions } = options;
-
-  // Apply overrides if provided directly to renderWithProviders
-  // (these take effect for this render call via the module-level mocks)
-  // Note: For per-test configuration, prefer using the setters from setupCommunicationMocks()
-
-  return render(ui, { ...renderOptions });
+  return render(ui, renderOptions);
 }
 
 // Re-export testing library utilities for convenience

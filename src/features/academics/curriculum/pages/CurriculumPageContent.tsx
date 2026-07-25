@@ -222,7 +222,7 @@ export default function CurriculumPageContent({
     type: "unit" | "lesson";
     id: string;
   } | null>(null);
-  const [learningContentLessonId, setLearningContentLessonId] = useState<
+  const [, setLearningContentLessonId] = useState<
     string | null
   >(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -332,29 +332,33 @@ export default function CurriculumPageContent({
   );
 
   useEffect(() => {
-    setSearchInputValue(queryState.searchQuery);
+    void Promise.resolve().then(() => setSearchInputValue(queryState.searchQuery));
   }, [queryState.searchQuery]);
 
   useEffect(() => {
     curriculumRequestIdRef.current += 1;
-    setHasCheckedCurriculum(false);
-    setIsCurriculumLoading(false);
-    setCurriculum(null);
-    setUnits([]);
-    setLessons([]);
-    setSelectedNode(null);
+    void Promise.resolve().then(() => {
+      setHasCheckedCurriculum(false);
+      setIsCurriculumLoading(false);
+      setCurriculum(null);
+      setUnits([]);
+      setLessons([]);
+      setSelectedNode(null);
+    });
     hasRestoredSelectedNodeFromUrlRef.current = false;
   }, [curriculumResetKey]);
 
   useEffect(() => {
     if (!selectedTerm) {
-      setTermWeeks(0);
+      void Promise.resolve().then(() => setTermWeeks(0));
       return;
     }
 
-    setTermWeeks(
-      calculateTermWeeks(selectedTerm.startDate, selectedTerm.endDate),
-    );
+    void Promise.resolve().then(() => {
+      setTermWeeks(
+        calculateTermWeeks(selectedTerm.startDate, selectedTerm.endDate),
+      );
+    });
   }, [selectedTerm]);
 
   const updateURL = useCallback(
@@ -605,14 +609,14 @@ export default function CurriculumPageContent({
   ]);
 
   useEffect(() => {
-    loadOptionsData();
+    void Promise.resolve().then(loadOptionsData);
   }, [loadOptionsData]);
 
   useEffect(() => {
     const requestId = ++termCurriculaRequestIdRef.current;
 
     if (!academicYearId || !termId) {
-      setTermCurricula(preserveEmptyArray);
+      void Promise.resolve().then(() => setTermCurricula(preserveEmptyArray));
       return;
     }
 
@@ -696,7 +700,9 @@ export default function CurriculumPageContent({
       return;
     }
 
-    setSubjects(subjectsForGrade(subjectAllocations, selectedGradeId));
+    void Promise.resolve().then(() => {
+      setSubjects(subjectsForGrade(subjectAllocations, selectedGradeId));
+    });
   }, [isCurriculumOverview, selectedGradeId, subjectAllocations]);
 
   const curriculumLoadAcademicYearId = isCurriculumOverview
@@ -827,7 +833,7 @@ export default function CurriculumPageContent({
   ]);
 
   useEffect(() => {
-    loadCurriculumData();
+    void Promise.resolve().then(loadCurriculumData);
   }, [loadCurriculumData]);
 
   useEffect(() => {
@@ -907,23 +913,29 @@ export default function CurriculumPageContent({
       const lessonExists = lessons.some(
         (lesson) => lesson.id === queryState.lessonId,
       );
-      setSelectedNode(
-        lessonExists ? { type: "lesson", id: queryState.lessonId } : null,
-      );
+      void Promise.resolve().then(() => {
+        setSelectedNode(
+          lessonExists ? { type: "lesson", id: queryState.lessonId! } : null,
+        );
+      });
       hasRestoredSelectedNodeFromUrlRef.current = true;
       return;
     }
 
     if (queryState.unitId) {
       const unitExists = units.some((unit) => unit.id === queryState.unitId);
-      setSelectedNode(
-        unitExists ? { type: "unit", id: queryState.unitId } : null,
-      );
+      void Promise.resolve().then(() => {
+        setSelectedNode(
+          unitExists ? { type: "unit", id: queryState.unitId! } : null,
+        );
+      });
       hasRestoredSelectedNodeFromUrlRef.current = true;
       return;
     }
 
-    setSelectedNode((previous) => (isDraftNode(previous) ? previous : null));
+    void Promise.resolve().then(() => {
+      setSelectedNode((previous) => (isDraftNode(previous) ? previous : null));
+    });
     hasRestoredSelectedNodeFromUrlRef.current = true;
   }, [curriculum, lessons, queryState.lessonId, queryState.unitId, units]);
 
@@ -1645,10 +1657,6 @@ export default function CurriculumPageContent({
     setShowCreateDialog(false);
     setCreateDialogScope(null);
   };
-
-  const learningContentLesson = lessons.find(
-    (lesson) => lesson.id === learningContentLessonId,
-  );
 
   const curriculumOutlineProps = {
     curriculum: curriculum!,

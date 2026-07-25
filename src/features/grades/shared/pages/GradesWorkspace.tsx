@@ -270,7 +270,9 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
 
   useEffect(() => {
     if (!subjects.some((subject) => subject.id === selectedSubjectId)) {
-      setSelectedSubjectId(subjects[0]?.id || "");
+      void Promise.resolve().then(() => {
+        setSelectedSubjectId(subjects[0]?.id || "");
+      });
     }
   }, [selectedSubjectId, subjects]);
 
@@ -347,7 +349,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   }, [academicYearId, selectedDeliveryMode, selectedScopeId, selectedScopeType, selectedSubjectId, showError, tCommon, termId, view]);
 
   useEffect(() => {
-    void refreshGradebook();
+    void Promise.resolve().then(refreshGradebook);
   }, [refreshGradebook]);
 
   const openEditGradeDialog = useCallback(async (assessment: Assessment, row: GradebookStudentRow) => {

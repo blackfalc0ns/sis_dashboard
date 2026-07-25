@@ -140,13 +140,15 @@ export default function TimetableConfigDialog({
     if (!open) {
       return;
     }
-    setName(config?.name ?? t("config.defaultName"));
-    setWeekStartDay(config?.weekStartDay ?? 0);
-    setActiveDays(config?.activeDays ?? [0, 1, 2, 3, 4]);
-    setPeriodForm(emptyPeriodForm(nextPeriodIndex(periods)));
-    setEditingPeriodId(null);
-    setFormErrors([]);
-    setFieldErrors({});
+    void Promise.resolve().then(() => {
+      setName(config?.name ?? t("config.defaultName"));
+      setWeekStartDay(config?.weekStartDay ?? 0);
+      setActiveDays(config?.activeDays ?? [0, 1, 2, 3, 4]);
+      setPeriodForm(emptyPeriodForm(nextPeriodIndex(periods)));
+      setEditingPeriodId(null);
+      setFormErrors([]);
+      setFieldErrors({});
+    });
   }, [
     config,
     open,

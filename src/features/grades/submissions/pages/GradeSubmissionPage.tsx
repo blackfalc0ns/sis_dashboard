@@ -73,7 +73,7 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
     }
   }, [errorT, submissionId]);
 
-  useEffect(() => { void loadSubmission(); }, [loadSubmission]);
+  useEffect(() => { void Promise.resolve().then(loadSubmission); }, [loadSubmission]);
 
   const runAction = async (key: string, action: () => Promise<unknown>) => {
     setActiveAction(key);

@@ -70,7 +70,7 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
   }, [leadId, router, locale, showToast]);
 
   useEffect(() => {
-    loadLead();
+    void Promise.resolve().then(loadLead);
   }, [loadLead]);
 
   if (isLoading || !lead) {

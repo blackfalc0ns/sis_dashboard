@@ -109,14 +109,14 @@ export default function Sidebar({
   // Clear pending state when pathname changes (navigation complete)
   useEffect(() => {
     if (pendingHref !== null) {
-      setPendingHref(null);
+      void Promise.resolve().then(() => setPendingHref(null));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   useEffect(() => {
     if (isOpen) {
-      setHoveredCollapsedItemKey(null);
+      void Promise.resolve().then(() => setHoveredCollapsedItemKey(null));
     }
   }, [isOpen]);
 
@@ -218,16 +218,18 @@ export default function Sidebar({
 
     lastAutoExpandedPathRef.current = pathname;
 
-    setExpandedItems((prev) => {
-      const nextExpandedKeys = [...prev];
+    void Promise.resolve().then(() => {
+      setExpandedItems((prev) => {
+        const nextExpandedKeys = [...prev];
 
-      activeExpandedKeys.forEach((key) => {
-        if (!nextExpandedKeys.includes(key)) {
-          nextExpandedKeys.push(key);
-        }
+        activeExpandedKeys.forEach((key) => {
+          if (!nextExpandedKeys.includes(key)) {
+            nextExpandedKeys.push(key);
+          }
+        });
+
+        return nextExpandedKeys.length === prev.length ? prev : nextExpandedKeys;
       });
-
-      return nextExpandedKeys.length === prev.length ? prev : nextExpandedKeys;
     });
   }, [pathname, isArabic, visibleMenuItems]);
 

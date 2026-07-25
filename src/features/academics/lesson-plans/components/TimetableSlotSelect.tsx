@@ -81,15 +81,17 @@ export function useTimetableConfigForScope(
       !scope.termId ||
       !scope.classroomId
     ) {
-      setConfig(null);
-      setIsLoading(false);
+      void Promise.resolve().then(() => {
+        setConfig(null);
+        setIsLoading(false);
+      });
       return () => {
         active = false;
       };
     }
 
-    setConfig(null);
-    setIsLoading(true);
+    void Promise.resolve().then(() => setConfig(null));
+    void Promise.resolve().then(() => setIsLoading(true));
     void (async () => {
       for (const attempt of timetableConfigAttempts(scope)) {
         if (!active) return;

@@ -62,7 +62,7 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
   }, [testId]);
 
   useEffect(() => {
-    void loadTest();
+    void Promise.resolve().then(loadTest);
   }, [loadTest]);
 
   if (isLoading) {

@@ -212,12 +212,14 @@ export default function AssessmentQuestionsPage({
       approvalStatus: "draft",
       isLocked: false,
     };
-    setAssessment(baseAssessment);
-    setAssessmentDraft(baseAssessment);
-    setLastSavedAssessment(baseAssessment);
-    setQuestions([]);
-    setSelectedQuestionId(null);
-    setIsDataLoading(false);
+    void Promise.resolve().then(() => {
+      setAssessment(baseAssessment);
+      setAssessmentDraft(baseAssessment);
+      setLastSavedAssessment(baseAssessment);
+      setQuestions([]);
+      setSelectedQuestionId(null);
+      setIsDataLoading(false);
+    });
   }, [
     assessmentDraft,
     dateParam,
@@ -238,48 +240,54 @@ export default function AssessmentQuestionsPage({
       return;
     }
 
-    void refresh();
+    void Promise.resolve().then(refresh);
   }, [isCreateMode, refresh]);
 
   useEffect(() => {
     if (!isCreateMode || !termId) {
       return;
     }
-    setAssessment((current) =>
-      current
-        ? {
-            ...current,
-            termId,
-            scopeType: scopeTypeParam || current.scopeType,
-            scopeId: scopeIdParam || current.scopeId,
-            subjectId: subjectIdParam || current.subjectId,
-          }
-        : current,
-    );
-    setAssessmentDraft((current) =>
-      current
-        ? {
-            ...current,
-            termId,
-            scopeType: scopeTypeParam || current.scopeType,
-            scopeId: scopeIdParam || current.scopeId,
-            subjectId: subjectIdParam || current.subjectId,
-          }
-        : current,
-    );
+    void Promise.resolve().then(() => {
+      setAssessment((current) =>
+        current
+          ? {
+              ...current,
+              termId,
+              scopeType: scopeTypeParam || current.scopeType,
+              scopeId: scopeIdParam || current.scopeId,
+              subjectId: subjectIdParam || current.subjectId,
+            }
+          : current,
+      );
+      setAssessmentDraft((current) =>
+        current
+          ? {
+              ...current,
+              termId,
+              scopeType: scopeTypeParam || current.scopeType,
+              scopeId: scopeIdParam || current.scopeId,
+              subjectId: subjectIdParam || current.subjectId,
+            }
+          : current,
+      );
+    });
   }, [isCreateMode, scopeIdParam, scopeTypeParam, subjectIdParam, termId]);
 
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     if (!selectedQuestionId) {
-      setQuestionDraft(null);
-      setLastSavedQuestion(null);
+      void Promise.resolve().then(() => {
+        setQuestionDraft(null);
+        setLastSavedQuestion(null);
+      });
       return;
     }
     const selectedQuestion =
       questions.find((question) => question.id === selectedQuestionId) || null;
-    setQuestionDraft(selectedQuestion);
-    setLastSavedQuestion(selectedQuestion);
+    void Promise.resolve().then(() => {
+      setQuestionDraft(selectedQuestion);
+      setLastSavedQuestion(selectedQuestion);
+    });
   }, [selectedQuestionId]);
   /* eslint-enable react-hooks/exhaustive-deps */
 
@@ -290,20 +298,24 @@ export default function AssessmentQuestionsPage({
     const selectedQuestion =
       questions.find((question) => question.id === selectedQuestionId) || null;
     if (!selectedQuestion) {
-      setQuestionDraft(null);
-      setLastSavedQuestion(null);
+      void Promise.resolve().then(() => {
+        setQuestionDraft(null);
+        setLastSavedQuestion(null);
+      });
       return;
     }
-    setQuestionDraft((current) =>
-      current && current.id === selectedQuestion.id
-        ? current
-        : selectedQuestion,
-    );
-    setLastSavedQuestion((current) =>
-      current && current.id === selectedQuestion.id
-        ? current
-        : selectedQuestion,
-    );
+    void Promise.resolve().then(() => {
+      setQuestionDraft((current) =>
+        current && current.id === selectedQuestion.id
+          ? current
+          : selectedQuestion,
+      );
+      setLastSavedQuestion((current) =>
+        current && current.id === selectedQuestion.id
+          ? current
+          : selectedQuestion,
+      );
+    });
   }, [questions, selectedQuestionId]);
 
   const pointsSummary = useMemo(
@@ -317,9 +329,11 @@ export default function AssessmentQuestionsPage({
 
   useEffect(() => {
     if (!assessmentDraft) return;
-    setValidationErrors(
-      validateAssessmentDraft(assessmentDraft, questions, tValidation),
-    );
+    void Promise.resolve().then(() => {
+      setValidationErrors(
+        validateAssessmentDraft(assessmentDraft, questions, tValidation),
+      );
+    });
   }, [assessmentDraft, questions, tValidation]);
 
   const isAssessmentDirty = useMemo(() => {

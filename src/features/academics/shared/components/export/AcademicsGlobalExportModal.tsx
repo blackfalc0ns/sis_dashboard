@@ -35,8 +35,10 @@ export default function AcademicsGlobalExportModal({
 
   useEffect(() => {
     if (!isOpen) {
-      setFormat("csv");
-      setIsExporting(false);
+      void Promise.resolve().then(() => {
+        setFormat("csv");
+        setIsExporting(false);
+      });
     }
   }, [isOpen]);
 

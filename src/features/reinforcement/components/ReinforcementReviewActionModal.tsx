@@ -30,8 +30,8 @@ export default function ReinforcementReviewActionModal({
   // Reset form fields when modal opens
   useEffect(() => {
     if (isOpen) {
-      setNote("");
-      setNoteAr("");
+    void Promise.resolve().then(() => setNote(""));
+    void Promise.resolve().then(() => setNoteAr(""));
     }
   }, [isOpen]);
 

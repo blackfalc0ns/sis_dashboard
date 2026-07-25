@@ -235,7 +235,7 @@ export default function RewardCatalogPage() {
   );
 
   const handleClearAllFilters = useCallback(() => {
-    setCatalogPage(1);
+    void Promise.resolve().then(() => setCatalogPage(1));
     clearAll();
   }, [clearAll]);
 
@@ -327,7 +327,7 @@ export default function RewardCatalogPage() {
   ]);
 
   useEffect(() => {
-    setCatalogPage(1);
+    void Promise.resolve().then(() => setCatalogPage(1));
   }, [academicYearId, termId]);
 
   useEffect(() => {

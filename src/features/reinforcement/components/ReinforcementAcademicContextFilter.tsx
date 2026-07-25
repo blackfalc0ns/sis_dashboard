@@ -386,7 +386,9 @@ export default function ReinforcementAcademicContextFilter({
   const resolvedFilterOptions = filterOptions || loadedFilterOptions;
 
   useEffect(() => {
-    if (!filterOptions) setLoadedFilterOptions(null);
+    if (!filterOptions) {
+      void Promise.resolve().then(() => setLoadedFilterOptions(null));
+    }
   }, [filterOptions, value.academicYearId, value.termId]);
 
   /* ─── Build the selection object ─── */
@@ -439,7 +441,9 @@ export default function ReinforcementAcademicContextFilter({
   /* ─── Persist year+term to localStorage ─── */
   useEffect(() => {
     if (!showAcademicYearTerm) {
-      setYears({ data: [], loading: false, error: null });
+      void Promise.resolve().then(() => {
+        setYears({ data: [], loading: false, error: null });
+      });
       return;
     }
 
@@ -467,78 +471,99 @@ export default function ReinforcementAcademicContextFilter({
   /* ─── Fetch academic years ─── */
   useEffect(() => {
     if (resolvedFilterOptions) {
-      setYears({
-        data: (resolvedFilterOptions.academicYears || []) as NamedRecord[],
-        loading: false,
-        error: null,
+      void Promise.resolve().then(() => {
+        setYears({
+          data: (resolvedFilterOptions.academicYears || []) as NamedRecord[],
+          loading: false,
+          error: null,
+        });
       });
       return;
     }
-    setYears((current) => ({ ...current, loading: true, error: null }));
+    void Promise.resolve().then(() => {
+      setYears((current) => ({ ...current, loading: true, error: null }));
+    });
   }, [copy.error, resolvedFilterOptions, showAcademicYearTerm]);
 
   /* ─── Fetch terms ─── */
   useEffect(() => {
     if (resolvedFilterOptions) {
-      setTerms({
-        data: (resolvedFilterOptions.terms || []) as NamedRecord[],
-        loading: false,
-        error: null,
+      void Promise.resolve().then(() => {
+        setTerms({
+          data: (resolvedFilterOptions.terms || []) as NamedRecord[],
+          loading: false,
+          error: null,
+        });
       });
       return;
     }
 
     if (!value.academicYearId || !value.termId) {
-      setTerms({ data: [], loading: false, error: null });
+      void Promise.resolve().then(() => {
+        setTerms({ data: [], loading: false, error: null });
+      });
       return;
     }
 
-    setTerms((current) => ({ ...current, loading: true, error: null }));
+    void Promise.resolve().then(() => {
+      setTerms((current) => ({ ...current, loading: true, error: null }));
+    });
     return;
   }, [copy.error, resolvedFilterOptions, showAcademicYearTerm, value.academicYearId]);
 
   /* ─── Fetch tree, subjects, students ─── */
   useEffect(() => {
     if (resolvedFilterOptions) {
-      setYears({
-        data: (resolvedFilterOptions.academicYears || []) as NamedRecord[],
-        loading: false,
-        error: null,
-      });
-      setTerms({
-        data: (resolvedFilterOptions.terms || []) as NamedRecord[],
-        loading: false,
-        error: null,
-      });
-      setTree({
-        data: {
-          stages: (resolvedFilterOptions.stages || []) as AcademicStructureStage[],
-          grades: (resolvedFilterOptions.grades || []) as AcademicStructureGrade[],
-          sections: (resolvedFilterOptions.sections || []) as AcademicStructureSection[],
-          classrooms: (resolvedFilterOptions.classrooms || []) as AcademicStructureClassroom[],
-        },
-        loading: false,
-        error: null,
-      });
-      setStudents({
-        data: (resolvedFilterOptions.students || []) as StudentWithEnrollmentContext[],
-        loading: false,
-        error: null,
+      void Promise.resolve().then(() => {
+        setYears({
+          data: (resolvedFilterOptions.academicYears || []) as NamedRecord[],
+          loading: false,
+          error: null,
+        });
+        setTerms({
+          data: (resolvedFilterOptions.terms || []) as NamedRecord[],
+          loading: false,
+          error: null,
+        });
+        setTree({
+          data: {
+            stages: (resolvedFilterOptions.stages ||
+              []) as AcademicStructureStage[],
+            grades: (resolvedFilterOptions.grades ||
+              []) as AcademicStructureGrade[],
+            sections: (resolvedFilterOptions.sections ||
+              []) as AcademicStructureSection[],
+            classrooms: (resolvedFilterOptions.classrooms ||
+              []) as AcademicStructureClassroom[],
+          },
+          loading: false,
+          error: null,
+        });
+        setStudents({
+          data: (resolvedFilterOptions.students ||
+            []) as StudentWithEnrollmentContext[],
+          loading: false,
+          error: null,
+        });
       });
       return;
     }
 
     if (!value.academicYearId || !value.termId) {
-      setTree({ data: emptyTree, loading: false, error: null });
-      setSubjectAllocations({ data: [], loading: false, error: null });
-      setStudents({ data: [], loading: false, error: null });
+      void Promise.resolve().then(() => {
+        setTree({ data: emptyTree, loading: false, error: null });
+        setSubjectAllocations({ data: [], loading: false, error: null });
+        setStudents({ data: [], loading: false, error: null });
+      });
       return;
     }
     if (resolvedFilterOptions) return;
 
     let cancelled = false;
-    setTree((current) => ({ ...current, loading: true, error: null }));
-    setStudents((current) => ({ ...current, loading: true, error: null }));
+    void Promise.resolve().then(() => {
+      setTree((current) => ({ ...current, loading: true, error: null }));
+      setStudents((current) => ({ ...current, loading: true, error: null }));
+    });
     getReinforcementFilterOptions({
       academicYearId: value.academicYearId,
       termId: value.termId,
@@ -570,12 +595,16 @@ export default function ReinforcementAcademicContextFilter({
    * academic-structure tree in subjectsForStage. */
   useEffect(() => {
     if (!showSubject || !value.termId) {
-      setSubjectAllocations({ data: [], loading: false, error: null });
+      void Promise.resolve().then(() => {
+        setSubjectAllocations({ data: [], loading: false, error: null });
+      });
       return;
     }
 
     let cancelled = false;
-    setSubjectAllocations({ data: [], loading: true, error: null });
+      void Promise.resolve().then(() => {
+        setSubjectAllocations({ data: [], loading: true, error: null });
+      });
     fetchSubjectAllocations(value.termId)
       .then((allocations) => {
         if (!cancelled) {

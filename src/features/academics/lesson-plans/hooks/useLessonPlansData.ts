@@ -24,6 +24,7 @@ import {
   type LessonPlanValidationResponseDto,
   type WeekInfo,
 } from "@/features/academics/lesson-plans/services/lessonPlansService";
+import type { LessonPlanSummaryQuery } from "@/features/academics/lesson-plans/services/lessonPlansBackendTypes";
 import {
   fetchSubjectAllocations,
   fetchSubjects,
@@ -188,7 +189,10 @@ export function useLessonPlansData(params: Params) {
   );
 
   const refreshSummary = useCallback(
-    async (options: RefreshLessonPlansOptions = {}, explicitQuery?: any) => {
+    async (
+      options: RefreshLessonPlansOptions = {},
+      explicitQuery?: LessonPlanSummaryQuery,
+    ) => {
       void options.silent;
       const query = explicitQuery || scopedLessonPlansQuery();
       if (!query) return;
@@ -217,7 +221,10 @@ export function useLessonPlansData(params: Params) {
   );
 
   const refreshValidation = useCallback(
-    async (options: RefreshLessonPlansOptions = {}, explicitQuery?: any) => {
+    async (
+      options: RefreshLessonPlansOptions = {},
+      explicitQuery?: LessonPlanSummaryQuery,
+    ) => {
       void options.silent;
       const query = explicitQuery || scopedLessonPlansQuery();
       if (!query) return;
@@ -246,7 +253,10 @@ export function useLessonPlansData(params: Params) {
   );
 
   const refreshSummaryAndValidation = useCallback(
-    async (options: RefreshLessonPlansOptions = {}, explicitQuery?: any) => {
+    async (
+      options: RefreshLessonPlansOptions = {},
+      explicitQuery?: LessonPlanSummaryQuery,
+    ) => {
       void refreshSummary(options, explicitQuery);
       void refreshValidation(options, explicitQuery);
     },
@@ -488,7 +498,9 @@ export function useLessonPlansData(params: Params) {
   ]);
 
   useEffect(() => {
-    void refreshAllLessonPlans().catch(() => undefined);
+    void Promise.resolve().then(() =>
+      refreshAllLessonPlans().catch(() => undefined),
+    );
   }, [refreshAllLessonPlans]);
   return {
     stages,

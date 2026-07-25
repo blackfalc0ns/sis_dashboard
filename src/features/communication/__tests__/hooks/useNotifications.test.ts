@@ -8,6 +8,16 @@ import {
   markNotificationRead,
 } from "@/features/communication/api/communication.service";
 
+function deferredPromise<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
+
 let mockSocket: MockSocket;
 let getNotificationsMock: ReturnType<typeof vi.fn>;
 
@@ -234,13 +244,9 @@ describe("useNotifications", () => {
       const markNotificationReadMock = vi.mocked(markNotificationRead);
       
       const apiError = new Error("API failed");
-      let resolveApi: any;
-      let rejectApi: any;
-      const apiPromise = new Promise((resolve, reject) => {
-        resolveApi = resolve;
-        rejectApi = reject;
-      });
-      markNotificationReadMock.mockReturnValueOnce(apiPromise);
+      const apiRequest =
+        deferredPromise<Awaited<ReturnType<typeof markNotificationRead>>>();
+      markNotificationReadMock.mockReturnValueOnce(apiRequest.promise);
 
       const { result } = renderHook(() => useNotifications());
       
@@ -263,10 +269,10 @@ describe("useNotifications", () => {
 
       // Reject API call to test rollback
       await act(async () => {
-        rejectApi(apiError);
+        apiRequest.reject(apiError);
         try {
           await markReadPromise;
-        } catch (e) {
+        } catch {
           // Expected error
         }
       });
@@ -284,13 +290,9 @@ describe("useNotifications", () => {
       const archiveNotificationMock = vi.mocked(archiveNotification);
       
       const apiError = new Error("API failed");
-      let resolveApi: any;
-      let rejectApi: any;
-      const apiPromise = new Promise((resolve, reject) => {
-        resolveApi = resolve;
-        rejectApi = reject;
-      });
-      archiveNotificationMock.mockReturnValueOnce(apiPromise);
+      const apiRequest =
+        deferredPromise<Awaited<ReturnType<typeof archiveNotification>>>();
+      archiveNotificationMock.mockReturnValueOnce(apiRequest.promise);
 
       const { result } = renderHook(() => useNotifications());
       
@@ -309,10 +311,10 @@ describe("useNotifications", () => {
 
       // Reject API call to test rollback
       await act(async () => {
-        rejectApi(apiError);
+        apiRequest.reject(apiError);
         try {
           await archivePromise;
-        } catch (e) {
+        } catch {
           // Expected error
         }
       });
@@ -329,13 +331,9 @@ describe("useNotifications", () => {
       const markAllNotificationsReadMock = vi.mocked(markAllNotificationsRead);
       
       const apiError = new Error("API failed");
-      let resolveApi: any;
-      let rejectApi: any;
-      const apiPromise = new Promise((resolve, reject) => {
-        resolveApi = resolve;
-        rejectApi = reject;
-      });
-      markAllNotificationsReadMock.mockReturnValueOnce(apiPromise);
+      const apiRequest =
+        deferredPromise<Awaited<ReturnType<typeof markAllNotificationsRead>>>();
+      markAllNotificationsReadMock.mockReturnValueOnce(apiRequest.promise);
 
       const { result } = renderHook(() => useNotifications());
       
@@ -356,10 +354,10 @@ describe("useNotifications", () => {
 
       // Reject API call to test rollback
       await act(async () => {
-        rejectApi(apiError);
+        apiRequest.reject(apiError);
         try {
           await markAllReadPromise;
-        } catch (e) {
+        } catch {
           // Expected error
         }
       });
@@ -374,11 +372,9 @@ describe("useNotifications", () => {
 
     it("optimistically updates and then refreshes on success", async () => {
       const markNotificationReadMock = vi.mocked(markNotificationRead);
-      let resolveApi: any;
-      const apiPromise = new Promise((resolve) => {
-        resolveApi = resolve;
-      });
-      markNotificationReadMock.mockReturnValueOnce(apiPromise);
+      const apiRequest =
+        deferredPromise<Awaited<ReturnType<typeof markNotificationRead>>>();
+      markNotificationReadMock.mockReturnValueOnce(apiRequest.promise);
 
       const { result } = renderHook(() => useNotifications());
       
@@ -407,7 +403,7 @@ describe("useNotifications", () => {
 
       // Resolve the API call
       await act(async () => {
-        resolveApi({ success: true });
+        apiRequest.resolve({ success: true });
         await markReadPromise;
       });
 

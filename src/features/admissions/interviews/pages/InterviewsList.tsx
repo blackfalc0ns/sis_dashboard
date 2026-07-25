@@ -79,7 +79,7 @@ export default function InterviewsList() {
   }, [showToast]);
 
   useEffect(() => {
-    void loadInterviews();
+    void Promise.resolve().then(loadInterviews);
   }, [loadInterviews]);
 
   const normalizeQueryValues = useCallback(

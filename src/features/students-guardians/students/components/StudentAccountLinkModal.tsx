@@ -68,19 +68,21 @@ export default function StudentAccountLinkModal({
     if (!isOpen) {
       return;
     }
-    setMode("create");
-    setUsername("");
-    setContactEmail(getStudentContactEmail(student));
-    setTemporaryPasswordMode("generate");
-    setPreviewEmail("");
-    setError(null);
-    setLinkedResponse(null);
-    setSelectedUser(null);
+    void Promise.resolve().then(() => {
+      setMode("create");
+      setUsername("");
+      setContactEmail(getStudentContactEmail(student));
+      setTemporaryPasswordMode("generate");
+      setPreviewEmail("");
+      setError(null);
+      setLinkedResponse(null);
+      setSelectedUser(null);
+    });
   }, [isOpen, student]);
 
   useEffect(() => {
     if (!isOpen || mode !== "create" || !username.trim()) {
-      setPreviewEmail("");
+      void Promise.resolve().then(() => setPreviewEmail(""));
       return;
     }
 

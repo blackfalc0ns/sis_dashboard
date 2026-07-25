@@ -288,7 +288,7 @@ export default function AcademicStructurePage() {
   ]);
 
   useEffect(() => {
-    setSearchInputValue(searchQuery);
+    void Promise.resolve().then(() => setSearchInputValue(searchQuery));
   }, [searchQuery]);
 
   useGuardedAcademicContextChange({
@@ -357,8 +357,8 @@ export default function AcademicStructurePage() {
     try {
       await saveItem(type, id, data);
       setHasUnsavedChanges(false);
-    } catch (err: any) {
-      showError(err.message || t("details.save_failed"));
+    } catch (err) {
+      showError(err instanceof Error ? err.message : t("details.save_failed"));
       throw err;
     }
   };
@@ -372,8 +372,8 @@ export default function AcademicStructurePage() {
       if (deleted) {
         syncSelectedNodeUrl(null);
       }
-    } catch (err: any) {
-      showError(err.message || t("details.delete_failed"));
+    } catch (err) {
+      showError(err instanceof Error ? err.message : t("details.delete_failed"));
       throw err;
     }
   };

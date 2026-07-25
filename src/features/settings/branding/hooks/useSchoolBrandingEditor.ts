@@ -51,13 +51,15 @@ export function useSchoolBrandingEditor({
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   useEffect(() => {
-    setProfile(cloneProfile(initialProfile));
-    setSavedProfile(cloneProfile(initialProfile));
-    setErrors({});
-    setLocationWasEdited(false);
-    setLogoError("");
-    setLogoStatus("");
-    setIsUploadingLogo(false);
+    void Promise.resolve().then(() => {
+      setProfile(cloneProfile(initialProfile));
+      setSavedProfile(cloneProfile(initialProfile));
+      setErrors({});
+      setLocationWasEdited(false);
+      setLogoError("");
+      setLogoStatus("");
+      setIsUploadingLogo(false);
+    });
   }, [initialProfile]);
 
   const isDirty = useMemo(

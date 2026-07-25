@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { test as fcTest, fc } from '@fast-check/vitest';
+import { test as fcTest } from '@fast-check/vitest';
 import {
   createConversation,
   createMessage,

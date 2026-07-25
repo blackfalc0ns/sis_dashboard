@@ -181,7 +181,7 @@ export default function TopNavNotificationDropdown({
 
   useEffect(() => {
     // Initialise and sync with sound control state
-    setMuted(getNotificationMuted());
+    void Promise.resolve().then(() => setMuted(getNotificationMuted()));
   }, [isOpen]);
 
   const handleToggleMute = () => {

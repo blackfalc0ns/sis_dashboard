@@ -176,7 +176,7 @@ export default function AttendanceLateEarlyPage() {
   }, [termContext.yearId, termContext.termId]);
 
   useEffect(() => {
-    reloadIncidents();
+    void Promise.resolve().then(reloadIncidents);
   }, [reloadIncidents]);
 
   const selectedYearName =

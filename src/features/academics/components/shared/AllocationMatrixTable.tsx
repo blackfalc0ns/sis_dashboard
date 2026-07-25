@@ -62,7 +62,7 @@ export default function AllocationMatrixTable<
   const [pageSize, setPageSize] = useState(itemsPerPage);
 
   useEffect(() => {
-    setPageSize(itemsPerPage);
+    void Promise.resolve().then(() => setPageSize(itemsPerPage));
   }, [itemsPerPage]);
 
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
@@ -80,7 +80,9 @@ export default function AllocationMatrixTable<
       return;
     }
 
-    setCurrentPage((previousPage) => Math.min(previousPage, totalPages));
+    void Promise.resolve().then(() => {
+      setCurrentPage((previousPage) => Math.min(previousPage, totalPages));
+    });
   }, [showPagination, totalPages]);
 
   const startRow = showPagination ? (currentPage - 1) * pageSize + 1 : 0;

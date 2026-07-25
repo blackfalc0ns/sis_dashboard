@@ -48,7 +48,7 @@ export function useAssignmentQuestionsManager({
   }, [assignment.id, onLoadError]);
 
   useEffect(() => {
-    void loadQuestions();
+    void Promise.resolve().then(() => loadQuestions());
   }, [loadQuestions]);
 
   const pointsSummary = useMemo(() => {

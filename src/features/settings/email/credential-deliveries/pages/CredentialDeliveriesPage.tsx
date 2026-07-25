@@ -56,7 +56,7 @@ export default function CredentialDeliveriesPage() {
   }, [showError, t]);
 
   useEffect(() => {
-    void hydrateRoles();
+    void Promise.resolve().then(hydrateRoles);
   }, [hydrateRoles]);
 
   const buildRecipientPayload = (

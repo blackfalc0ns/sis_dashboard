@@ -172,7 +172,7 @@ export default function MedicalTab({ student }: MedicalTabProps) {
   }, [student.id]);
 
   useEffect(() => {
-    void loadMedicalProfile();
+    void Promise.resolve().then(loadMedicalProfile);
   }, [loadMedicalProfile]);
 
   const handleSave = async () => {

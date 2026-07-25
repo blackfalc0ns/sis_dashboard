@@ -118,19 +118,23 @@ export default function GoogleLocationPicker({
   }, []);
 
   useEffect(() => {
-    setDraft({
-      latitude:
-        controlledLatitude === undefined ? "" : String(controlledLatitude),
-      longitude:
-        controlledLongitude === undefined ? "" : String(controlledLongitude),
+    void Promise.resolve().then(() => {
+      setDraft({
+        latitude:
+          controlledLatitude === undefined ? "" : String(controlledLatitude),
+        longitude:
+          controlledLongitude === undefined ? "" : String(controlledLongitude),
+      });
     });
   }, [controlledLatitude, controlledLongitude]);
 
   useEffect(() => {
     if (value) {
-      setQuery(value.formattedAddress || value.label || "");
+      void Promise.resolve().then(() => {
+        setQuery(value.formattedAddress || value.label || "");
+      });
     } else {
-      setQuery("");
+      void Promise.resolve().then(() => setQuery(""));
     }
   }, [value]);
 

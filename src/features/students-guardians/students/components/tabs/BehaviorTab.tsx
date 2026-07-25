@@ -172,8 +172,8 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
 
   useEffect(() => {
     if (!isPermissionsReady || !canViewBehavior) return;
-    void loadSummary();
-    void loadRecords();
+    void Promise.resolve().then(loadSummary);
+    void Promise.resolve().then(loadRecords);
   }, [canViewBehavior, isPermissionsReady, loadRecords, loadSummary]);
 
   // ── Load categories when modal type changes ────────────────────────────────
@@ -181,7 +181,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
     if (!isModalOpen || !canCreateBehavior) return;
 
     let mounted = true;
-    setIsLoadingCategories(true);
+    void Promise.resolve().then(() => setIsLoadingCategories(true));
 
     behaviorApi
       .fetchBehaviorCategories({ type: recordType, isActive: true })

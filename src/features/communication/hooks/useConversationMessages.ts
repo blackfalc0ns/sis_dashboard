@@ -410,11 +410,11 @@ export function useConversationMessages(conversationId: string) {
   useEffect(() => {
     mountedRef.current = true;
     activeConversationIdRef.current = conversationId;
-    setIsLoading(true);
-    setMessages([]);
-    setReadSummary({});
-    setHasOlderMessages(true);
-    void refresh();
+    void Promise.resolve().then(() => setIsLoading(true));
+    void Promise.resolve().then(() => setMessages([]));
+    void Promise.resolve().then(() => setReadSummary({}));
+    void Promise.resolve().then(() => setHasOlderMessages(true));
+    void Promise.resolve().then(refresh);
     return () => {
       mountedRef.current = false;
     };

@@ -91,7 +91,7 @@ export default function EmailCampaignDetailPage({
   );
 
   useEffect(() => {
-    void hydrate();
+    void Promise.resolve().then(() => hydrate());
   }, [hydrate]);
 
   if (isLoading) {

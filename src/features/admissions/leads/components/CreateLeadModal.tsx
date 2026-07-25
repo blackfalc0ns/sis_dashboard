@@ -60,20 +60,22 @@ export default function CreateLeadModal({
     }
 
     if (initialLead) {
-      setFormData({
-        studentName: initialLead.studentName || "",
-        primaryContactName: initialLead.primaryContactName || "",
-        phone: initialLead.phone || "",
-        email: initialLead.email || "",
-        channel: initialLead.channel || "In-app",
-        status: initialLead.status || "New",
-        notes: initialLead.notes || "",
+      void Promise.resolve().then(() => {
+        setFormData({
+          studentName: initialLead.studentName || "",
+          primaryContactName: initialLead.primaryContactName || "",
+          phone: initialLead.phone || "",
+          email: initialLead.email || "",
+          channel: initialLead.channel || "In-app",
+          status: initialLead.status || "New",
+          notes: initialLead.notes || "",
+        });
+        setFieldErrors({});
       });
-      setFieldErrors({});
       return;
     }
 
-    resetForm();
+    void Promise.resolve().then(resetForm);
   }, [initialLead, isOpen]);
 
   const updateField = (

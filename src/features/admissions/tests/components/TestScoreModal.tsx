@@ -23,10 +23,12 @@ export default function TestScoreModal({ test, isOpen, onClose, onSubmit }: Test
 
   useEffect(() => {
     if (isOpen) {
-      setScore(test.score?.toString() || "");
-      setResult(test.notes || "");
-      setScoreError(undefined);
-      setIsSubmitting(false);
+      void Promise.resolve().then(() => {
+        setScore(test.score?.toString() || "");
+        setResult(test.notes || "");
+        setScoreError(undefined);
+        setIsSubmitting(false);
+      });
     }
   }, [isOpen, test.id, test.notes, test.score]);
 

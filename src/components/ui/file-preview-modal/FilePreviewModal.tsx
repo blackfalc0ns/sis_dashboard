@@ -32,10 +32,12 @@ export default function FilePreviewModal({ attachment, isOpen, onClose }: FilePr
 
   useEffect(() => {
     if (!attachment?.id) {
-      setPreviewUrl(null);
-      setPreviewMimeType(null);
-      setPreviewAttachmentId(null);
-      setFailedAttachmentId(null);
+      void Promise.resolve().then(() => {
+        setPreviewUrl(null);
+        setPreviewMimeType(null);
+        setPreviewAttachmentId(null);
+        setFailedAttachmentId(null);
+      });
       return;
     }
     let active = true;

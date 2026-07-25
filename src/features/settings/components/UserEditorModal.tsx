@@ -72,14 +72,16 @@ export default function UserEditorModal({
     if (!isOpen) {
       return;
     }
-    setFullName(user?.fullName || "");
-    setUsername(user?.username || "");
-    setContactEmail(user?.contactEmail || "");
-    setRoleId(user?.roleId || roles[0]?.id || "");
-    setIsSaving(false);
-    setPreview(null);
-    setAvailability(null);
-    setIdentityError(null);
+    void Promise.resolve().then(() => {
+      setFullName(user?.fullName || "");
+      setUsername(user?.username || "");
+      setContactEmail(user?.contactEmail || "");
+      setRoleId(user?.roleId || roles[0]?.id || "");
+      setIsSaving(false);
+      void Promise.resolve().then(() => setPreview(null));
+      setAvailability(null);
+      setIdentityError(null);
+    });
   }, [isOpen, roles, user]);
 
   useEffect(() => {
@@ -87,16 +89,18 @@ export default function UserEditorModal({
       return;
     }
     const trimmedUsername = username.trim();
-    setAvailability(null);
-    setIdentityError(null);
+    void Promise.resolve().then(() => {
+      setAvailability(null);
+      setIdentityError(null);
+    });
     if (!trimmedUsername) {
-      setPreview(null);
-      setIsPreviewing(false);
+      void Promise.resolve().then(() => setPreview(null));
+      void Promise.resolve().then(() => setIsPreviewing(false));
       return;
     }
 
     let cancelled = false;
-    setIsPreviewing(true);
+    void Promise.resolve().then(() => setIsPreviewing(true));
     const timeoutId = window.setTimeout(() => {
       void previewLoginIdentityUsername(trimmedUsername)
         .then((nextPreview) => {

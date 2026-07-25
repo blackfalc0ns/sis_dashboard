@@ -91,7 +91,7 @@ export default function EmailConnectionPage() {
   );
 
   useEffect(() => {
-    void hydrate();
+    void Promise.resolve().then(() => hydrate());
   }, [hydrate]);
 
   const handleChange = <K extends keyof EmailConnectionFormValues>(

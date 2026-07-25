@@ -101,11 +101,13 @@ export default function ValidationPanel({
     if (!open) return;
 
     let isCurrentRequest = true;
-    setIsLoading(true);
-    setLoadError(null);
-    setLoadErrorTraceId(undefined);
-    setLoadErrorDetails([]);
-    setValidationResponse(null);
+    void Promise.resolve().then(() => {
+      setIsLoading(true);
+      setLoadError(null);
+      setLoadErrorTraceId(undefined);
+      setLoadErrorDetails([]);
+      setValidationResponse(null);
+    });
 
     fetchTeacherAllocationValidation({ termId, gradeId, subjectId })
       .then((response) => {

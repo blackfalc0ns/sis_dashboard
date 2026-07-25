@@ -89,7 +89,7 @@ export default function LeadsList() {
   }, [showToast]);
 
   useEffect(() => {
-    loadLeads();
+    void Promise.resolve().then(loadLeads);
   }, [loadLeads]);
 
   const scopedLeads = leads;

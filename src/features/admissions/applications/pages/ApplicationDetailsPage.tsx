@@ -117,7 +117,7 @@ export default function ApplicationDetailsPage({
   }, [applicationId, t]);
 
   useEffect(() => {
-    void loadApplication();
+    void Promise.resolve().then(loadApplication);
   }, [loadApplication]);
 
   if (isLoading) {

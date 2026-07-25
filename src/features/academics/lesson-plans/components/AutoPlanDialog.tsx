@@ -78,10 +78,12 @@ export default function AutoPlanDialog({
   >(null);
   useEffect(() => {
     if (!isOpen) return;
-    setFrom(parseDateOnly(termStartDate));
-    setTo(parseDateOnly(termEndDate));
-    setPreview(null);
-    setBackendMissingDataStatus(null);
+    void Promise.resolve().then(() => {
+      setFrom(parseDateOnly(termStartDate));
+      setTo(parseDateOnly(termEndDate));
+      setPreview(null);
+      setBackendMissingDataStatus(null);
+    });
   }, [isOpen, termEndDate, termStartDate]);
   const fromValue = from ? formatDateOnly(from) : undefined;
   const toValue = to ? formatDateOnly(to) : undefined;
