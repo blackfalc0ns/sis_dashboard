@@ -95,6 +95,24 @@ export interface CurriculumAdapter {
     contentItemId: string,
     payload: ReorderRequest,
   ): Promise<LessonContentItem>;
+  publishLessonContent(
+    curriculumId: string,
+    unitId: string,
+    lessonId: string,
+    contentItemId: string,
+  ): Promise<LessonContentItem>;
+  unpublishLessonContent(
+    curriculumId: string,
+    unitId: string,
+    lessonId: string,
+    contentItemId: string,
+  ): Promise<LessonContentItem>;
+  archiveLessonContent(
+    curriculumId: string,
+    unitId: string,
+    lessonId: string,
+    contentItemId: string,
+  ): Promise<LessonContentItem>;
   deleteLessonContent(
     curriculumId: string,
     unitId: string,

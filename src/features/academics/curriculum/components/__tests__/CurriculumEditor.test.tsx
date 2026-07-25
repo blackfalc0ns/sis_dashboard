@@ -156,4 +156,40 @@ describe("CurriculumEditor", () => {
     expect(deleteUnit).toHaveBeenCalledOnce();
     expect(deleteUnit).toHaveBeenCalledWith("curriculum-1", "unit-1");
   });
+
+  it("toggles between lesson form and learning content view for saved lessons", async () => {
+    const user = userEvent.setup();
+    const existingLesson = {
+      id: "lesson-1",
+      unitId: "unit-1",
+      curriculumId: "curriculum-1",
+      title: "Saved Lesson",
+      description: "Desc",
+      objectives: ["Objective 1"],
+      estimatedMinutes: 30,
+      sortOrder: 0,
+    };
+
+    render(
+      <CurriculumEditor
+        {...baseProps}
+        units={[unit]}
+        lessons={[existingLesson]}
+        selectedNode={{ type: "lesson", id: "lesson-1" }}
+      />,
+    );
+
+    const learningContentBtn = screen.getByRole("button", { name: "learning_content" });
+    expect(learningContentBtn).toBeInTheDocument();
+
+    await user.click(learningContentBtn);
+
+    const backBtn = screen.getByRole("button", { name: "back_to_form" });
+    expect(backBtn).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "learning_content" })).not.toBeInTheDocument();
+
+    await user.click(backBtn);
+
+    expect(screen.getByRole("button", { name: "learning_content" })).toBeInTheDocument();
+  });
 });

@@ -15,6 +15,13 @@ export type CurriculumErrorCode =
   | "academics.lesson_content.invalid_url"
   | "academics.lesson_content.file_not_found"
   | "academics.lesson_content.read_only"
+  | "learning.content.publication_conflict"
+  | "learning.media.not_ready"
+  | "learning.media.unsupported_type"
+  | "learning.media.upload_expired"
+  | "learning.media.upload_conflict"
+  | "learning.media.size_exceeded"
+  | "learning.media.verification_failed"
   | "files.uploads.size_exceeded"
   | "files.uploads.mime_not_allowed"
   | "validation.failed"
@@ -45,6 +52,14 @@ const curriculumErrorMessages: Record<CurriculumErrorCode, string> = {
   "academics.lesson_content.file_not_found":
     "The selected file could not be found.",
   "academics.lesson_content.read_only": "This lesson content item is read-only.",
+  "learning.content.publication_conflict":
+    "This publication action is not valid for the current content state.",
+  "learning.media.not_ready": "The uploaded learning media is not ready yet.",
+  "learning.media.unsupported_type": "This learning-media type is not supported.",
+  "learning.media.upload_expired": "This learning-media upload has expired.",
+  "learning.media.upload_conflict": "This learning-media upload conflicts with its current state.",
+  "learning.media.size_exceeded": "The selected file exceeds the allowed size limit.",
+  "learning.media.verification_failed": "The uploaded file could not be verified.",
   "files.uploads.size_exceeded": "The selected file exceeds the 10 MB limit.",
   "files.uploads.mime_not_allowed": "This file type is not supported.",
   "validation.failed": "Check the submitted curriculum fields.",

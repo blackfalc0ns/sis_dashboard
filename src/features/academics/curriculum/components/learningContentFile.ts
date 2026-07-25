@@ -3,13 +3,20 @@ import type {
   LessonContentType,
 } from "../services/curriculumBackendTypes";
 
-export const MAX_LEARNING_CONTENT_FILE_SIZE = 10 * 1024 * 1024;
-export const LEARNING_CONTENT_FILE_ACCEPT = ".pdf,.jpg,.jpeg,.png,.txt";
+export const MAX_LEARNING_CONTENT_NON_VIDEO_FILE_SIZE = 10 * 1024 * 1024;
+export const MAX_LEARNING_CONTENT_VIDEO_FILE_SIZE = 200 * 1024 * 1024;
+export const LEARNING_CONTENT_FILE_ACCEPT =
+  ".pdf,.txt,.jpg,.jpeg,.png,.mp3,.m4a,.webm,.mp4";
 export const ALLOWED_LEARNING_CONTENT_MIME_TYPES = new Set([
   "application/pdf",
   "image/jpeg",
   "image/png",
   "text/plain",
+  "audio/mpeg",
+  "audio/mp4",
+  "audio/webm",
+  "video/mp4",
+  "video/webm",
 ]);
 
 export type FileValidationError = "required" | "size" | "mime";
@@ -30,9 +37,17 @@ export function isFileUploadDisabled(isReadOnly: boolean, canUploadFiles: boolea
 export async function resolveLessonContentFileId(
   file: File | undefined,
   existingFileId: string | null,
-  uploader: (file: File) => Promise<{ id: string }>,
+  uploader: (
+    file: File,
+    onStageChange?: (stage: "preparing" | "uploading" | "verifying") => void,
+    onUploadProgress?: (progress: number) => void,
+  ) => Promise<{ id: string }>,
+  onStageChange?: (stage: "preparing" | "uploading" | "verifying") => void,
+  onUploadProgress?: (progress: number) => void,
 ): Promise<string | null> {
-  return file ? (await uploader(file)).id : existingFileId;
+  return file
+    ? (await uploader(file, onStageChange, onUploadProgress)).id
+    : existingFileId;
 }
 
 export type ContentForm = {
@@ -51,8 +66,11 @@ export function validateLearningContentFile(
 ): FileValidationError | null {
   if (!file && !existingFileId) return "required";
   if (!file) return null;
-  if (file.size > MAX_LEARNING_CONTENT_FILE_SIZE) return "size";
   if (!ALLOWED_LEARNING_CONTENT_MIME_TYPES.has(file.type)) return "mime";
+  const maximumSize = file.type === "video/mp4" || file.type === "video/webm"
+    ? MAX_LEARNING_CONTENT_VIDEO_FILE_SIZE
+    : MAX_LEARNING_CONTENT_NON_VIDEO_FILE_SIZE;
+  if (file.size > maximumSize) return "size";
   return null;
 }
 

@@ -3,9 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api-error";
 import {
+  archiveLessonContent,
   createLessonContent,
   deleteLessonContent,
   listLessonContent,
+  publishLessonContent,
   type LessonContentItem,
 } from "../../services/curriculumService";
 import LearningContentPanel from "../LearningContentPanel";
@@ -32,16 +34,19 @@ vi.mock("../../services/curriculumService", async (importOriginal) => {
   return {
     ...actual,
     createLessonContent: vi.fn(),
+    archiveLessonContent: vi.fn(),
     deleteLessonContent: vi.fn(),
     listLessonContent: vi.fn(),
+    publishLessonContent: vi.fn(),
     reorderLessonContent: vi.fn(),
+    unpublishLessonContent: vi.fn(),
     updateLessonContent: vi.fn(),
   };
 });
 
 vi.mock("../../services/filesService", () => ({
   downloadFile: vi.fn(),
-  uploadFile: vi.fn(),
+  uploadLearningMedia: vi.fn(),
 }));
 
 vi.mock("@/components/ui/confirm-dialog/ConfirmDialog", () => ({
@@ -80,6 +85,11 @@ const contentItem: LessonContentItem = {
   isRequired: true,
   estimatedMinutes: null,
   metadata: null,
+  publicationStatus: "draft",
+  publishedAt: null,
+  publishedByUserId: null,
+  archivedAt: null,
+  archivedByUserId: null,
   createdAt: "2026-07-06T00:00:00.000Z",
   updatedAt: "2026-07-06T00:00:00.000Z",
 };
@@ -143,6 +153,34 @@ describe("LearningContentPanel", () => {
     expect(screen.getByText("Content body is invalid")).toBeInTheDocument();
   });
 
+  it("shows the dropped file before saving a file content item", async () => {
+    const user = userEvent.setup();
+    vi.mocked(listLessonContent).mockResolvedValue([]);
+
+    render(
+      <LearningContentPanel
+        curriculumId="curriculum-1"
+        unitId="unit-1"
+        lessonId="lesson-1"
+        isReadOnly={false}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByLabelText("item_type"));
+    await user.click(await screen.findByRole("button", { name: "FILE" }));
+
+    const selectedFile = new File(["lesson resource"], "worksheet.pdf", {
+      type: "application/pdf",
+    });
+    const fileInput = document.querySelector('input[type="file"]');
+    expect(fileInput).not.toBeNull();
+
+    await user.upload(fileInput!, selectedFile);
+
+    expect(await screen.findByText("worksheet.pdf")).toBeInTheDocument();
+  });
+
   it("waits for modal confirmation before deleting lesson content", async () => {
     const user = userEvent.setup();
     vi.mocked(listLessonContent).mockResolvedValue([contentItem]);
@@ -157,14 +195,16 @@ describe("LearningContentPanel", () => {
       />,
     );
 
-    await user.click(await screen.findByRole("button", { name: "delete" }));
+    await user.click(await screen.findByRole("button", { name: "actions_menu" }));
+    await user.click(await screen.findByRole("menuitem", { name: "delete" }));
     expect(deleteLessonContent).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "cancel" }));
     expect(deleteLessonContent).not.toHaveBeenCalled();
 
+    await user.click(screen.getByRole("button", { name: "actions_menu" }));
+    await user.click(await screen.findByRole("menuitem", { name: "delete" }));
     await user.click(screen.getByRole("button", { name: "delete" }));
-    await user.click(screen.getAllByRole("button", { name: "delete" })[1]);
 
     expect(deleteLessonContent).toHaveBeenCalledOnce();
     expect(deleteLessonContent).toHaveBeenCalledWith(
@@ -173,5 +213,108 @@ describe("LearningContentPanel", () => {
       "lesson-1",
       "content-1",
     );
+  });
+
+  it("publishes a draft item through the lifecycle endpoint", async () => {
+    const user = userEvent.setup();
+    vi.mocked(listLessonContent).mockResolvedValue([contentItem]);
+    vi.mocked(publishLessonContent).mockResolvedValue({
+      ...contentItem,
+      publicationStatus: "published",
+      publishedAt: "2026-07-06T01:00:00.000Z",
+      publishedByUserId: "user-1",
+    });
+
+    render(
+      <LearningContentPanel
+        curriculumId="curriculum-1"
+        unitId="unit-1"
+        lessonId="lesson-1"
+        isReadOnly={false}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "actions_menu" }));
+    await user.click(await screen.findByRole("menuitem", { name: "publish" }));
+
+    expect(publishLessonContent).toHaveBeenCalledWith(
+      "curriculum-1",
+      "unit-1",
+      "lesson-1",
+      "content-1",
+    );
+  });
+
+  it("requires confirmation before archiving published content", async () => {
+    const user = userEvent.setup();
+    const publishedContent = {
+      ...contentItem,
+      publicationStatus: "published" as const,
+      publishedAt: "2026-07-06T01:00:00.000Z",
+      publishedByUserId: "user-1",
+    };
+    vi.mocked(listLessonContent).mockResolvedValue([publishedContent]);
+    vi.mocked(archiveLessonContent).mockResolvedValue({
+      ...publishedContent,
+      publicationStatus: "archived",
+      archivedAt: "2026-07-06T02:00:00.000Z",
+      archivedByUserId: "user-1",
+    });
+
+    render(
+      <LearningContentPanel
+        curriculumId="curriculum-1"
+        unitId="unit-1"
+        lessonId="lesson-1"
+        isReadOnly={false}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "actions_menu" }));
+    await user.click(await screen.findByRole("menuitem", { name: "archive" }));
+
+    expect(archiveLessonContent).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "archive_confirm" }));
+
+    expect(archiveLessonContent).toHaveBeenCalledWith(
+      "curriculum-1",
+      "unit-1",
+      "lesson-1",
+      "content-1",
+    );
+  });
+
+  it("opens FilePreviewModal when previewing file content", async () => {
+    const user = userEvent.setup();
+    const fileContent: LessonContentItem = {
+      ...contentItem,
+      id: "content-file-1",
+      type: "FILE",
+      title: "Worksheet File",
+      file: {
+        fileId: "file-xyz",
+        filename: "worksheet_101.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 2048,
+      },
+    };
+    vi.mocked(listLessonContent).mockResolvedValue([fileContent]);
+
+    render(
+      <LearningContentPanel
+        curriculumId="curriculum-1"
+        unitId="unit-1"
+        lessonId="lesson-1"
+        isReadOnly={false}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("worksheet_101.pdf")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "actions_menu" }));
+    expect(await screen.findByRole("menuitem", { name: "preview" })).toBeInTheDocument();
   });
 });

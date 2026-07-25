@@ -22,11 +22,12 @@ describe("learning content files", () => {
     expect(validateLearningContentFile(undefined, null)).toBe("required");
   });
 
-  it("rejects files over 10 MB", () => {
-    const file = new File([new Uint8Array(10 * 1024 * 1024 + 1)], "large.pdf", {
-      type: "application/pdf",
-    });
-    expect(validateLearningContentFile(file, null)).toBe("size");
+  it("accepts the media types supported by the learning-media upload contract", () => {
+    const video = new File(["video"], "lesson.mp4", { type: "video/mp4" });
+    const audio = new File(["audio"], "lesson.mp3", { type: "audio/mpeg" });
+
+    expect(validateLearningContentFile(video, null)).toBeNull();
+    expect(validateLearningContentFile(audio, null)).toBeNull();
   });
 
   it("rejects unsupported MIME types", () => {

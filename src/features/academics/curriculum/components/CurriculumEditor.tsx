@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useLayoutEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Save, Trash2 } from "lucide-react";
+import { Save, Trash2, BookOpen, ArrowLeft } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import TextArea from "@/components/ui/input/TextArea";
@@ -22,6 +22,7 @@ import {
   curriculumFormErrors,
   curriculumUiError,
 } from "@/features/academics/curriculum/services/curriculumErrors";
+import LearningContentPanel from "./LearningContentPanel";
 
 interface CurriculumEditorProps {
   curriculum: Curriculum;
@@ -88,11 +89,13 @@ export default function CurriculumEditor({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [viewMode, setViewMode] = useState<"form" | "learningContent">("form");
 
   useLayoutEffect(() => {
     setFieldErrors({});
     setFormMessages([]);
     setPendingDeleteNode(null);
+    setViewMode("form");
     if (!selectedNode) {
       setFormData(emptyForm);
       setOriginalData(emptyForm);
@@ -268,6 +271,37 @@ export default function CurriculumEditor({
   }
 
   const isNew = selectedNode.id === "new" || selectedNode.id.startsWith("new-");
+
+  if (viewMode === "learningContent" && selectedNode.type === "lesson" && !isNew) {
+    const selectedLesson = lessons.find((l) => l.id === selectedNode.id);
+    if (selectedLesson) {
+      return (
+        <div className="flex flex-col h-full bg-white">
+          <div className="p-4 border-b border-border flex items-center justify-between bg-white">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setViewMode("form")}
+              leftIcon={<ArrowLeft className="w-4 h-4 rtl:rotate-180" />}
+            >
+              {t("back_to_form")}
+            </Button>
+          </div>
+          <div className="flex-1 overflow-auto">
+            <LearningContentPanel
+              curriculumId={curriculum.id}
+              unitId={selectedLesson.unitId}
+              lessonId={selectedLesson.id}
+              isReadOnly={isReadOnly}
+              onClose={() => setViewMode("form")}
+            />
+          </div>
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="p-6">
       <div className="">
@@ -366,6 +400,17 @@ export default function CurriculumEditor({
             >
               {isSaving ? t("saving") : t("save")}
             </Button>
+
+            {!isNew && selectedNode.type === "lesson" && (
+              <Button
+                type="button"
+                onClick={() => setViewMode("learningContent")}
+                variant="secondary"
+                leftIcon={<BookOpen className="w-4 h-4" />}
+              >
+                {t("learning_content")}
+              </Button>
+            )}
 
             {!isNew && (
               <>

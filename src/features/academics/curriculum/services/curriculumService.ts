@@ -29,6 +29,7 @@ export type {
   CurriculumListFilters,
   Lesson,
   LessonContentItem,
+  LessonContentPublicationStatus,
   LessonContentType,
   Unit,
   UpdateCurriculumRequest,
@@ -429,6 +430,30 @@ export const reorderLessonContent = (
     contentItemId,
     payload,
   );
+
+export const publishLessonContent = (
+  curriculumId: string,
+  unitId: string,
+  lessonId: string,
+  contentItemId: string,
+): Promise<LessonContentItem> =>
+  curriculumAdapter.publishLessonContent(curriculumId, unitId, lessonId, contentItemId);
+
+export const unpublishLessonContent = (
+  curriculumId: string,
+  unitId: string,
+  lessonId: string,
+  contentItemId: string,
+): Promise<LessonContentItem> =>
+  curriculumAdapter.unpublishLessonContent(curriculumId, unitId, lessonId, contentItemId);
+
+export const archiveLessonContent = (
+  curriculumId: string,
+  unitId: string,
+  lessonId: string,
+  contentItemId: string,
+): Promise<LessonContentItem> =>
+  curriculumAdapter.archiveLessonContent(curriculumId, unitId, lessonId, contentItemId);
 
 export const deleteLessonContent = (
   curriculumId: string,

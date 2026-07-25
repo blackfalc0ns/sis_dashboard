@@ -196,6 +196,27 @@ export const createCurriculumApiAdapter = (
     return mapLessonContentItemDto(response);
   },
 
+  async publishLessonContent(curriculumId, unitId, lessonId, contentItemId) {
+    const response = await apiPost<LessonContentItemResponseDto>(
+      `${contentPath(basePath, curriculumId, unitId, lessonId)}/${contentItemId}/publish`,
+    );
+    return mapLessonContentItemDto(response);
+  },
+
+  async unpublishLessonContent(curriculumId, unitId, lessonId, contentItemId) {
+    const response = await apiPost<LessonContentItemResponseDto>(
+      `${contentPath(basePath, curriculumId, unitId, lessonId)}/${contentItemId}/unpublish`,
+    );
+    return mapLessonContentItemDto(response);
+  },
+
+  async archiveLessonContent(curriculumId, unitId, lessonId, contentItemId) {
+    const response = await apiPost<LessonContentItemResponseDto>(
+      `${contentPath(basePath, curriculumId, unitId, lessonId)}/${contentItemId}/archive`,
+    );
+    return mapLessonContentItemDto(response);
+  },
+
   deleteLessonContent(curriculumId, unitId, lessonId, contentItemId) {
     return apiDelete<DeleteCurriculumNodeResponseDto>(
       `${contentPath(basePath, curriculumId, unitId, lessonId)}/${contentItemId}`,

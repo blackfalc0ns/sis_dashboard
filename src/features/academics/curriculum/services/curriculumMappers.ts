@@ -141,6 +141,11 @@ export function mapLessonContentItemDto(
     isRequired: dto.isRequired,
     estimatedMinutes: dto.estimatedMinutes,
     metadata: dto.metadata,
+    publicationStatus: dto.publicationStatus,
+    publishedAt: dto.publishedAt,
+    publishedByUserId: dto.publishedByUserId,
+    archivedAt: dto.archivedAt,
+    archivedByUserId: dto.archivedByUserId,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
   };

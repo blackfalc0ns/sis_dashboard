@@ -2,6 +2,7 @@ export type BackendCurriculumStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 export type CurriculumStatus = "draft" | "active" | "archived" | "unknown";
 export type LessonContentType =
   "TEXT" | "FILE" | "VIDEO_LINK" | "EXTERNAL_LINK";
+export type LessonContentPublicationStatus = "draft" | "published" | "archived";
 
 export interface CurriculumScopeSummaryDto {
   id: string;
@@ -80,14 +81,10 @@ export interface DeleteResponse {
 export type DeleteCurriculumNodeResponseDto = DeleteResponse;
 
 export interface LessonContentFileSummaryDto {
-  id: string;
-  fileId?: string;
-  name?: string;
-  filename?: string;
-  originalName?: string;
-  url: string;
+  fileId: string;
+  filename: string;
   mimeType: string;
-  sizeBytes: number;
+  sizeBytes: string;
 }
 
 export interface LessonContentItemResponseDto {
@@ -105,6 +102,11 @@ export interface LessonContentItemResponseDto {
   isRequired: boolean;
   estimatedMinutes: number | null;
   metadata: Record<string, unknown> | null;
+  publicationStatus: LessonContentPublicationStatus;
+  publishedAt: string | null;
+  publishedByUserId: string | null;
+  archivedAt: string | null;
+  archivedByUserId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -196,7 +198,6 @@ export interface UpdateLessonContentRequest {
   bodyText?: string | null;
   url?: string | null;
   fileId?: string | null;
-  sortOrder?: number;
   isRequired?: boolean;
   estimatedMinutes?: number | null;
   metadata?: Record<string, unknown> | null;
@@ -265,6 +266,11 @@ export interface LessonContentItem {
   isRequired: boolean;
   estimatedMinutes: number | null;
   metadata: Record<string, unknown> | null;
+  publicationStatus: LessonContentPublicationStatus;
+  publishedAt: string | null;
+  publishedByUserId: string | null;
+  archivedAt: string | null;
+  archivedByUserId: string | null;
   createdAt: string;
   updatedAt: string;
 }

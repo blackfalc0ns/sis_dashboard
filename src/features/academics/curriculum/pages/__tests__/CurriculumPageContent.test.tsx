@@ -803,8 +803,10 @@ describe("CurriculumPageContent", () => {
     routerMocks.replace.mockClear();
     await user.click(screen.getByText("Integers"));
 
+    expect(screen.getByRole("button", { name: "learning_content" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "learning_content" }));
+
     expect(screen.getByRole("region", { name: "title" })).toBeInTheDocument();
-    expect(screen.queryByText("Term math plan")).not.toBeInTheDocument();
     navigationMock.searchParams = new URLSearchParams(window.location.search);
     rerender(
       <CurriculumPageContent view="detail" curriculumId="curriculum-1" />,
@@ -817,10 +819,9 @@ describe("CurriculumPageContent", () => {
       );
     });
 
-    await user.click(screen.getByTitle("close"));
+    await user.click(screen.getByRole("button", { name: "back_to_form" }));
 
     expect(screen.queryByRole("region", { name: "title" })).not.toBeInTheDocument();
-    expect(screen.getByText("Term math plan")).toBeInTheDocument();
 
     routerMocks.replace.mockClear();
     await user.click(await screen.findByText("Numbers"));

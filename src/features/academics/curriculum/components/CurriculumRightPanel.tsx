@@ -6,9 +6,7 @@ import type { ReactNode } from "react";
 import Button from "@/components/ui/button/Button";
 import type {
   Curriculum,
-  Lesson,
 } from "@/features/academics/curriculum/services/curriculumService";
-import LearningContentPanel from "./LearningContentPanel";
 
 interface CurriculumActionAvailability {
   canActivate: boolean;
@@ -30,15 +28,8 @@ interface CurriculumDetailsPanelProps {
   actions: CurriculumDetailsActions;
 }
 
-interface LearningContentState {
-  lesson?: Lesson;
-  isReadOnly: boolean;
-  close: () => void;
-}
-
 interface CurriculumRightPanelProps {
   details: CurriculumDetailsPanelProps;
-  learningContent: LearningContentState;
 }
 
 interface ActionButtonConfig {
@@ -199,19 +190,6 @@ function DetailRow({
 
 export default function CurriculumRightPanel({
   details,
-  learningContent,
 }: CurriculumRightPanelProps) {
-  if (learningContent.lesson) {
-    return (
-      <LearningContentPanel
-        curriculumId={details.curriculum.id}
-        unitId={learningContent.lesson.unitId}
-        lessonId={learningContent.lesson.id}
-        isReadOnly={learningContent.isReadOnly}
-        onClose={learningContent.close}
-      />
-    );
-  }
-
   return <CurriculumDetailsPanel {...details} />;
 }

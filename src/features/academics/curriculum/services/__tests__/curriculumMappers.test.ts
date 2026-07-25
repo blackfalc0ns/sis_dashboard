@@ -158,6 +158,11 @@ describe("curriculumMappers", () => {
       isRequired: true,
       estimatedMinutes: 10,
       metadata: null,
+      publicationStatus: "draft",
+      publishedAt: null,
+      publishedByUserId: null,
+      archivedAt: null,
+      archivedByUserId: null,
       createdAt: "2026-01-07T00:00:00.000Z",
       updatedAt: "2026-01-08T00:00:00.000Z",
     };

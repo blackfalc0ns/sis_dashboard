@@ -1688,11 +1688,6 @@ export default function CurriculumPageContent({
         requestDelete: () => setConfirmationAction("delete"),
       },
     },
-    learningContent: {
-      lesson: learningContentLesson,
-      isReadOnly,
-      close: () => setLearningContentLessonId(null),
-    },
   };
 
   return (

@@ -455,4 +455,49 @@ describe("curriculumApiAdapter", () => {
       "/academics/curriculum/curriculum-1/units/unit-1/lessons/lesson-1/content/content-1",
     );
   });
+
+  it("uses bodyless lifecycle routes for lesson content publication", async () => {
+    const adapter = createCurriculumApiAdapter();
+    const contentResponse = {
+      id: "content-1",
+      contentItemId: "content-1",
+      curriculumId: "curriculum-1",
+      unitId: "unit-1",
+      lessonId: "lesson-1",
+      type: "TEXT",
+      title: "Read",
+      bodyText: "Hello",
+      url: null,
+      file: null,
+      sortOrder: 0,
+      isRequired: true,
+      estimatedMinutes: null,
+      metadata: null,
+      publicationStatus: "draft",
+      publishedAt: null,
+      publishedByUserId: null,
+      archivedAt: null,
+      archivedByUserId: null,
+      createdAt: "2026-06-01T00:00:00.000Z",
+      updatedAt: "2026-06-01T00:00:00.000Z",
+    };
+    mockedApiPost.mockResolvedValue(contentResponse);
+
+    await adapter.publishLessonContent("curriculum-1", "unit-1", "lesson-1", "content-1");
+    await adapter.unpublishLessonContent("curriculum-1", "unit-1", "lesson-1", "content-1");
+    await adapter.archiveLessonContent("curriculum-1", "unit-1", "lesson-1", "content-1");
+
+    expect(mockedApiPost).toHaveBeenNthCalledWith(
+      1,
+      "/academics/curriculum/curriculum-1/units/unit-1/lessons/lesson-1/content/content-1/publish",
+    );
+    expect(mockedApiPost).toHaveBeenNthCalledWith(
+      2,
+      "/academics/curriculum/curriculum-1/units/unit-1/lessons/lesson-1/content/content-1/unpublish",
+    );
+    expect(mockedApiPost).toHaveBeenNthCalledWith(
+      3,
+      "/academics/curriculum/curriculum-1/units/unit-1/lessons/lesson-1/content/content-1/archive",
+    );
+  });
 });
