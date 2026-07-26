@@ -54,9 +54,9 @@ describe("validatePeriodForm", () => {
         existingPeriods,
       ),
     ).toEqual([
-      "Start time must be before end time.",
-      "Period index must be unique.",
-      "Periods cannot overlap.",
+      "academics.timetable.invalid_time_range",
+      "academics.timetable.period_index_taken",
+      "academics.timetable.period_overlap",
     ]);
   });
 

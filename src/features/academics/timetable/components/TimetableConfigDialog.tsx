@@ -42,6 +42,7 @@ import {
 import type { TimetableEntry } from "@/features/academics/timetable/types/timetable";
 
 interface TimetableConfigDialogProps {
+  mode: "config" | "periods";
   open: boolean;
   onClose: () => void;
   onSaved: () => Promise<void>;
@@ -75,14 +76,22 @@ const days = [
   { index: 6, key: "sat", nameAr: "السبت", nameEn: "Saturday" },
 ] as const;
 
-const emptyPeriodForm = (nextIndex: number): PeriodFormState => ({
-  index: nextIndex,
-  label: "",
-  startTime: "",
-  endTime: "",
-  type: "CLASS",
-  isInstructional: true,
-});
+const formatTimeInput = (date: Date): string =>
+  `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+
+const emptyPeriodForm = (nextIndex: number): PeriodFormState => {
+  const startTime = new Date();
+  const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
+
+  return {
+    index: nextIndex,
+    label: "",
+    startTime: formatTimeInput(startTime),
+    endTime: formatTimeInput(endTime),
+    type: "CLASS",
+    isInstructional: true,
+  };
+};
 
 const emptyFormErrors = (): TimetableFormErrors => ({
   form: [],
@@ -101,6 +110,7 @@ const nextPeriodIndex = (periods: BackendTimetablePeriodDto[]): number =>
   Math.max(0, ...periods.map((period) => period.index)) + 1;
 
 export default function TimetableConfigDialog({
+  mode,
   open,
   onClose,
   onSaved,
@@ -116,6 +126,7 @@ export default function TimetableConfigDialog({
   locale,
 }: TimetableConfigDialogProps) {
   const t = useTranslations("academics.timetable");
+  const isConfigMode = mode === "config";
   const translateTimetableError = (code: TimetableErrorCode) =>
     t(`errors.${code.replace("academics.timetable.", "")}`);
   const scopeType = defaultScopeType({
@@ -240,6 +251,7 @@ export default function TimetableConfigDialog({
       labelRequired: t("config.validation.periodLabelRequired"),
       startTimeRequired: t("config.validation.startTimeRequired"),
       endTimeRequired: t("config.validation.endTimeRequired"),
+      translateError: translateTimetableError,
     });
     if (hasErrors(validationErrors)) {
       applyErrors(validationErrors);
@@ -257,7 +269,9 @@ export default function TimetableConfigDialog({
         });
       }
       await onSaved();
-      resetPeriodForm();
+      if (editingPeriodId) {
+        resetPeriodForm();
+      }
       clearErrors();
     } catch (error) {
       applyErrors(
@@ -402,15 +416,17 @@ export default function TimetableConfigDialog({
     <Modal
       isOpen={open}
       onClose={onClose}
-      title={t("config.title")}
-      description={t("config.backendDescription")}
+      title={t(isConfigMode ? "config.title" : "config.periodsTitle")}
+      description={t(
+        isConfigMode ? "config.configDescription" : "config.periodsDescription",
+      )}
       size="xl"
       footer={
         <div className="flex w-full justify-end gap-2">
           <Button onClick={onClose} variant="secondary">
             {t("config.close")}
           </Button>
-          {!readOnly && (
+          {!readOnly && isConfigMode && (
             <Button
               onClick={saveConfig}
               loading={isSavingConfig}
@@ -434,7 +450,7 @@ export default function TimetableConfigDialog({
           </div>
         )}
 
-        <section className="space-y-4">
+        {isConfigMode && <section className="space-y-4">
           <h3 className="text-sm font-semibold text-gray-900">
             {t("config.configSection")}
           </h3>
@@ -487,9 +503,9 @@ export default function TimetableConfigDialog({
             </div>
             <FieldError errors={fieldErrors} field="activeDays" />
           </div>
-        </section>
+        </section>}
 
-        <section className="space-y-4 border-t border-gray-200 pt-5">
+        {!isConfigMode && <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900">
               {t("config.periodsSection")}
@@ -727,7 +743,7 @@ export default function TimetableConfigDialog({
               )}
             </div>
           )}
-        </section>
+        </section>}
       </div>
     </Modal>
   );
@@ -747,10 +763,13 @@ function validatePeriodDraft(
     labelRequired: string;
     startTimeRequired: string;
     endTimeRequired: string;
+    translateError: (code: TimetableErrorCode) => string;
   },
 ): TimetableFormErrors {
   const validationErrors = emptyFormErrors();
-  validationErrors.form = validatePeriodForm(period, periods);
+  validationErrors.form = validatePeriodForm(period, periods).map(
+    messages.translateError,
+  );
   if (!period.label.trim()) {
     validationErrors.fields.label = [messages.labelRequired];
   }

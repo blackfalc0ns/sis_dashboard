@@ -1,4 +1,5 @@
 import type { BackendTimetablePeriodDto } from "@/features/academics/timetable/services/timetableApiTypes";
+import type { TimetableErrorCode } from "@/features/academics/timetable/services/timetableErrorHandling";
 
 export interface PeriodFormValues {
   id?: string;
@@ -10,7 +11,7 @@ export interface PeriodFormValues {
 export function validatePeriodForm(
   period: PeriodFormValues,
   existingPeriods: BackendTimetablePeriodDto[],
-): string[] {
+): TimetableErrorCode[] {
   const validationErrors = [
     ...validatePeriodTimeOrder(period),
     ...validateUniquePeriodIndex(period, existingPeriods),
@@ -19,9 +20,11 @@ export function validatePeriodForm(
   return validationErrors;
 }
 
-function validatePeriodTimeOrder(period: PeriodFormValues): string[] {
+function validatePeriodTimeOrder(
+  period: PeriodFormValues,
+): TimetableErrorCode[] {
   if (period.startTime && period.endTime && period.startTime >= period.endTime) {
-    return ["Start time must be before end time."];
+    return ["academics.timetable.invalid_time_range"];
   }
   return [];
 }
@@ -29,23 +32,23 @@ function validatePeriodTimeOrder(period: PeriodFormValues): string[] {
 function validateUniquePeriodIndex(
   period: PeriodFormValues,
   existingPeriods: BackendTimetablePeriodDto[],
-): string[] {
+): TimetableErrorCode[] {
   const duplicate = existingPeriods.some(
     (existingPeriod) =>
       existingPeriod.id !== period.id && existingPeriod.index === period.index,
   );
-  return duplicate ? ["Period index must be unique."] : [];
+  return duplicate ? ["academics.timetable.period_index_taken"] : [];
 }
 
 function validatePeriodOverlap(
   period: PeriodFormValues,
   existingPeriods: BackendTimetablePeriodDto[],
-): string[] {
+): TimetableErrorCode[] {
   const overlaps = existingPeriods.some(
     (existingPeriod) =>
       existingPeriod.id !== period.id &&
       period.startTime < existingPeriod.endTime &&
       period.endTime > existingPeriod.startTime,
   );
-  return overlaps ? ["Periods cannot overlap."] : [];
+  return overlaps ? ["academics.timetable.period_overlap"] : [];
 }

@@ -13,6 +13,7 @@ import {
   Send,
   EyeOff,
   CheckCircle,
+  Clock3,
   School,
   GraduationCap,
 } from "lucide-react";
@@ -135,6 +136,7 @@ export default function TimetableView({
   const [validationPanelOpen, setValidationPanelOpen] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [periodsDialogOpen, setPeriodsDialogOpen] = useState(false);
   const [selectedSectionTabId, setSelectedSectionTabId] = useState<
     string | null
   >(null);
@@ -1337,6 +1339,14 @@ export default function TimetableView({
                     {t("config.button")}
                   </Button>
                   <Button
+                    onClick={() => setPeriodsDialogOpen(true)}
+                    disabled={!canEditTimetable || !config}
+                    variant="secondary"
+                    leftIcon={<Clock3 className="w-4 h-4" />}
+                  >
+                    {t("config.periodsButton")}
+                  </Button>
+                  <Button
                     onClick={() => setGenerateDialogOpen(true)}
                     disabled={
                       !canEditTimetable ||
@@ -1450,6 +1460,15 @@ export default function TimetableView({
                     size="sm"
                   >
                     {t("config.button")}
+                  </Button>
+                  <Button
+                    onClick={() => setPeriodsDialogOpen(true)}
+                    disabled={!canEditTimetable || !config}
+                    variant="secondary"
+                    leftIcon={<Clock3 className="w-4 h-4" />}
+                    size="sm"
+                  >
+                    {t("config.periodsButton")}
                   </Button>
                   <Button
                     onClick={() => setGenerateDialogOpen(true)}
@@ -1763,8 +1782,30 @@ export default function TimetableView({
       {/* Config Dialog */}
       {configDialogOpen && (
         <TimetableConfigDialog
+          mode="config"
           open={configDialogOpen}
           onClose={() => setConfigDialogOpen(false)}
+          onSaved={async () => {
+            await reloadConfigs();
+          }}
+          academicYearId={academicYearId}
+          termId={termId}
+          config={config}
+          periods={periods}
+          entries={timetableEntries}
+          selectedGradeId={selectedGradeId}
+          selectedSectionId={selectedSectionId}
+          selectedClassroomId={selectedClassroomId}
+          readOnly={!canEditTimetable}
+          locale={locale}
+        />
+      )}
+
+      {periodsDialogOpen && (
+        <TimetableConfigDialog
+          mode="periods"
+          open={periodsDialogOpen}
+          onClose={() => setPeriodsDialogOpen(false)}
           onSaved={async () => {
             await reloadConfigs();
           }}
