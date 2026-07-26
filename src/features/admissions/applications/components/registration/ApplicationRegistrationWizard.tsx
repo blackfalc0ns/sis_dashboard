@@ -1,12 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
+import Select from "@/components/ui/input/Select";
 import { useToast } from "@/components/ui/toast/Toast";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
+import { useAdmissionsAcademicSelection } from "@/features/admissions/shared/hooks/useAdmissionsAcademicSelection";
 import { useApplicationRegistration } from "../../hooks/useApplicationRegistration";
 import RegistrationFields from "./RegistrationFields";
 
@@ -28,9 +30,12 @@ const requiredPermissions = [
 export default function ApplicationRegistrationWizard(props: ApplicationRegistrationWizardProps) {
   const { applicationId, studentName, isOpen, onClose, onRegistered } = props;
   const t = useTranslations("admissions.application360.registration");
+  const tContext = useTranslations("admissions.context_bar");
+  const locale = useLocale();
   const { showToast } = useToast();
   const { hasAllPermissions } = usePermissions();
-  const { yearId, termId } = useAdmissionsYearTermContext();
+  const academicSelection = useAdmissionsAcademicSelection({ enabled: isOpen });
+  const { yearId, termId } = academicSelection;
   const canRegister = hasAllPermissions([...requiredPermissions]);
   const registration = useApplicationRegistration({
     applicationId,
@@ -39,6 +44,18 @@ export default function ApplicationRegistrationWizard(props: ApplicationRegistra
     termId,
     enabled: isOpen,
   });
+
+  useEffect(() => {
+    const handoff = registration.context?.handoff;
+    const preferredYearId =
+      handoff?.wizardDraft?.enrollment?.academicYearId ??
+      handoff?.source?.application?.requestedAcademicYearId ??
+      handoff?.source?.applicantRequest?.requestedAcademicYearId ??
+      null;
+    const preferredTermId = handoff?.wizardDraft?.enrollment?.termId ?? null;
+    if (!preferredYearId || preferredYearId === yearId) return;
+    void academicSelection.setYearAndTerm(preferredYearId, preferredTermId);
+  }, [academicSelection, registration.context?.handoff, yearId]);
 
   const submitRegistration = async () => {
     const registrationResponse = await registration.submit();
@@ -92,6 +109,40 @@ export default function ApplicationRegistrationWizard(props: ApplicationRegistra
         {registration.error && <ErrorMessage message={translateError(registration.error, t)} />}
         {!canRegister && <Notice message={t("permission_required")} tone="warning" />}
         {handoff?.alreadyRegistered && <Notice message={t("already_registered")} tone="success" />}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Select
+            label={tContext("academic_year")}
+            required
+            value={yearId || ""}
+            options={academicSelection.academicYears.map((year) => ({
+              value: year.id,
+              label:
+                locale === "ar"
+                  ? year.nameAr || year.name
+                  : year.nameEn || year.name,
+            }))}
+            disabled={academicSelection.isLoading || registration.isSubmitting}
+            onChange={(nextYearId) => void academicSelection.setYearId(nextYearId)}
+          />
+          <Select
+            label={tContext("term")}
+            required
+            value={termId || ""}
+            options={academicSelection.terms.map((term) => ({
+              value: term.id,
+              label:
+                locale === "ar"
+                  ? term.nameAr || term.name
+                  : term.nameEn || term.name,
+            }))}
+            disabled={
+              academicSelection.isLoading ||
+              registration.isSubmitting ||
+              !yearId
+            }
+            onChange={academicSelection.setTermId}
+          />
+        </div>
         {messages.length > 0 && <MessageList messages={messages} />}
         {validationMessages.length > 0 && <MessageList messages={validationMessages} />}
         {registration.context?.handoff.eligible && !registration.isLoading && (

@@ -1,16 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Application, Interview } from "@/features/admissions/types/admissions";
 import { StatusBadge } from "@/features/admissions/shared";
-import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import {
   fetchInterviews,
   completeInterview,
 } from "@/features/admissions/interviews/services/interviewsApiService";
 import InterviewRatingModal from "@/features/admissions/interviews/components/InterviewRatingModal";
 import { useToast } from "@/components/ui/toast/Toast";
+import { fetchAllAdmissionsPages } from "@/features/admissions/shared/services/admissionsApiUtils";
+import { usePermissions } from "@/hooks/usePermissions";
+import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
 
 interface InterviewsTabProps {
   application: Application;
@@ -22,18 +24,26 @@ export default function InterviewsTab({
   onScheduleInterview,
 }: InterviewsTabProps) {
   const t = useTranslations("admissions.application360");
-  const { isReadOnly } = useAdmissionsYearTermContext();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canViewInterviews = hasPermission("admissions.interviews.view");
+  const canManageInterviews = hasPermission("admissions.interviews.manage");
   const [interviews, setInterviews] = useState<Interview[]>(
-    application.interviews,
+    canViewInterviews ? application.interviews : [],
   );
   const [selectedInterview, setSelectedInterview] = useState<Interview | null>(
     null,
   );
+  const latestRequestId = useRef(0);
 
   const loadInterviews = useCallback(async () => {
+    const requestId = ++latestRequestId.current;
+    if (!canViewInterviews) return;
     try {
-      const nextInterviews = await fetchInterviews({});
+      const nextInterviews = await fetchAllAdmissionsPages((page, limit) =>
+        fetchInterviews({ page, limit }),
+      );
+      if (requestId !== latestRequestId.current) return;
       setInterviews(
         nextInterviews.filter(
           (interview) => interview.applicationId === application.id,
@@ -42,10 +52,13 @@ export default function InterviewsTab({
     } catch (error) {
       console.error("Failed to load interviews:", error);
     }
-  }, [application.id]);
+  }, [application.id, canViewInterviews]);
 
   useEffect(() => {
     void Promise.resolve().then(loadInterviews);
+    return () => {
+      latestRequestId.current += 1;
+    };
   }, [loadInterviews]);
 
   const handleCompleteInterview = async (
@@ -66,14 +79,17 @@ export default function InterviewsTab({
     }
   };
 
+  if (!canViewInterviews) {
+    return <AdmissionsAccessDenied />;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-gray-900">{t("interviews.title")}</h3>
-        {onScheduleInterview ? (
+        {onScheduleInterview && canManageInterviews ? (
           <button
             onClick={onScheduleInterview}
-            disabled={isReadOnly}
             className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
           >
             {t("interviews.schedule_interview")}
@@ -90,12 +106,12 @@ export default function InterviewsTab({
             <div
               key={interview.id}
               onClick={() => {
-                if (!isReadOnly && interview.status !== "cancelled") {
+                if (canManageInterviews && interview.status !== "cancelled") {
                   setSelectedInterview(interview);
                 }
               }}
               className={`p-4 border border-gray-200 rounded-lg transition-colors ${
-                !isReadOnly && interview.status !== "cancelled"
+                canManageInterviews && interview.status !== "cancelled"
                   ? "cursor-pointer hover:border-primary hover:bg-gray-50"
                   : ""
               }`}

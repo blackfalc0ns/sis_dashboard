@@ -5,6 +5,7 @@ import {
   learningContentTypeOptions,
   resolveLessonContentFileId,
   validateLearningContentFile,
+  validateLearningContentVideo,
   type ContentForm,
 } from "../learningContentFile";
 
@@ -37,6 +38,20 @@ describe("learning content files", () => {
     expect(validateLearningContentFile(file, null)).toBe("mime");
   });
 
+  it("accepts video uploads only for VIDEO content", () => {
+    const video = new File(["video"], "lesson.mp4", { type: "video/mp4" });
+    const audio = new File(["audio"], "lesson.mp3", { type: "audio/mpeg" });
+
+    expect(validateLearningContentVideo(video, null)).toBeNull();
+    expect(validateLearningContentVideo(audio, null)).toBe("mime");
+  });
+
+  it("sends VIDEO content as backend FILE content", () => {
+    expect(
+      buildContentPayload({ ...baseForm, type: "VIDEO", bodyText: "", url: "" }, "video-1"),
+    ).toMatchObject({ type: "FILE", fileId: "video-1" });
+  });
+
   it("uses the uploaded id for FILE and omits url", () => {
     expect(
       buildContentPayload({ ...baseForm, type: "FILE", bodyText: "", url: "ignored" }, "file-1"),
@@ -61,12 +76,16 @@ describe("learning content files", () => {
     expect(isFileUploadDisabled(false, true)).toBe(false);
   });
 
-  it("disables only the FILE content option without upload permission", () => {
-    expect(learningContentTypeOptions(false)).toEqual([
-      { value: "TEXT", label: "TEXT" },
-      { value: "FILE", label: "FILE", disabled: true },
-      { value: "VIDEO_LINK", label: "VIDEO_LINK" },
-      { value: "EXTERNAL_LINK", label: "EXTERNAL_LINK" },
+  it("localizes and disables upload content options without permission", () => {
+    const labels = {
+      TEXT: "Text", FILE: "File", VIDEO: "Video", VIDEO_LINK: "Video link", EXTERNAL_LINK: "External link",
+    };
+    expect(learningContentTypeOptions(false, labels)).toEqual([
+      { value: "TEXT", label: "Text" },
+      { value: "FILE", label: "File", disabled: true },
+      { value: "VIDEO", label: "Video", disabled: true },
+      { value: "VIDEO_LINK", label: "Video link" },
+      { value: "EXTERNAL_LINK", label: "External link" },
     ]);
   });
 

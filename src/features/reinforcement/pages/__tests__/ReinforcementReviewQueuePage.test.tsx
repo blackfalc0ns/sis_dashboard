@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast/Toast";
 import ReinforcementReviewQueuePage from "../ReinforcementReviewQueuePage";
+import type { ReinforcementReviewItem } from "../../types";
 
 const permissionState = vi.hoisted(() => ({
   permissions: [
@@ -418,8 +419,8 @@ describe("ReinforcementReviewQueuePage", () => {
       expect(screen.queryByRole("dialog", { name: "reviews.detail.title" })).not.toBeInTheDocument();
     });
 
-    let resolveSecondFetch: (val: any) => void = () => {};
-    const secondFetchPromise = new Promise((resolve) => {
+    let resolveSecondFetch!: (review: ReinforcementReviewItem) => void;
+    const secondFetchPromise = new Promise<ReinforcementReviewItem>((resolve) => {
       resolveSecondFetch = resolve;
     });
     reviewsMocks.getReinforcementReviewItem.mockReturnValueOnce(secondFetchPromise);

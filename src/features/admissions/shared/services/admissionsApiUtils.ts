@@ -14,6 +14,17 @@ import type {
 
 type ApiRecord = Record<string, unknown>;
 
+export interface AdmissionsPagination {
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export interface PaginatedAdmissionsResult<T> {
+  items: T[];
+  pagination: AdmissionsPagination;
+}
+
 const isRecord = (value: unknown): value is ApiRecord =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
@@ -182,6 +193,90 @@ function normalizeDocumentStatus(status?: string | null): DocumentStatus {
   }
 
   return "missing";
+}
+
+export function unwrapPaginatedResponse(
+  response: unknown,
+  label: string,
+): PaginatedAdmissionsResult<unknown> {
+  const unwrapped = unwrapEnvelope(response);
+  if (!isRecord(unwrapped) || !Array.isArray(unwrapped.items)) {
+    throw new Error(`Invalid ${label} paginated response shape from API.`);
+  }
+
+  const pagination = unwrapped.pagination;
+  if (!isRecord(pagination)) {
+    throw new Error(`Invalid ${label} pagination metadata from API.`);
+  }
+
+  const page = pagination.page;
+  const limit = pagination.limit;
+  const total = pagination.total;
+  if (
+    !Number.isInteger(page) ||
+    Number(page) < 1 ||
+    !Number.isInteger(limit) ||
+    Number(limit) < 1 ||
+    !Number.isInteger(total) ||
+    Number(total) < 0
+  ) {
+    throw new Error(`Invalid ${label} pagination metadata from API.`);
+  }
+
+  return {
+    items: unwrapped.items,
+    pagination: {
+      page: Number(page),
+      limit: Number(limit),
+      total: Number(total),
+    },
+  };
+}
+
+export async function fetchAllAdmissionsPages<T extends { id: string }>(
+  fetchPage: (
+    page: number,
+    limit: number,
+  ) => Promise<PaginatedAdmissionsResult<T>>,
+  limit = 100,
+): Promise<T[]> {
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+    throw new Error("Admissions page limit must be between 1 and 100.");
+  }
+
+  const firstPage = await fetchPage(1, limit);
+  const { pagination } = firstPage;
+  if (pagination.page !== 1) {
+    throw new Error("Admissions paginated response did not return page 1.");
+  }
+
+  const items = [...firstPage.items];
+  const seenIds = new Set(items.map((item) => item.id));
+  let latestTotal = pagination.total;
+  let nextPage = 2;
+
+  while ((nextPage - 1) * pagination.limit < latestTotal) {
+    const pageResult = await fetchPage(nextPage, limit);
+    if (
+      pageResult.pagination.page !== nextPage ||
+      pageResult.pagination.limit !== pagination.limit
+    ) {
+      throw new Error("Admissions pagination metadata is invalid.");
+    }
+
+    for (const item of pageResult.items) {
+      if (!seenIds.has(item.id)) {
+        seenIds.add(item.id);
+        items.push(item);
+      }
+    }
+
+    latestTotal = pageResult.pagination.total;
+    if (pageResult.items.length === 0) break;
+    nextPage += 1;
+  }
+
+  return items;
 }
 
 export function normalizeDocument(input: unknown): Document {

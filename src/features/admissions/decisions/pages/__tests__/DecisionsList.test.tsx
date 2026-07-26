@@ -29,13 +29,9 @@ vi.mock("@/hooks/usePermissions", () => ({
   usePermissions: () => ({ hasPermission: () => true }),
 }));
 
-vi.mock("@/features/admissions/shared/hooks/useAdmissionsYearTermContext", () => ({
-  useAdmissionsYearTermContext: () => ({ isReadOnly: false }),
-}));
-
 vi.mock("@/features/admissions/shared/hooks/useAdmissionsUrlQueryState", () => ({
   useAdmissionsUrlQueryState: () => ({
-    values: { search: "", decision: "all" },
+    values: { search: "", decision: "all", dateFrom: "", dateTo: "" },
     setValue: vi.fn(),
     reset: vi.fn(),
   }),
@@ -43,10 +39,6 @@ vi.mock("@/features/admissions/shared/hooks/useAdmissionsUrlQueryState", () => (
 
 vi.mock("@/features/admissions/shared/components/AdmissionsAccessGuard", () => ({
   AdmissionsAccessDenied: () => <div>access-denied</div>,
-}));
-
-vi.mock("@/features/admissions/shared/components/AdmissionsReadOnlyBanner", () => ({
-  default: () => <div>read-only</div>,
 }));
 
 vi.mock("@/features/admissions/shared/components/export/AdmissionsGlobalExportModal", () => ({
@@ -172,7 +164,10 @@ describe("DecisionsList", () => {
     vi.clearAllMocks();
     dataTableProps.length = 0;
     drawerProps.length = 0;
-    vi.mocked(fetchDecisions).mockResolvedValue([decision]);
+    vi.mocked(fetchDecisions).mockResolvedValue({
+      items: [decision],
+      pagination: { page: 1, limit: 20, total: 1 },
+    });
   });
 
   it("keeps table columns and drawer close handler stable when opening the drawer", async () => {

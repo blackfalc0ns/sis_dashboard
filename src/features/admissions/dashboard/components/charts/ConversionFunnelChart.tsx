@@ -4,7 +4,14 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { FunnelChart, Funnel, Tooltip, ResponsiveContainer, LabelList } from "recharts";
+import {
+  FunnelChart,
+  Funnel,
+  Tooltip,
+  ResponsiveContainer,
+  LabelList,
+  type LabelProps,
+} from "recharts";
 import { ChartCard } from "@/components/ui/chart-card";
 
 interface FunnelData {
@@ -135,8 +142,7 @@ export default function ConversionFunnelChart({
             >
               <LabelList
                 position="center"
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                content={(props: any) => {
+                content={(props: LabelProps) => {
                   const { x = 0, y = 0, width = 0, height = 0, value, name } = props;
                   const centerX = Number(x) + Number(width) / 2;
                   const centerY = Number(y) + Number(height) / 2;

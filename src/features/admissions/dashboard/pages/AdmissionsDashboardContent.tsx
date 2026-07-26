@@ -22,19 +22,16 @@ import { ApplicationStatus, Application } from "@/features/admissions/types/admi
 import { fetchLeads } from "@/features/admissions/leads/services/leadsApiService";
 import { fetchApplications } from "@/features/admissions/applications/services/applicationsApiService";
 import type { Lead } from "@/features/admissions/leads/types/lead";
-import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
-import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import { createAdmissionsDashboardExportHandler } from "@/features/admissions/shared/utils/admissionsDashboardExport";
-import {
-  filterAdmissionsRecordsByDateContext,
-  resolveAdmissionsContextScope,
-} from "@/features/admissions/shared/utils/admissionsContextScope";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export default function AdmissionsDashboardContent() {
   const t = useTranslations("admissions");
   const locale = useLocale();
   const router = useRouter();
-  const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
+  const { hasPermission } = usePermissions();
+  const canViewLeads = hasPermission("admissions.leads.view");
+  const canViewApplications = hasPermission("admissions.applications.view");
 
   // Date range state
   const [dateRange, setDateRange] = useState<DateRangeValue>("30");
@@ -50,19 +47,7 @@ export default function AdmissionsDashboardContent() {
     customStart: customStartDate,
     customEnd: customEndDate,
   });
-  const admissionsScope = useMemo(
-    () => resolveAdmissionsContextScope(yearId, termId),
-    [termId, yearId],
-  );
-  const scopedApplications = useMemo(
-    () =>
-      filterAdmissionsRecordsByDateContext(
-        applications,
-        (application) => application.submittedDate,
-        admissionsScope,
-      ),
-    [admissionsScope, applications],
-  );
+  const scopedApplications = applications;
   const scopedLeads = leads;
 
   useEffect(() => {
@@ -73,8 +58,8 @@ export default function AdmissionsDashboardContent() {
       setAdmissionsError(null);
       try {
         const [nextLeads, nextApplications] = await Promise.all([
-          fetchLeads(),
-          fetchApplications(),
+          canViewLeads ? fetchLeads() : Promise.resolve([]),
+          canViewApplications ? fetchApplications() : Promise.resolve([]),
         ]);
         if (isMounted) {
           setLeads(nextLeads);
@@ -99,7 +84,7 @@ export default function AdmissionsDashboardContent() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [canViewApplications, canViewLeads]);
 
   // Calculate days back for analytics based on date range
   const daysBack = useMemo(() => {
@@ -335,7 +320,6 @@ export default function AdmissionsDashboardContent() {
       />
 
       {/* KPI Cards */}
-      {isReadOnly && <AdmissionsReadOnlyBanner />}
       {(isAdmissionsLoading || admissionsError) && (
         <div
           className={`rounded-lg border px-4 py-3 text-sm ${

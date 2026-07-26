@@ -4,7 +4,6 @@ const DECIDABLE_STATUSES: ApplicationStatus[] = ["submitted", "under_review"];
 
 interface RegistrationActionOptions {
   canRegisterApplication: boolean;
-  isReadOnly: boolean;
   permissionRequiredMessage: string;
 }
 
@@ -24,7 +23,6 @@ export function getRegistrationActionState(
   application: Application,
   {
     canRegisterApplication,
-    isReadOnly,
     permissionRequiredMessage,
   }: RegistrationActionOptions,
 ) {
@@ -32,7 +30,7 @@ export function getRegistrationActionState(
   const isVisible =
     application.status === "accepted" && !application.registrationState?.registered;
   const isReadinessBlocked = application.dashboardState?.canRegister === false;
-  const isDisabled = isReadOnly || !canRegisterApplication || isReadinessBlocked;
+  const isDisabled = !canRegisterApplication || isReadinessBlocked;
   const title =
     actionBlockers.map((blocker) => blocker.message).join("; ") ||
     (!canRegisterApplication ? permissionRequiredMessage : undefined);

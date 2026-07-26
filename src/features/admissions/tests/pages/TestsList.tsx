@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
@@ -30,8 +30,6 @@ import TestScoreModal from "@/features/admissions/tests/components/TestScoreModa
 import { Test, TestStatus } from "@/features/admissions/types/admissions";
 import { KPICardV2 } from "@/components/ui";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
-import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
-import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
 import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
 import { formatVisibleTestsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
@@ -41,13 +39,22 @@ import {
   completePlacementTest,
 } from "@/features/admissions/tests/services/testsApiService";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
+import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
+import type { AdmissionsPagination } from "@/features/admissions/shared/services/admissionsApiUtils";
+
+const DEFAULT_PAGE_SIZE = 20;
 
 export default function TestsList() {
   const t = useTranslations("admissions.tests");
   const locale = useLocale();
   const router = useRouter();
-  const { isReadOnly } = useAdmissionsYearTermContext();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canViewTests = hasPermission("admissions.tests.view");
+  const canManageTests = hasPermission("admissions.tests.manage");
+  const canScheduleTests =
+    canManageTests && hasPermission("admissions.applications.view");
 
   const [tests, setTests] = useState<(Test & { studentName: string })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,31 +65,22 @@ export default function TestsList() {
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-
-  const loadTests = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await fetchPlacementTests();
-      setTests(
-        data.map((test) => ({
-          ...test,
-          studentName: test.studentName || "",
-        })),
-      );
-    } catch (err) {
-      console.error("Failed to fetch tests:", err);
-      showToast("Failed to load tests", "error");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [showToast]);
-
-  useEffect(() => {
-    void Promise.resolve().then(loadTests);
-  }, [loadTests]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [pagination, setPagination] = useState<AdmissionsPagination>({
+    page: 1,
+    limit: DEFAULT_PAGE_SIZE,
+    total: 0,
+  });
+  const latestRequestId = useRef(0);
 
   const normalizeQueryValues = useCallback(
-    (values: Record<"search" | "status", string>) => {
+    (
+      values: Record<
+        "search" | "status" | "type" | "dateFrom" | "dateTo",
+        string
+      >,
+    ) => {
       const updates: Partial<Record<keyof typeof values, string | null>> = {};
       const validStatuses = new Set([
         "all",
@@ -103,10 +101,16 @@ export default function TestsList() {
   const { values, setValue, reset } = useAdmissionsUrlQueryState<{
     search: string;
     status: string;
+    type: string;
+    dateFrom: string;
+    dateTo: string;
   }>({
     defaults: {
       search: "",
       status: "all",
+      type: "",
+      dateFrom: "",
+      dateTo: "",
     },
     debouncedKeys: ["search"],
     modeByKey: {
@@ -117,26 +121,62 @@ export default function TestsList() {
 
   const searchQuery = values.search;
   const statusFilter = values.status as TestStatus | "all";
+  const typeFilter = values.type;
+  const dateFrom = values.dateFrom;
+  const dateTo = values.dateTo;
 
-  // Filter tests
-  const filteredTests = useMemo(() => {
-    return tests.filter((test) => {
-      const matchesSearch =
-        searchQuery === "" ||
-        test.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        test.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        test.applicationId.toLowerCase().includes(searchQuery.toLowerCase());
+  const loadTests = useCallback(async () => {
+    const requestId = ++latestRequestId.current;
+    if (!canViewTests) {
+      setIsLoading(false);
+      return;
+    }
 
-      const matchesStatus =
-        statusFilter === "all" || test.status === statusFilter;
+    setIsLoading(true);
+    try {
+      const testsPage = await fetchPlacementTests({
+        search: searchQuery,
+        status: statusFilter === "all" ? undefined : statusFilter,
+        type: typeFilter,
+        dateFrom,
+        dateTo,
+        page,
+        limit: pageSize,
+      });
+      if (requestId !== latestRequestId.current) return;
+      setTests(
+        testsPage.items.map((test) => ({
+          ...test,
+          studentName: test.studentName || "",
+        })),
+      );
+      setPagination(testsPage.pagination);
+    } catch (err) {
+      if (requestId !== latestRequestId.current) return;
+      console.error("Failed to fetch tests:", err);
+      showToast("Failed to load tests", "error");
+    } finally {
+      if (requestId === latestRequestId.current) setIsLoading(false);
+    }
+  }, [
+    canViewTests,
+    dateFrom,
+    dateTo,
+    page,
+    pageSize,
+    searchQuery,
+    showToast,
+    statusFilter,
+    typeFilter,
+  ]);
 
-      return matchesSearch && matchesStatus;
-    });
-  }, [tests, searchQuery, statusFilter]);
+  useEffect(() => {
+    void Promise.resolve().then(loadTests);
+  }, [loadTests]);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
-    const total = tests.length;
+    const total = pagination.total;
     const scheduled = tests.filter((t) => t.status === "scheduled").length;
     const completed = tests.filter((t) => t.status === "completed").length;
     const failed = tests.filter((t) => t.status === "failed").length;
@@ -153,7 +193,7 @@ export default function TestsList() {
         : 0;
 
     return { total, scheduled, completed, failed, avgScore };
-  }, [tests]);
+  }, [pagination.total, tests]);
 
   const columns = [
     { key: "studentName", label: t("student_name"), searchable: true },
@@ -179,12 +219,11 @@ export default function TestsList() {
       key: "actions",
       label: t("actions_col"),
       render: (_value: unknown, row: Test & { studentName: string }) =>
-        row.status === "cancelled" ? null : (
+        !canManageTests || row.status === "cancelled" ? null : (
           <Button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              if (isReadOnly) return;
               setSelectedTest(row);
               setIsScoreModalOpen(true);
             }}
@@ -201,9 +240,15 @@ export default function TestsList() {
     },
   ];
 
-  const hasActiveFilters = searchQuery !== "" || statusFilter !== "all";
+  const hasActiveFilters =
+    searchQuery !== "" ||
+    statusFilter !== "all" ||
+    typeFilter !== "" ||
+    dateFrom !== "" ||
+    dateTo !== "";
 
   const clearFilters = () => {
+    setPage(1);
     reset(undefined, "replace");
   };
 
@@ -262,12 +307,16 @@ export default function TestsList() {
   const handleExport = async (format: "csv" | "json" | "excel") => {
     const exportLocale = format === "json" ? "en" : locale;
     downloadAdmissionsExport({
-      data: formatVisibleTestsForExport(filteredTests, exportLocale),
+      data: formatVisibleTestsForExport(tests, exportLocale),
       format,
       filenameBase: "tests",
       emptyMessage: hasActiveFilters ? t("no_match") : t("no_tests"),
     });
   };
+
+  if (!canViewTests) {
+    return <AdmissionsAccessDenied />;
+  }
 
   return (
     <div className="space-y-6">
@@ -322,18 +371,18 @@ export default function TestsList() {
           >
             {t("export")}
           </Button>
-          <Button
-            type="button"
-            onClick={() => setIsScheduleTestOpen(true)}
-            disabled={isReadOnly}
-            leftIcon={<Plus className="w-4 h-4" />}
-          >
-            {t("schedule_test")}
-          </Button>
+          {canScheduleTests && (
+            <Button
+              type="button"
+              onClick={() => setIsScheduleTestOpen(true)}
+              leftIcon={<Plus className="w-4 h-4" />}
+            >
+              {t("schedule_test")}
+            </Button>
+          )}
         </div>
       </div>
 
-      {isReadOnly && <AdmissionsReadOnlyBanner />}
 
       {/* Filters */}
       <FilterPanel
@@ -344,7 +393,10 @@ export default function TestsList() {
                 type="text"
                 placeholder={t("search_placeholder")}
                 value={searchQuery}
-                onChange={(e) => setValue("search", e.target.value, "replace")}
+                onChange={(e) => {
+                  setPage(1);
+                  setValue("search", e.target.value, "replace");
+                }}
                 suppressHydrationWarning
                 leftIcon={<Search className="w-4 h-4" />}
                 className={`placeholder:text-black/60 ${
@@ -365,14 +417,15 @@ export default function TestsList() {
           </div>
         }
         filtersSlot={
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div>
               <Select
                 label={t("status")}
                 value={statusFilter}
-                onChange={(value) =>
+                onChange={(value) => {
+                  setPage(1);
                   setValue("status", value as TestStatus | "all", "push")
-                }
+                }}
                 options={[
                   { value: "all", label: t("all_statuses") },
                   { value: "scheduled", label: t("scheduled") },
@@ -381,6 +434,33 @@ export default function TestsList() {
                 ]}
               />
             </div>
+            <Input
+              type="text"
+              placeholder={t("all_types")}
+              value={typeFilter}
+              onChange={(event) => {
+                setPage(1);
+                setValue("type", event.target.value, "replace");
+              }}
+            />
+            <Input
+              type="date"
+              aria-label={t("date_from")}
+              value={dateFrom}
+              onChange={(event) => {
+                setPage(1);
+                setValue("dateFrom", event.target.value, "push");
+              }}
+            />
+            <Input
+              type="date"
+              aria-label={t("date_to")}
+              value={dateTo}
+              onChange={(event) => {
+                setPage(1);
+                setValue("dateTo", event.target.value, "push");
+              }}
+            />
           </div>
         }
         showFilters={showFilters}
@@ -397,7 +477,7 @@ export default function TestsList() {
         <div className="rounded-xl bg-white p-12 shadow-sm">
           <PartialLoader />
         </div>
-      ) : filteredTests.length === 0 ? (
+      ) : tests.length === 0 ? (
         <div className="rounded-xl bg-white shadow-sm">
           <EmptyState
             message={hasActiveFilters ? t("no_match") : t("no_tests")}
@@ -414,7 +494,7 @@ export default function TestsList() {
         <DataTable
           columns={columns}
           data={
-            filteredTests as (Test & {
+            tests as (Test & {
               studentName: string;
               [key: string]: unknown;
             })[]
@@ -423,19 +503,31 @@ export default function TestsList() {
           searchQuery={searchQuery}
           urlState={{
             keyPrefix: "testsTable",
-            syncPagination: true,
             syncSorting: true,
+          }}
+          serverPagination={{
+            enabled: true,
+            currentPage: pagination.page,
+            pageSize: pagination.limit,
+            totalItems: pagination.total,
+            onPageChange: setPage,
+            onPageSizeChange: (nextPageSize) => {
+              setPage(1);
+              setPageSize(nextPageSize);
+            },
           }}
         />
       )}
 
       {/* Schedule Test Modal */}
-      <ScheduleTestModal
-        isOpen={isScheduleTestOpen}
-        onClose={() => setIsScheduleTestOpen(false)}
-        onSubmit={handleTestSubmit}
-        studentName=""
-      />
+      {canScheduleTests && (
+        <ScheduleTestModal
+          isOpen={isScheduleTestOpen}
+          onClose={() => setIsScheduleTestOpen(false)}
+          onSubmit={handleTestSubmit}
+          studentName=""
+        />
+      )}
 
       {/* Test Score Modal */}
       {selectedTest && (
@@ -455,7 +547,7 @@ export default function TestsList() {
         onExport={({ format }) => handleExport(format)}
         mode="list"
         confirmLabel={t("export")}
-        datasetCount={filteredTests.length}
+        datasetCount={tests.length}
         emptyStateMessage={hasActiveFilters ? t("no_match") : t("no_tests")}
       />
     </div>

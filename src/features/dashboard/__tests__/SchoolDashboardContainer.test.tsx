@@ -47,6 +47,8 @@ const mockedFetchDashboardAlerts = vi.mocked(fetchDashboardAlerts);
 const mockedFetchDashboardActivityFeed = vi.mocked(fetchDashboardActivityFeed);
 const mockedFetchDashboardModules = vi.mocked(fetchDashboardModules);
 const mockedFetchDashboardModuleByKey = vi.mocked(fetchDashboardModuleByKey);
+type DashboardModulesResult = Awaited<ReturnType<typeof fetchDashboardModules>>;
+type DashboardModuleResult = Awaited<ReturnType<typeof fetchDashboardModuleByKey>>;
 
 describe("SchoolDashboardContainer", () => {
   beforeEach(() => {
@@ -62,7 +64,7 @@ describe("SchoolDashboardContainer", () => {
       { moduleKey: "admissions", title: "Admissions" },
       { moduleKey: "communication", title: "Communication" },
       { moduleKey: "operations", title: "Operations" },
-    ] as any);
+    ] as unknown as DashboardModulesResult);
   });
 
   it("renders backend dashboard data when all endpoints succeed", async () => {
@@ -128,7 +130,7 @@ describe("SchoolDashboardContainer", () => {
     mockedFetchDashboardModules.mockResolvedValue([
       { moduleKey: "academics", title: "Academics" },
       { moduleKey: "operations", title: "Operations" },
-    ] as any);
+    ] as unknown as DashboardModulesResult);
 
     mockedFetchDashboardModuleByKey.mockImplementation(async (key) => {
       if (key === "academics") {
@@ -148,7 +150,7 @@ describe("SchoolDashboardContainer", () => {
           capabilities: {},
           emptyState: null,
           meta: {}
-        } as any;
+        } as unknown as DashboardModuleResult;
       }
       if (key === "operations") {
         return {
@@ -166,9 +168,9 @@ describe("SchoolDashboardContainer", () => {
           capabilities: {},
           emptyState: null,
           meta: {}
-        } as any;
+        } as unknown as DashboardModuleResult;
       }
-      return null as any;
+      return null as unknown as DashboardModuleResult;
     });
 
     render(<SchoolDashboardContainer />);
@@ -456,7 +458,7 @@ describe("SchoolDashboardContainer", () => {
         source: "dashboard_module_page",
         version: "v1",
         dataFreshness: "live",
-      } as any,
+      },
     });
 
     render(<SchoolDashboardContainer />);

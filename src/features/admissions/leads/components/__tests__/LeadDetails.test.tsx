@@ -19,6 +19,10 @@ vi.mock("@/components/ui/toast/Toast", () => ({
   useToast: () => ({ showToast }),
 }));
 
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => ({ hasPermission: () => true }),
+}));
+
 vi.mock("@/components/ui/loaders/MainLoader", () => ({
   default: () => <div>loading</div>,
 }));
@@ -35,12 +39,12 @@ vi.mock("@/features/admissions/applications/components/ApplicationCreateStepper"
   default: () => null,
 }));
 
-vi.mock("../LeadChatPanel", () => ({
-  default: () => <div>chat-panel</div>,
-}));
-
 vi.mock("@/features/admissions/shared/TabNavigation", () => ({
-  default: () => <div>tabs</div>,
+  default: ({
+    tabs,
+  }: {
+    tabs: Array<{ id: string; label: string }>;
+  }) => <div>{tabs.map((tab) => <span key={tab.id}>{tab.label}</span>)}</div>,
 }));
 
 vi.mock("../../services/leadsApiService", () => ({
@@ -82,5 +86,12 @@ describe("LeadDetails", () => {
     expect(editButton).toBeEnabled();
     expect(convertButton).toBeEnabled();
     expect(screen.queryByText("lead-internal-id")).not.toBeInTheDocument();
+  });
+
+  it("does not expose a lead chat surface", async () => {
+    render(<LeadDetails leadId={lead.id} />);
+
+    expect(await screen.findByRole("heading", { name: "Mariam Ahmed" })).toBeInTheDocument();
+    expect(screen.queryByText("messages")).not.toBeInTheDocument();
   });
 });

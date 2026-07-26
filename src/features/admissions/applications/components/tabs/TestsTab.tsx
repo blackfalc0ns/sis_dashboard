@@ -1,16 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Application, Test } from "@/features/admissions/types/admissions";
 import StatusBadge from "../../../shared/StatusBadge";
-import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import {
   fetchPlacementTests,
   completePlacementTest,
 } from "@/features/admissions/tests/services/testsApiService";
 import TestScoreModal from "@/features/admissions/tests/components/TestScoreModal";
 import { useToast } from "@/components/ui/toast/Toast";
+import { fetchAllAdmissionsPages } from "@/features/admissions/shared/services/admissionsApiUtils";
+import { usePermissions } from "@/hooks/usePermissions";
+import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
 
 interface TestsTabProps {
   application: Application;
@@ -22,24 +24,37 @@ export default function TestsTab({
   onScheduleTest,
 }: TestsTabProps) {
   const t = useTranslations("admissions.application360");
-  const { isReadOnly } = useAdmissionsYearTermContext();
   const { showToast } = useToast();
-  const [tests, setTests] = useState<Test[]>(application.tests);
+  const { hasPermission } = usePermissions();
+  const canViewTests = hasPermission("admissions.tests.view");
+  const canManageTests = hasPermission("admissions.tests.manage");
+  const [tests, setTests] = useState<Test[]>(
+    canViewTests ? application.tests : [],
+  );
   const [selectedTest, setSelectedTest] = useState<Test | null>(null);
+  const latestRequestId = useRef(0);
 
   const loadTests = useCallback(async () => {
+    const requestId = ++latestRequestId.current;
+    if (!canViewTests) return;
     try {
-      const nextTests = await fetchPlacementTests({});
+      const nextTests = await fetchAllAdmissionsPages((page, limit) =>
+        fetchPlacementTests({ page, limit }),
+      );
+      if (requestId !== latestRequestId.current) return;
       setTests(
         nextTests.filter((test) => test.applicationId === application.id),
       );
     } catch (error) {
       console.error("Failed to load placement tests:", error);
     }
-  }, [application.id]);
+  }, [application.id, canViewTests]);
 
   useEffect(() => {
     void Promise.resolve().then(loadTests);
+    return () => {
+      latestRequestId.current += 1;
+    };
   }, [loadTests]);
 
   const handleScoreSubmit = async (
@@ -58,14 +73,17 @@ export default function TestsTab({
     }
   };
 
+  if (!canViewTests) {
+    return <AdmissionsAccessDenied />;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-gray-900">{t("tests.title")}</h3>
-        {onScheduleTest ? (
+        {onScheduleTest && canManageTests ? (
           <button
             onClick={onScheduleTest}
-            disabled={isReadOnly}
             className="px-4 py-2 bg-primary hover:bg-hover text-white rounded-lg text-sm font-medium transition-colors"
           >
             {t("tests.schedule_test")}
@@ -82,12 +100,12 @@ export default function TestsTab({
             <div
               key={test.id}
               onClick={() => {
-                if (!isReadOnly && test.status !== "cancelled") {
+                if (canManageTests && test.status !== "cancelled") {
                   setSelectedTest(test);
                 }
               }}
               className={`p-4 border border-gray-200 rounded-lg transition-colors ${
-                !isReadOnly && test.status !== "cancelled"
+                canManageTests && test.status !== "cancelled"
                   ? "cursor-pointer hover:border-primary hover:bg-gray-50"
                   : ""
               }`}

@@ -1,18 +1,29 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import ModuleTabDashboardView from "../components/ModuleTabDashboardView";
 import "@/features/dashboard/__tests__/dashboardI18nMock";
+import ModuleTabDashboardView from "../components/ModuleTabDashboardView";
+import type { DashboardModulePage } from "../types/dashboardApi.types";
+import type { ReactNode } from "react";
 
-vi.mock("@mui/x-charts/LineChart", () => ({
-  LineChart: () => <div data-testid="line-chart">MUI Line Chart Mock</div>,
-}));
-
-vi.mock("@mui/x-charts/BarChart", () => ({
-  BarChart: () => <div data-testid="bar-chart">MUI Bar Chart Mock</div>,
+vi.mock("recharts", () => ({
+  ResponsiveContainer: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  LineChart: ({ children }: { children?: ReactNode }) => (
+    <div data-testid="line-chart">{children}</div>
+  ),
+  BarChart: ({ children }: { children?: ReactNode }) => (
+    <div data-testid="bar-chart">{children}</div>
+  ),
+  Line: () => null,
+  Bar: () => null,
+  XAxis: () => null,
+  YAxis: () => null,
+  CartesianGrid: () => null,
+  Tooltip: () => null,
+  Legend: () => null,
 }));
 
 describe("ModuleTabDashboardView", () => {
-  const mockPageData: any = {
+  const mockPageData = {
     module: {
       moduleKey: "academics",
       source: "academics",
@@ -59,7 +70,7 @@ describe("ModuleTabDashboardView", () => {
         subtitle: "Assigned today",
         iconKey: "book-open",
         tone: "info",
-        data: { value: 8 },
+        data: { value: 8, unit: null, label: "Homework assigned today" },
         action: null,
         emptyState: null,
         meta: {},
@@ -72,7 +83,14 @@ describe("ModuleTabDashboardView", () => {
         subtitle: "Overall task progress",
         iconKey: "school",
         tone: "success",
-        data: { percent: 75 },
+        data: {
+          value: 75,
+          max: 100,
+          percent: 75,
+          unit: "percent",
+          label: "Overall task progress",
+          segments: [{ key: "completed", label: "Completed", value: 75 }],
+        },
         action: null,
         emptyState: null,
         meta: {},
@@ -108,10 +126,10 @@ describe("ModuleTabDashboardView", () => {
             summary: null,
             empty: false,
           },
-        } as any,
+        },
       ],
     },
-  };
+  } as unknown as DashboardModulePage;
 
   it("renders module identity details, quick stats, risks, next actions, and charts", () => {
     render(<ModuleTabDashboardView pageData={mockPageData} pathname="/en/dashboard" />);
@@ -127,8 +145,9 @@ describe("ModuleTabDashboardView", () => {
     expect(screen.getByText("12")).toBeInTheDocument();
 
     // Risks
-    expect(screen.getByText("Low attendance rate detected")).toBeInTheDocument();
-    expect(screen.getByText("Count: 3")).toBeInTheDocument();
+    const riskTitle = screen.getByText("Low attendance rate detected");
+    expect(riskTitle).toBeInTheDocument();
+    expect(riskTitle.parentElement).toHaveTextContent("Count: 3");
 
     // Next Actions
     expect(screen.getByText("Approve grades")).toBeInTheDocument();

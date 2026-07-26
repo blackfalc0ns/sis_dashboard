@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Button, Input, Modal, Select } from "@/components/ui";
-import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 import {
   fetchSubjects,
   type Subject,
@@ -49,7 +48,6 @@ export default function ScheduleTestModal({
 }: ScheduleTestModalProps) {
   const t = useTranslations("admissions.schedule_test");
   const locale = useLocale();
-  const { termId } = useAdmissionsYearTermContext();
   const [form, setForm] = useState(initialForm);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -91,7 +89,7 @@ export default function ScheduleTestModal({
   }, [applicationId, isOpen]);
 
   useEffect(() => {
-    if (!isOpen || !termId) return;
+    if (!isOpen) return;
     let cancelled = false;
     void Promise.resolve().then(() => setIsLoadingSubjects(true));
     void fetchSubjects()
@@ -110,7 +108,7 @@ export default function ScheduleTestModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, t, termId]);
+  }, [isOpen]);
 
   const subjectOptions = useMemo(
     () =>
@@ -172,7 +170,7 @@ export default function ScheduleTestModal({
       footer={
         <>
           <Button type="button" onClick={onClose} variant="secondary" disabled={isSubmitting}>{t("cancel")}</Button>
-          <Button type="submit" form={FORM_ID} loading={isSubmitting} disabled={isLoadingSubjects || isLoadingApplications || !termId || !form.applicationId || !form.subjectId}>{t("submit")}</Button>
+          <Button type="submit" form={FORM_ID} loading={isSubmitting} disabled={isLoadingSubjects || isLoadingApplications || !form.applicationId || !form.subjectId}>{t("submit")}</Button>
         </>
       }
     >
@@ -199,7 +197,7 @@ export default function ScheduleTestModal({
           onChange={selectSubject}
           options={subjectOptions}
           placeholder={t("select_subject")}
-          disabled={isLoadingSubjects || !termId}
+          disabled={isLoadingSubjects}
           error={subjectsError || undefined}
           required
           searchable

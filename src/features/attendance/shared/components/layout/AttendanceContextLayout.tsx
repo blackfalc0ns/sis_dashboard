@@ -30,11 +30,14 @@ function AttendanceContextLayoutContent({
         academicYearId={yearId || ""}
         termId={termId || ""}
         termStatus={termStatus || "open"}
-        academicYears={academicYears as any}
+        academicYears={academicYears}
         terms={terms}
         isLoadingYears={isLoading}
         isLoadingTerms={false}
-        onRefreshAcademicYears={async () => { await refresh(); return academicYears as any; }}
+        onRefreshAcademicYears={async () => {
+          await refresh();
+          return academicYears;
+        }}
         onRefreshTerms={async () => { await refresh(); return terms; }}
         onAcademicYearChange={(nextYearId) => {
           void requestYearChange(nextYearId);

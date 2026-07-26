@@ -1,6 +1,6 @@
 // Utility functions for calculating student statistics
 
-import type { Student } from "@/features/students-guardians/students/types";
+import type { StudentWithEnrollment } from "@/features/students-guardians/students/utils/studentsListFilters";
 
 export interface StudentStats {
   total: number;
@@ -42,25 +42,28 @@ function generatePercentageTrend(currentValue: number): Array<{ label: string; v
   ];
 }
 
-export function calculateStudentStats(students: Student[]): StudentStats {
+export function calculateStudentStats(
+  students: StudentWithEnrollment[],
+): StudentStats {
   const total = students.length;
   const active = students.filter((s) => s.status === "Active").length;
   const suspended = students.filter((s) => s.status === "Suspended").length;
   const withdrawn = students.filter((s) => s.status === "Withdrawn").length;
 
   const atRisk = students.filter(
-    (s) => (s as any).ytdPerformance && (s as any).ytdPerformance.riskFlags.length > 0
+    (student) =>
+      student.ytdPerformance && student.ytdPerformance.riskFlags.length > 0,
   ).length;
 
   // Calculate average attendance
   const studentsWithAttendance = students.filter(
-    (s) => (s as any).ytdPerformance?.attendance
+    (student) => student.ytdPerformance?.attendance,
   );
   const avgAttendance =
     studentsWithAttendance.length > 0
       ? Math.round(
           studentsWithAttendance.reduce(
-            (sum, s) => sum + ((s as any).ytdPerformance?.attendance || 0),
+            (sum, student) => sum + (student.ytdPerformance?.attendance || 0),
             0
           ) / studentsWithAttendance.length
         )
@@ -68,13 +71,13 @@ export function calculateStudentStats(students: Student[]): StudentStats {
 
   // Calculate average grade
   const studentsWithGrades = students.filter(
-    (s) => (s as any).ytdPerformance?.gradeAverage
+    (student) => student.ytdPerformance?.gradeAverage,
   );
   const avgGrade =
     studentsWithGrades.length > 0
       ? Math.round(
           studentsWithGrades.reduce(
-            (sum, s) => sum + ((s as any).ytdPerformance?.gradeAverage || 0),
+            (sum, student) => sum + (student.ytdPerformance?.gradeAverage || 0),
             0
           ) / studentsWithGrades.length
         )
@@ -97,7 +100,9 @@ export function calculateStudentStats(students: Student[]): StudentStats {
   };
 }
 
-export function calculateRiskDistribution(students: Student[]): RiskDistribution {
+export function calculateRiskDistribution(
+  students: StudentWithEnrollment[],
+): RiskDistribution {
   const distribution: RiskDistribution = {
     attendance: 0,
     grades: 0,
@@ -105,8 +110,8 @@ export function calculateRiskDistribution(students: Student[]): RiskDistribution
   };
 
   students.forEach((student) => {
-    if ((student as any).ytdPerformance?.riskFlags) {
-      (student as any).ytdPerformance.riskFlags.forEach(
+    if (student.ytdPerformance?.riskFlags) {
+      student.ytdPerformance.riskFlags.forEach(
         (flag: "attendance" | "grades" | "behavior") => {
           if (flag === "attendance") distribution.attendance++;
           if (flag === "grades") distribution.grades++;
@@ -119,7 +124,7 @@ export function calculateRiskDistribution(students: Student[]): RiskDistribution
   return distribution;
 }
 
-export function extractFilterOptions(students: Student[]): {
+export function extractFilterOptions(students: StudentWithEnrollment[]): {
   academicYears: string[];
   terms: string[];
 } {
@@ -127,11 +132,11 @@ export function extractFilterOptions(students: Student[]): {
   const termSet = new Set<string>();
 
   students.forEach((student) => {
-    if ((student as any).enrollment?.academicYear) {
-      years.add((student as any).enrollment.academicYear);
+    if (student.enrollment?.academicYear) {
+      years.add(student.enrollment.academicYear);
     }
-    if ((student as any).currentTerm?.term) {
-      termSet.add((student as any).currentTerm.term);
+    if (student.currentTerm?.term) {
+      termSet.add(student.currentTerm.term);
     }
   });
 

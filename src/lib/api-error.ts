@@ -1,5 +1,14 @@
 // FILE: src/lib/api-error.ts
-import axios, { AxiosError } from "axios";
+import axios, { type AxiosError } from "axios";
+
+interface ApiErrorResponse {
+  message?: string;
+  code?: string;
+  errors?: Record<string, string[]>;
+  details?: unknown;
+  traceId?: string;
+  error?: string | ApiErrorResponse;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -25,20 +34,30 @@ export class ApiError extends Error {
     this.traceId = traceId;
   }
 
-  static fromAxiosError(error: AxiosError<any>): ApiError {
+  static fromAxiosError(error: AxiosError<ApiErrorResponse>): ApiError {
     if (error.response) {
       // The request was made and the server responded with a status code
       // that falls out of the range of 2xx
       const status = error.response.status;
-      const data = error.response.data as any;
-      const payload = data?.error ?? data;
+      const responseData = error.response.data;
+      const nestedError =
+        responseData.error && typeof responseData.error === "object"
+          ? responseData.error
+          : undefined;
+      const payload = nestedError ?? responseData;
+      const responseError =
+        typeof payload.error === "string" ? payload.error : undefined;
 
       const message =
-        payload?.message || payload?.error || data?.message || error.message || "An error occurred";
-      const code = payload?.code || data?.code || "API_ERROR";
-      const errors = payload?.errors || data?.errors;
-      const details = payload?.details || data?.details;
-      const traceId = payload?.traceId || data?.traceId;
+        payload.message ||
+        responseError ||
+        responseData.message ||
+        error.message ||
+        "An error occurred";
+      const code = payload.code || responseData.code || "API_ERROR";
+      const errors = payload.errors || responseData.errors;
+      const details = payload.details ?? responseData.details;
+      const traceId = payload.traceId || responseData.traceId;
 
       return new ApiError(message, status, code, errors, details, traceId);
     } else if (error.request) {
@@ -81,6 +100,6 @@ export function isApiError(error: unknown): error is ApiError {
   return error instanceof ApiError;
 }
 
-export function isAxiosError(error: unknown): error is AxiosError {
+export function isAxiosError(error: unknown): error is AxiosError<ApiErrorResponse> {
     return axios.isAxiosError(error);
 }

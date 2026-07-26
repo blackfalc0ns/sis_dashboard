@@ -10,10 +10,6 @@ const applicationServiceMocks = vi.hoisted(() => ({
   submitApplication: vi.fn(),
 }));
 
-const structureMocks = vi.hoisted(() => ({
-  fetchStructureTree: vi.fn(),
-}));
-
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
@@ -38,20 +34,16 @@ vi.mock("@/components/ui/toast/Toast", () => ({
   useToast: () => ({ showToast: vi.fn() }),
 }));
 
-vi.mock("@/features/admissions/shared/hooks/useAdmissionsYearTermContext", () => ({
-  useAdmissionsYearTermContext: () => ({
-    yearId: "year-1",
-    termId: "term-1",
-    isReadOnly: false,
-  }),
-}));
-
 vi.mock("@/features/admissions/shared/hooks/useAdmissionsUrlQueryState", () => ({
   useAdmissionsUrlQueryState: () => ({
     values: { search: "", status: "all" },
     setValue: vi.fn(),
     reset: vi.fn(),
   }),
+}));
+
+vi.mock("@/features/admissions/applications/hooks/useAdmissionsGradeLabels", () => ({
+  useAdmissionsGradeLabels: () => new Map([["grade-1", "Grade 1"]]),
 }));
 
 vi.mock("@/components/ui", () => ({
@@ -137,17 +129,11 @@ vi.mock("@/features/admissions/shared/components/export/AdmissionsGlobalExportMo
   default: () => null,
 }));
 
-vi.mock("@/features/admissions/shared/components/AdmissionsReadOnlyBanner", () => ({
-  default: () => null,
-}));
-
 vi.mock("@/features/admissions/applications/services/applicationsApiService", () => applicationServiceMocks);
 vi.mock("@/features/admissions/applications/services/applicationDocumentsApiService", () => ({
   createApplicationDocument: vi.fn(),
   uploadAdmissionsFile: vi.fn(),
 }));
-vi.mock("@/features/academics/academic-structure-tree/services/structureService", () => structureMocks);
-
 const application = {
   id: "app-1",
   studentName: "Omar Ahmed",
@@ -183,7 +169,6 @@ const application = {
 describe("ApplicationsList KPI cards", () => {
   beforeEach(() => {
     applicationServiceMocks.fetchApplications.mockReset().mockResolvedValue([application]);
-    structureMocks.fetchStructureTree.mockReset().mockResolvedValue({ grades: [] });
   });
 
   it("does not render fabricated chart history when the backend only returns current counts", async () => {

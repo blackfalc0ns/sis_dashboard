@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ApplicationTabContent from "@/features/admissions/applications/components/ApplicationTabContent";
@@ -12,13 +12,14 @@ const registrationApiMocks = vi.hoisted(() => ({
   getApplicationRegistrationHandoff: vi.fn(),
 }));
 
-const structureMocks = vi.hoisted(() => ({
-  fetchStructureTree: vi.fn(),
+const permissionMocks = vi.hoisted(() => ({
+  permissions: new Set<string>(),
 }));
 
 vi.mock("@/hooks/usePermissions", () => ({
   usePermissions: () => ({
-    hasPermission: () => true,
+    hasPermission: (permission: string) =>
+      permissionMocks.permissions.has(permission),
   }),
 }));
 
@@ -27,17 +28,8 @@ vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key,
 }));
 
-vi.mock("@/features/admissions/shared/hooks/useAdmissionsYearTermContext", () => ({
-  useAdmissionsYearTermContext: () => ({
-    yearId: "year-1",
-    termId: "term-1",
-  }),
-}));
-
 vi.mock("@/features/admissions/applications/services/applicationsApiService", () => applicationServiceMocks);
 vi.mock("@/features/admissions/applications/api/applicationRegistrationApi", () => registrationApiMocks);
-vi.mock("@/features/academics/academic-structure-tree/services/structureService", () => structureMocks);
-
 vi.mock("@/features/admissions/applications/components/tabs/DetailsTab", () => ({
   default: () => <section>Details tab</section>,
 }));
@@ -86,13 +78,16 @@ const application = {
 
 describe("ApplicationTabContent requests", () => {
   beforeEach(() => {
+    permissionMocks.permissions = new Set([
+      "admissions.applications.view",
+      "admissions.applications.manage",
+    ]);
     applicationServiceMocks.fetchApplicationById.mockReset().mockResolvedValue(application);
     registrationApiMocks.getApplicationRegistrationHandoff.mockReset().mockResolvedValue({
       applicationId: "app-1",
       wizardDraft: null,
       documents: [],
     });
-    structureMocks.fetchStructureTree.mockReset().mockResolvedValue({ grades: [] });
   });
 
   it("does not fetch registration handoff for the documents tab", async () => {
@@ -115,6 +110,17 @@ describe("ApplicationTabContent requests", () => {
     await screen.findByText("Readiness tab");
 
     expect(applicationServiceMocks.fetchApplicationById).toHaveBeenCalledWith("app-1");
+    expect(registrationApiMocks.getApplicationRegistrationHandoff).not.toHaveBeenCalled();
+  });
+
+  it("does not request the manage-only handoff for a view-only guardian route", async () => {
+    permissionMocks.permissions = new Set(["admissions.applications.view"]);
+
+    render(<ApplicationTabContent applicationId="app-1" tab="guardians" />);
+
+    await waitFor(() =>
+      expect(applicationServiceMocks.fetchApplicationById).toHaveBeenCalledWith("app-1"),
+    );
     expect(registrationApiMocks.getApplicationRegistrationHandoff).not.toHaveBeenCalled();
   });
 });

@@ -9,6 +9,7 @@ import {
 } from "@/features/dashboard/services/dashboardApiService";
 import { ApiError } from "@/lib/api-error";
 import type { DashboardAnalyticsChartsResponse } from "@/features/dashboard/types/dashboardApi.types";
+import type { ReactNode } from "react";
 
 const permissionState = vi.hoisted(() => ({
   isPermissionsReady: true,
@@ -55,12 +56,12 @@ vi.mock("@/features/academics/academic-structure-tree/services/structureService"
 }));
 
 vi.mock("recharts", () => ({
-  ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
-  LineChart: ({ children }: any) => <div data-testid="line-chart">{children}</div>,
+  ResponsiveContainer: ({ children }: { children?: ReactNode }) => <div data-testid="responsive-container">{children}</div>,
+  LineChart: ({ children }: { children?: ReactNode }) => <div data-testid="line-chart">{children}</div>,
   Line: () => <div />,
-  BarChart: ({ children }: any) => <div data-testid="bar-chart">{children}</div>,
+  BarChart: ({ children }: { children?: ReactNode }) => <div data-testid="bar-chart">{children}</div>,
   Bar: () => <div />,
-  PieChart: ({ children }: any) => <div data-testid="pie-chart">{children}</div>,
+  PieChart: ({ children }: { children?: ReactNode }) => <div data-testid="pie-chart">{children}</div>,
   Pie: () => <div />,
   Cell: () => <div />,
   XAxis: () => <div />,
@@ -119,7 +120,7 @@ describe("DashboardAnalyticsPage", () => {
           requiredHierarchyFilters: [],
         },
       },
-    ] as any[],
+    ],
   };
 
   const mockChartData = {
@@ -165,8 +166,12 @@ describe("DashboardAnalyticsPage", () => {
     ]);
     academicContextState.requestAcademicYearChange.mockReset();
 
-    mockedFetchCatalog.mockResolvedValue(mockCatalog as any);
-    mockedFetchCharts.mockResolvedValue(mockChartsResponse as any);
+    mockedFetchCatalog.mockResolvedValue(
+      mockCatalog as unknown as Awaited<ReturnType<typeof fetchAnalyticsCatalog>>,
+    );
+    mockedFetchCharts.mockResolvedValue(
+      mockChartsResponse as unknown as DashboardAnalyticsChartsResponse,
+    );
     mockedFetchChartData.mockResolvedValue(mockChartData);
   });
 
@@ -223,7 +228,7 @@ describe("DashboardAnalyticsPage", () => {
           },
         },
       ],
-    } as any);
+    } as unknown as DashboardAnalyticsChartsResponse);
 
     render(<DashboardAnalyticsPage />);
 

@@ -17,6 +17,7 @@ const dashboardTranslations: Record<string, TranslationEntry> = {
   "dashboard_new.dashboard.reports": "Reports",
   "dashboard_new.dashboard.settings": "Settings",
   "dashboard_new.dashboard.refresh": "Refresh",
+  "dashboard_new.dashboard.count": ({ value }) => `Count: ${value}`,
   "dashboard_new.dashboard.version_notes": "Version notes",
   "dashboard_new.dashboard.unavailable": "Dashboard unavailable",
   "dashboard_new.dashboard.load_failed": "We could not load the dashboard data.",

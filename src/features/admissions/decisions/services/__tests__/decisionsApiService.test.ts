@@ -26,12 +26,15 @@ const decisionDto = {
 describe("decisions API service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    api.apiGet.mockResolvedValue([decisionDto]);
+    api.apiGet.mockResolvedValue({
+      items: [decisionDto],
+      pagination: { page: 1, limit: 20, total: 1 },
+    });
     api.apiPost.mockResolvedValue(decisionDto);
   });
 
-  it("uses documented decision read routes without unsupported query params", async () => {
-    await fetchDecisions({
+  it("uses documented decision read routes and supported query params", async () => {
+    const result = await fetchDecisions({
       search: "Omar",
       decision: "accept",
       dateFrom: "2026-06-01",
@@ -39,7 +42,10 @@ describe("decisions API service", () => {
       page: 1,
       limit: 20,
     });
-    expect(api.apiGet).toHaveBeenCalledWith("/admissions/decisions");
+    expect(api.apiGet).toHaveBeenCalledWith(
+      "/admissions/decisions?search=Omar&decision=accept&dateFrom=2026-06-01&dateTo=2026-06-30&page=1&limit=20",
+    );
+    expect(result.pagination).toEqual({ page: 1, limit: 20, total: 1 });
 
     api.apiGet.mockResolvedValue(decisionDto);
     await fetchDecisionById("decision-1");

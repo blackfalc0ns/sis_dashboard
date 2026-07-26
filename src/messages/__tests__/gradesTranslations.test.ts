@@ -35,7 +35,7 @@ describe("Grades Tab i18n Translations (Task 2)", () => {
   ];
 
   it("should have all required keys in en.json under students_guardians.profile.grades", () => {
-    const gradesEn = (enMessages as Record<string, any>).students_guardians?.profile?.grades;
+    const gradesEn = enMessages.students_guardians.profile.grades;
     expect(gradesEn).toBeDefined();
 
     for (const key of expectedKeys) {
@@ -45,7 +45,7 @@ describe("Grades Tab i18n Translations (Task 2)", () => {
   });
 
   it("should have all required keys in ar.json under students_guardians.profile.grades", () => {
-    const gradesAr = (arMessages as Record<string, any>).students_guardians?.profile?.grades;
+    const gradesAr = arMessages.students_guardians.profile.grades;
     expect(gradesAr).toBeDefined();
 
     for (const key of expectedKeys) {
@@ -55,7 +55,7 @@ describe("Grades Tab i18n Translations (Task 2)", () => {
   });
 
   it("should match expected values for en.json", () => {
-    const gradesEn = (enMessages as Record<string, any>).students_guardians.profile.grades;
+    const gradesEn = enMessages.students_guardians.profile.grades;
     expect(gradesEn.rule_info).toBe("Grading Rule");
     expect(gradesEn.pass_mark).toBe("Pass Mark");
     expect(gradesEn.grading_scale).toBe("Grading Scale");
@@ -81,7 +81,7 @@ describe("Grades Tab i18n Translations (Task 2)", () => {
   });
 
   it("should match expected values for ar.json", () => {
-    const gradesAr = (arMessages as Record<string, any>).students_guardians.profile.grades;
+    const gradesAr = arMessages.students_guardians.profile.grades;
     expect(gradesAr.rule_info).toBe("قاعدة التقييم");
     expect(gradesAr.pass_mark).toBe("درجة النجاح");
     expect(gradesAr.grading_scale).toBe("مقياس الدرجات");

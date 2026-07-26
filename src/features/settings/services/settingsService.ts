@@ -14,7 +14,6 @@ import { apiGet } from "@/lib/api";
 import { unwrapArrayResponse } from "@/features/admissions/shared/services/admissionsApiUtils";
 import type {
   AdmissionRequiredDocument,
-  AdmissionsRequiredDocumentConfig,
   AuditLogEntry,
   BackupHistoryEntry,
   IntegrationProviderStatus,
@@ -304,44 +303,6 @@ export async function fetchAdmissionRequiredDocumentsForSchool(
   return unwrapArrayResponse(response, "admission required documents")
     .map(mapAdmissionRequiredDocument)
     .sort((first, second) => first.sortOrder - second.sortOrder);
-}
-
-export async function fetchAdmissionsDocumentRequirements(): Promise<
-  AdmissionsRequiredDocumentConfig[]
-> {
-  await delay();
-  return cloneStore(getStore().admissionsDocuments).sort(
-    (a, b) => a.sortOrder - b.sortOrder,
-  );
-}
-
-export async function updateAdmissionsDocumentRequirements(
-  payload: AdmissionsRequiredDocumentConfig[],
-): Promise<AdmissionsRequiredDocumentConfig[]> {
-  await delay();
-  const normalized = cloneStore(payload)
-    .map((item, index) => ({
-      ...item,
-      id: item.id.trim(),
-      nameEn: item.nameEn.trim(),
-      nameAr: item.nameAr.trim(),
-      sortOrder: index + 1,
-    }))
-    .sort((a, b) => a.sortOrder - b.sortOrder);
-
-  setStore((current) => ({
-    ...current,
-    admissionsDocuments: normalized,
-  }));
-  prependAuditEntry({
-    actor: getCurrentUserName(),
-    action: "Updated admissions document requirements",
-    module: "Admissions Documents",
-    entity: "settings-admissions-documents",
-    severity: "warning",
-    ipAddress: "10.0.0.10",
-  });
-  return fetchAdmissionsDocumentRequirements();
 }
 
 export async function fetchNotificationTemplates(): Promise<NotificationTemplateConfig[]> {

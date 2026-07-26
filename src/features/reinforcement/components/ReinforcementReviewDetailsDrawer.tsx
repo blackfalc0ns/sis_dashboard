@@ -80,10 +80,10 @@ export default function ReinforcementReviewDetailsDrawer({
       : missing;
   };
 
-  const task = review?.task as any;
-  const stage = review?.stage as any;
-  const student = review?.student as any;
-  const proof = review?.proof as any;
+  const task = review?.task;
+  const stage = review?.stage;
+  const student = review?.student;
+  const proof = review?.proof;
 
   const studentName = student
     ? localized(
@@ -259,8 +259,7 @@ export default function ReinforcementReviewDetailsDrawer({
               <DetailsSection title={t("reviews.detail.history") || "Review History"}>
                 {review.reviewHistory && review.reviewHistory.length > 0 ? (
                   <div className="space-y-4">
-                    {review.reviewHistory.map((e, index) => {
-                      const entry = e as any;
+                    {review.reviewHistory.map((entry, index) => {
                       const entryStatus = entry.status || entry.outcome;
                       const isApproved = entryStatus === "approved";
                       const isRejected = entryStatus === "rejected";

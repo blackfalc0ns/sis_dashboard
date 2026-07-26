@@ -1,9 +1,11 @@
 import { apiGet, apiPost } from "@/lib/api";
 import type { Decision, DecisionType } from "@/features/admissions/types/admissions";
 import {
+  buildQueryString,
   normalizeDecision,
-  unwrapArrayResponse,
+  unwrapPaginatedResponse,
   unwrapItemResponse,
+  type PaginatedAdmissionsResult,
 } from "@/features/admissions/shared/services/admissionsApiUtils";
 
 const DECISIONS_ENDPOINT = "/admissions/decisions";
@@ -24,11 +26,16 @@ export interface CreateDecisionPayload {
 }
 
 export async function fetchDecisions(
-  _params: FetchDecisionsParams = {},
-): Promise<Decision[]> {
-  void _params;
-  const response = await apiGet<unknown>(DECISIONS_ENDPOINT);
-  return unwrapArrayResponse(response, "decisions").map(normalizeDecision);
+  params: FetchDecisionsParams = {},
+): Promise<PaginatedAdmissionsResult<Decision>> {
+  const response = await apiGet<unknown>(
+    `${DECISIONS_ENDPOINT}${buildQueryString(params)}`,
+  );
+  const paginatedDecisions = unwrapPaginatedResponse(response, "decisions");
+  return {
+    items: paginatedDecisions.items.map(normalizeDecision),
+    pagination: paginatedDecisions.pagination,
+  };
 }
 
 export async function fetchDecisionById(id: string): Promise<Decision> {

@@ -4,13 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Modal } from "@/components/ui/modal";
 import Select from "@/components/ui/input/Select";
-import { fetchAdmissionsDocumentRequirements } from "@/features/settings/services/settingsService";
+import { useAuth } from "@/hooks/use-auth";
 import {
   fetchAcademicStructureTree,
   type AcademicStructureGrade as Grade,
 } from "@/features/academics/services/academicStructureApiService";
-import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
-import type { AdmissionsRequiredDocumentConfig } from "@/features/settings/types";
+import { useAdmissionsAcademicSelection } from "@/features/admissions/shared/hooks/useAdmissionsAcademicSelection";
+import { useAdmissionDocumentRequirements } from "@/features/admissions/applications/hooks/useAdmissionDocumentRequirements";
+import type { AdmissionRequiredDocument } from "@/features/settings/types";
 import type { Lead } from "@/features/admissions/leads/types/lead";
 import {
   mapLeadChannelToApplicationSource,
@@ -37,24 +38,37 @@ export default function ApplicationCreateStepper({
   onSubmit,
 }: ApplicationCreateStepperProps) {
   const t = useTranslations("admissions.create_application");
+  const tContext = useTranslations("admissions.context_bar");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
-  const { yearId, termId } = useAdmissionsYearTermContext();
+  const { user } = useAuth();
+  const schoolId = user?.activeMembership?.schoolId ?? "";
+  const academicSelection = useAdmissionsAcademicSelection({ enabled: isOpen });
+  const { yearId, termId } = academicSelection;
+  const documentRequirementsState = useAdmissionDocumentRequirements({
+    enabled: isOpen,
+    schoolId,
+    loadErrorMessage: t("errors.load_failed"),
+  });
+  const {
+    requirements: documentRequirements,
+    isLoading: isLoadingRequirements,
+    error: requirementsError,
+    reload: reloadDocumentRequirements,
+  } = documentRequirementsState;
   const [form, setForm] = useState<IntakeFormState>({
     studentName: lead?.studentName || "",
     gradeId: "",
     documents: {},
   });
   const [grades, setGrades] = useState<Grade[]>([]);
-  const [documentRequirements, setDocumentRequirements] = useState<
-    AdmissionsRequiredDocumentConfig[]
-  >([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingGrades, setIsLoadingGrades] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const activeDocumentRequirements = useMemo(
     () =>
       documentRequirements
-        .filter((requirement) => requirement.active)
+        .slice()
         .sort((a, b) => a.sortOrder - b.sortOrder),
     [documentRequirements],
   );
@@ -62,20 +76,12 @@ export default function ApplicationCreateStepper({
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
-    void Promise.resolve()
-      .then(async () => {
-        setIsLoading(true);
-        const [requirements, structure] = await Promise.all([
-          fetchAdmissionsDocumentRequirements(),
-          yearId && termId
-            ? fetchAcademicStructureTree({ yearId, termId })
-            : Promise.resolve({ grades: [] }),
-        ]);
-        return { requirements, grades: structure.grades };
-      })
-      .then(({ requirements, grades: nextGrades }) => {
+    void Promise.resolve().then(() => setIsLoadingGrades(true));
+    void (yearId && termId
+      ? fetchAcademicStructureTree({ yearId, termId })
+      : Promise.resolve({ grades: [] }))
+      .then(({ grades: nextGrades }) => {
         if (cancelled) return;
-        setDocumentRequirements(requirements);
         setGrades(nextGrades);
         setForm((current) => ({
           ...current,
@@ -90,7 +96,7 @@ export default function ApplicationCreateStepper({
         }
       })
       .finally(() => {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) setIsLoadingGrades(false);
       });
     return () => {
       cancelled = true;
@@ -113,6 +119,14 @@ export default function ApplicationCreateStepper({
       setError(t("errors.grade_required"));
       return;
     }
+    if (!yearId || !termId) {
+      setError(t("errors.load_failed"));
+      return;
+    }
+    if (isLoadingRequirements || requirementsError) {
+      setError(requirementsError || t("errors.load_failed"));
+      return;
+    }
 
     onSubmit({
       leadId: lead?.id,
@@ -124,9 +138,9 @@ export default function ApplicationCreateStepper({
         const file = form.documents[requirement.id];
         return {
           configId: requirement.id,
-          labelEn: requirement.nameEn,
-          labelAr: requirement.nameAr,
-          required: requirement.required,
+          labelEn: requirement.title,
+          labelAr: requirement.title,
+          required: requirement.isMandatory,
           uploaded: Boolean(file),
           fileName: file?.name,
           file: file || undefined,
@@ -156,6 +170,42 @@ export default function ApplicationCreateStepper({
           value={form.studentName}
           onChange={(studentName) => setForm((current) => ({ ...current, studentName }))}
         />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Select
+            label={tContext("academic_year")}
+            required
+            value={yearId || ""}
+            options={academicSelection.academicYears.map((year) => ({
+              value: year.id,
+              label:
+                locale === "ar"
+                  ? year.nameAr || year.name
+                  : year.nameEn || year.name,
+            }))}
+            disabled={academicSelection.isLoading}
+            onChange={(nextYearId) => {
+              setForm((current) => ({ ...current, gradeId: "" }));
+              void academicSelection.setYearId(nextYearId);
+            }}
+          />
+          <Select
+            label={tContext("term")}
+            required
+            value={termId || ""}
+            options={academicSelection.terms.map((term) => ({
+              value: term.id,
+              label:
+                locale === "ar"
+                  ? term.nameAr || term.name
+                  : term.nameEn || term.name,
+            }))}
+            disabled={academicSelection.isLoading || !yearId}
+            onChange={(nextTermId) => {
+              setForm((current) => ({ ...current, gradeId: "" }));
+              academicSelection.setTermId(nextTermId);
+            }}
+          />
+        </div>
         <Select
           label={t("student.grade_requested")}
           required
@@ -166,7 +216,10 @@ export default function ApplicationCreateStepper({
         <DocumentInputs
           requirements={activeDocumentRequirements}
           documents={form.documents}
-          isLoading={isLoading}
+          isLoading={isLoadingRequirements}
+          error={requirementsError}
+          retryLabel={tCommon("retry")}
+          onRetry={() => void reloadDocumentRequirements()}
           setDocument={(requirementId, file) =>
             setForm((current) => ({
               ...current,
@@ -185,7 +238,12 @@ export default function ApplicationCreateStepper({
           <button
             type="button"
             onClick={submit}
-            disabled={isLoading}
+          disabled={
+            isLoadingGrades ||
+            isLoadingRequirements ||
+            academicSelection.isLoading ||
+            Boolean(requirementsError)
+          }
             className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-hover disabled:opacity-60"
           >
             {t("buttons.submit")}
@@ -200,16 +258,32 @@ function DocumentInputs({
   requirements,
   documents,
   isLoading,
+  error,
+  retryLabel,
+  onRetry,
   setDocument,
 }: {
-  requirements: AdmissionsRequiredDocumentConfig[];
+  requirements: AdmissionRequiredDocument[];
   documents: Record<string, File | null>;
   isLoading: boolean;
+  error: string | null;
+  retryLabel: string;
+  onRetry: () => void;
   setDocument: (requirementId: string, file: File | null) => void;
 }) {
   const t = useTranslations("admissions.create_application.documents");
   if (isLoading) {
     return <p className="text-sm text-gray-500">{t("loading")}</p>;
+  }
+  if (error) {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+        <p>{error}</p>
+        <button type="button" className="mt-2 font-medium underline" onClick={onRetry}>
+          {retryLabel}
+        </button>
+      </div>
+    );
   }
   if (requirements.length === 0) {
     return <p className="text-sm text-gray-500">{t("configured_empty")}</p>;
@@ -224,12 +298,21 @@ function DocumentInputs({
           className="block rounded-lg border border-gray-200 p-3 text-sm"
         >
           <span className="mb-2 block font-medium text-gray-800">
-            {requirement.nameEn}
-            {requirement.required && <span className="text-red-500"> *</span>}
+            {requirement.title}
+            {requirement.isMandatory && <span className="text-red-500"> *</span>}
           </span>
+          {requirement.description ? (
+            <span className="mb-2 block text-xs text-gray-500">
+              {requirement.description}
+            </span>
+          ) : null}
           <input
             type="file"
-            accept=".pdf,image/jpeg,image/png"
+            accept={
+              requirement.acceptedFileTypes.length > 0
+                ? requirement.acceptedFileTypes.join(",")
+                : undefined
+            }
             onChange={(event) =>
               setDocument(requirement.id, event.target.files?.[0] ?? null)
             }

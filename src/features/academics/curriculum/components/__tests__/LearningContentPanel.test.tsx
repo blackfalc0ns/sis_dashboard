@@ -10,6 +10,7 @@ import {
   publishLessonContent,
   type LessonContentItem,
 } from "../../services/curriculumService";
+import { uploadLearningMedia } from "../../services/filesService";
 import LearningContentPanel from "../LearningContentPanel";
 
 const translate = (key: string) => key;
@@ -95,9 +96,8 @@ const contentItem: LessonContentItem = {
 };
 
 describe("LearningContentPanel", () => {
-  it("exposes a close action for the inline panel", async () => {
+  it("shows the list first and opens the form when creating content", async () => {
     const user = userEvent.setup();
-    const onClose = vi.fn();
     vi.mocked(listLessonContent).mockResolvedValue([]);
 
     render(
@@ -106,13 +106,15 @@ describe("LearningContentPanel", () => {
         unitId="unit-1"
         lessonId="lesson-1"
         isReadOnly={false}
-        onClose={onClose}
+        onClose={vi.fn()}
       />,
     );
 
-    expect(await screen.findByText("title")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "close" }));
-    expect(onClose).toHaveBeenCalledOnce();
+    expect(screen.queryByLabelText(/item_title/)).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "create_new" }));
+    expect(screen.getByLabelText(/item_title/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "cancel" }));
+    expect(screen.queryByLabelText(/item_title/)).not.toBeInTheDocument();
   });
 
   it("shows backend field errors inline and preserves content values", async () => {
@@ -136,6 +138,7 @@ describe("LearningContentPanel", () => {
       />,
     );
 
+    await user.click(await screen.findByRole("button", { name: "create_new" }));
     const titleInput = screen.getByLabelText(/item_title/);
     const bodyInput = screen.getByLabelText(/body_text/);
     await user.type(titleInput, "Introduction");
@@ -167,8 +170,9 @@ describe("LearningContentPanel", () => {
       />,
     );
 
+    await user.click(await screen.findByRole("button", { name: "create_new" }));
     await user.click(screen.getByLabelText("item_type"));
-    await user.click(await screen.findByRole("button", { name: "FILE" }));
+    await user.click(await screen.findByRole("button", { name: "types.file" }));
 
     const selectedFile = new File(["lesson resource"], "worksheet.pdf", {
       type: "application/pdf",
@@ -179,6 +183,85 @@ describe("LearningContentPanel", () => {
     await user.upload(fileInput!, selectedFile);
 
     expect(await screen.findByText("worksheet.pdf")).toBeInTheDocument();
+  });
+
+  it("explains unsupported media containers at the upload field", async () => {
+    const user = userEvent.setup();
+    vi.mocked(listLessonContent).mockResolvedValue([]);
+    vi.mocked(uploadLearningMedia).mockRejectedValueOnce(
+      new ApiError(
+        "Learning media verification failed",
+        422,
+        "learning.media.verification_failed",
+        undefined,
+        { reasonCode: "unsupported_container" },
+      ),
+    );
+
+    render(
+      <LearningContentPanel
+        curriculumId="curriculum-1"
+        unitId="unit-1"
+        lessonId="lesson-1"
+        isReadOnly={false}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "create_new" }));
+    await user.type(screen.getByLabelText(/item_title/), "Lesson video");
+    await user.click(screen.getByLabelText("item_type"));
+    await user.click(await screen.findByRole("button", { name: "types.video" }));
+    const fileInput = document.querySelector('input[type="file"]');
+    await user.upload(fileInput!, new File(["video"], "lesson.mp4", { type: "video/mp4" }));
+    await user.click(screen.getByRole("button", { name: "save" }));
+
+    expect(await screen.findAllByText("file_unsupported_container")).toHaveLength(2);
+    expect(screen.queryByText("unsupported_container")).not.toBeInTheDocument();
+  });
+
+  it("opens an existing content item in the edit form", async () => {
+    const user = userEvent.setup();
+    vi.mocked(listLessonContent).mockResolvedValue([contentItem]);
+
+    render(
+      <LearningContentPanel
+        curriculumId="curriculum-1"
+        unitId="unit-1"
+        lessonId="lesson-1"
+        isReadOnly={false}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("Read this lesson")).toBeInTheDocument();
+    await user.click(await screen.findByText("Introduction"));
+
+    expect(screen.getByLabelText(/item_title/)).toHaveValue("Introduction");
+    expect(screen.getByDisplayValue("Read this lesson")).toBeInTheDocument();
+  });
+
+  it("does not open the edit form for published or archived content", async () => {
+    const user = userEvent.setup();
+    vi.mocked(listLessonContent).mockResolvedValue([
+      { ...contentItem, id: "published", title: "Published", publicationStatus: "published" },
+      { ...contentItem, id: "archived", title: "Archived", publicationStatus: "archived" },
+    ]);
+
+    render(
+      <LearningContentPanel
+        curriculumId="curriculum-1"
+        unitId="unit-1"
+        lessonId="lesson-1"
+        isReadOnly={false}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await user.click(await screen.findByText("Published"));
+    await user.click(screen.getByText("Archived"));
+
+    expect(screen.queryByLabelText(/item_title/)).not.toBeInTheDocument();
   });
 
   it("waits for modal confirmation before deleting lesson content", async () => {
@@ -313,6 +396,7 @@ describe("LearningContentPanel", () => {
     );
 
     expect(await screen.findByText("worksheet_101.pdf")).toBeInTheDocument();
+    expect(screen.getByLabelText("worksheet_101.pdf")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "actions_menu" }));
     expect(await screen.findByRole("menuitem", { name: "preview" })).toBeInTheDocument();

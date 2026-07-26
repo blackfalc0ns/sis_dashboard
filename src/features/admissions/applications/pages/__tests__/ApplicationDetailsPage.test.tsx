@@ -123,11 +123,14 @@ vi.mock("@/features/admissions/applications/hooks/useApplicationRelatedData", ()
   useApplicationRelatedData: () => ({
     handoff: null,
     guardians: [],
-    gradeLabel: "Grade 1",
     isLoadingHandoff: false,
     handoffError: null,
     reloadHandoff: vi.fn(),
   }),
+}));
+
+vi.mock("@/features/admissions/applications/hooks/useAdmissionsGradeLabels", () => ({
+  useAdmissionsGradeLabels: () => new Map([["grade-1", "Grade 1"]]),
 }));
 
 vi.mock(

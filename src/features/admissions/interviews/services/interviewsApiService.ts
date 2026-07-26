@@ -4,8 +4,9 @@ import {
   buildQueryString,
   normalizeInterview,
   toIsoFromDateAndTime,
-  unwrapArrayResponse,
+  unwrapPaginatedResponse,
   unwrapItemResponse,
+  type PaginatedAdmissionsResult,
 } from "@/features/admissions/shared/services/admissionsApiUtils";
 
 const INTERVIEWS_ENDPOINT = "/admissions/interviews";
@@ -52,11 +53,15 @@ const toCreateBody = (payload: CreateInterviewPayload) => {
 
 export async function fetchInterviews(
   params: FetchInterviewsParams = {},
-): Promise<Interview[]> {
+): Promise<PaginatedAdmissionsResult<Interview>> {
   const response = await apiGet<unknown>(
     `${INTERVIEWS_ENDPOINT}${buildQueryString(params)}`,
   );
-  return unwrapArrayResponse(response, "interviews").map(normalizeInterview);
+  const paginatedInterviews = unwrapPaginatedResponse(response, "interviews");
+  return {
+    items: paginatedInterviews.items.map(normalizeInterview),
+    pagination: paginatedInterviews.pagination,
+  };
 }
 
 export async function fetchInterviewById(id: string): Promise<Interview> {

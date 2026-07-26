@@ -83,7 +83,7 @@ const translations: Record<string, string> = {
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
-  useTranslations: () => (key: string, values?: any) => {
+  useTranslations: () => (key: string, values?: Record<string, unknown>) => {
     let text = translations[key] || key;
     if (values) {
       Object.entries(values).forEach(([k, v]) => {

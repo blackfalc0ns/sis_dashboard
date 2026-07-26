@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import TopNavNotificationDropdown from "../TopNavNotificationDropdown";
 import { getNotificationMuted, setNotificationMuted } from "@/features/communication/hooks/useNotificationSound";
 import { getMessage } from "@/features/communication/api/communication.service";
+import type { NotificationStatus } from "@/features/communication/types/notification.types";
 
 // Mock next/navigation
 const mockPush = vi.fn();
@@ -664,7 +665,7 @@ describe("TopNavNotificationDropdown", () => {
     it("renders both Read and Archived status badges next to the title when notification is read and archived", () => {
       const archivedNotification = {
         ...mockNotifications[0],
-        status: "archived" as any,
+        status: "archived" as const,
         readAt: "2026-06-27T20:00:00.000Z",
       };
 
@@ -680,7 +681,7 @@ describe("TopNavNotificationDropdown", () => {
           labels={{
             read: "Read",
             archived: "Archived",
-          } as any}
+          }}
         />
       );
 
@@ -697,7 +698,7 @@ describe("TopNavNotificationDropdown", () => {
     it("renders a neutral badge showing the unknown status text formatted when an unknown status is passed", () => {
       const snoozedNotification = {
         ...mockNotifications[0],
-        status: "snoozed_again" as any,
+        status: "snoozed_again" as unknown as NotificationStatus,
         readAt: "2026-06-27T20:00:00.000Z",
       };
 

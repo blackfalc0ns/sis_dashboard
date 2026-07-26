@@ -144,7 +144,7 @@ describe("ReinforcementReviewDetailsDrawer", () => {
     const reviewWithFallback: ReinforcementReviewItem = {
       ...mockReview,
       student: {
-        name: undefined as any,
+        name: undefined,
         nameEn: "Fallback NameEn",
         code: "STD123",
       },

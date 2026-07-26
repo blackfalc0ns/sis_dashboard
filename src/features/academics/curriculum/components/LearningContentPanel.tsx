@@ -13,7 +13,10 @@ import {
 import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
-import FilePreviewModal, { type PreviewAttachment } from "@/components/ui/file-preview-modal";
+import FilePreviewModal, {
+  FilePreviewThumbnail,
+  type PreviewAttachment,
+} from "@/components/ui/file-preview-modal";
 import Input from "@/components/ui/input/Input";
 import TextArea from "@/components/ui/input/TextArea";
 import Select from "@/components/ui/input/Select";
@@ -27,22 +30,25 @@ import {
   unpublishLessonContent,
   updateLessonContent,
   type LessonContentItem,
-  type LessonContentType,
 } from "@/features/academics/curriculum/services/curriculumService";
 import {
   curriculumFormErrors,
   curriculumUiError,
 } from "@/features/academics/curriculum/services/curriculumErrors";
 import { usePermissions } from "@/hooks/usePermissions";
+import { isApiError } from "@/lib/api-error";
 import { downloadFile, uploadLearningMedia } from "../services/filesService";
 import {
   buildContentPayload,
   LEARNING_CONTENT_FILE_ACCEPT,
+  LEARNING_CONTENT_VIDEO_ACCEPT,
   isFileUploadDisabled,
   learningContentTypeOptions,
   resolveLessonContentFileId,
   validateLearningContentFile,
+  validateLearningContentVideo,
   type ContentForm,
+  type LearningContentFormType,
 } from "./learningContentFile";
 import LearningContentActionsMenu, {
   type LearningContentAction,
@@ -95,12 +101,29 @@ function formatFileSize(sizeBytes: number | string) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function isVideoFileContent(item: LessonContentItem) {
+  return item.type === "FILE" && item.file?.mimeType.startsWith("video/");
+}
+
+function isUnsupportedMediaContainerError(error: unknown) {
+  if (
+    !isApiError(error)
+    || error.code !== "learning.media.verification_failed"
+    || !error.details
+    || typeof error.details !== "object"
+  ) {
+    return false;
+  }
+
+  return "reasonCode" in error.details
+    && error.details.reasonCode === "unsupported_container";
+}
+
 export default function LearningContentPanel({
   curriculumId,
   unitId,
   lessonId,
   isReadOnly,
-  onClose,
 }: LearningContentPanelProps) {
   const t = useTranslations("academics.curriculum.learningContent");
   const { hasPermission } = usePermissions();
@@ -108,6 +131,7 @@ export default function LearningContentPanel({
 
   const [items, setItems] = useState<LessonContentItem[]>([]);
   const [form, setForm] = useState<ContentForm>(() => createEmptyContentForm());
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -152,6 +176,7 @@ export default function LearningContentPanel({
 
   const resetFormToCreate = useCallback(() => {
     setForm(createEmptyContentForm());
+    setIsFormOpen(false);
     setSelectedFile(undefined);
     setExistingFileId(null);
     setExistingFileName(null);
@@ -164,6 +189,11 @@ export default function LearningContentPanel({
     setUploadProgress(null);
     setIsUploadRetryAvailable(false);
   }, [setPendingArchiveItem, setPendingDeleteItem]);
+
+  const openCreateForm = () => {
+    resetFormToCreate();
+    setIsFormOpen(true);
+  };
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -195,14 +225,19 @@ export default function LearningContentPanel({
   const selectLearningContentFile = (file: File | undefined) => {
     setSelectedFile(file);
     setIsUploadRetryAvailable(false);
-    const validation = validateLearningContentFile(file, existingFileId);
+    const validation = form.type === "VIDEO"
+      ? validateLearningContentVideo(file, existingFileId)
+      : validateLearningContentFile(file, existingFileId);
     setError(validation ? t(`file_${validation}`) : null);
     setFieldErrors((current) => ({ ...current, fileId: undefined }));
   };
 
   const handleSave = async () => {
-    const fileValidation = form.type === "FILE"
-      ? validateLearningContentFile(selectedFile, existingFileId)
+    const isUploadContent = form.type === "FILE" || form.type === "VIDEO";
+    const fileValidation = isUploadContent
+      ? form.type === "VIDEO"
+        ? validateLearningContentVideo(selectedFile, existingFileId)
+        : validateLearningContentFile(selectedFile, existingFileId)
       : null;
     if (
       isReadOnly ||
@@ -210,7 +245,7 @@ export default function LearningContentPanel({
       (form.type === "TEXT" && !form.bodyText.trim()) ||
       ((form.type === "VIDEO_LINK" || form.type === "EXTERNAL_LINK") &&
         !isValidHttpUrl(form.url.trim())) ||
-      (form.type === "FILE" && !canUploadFiles)
+      (isUploadContent && !canUploadFiles)
     ) {
       return;
     }
@@ -225,7 +260,7 @@ export default function LearningContentPanel({
     setIsUploadRetryAvailable(false);
     setUploadProgress(null);
     try {
-      const fileId = form.type === "FILE"
+      const fileId = isUploadContent
         ? await resolveLessonContentFileId(
           selectedFile,
           existingFileId,
@@ -254,10 +289,22 @@ export default function LearningContentPanel({
     } catch (saveError) {
       const mapped = curriculumUiError(saveError, t("save_failed"));
       const projected = curriculumFormErrors(mapped, contentFields);
-      setError(mapped.message);
-      setFieldErrors(projected.fieldErrors);
-      setFormMessages(projected.formMessages);
-      setIsUploadRetryAvailable(form.type === "FILE" && Boolean(selectedFile));
+      const unsupportedContainer = isUnsupportedMediaContainerError(saveError);
+      const message = unsupportedContainer
+        ? t("file_unsupported_container")
+        : mapped.message;
+      setError(message);
+      setFieldErrors(
+        unsupportedContainer
+          ? { ...projected.fieldErrors, fileId: message }
+          : projected.fieldErrors,
+      );
+      setFormMessages(
+        unsupportedContainer
+          ? projected.formMessages.filter((detail) => detail !== "unsupported_container")
+          : projected.formMessages,
+      );
+      setIsUploadRetryAvailable(isUploadContent && Boolean(selectedFile));
     } finally {
       setSaving(false);
       setUploadStage(null);
@@ -323,6 +370,7 @@ export default function LearningContentPanel({
   };
 
   const startEditing = (item: LessonContentItem) => {
+    if (item.publicationStatus !== "draft") return;
     setError(null);
     setFieldErrors({});
     setFormMessages([]);
@@ -331,13 +379,14 @@ export default function LearningContentPanel({
     setExistingFileName(item.file?.filename || null);
     setForm({
       id: item.id,
-      type: item.type,
+      type: isVideoFileContent(item) ? "VIDEO" : item.type,
       title: item.title,
       bodyText: item.bodyText || "",
       url: item.url || "",
       estimatedMinutes: item.estimatedMinutes?.toString() || "",
       isRequired: item.isRequired,
     });
+    setIsFormOpen(true);
   };
 
   const runContentAction = (
@@ -462,6 +511,7 @@ export default function LearningContentPanel({
             </div>
           )}
           
+          {isFormOpen && (
           <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex items-start gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-primary">
@@ -486,10 +536,16 @@ export default function LearningContentPanel({
             <Select
                 label={t("item_type")}
                 value={form.type}
-                options={learningContentTypeOptions(canUploadFiles)}
+                options={learningContentTypeOptions(canUploadFiles, {
+                  TEXT: t("types.text"),
+                  FILE: t("types.file"),
+                  VIDEO: t("types.video"),
+                  VIDEO_LINK: t("types.video_link"),
+                  EXTERNAL_LINK: t("types.external_link"),
+                })}
                 helperText={!canUploadFiles ? t("file_permission_tooltip") : undefined}
                 onChange={(value) => {
-                  const type = value as LessonContentType;
+                  const type = value as LearningContentFormType;
                   setSelectedFile(undefined);
                   setExistingFileId(null);
                   setExistingFileName(null);
@@ -518,7 +574,7 @@ export default function LearningContentPanel({
                 rows={5}
               />
             )}
-            {form.type === "FILE" && (
+            {(form.type === "FILE" || form.type === "VIDEO") && (
               <div className="space-y-3">
                 {existingFileName && (
                   <p className="text-sm text-gray-600">{t("current_file", { name: existingFileName })}</p>
@@ -526,12 +582,12 @@ export default function LearningContentPanel({
                 <DragDropUploadArea
                   title={t("dropzone_title")}
                   subtitle={t("dropzone_subtitle")}
-                  accept={LEARNING_CONTENT_FILE_ACCEPT}
+                  accept={form.type === "VIDEO" ? LEARNING_CONTENT_VIDEO_ACCEPT : LEARNING_CONTENT_FILE_ACCEPT}
                   multiple={false}
                   disabled={isFileUploadDisabled(isReadOnly, canUploadFiles) || saving}
                   isUploading={saving && uploadStage !== null}
                   onFilesSelected={(files) => selectLearningContentFile(files[0])}
-                  helperText={t("file_help")}
+                  helperText={form.type === "VIDEO" ? t("video_file_help") : t("file_help")}
                   buttonLabel={t("choose_file")}
                 />
                 {selectedFile && (
@@ -587,25 +643,23 @@ export default function LearningContentPanel({
 
             <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
               {form.id && (
-                <>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={resetFormToCreate}
-                    disabled={saving || isReadOnly}
-                  >
-                    {t("create_new")}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={resetFormToCreate}
-                    disabled={saving || isReadOnly}
-                  >
-                    {t("cancel")}
-                  </Button>
-                </>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={openCreateForm}
+                  disabled={saving || isReadOnly}
+                >
+                  {t("create_new")}
+                </Button>
               )}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={resetFormToCreate}
+                disabled={saving}
+              >
+                {t("cancel")}
+              </Button>
               <Button
                 variant="primary"
                 size="sm"
@@ -617,7 +671,7 @@ export default function LearningContentPanel({
                   (form.type === "TEXT" && !form.bodyText.trim()) ||
                   ((form.type === "VIDEO_LINK" || form.type === "EXTERNAL_LINK") &&
                     !isValidHttpUrl(form.url.trim())) ||
-                  (form.type === "FILE" && !canUploadFiles)
+                  ((form.type === "FILE" || form.type === "VIDEO") && !canUploadFiles)
                 }
                 leftIcon={<FilePlus2 className="h-4 w-4" />}
               >
@@ -626,6 +680,7 @@ export default function LearningContentPanel({
             </div>
             </div>
           </section>
+          )}
 
           <section className="space-y-3">
             <div className="flex items-end justify-between gap-3 px-1">
@@ -633,9 +688,21 @@ export default function LearningContentPanel({
                 <h3 className="font-semibold text-slate-900">{t("content_items")}</h3>
                 <p className="mt-0.5 text-sm text-slate-600">{t("content_list_hint")}</p>
               </div>
-              <span className="rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700">
-                {t("items_count", { count: items.length })}
-              </span>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                  {t("items_count", { count: items.length })}
+                </span>
+                {!isReadOnly && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={openCreateForm}
+                    leftIcon={<FilePlus2 className="h-4 w-4" />}
+                  >
+                    {t("create_new")}
+                  </Button>
+                )}
+              </div>
             </div>
             {loading ? (
               <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
@@ -651,8 +718,19 @@ export default function LearningContentPanel({
                 <p className="mt-1 text-sm text-slate-600">{t("empty_hint")}</p>
               </div>
             ) : (
-              items.map((item, index) => (
-                <article key={item.id} className="group flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors duration-200 hover:border-indigo-200 hover:bg-indigo-50/20">
+              items.map((item, index) => {
+                const isEditable = item.publicationStatus === "draft";
+
+                return (
+                <article
+                  key={item.id}
+                  onClick={() => startEditing(item)}
+                  className={`group flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors duration-200 ${
+                    isEditable
+                      ? "cursor-pointer hover:border-indigo-200 hover:bg-indigo-50/20"
+                      : "cursor-default"
+                  }`}
+                >
                   <div className="flex-1 min-w-0">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
@@ -677,9 +755,16 @@ export default function LearningContentPanel({
                       </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
-                      <span className="font-medium text-slate-500">{item.type}</span>
+                      <span className="font-medium text-slate-500">
+                        {isVideoFileContent(item) ? t("types.video") : t(`types.${item.type.toLowerCase()}`)}
+                      </span>
                       {item.estimatedMinutes && <span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />{t("minutes", { count: item.estimatedMinutes })}</span>}
                     </div>
+                    {item.type === "TEXT" && item.bodyText && (
+                      <p className="mt-2 line-clamp-2 text-sm leading-5 text-slate-600">
+                        {item.bodyText}
+                      </p>
+                    )}
                     {item.publicationStatus !== "draft" && (
                       <p className="mt-2 text-xs text-gray-600">
                         {t(
@@ -690,23 +775,39 @@ export default function LearningContentPanel({
                       </p>
                     )}
                     {item.type === "FILE" && item.file && (
-                      <div className="mt-2 text-xs text-gray-600">
+                      <div className="mt-3">
                         <button
                           type="button"
-                          onClick={() => handlePreview(item)}
-                          className="font-medium text-primary hover:underline text-left cursor-pointer flex items-center gap-1"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handlePreview(item);
+                          }}
+                          className="group flex w-full max-w-md items-center gap-3 rounded-xl border border-sky-100 bg-sky-50/60 p-2.5 text-left transition-colors duration-200 hover:border-sky-200 hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                         >
-                          <Eye className="h-3.5 w-3.5 shrink-0" />
-                          <span>{item.file.filename || item.title}</span>
+                          <FilePreviewThumbnail
+                            alt={item.file.filename || item.title}
+                            fileId={item.file.fileId}
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-medium text-slate-800">
+                              {item.file.filename || item.title}
+                            </span>
+                            <span className="mt-0.5 block text-xs text-slate-600">
+                              {item.file.mimeType} • {formatFileSize(item.file.sizeBytes)}
+                            </span>
+                          </span>
+                          <Eye className="h-4 w-4 shrink-0 text-primary transition-transform duration-200 group-hover:scale-110" aria-hidden="true" />
                         </button>
-                        <div>{item.file.mimeType} · {formatFileSize(item.file.sizeBytes)}</div>
                       </div>
                     )}
                     {(item.type === "VIDEO_LINK" || item.type === "EXTERNAL_LINK") && item.url && (
                       <div className="mt-2 text-xs text-gray-600">
                         <button
                           type="button"
-                          onClick={() => handlePreview(item)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handlePreview(item);
+                          }}
                           className="font-medium text-primary hover:underline text-left cursor-pointer flex items-center gap-1"
                         >
                           <Eye className="h-3.5 w-3.5 shrink-0" />
@@ -715,27 +816,30 @@ export default function LearningContentPanel({
                       </div>
                     )}
                   </div>
-                  <LearningContentActionsMenu
-                    contentItem={item}
-                    index={index}
-                    totalItems={items.length}
-                    isReadOnly={isReadOnly}
-                    labels={{
-                      menu: t("actions_menu"),
-                      download: t("download"),
-                      preview: t("preview"),
-                      moveUp: t("move_up"),
-                      moveDown: t("move_down"),
-                      edit: t("edit"),
-                      delete: t("delete"),
-                      publish: t("publish"),
-                      unpublish: t("unpublish"),
-                      archive: t("archive"),
-                    }}
-                    onAction={(action) => runContentAction(item, index, action)}
-                  />
+                  <div onClick={(event) => event.stopPropagation()}>
+                    <LearningContentActionsMenu
+                      contentItem={item}
+                      index={index}
+                      totalItems={items.length}
+                      isReadOnly={isReadOnly}
+                      labels={{
+                        menu: t("actions_menu"),
+                        download: t("download"),
+                        preview: t("preview"),
+                        moveUp: t("move_up"),
+                        moveDown: t("move_down"),
+                        edit: t("edit"),
+                        delete: t("delete"),
+                        publish: t("publish"),
+                        unpublish: t("unpublish"),
+                        archive: t("archive"),
+                      }}
+                      onAction={(action) => runContentAction(item, index, action)}
+                    />
+                  </div>
                 </article>
-              ))
+                );
+              })
             )}
           </section>
         </div>

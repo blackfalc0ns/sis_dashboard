@@ -1,6 +1,6 @@
 // Utility functions for filtering students
 
-import type { Student } from "@/features/students-guardians/students/types";
+import type { StudentWithEnrollment } from "@/features/students-guardians/students/utils/studentsListFilters";
 
 export type DateRangeValue = "7" | "30" | "60" | "90" | "all" | "custom";
 
@@ -13,12 +13,12 @@ export interface StudentFilterValues {
 }
 
 export function filterStudents(
-  students: Student[],
+  students: StudentWithEnrollment[],
   filterValues: StudentFilterValues
-): Student[] {
+): StudentWithEnrollment[] {
   return students.filter((student) => {
-    const academicYear = (student as any).enrollment?.academicYear;
-    const term = (student as any).currentTerm?.term;
+    const academicYear = student.enrollment?.academicYear;
+    const term = student.currentTerm?.term;
 
     // Apply academic year filter
     if (

@@ -5,6 +5,7 @@ import { Download, Eye, FileText, Plus, Trash2, Upload } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { useAuth } from "@/hooks/use-auth";
 import { Application, Document } from "@/features/admissions/types/admissions";
 import StatusBadge from "../../../shared/StatusBadge";
 import DocumentViewerModal from "../modals/DocumentViewerModal";
@@ -17,35 +18,12 @@ import {
   createApplicationDocument,
   deleteApplicationDocument,
 } from "@/features/admissions/applications/services/applicationDocumentsApiService";
-import { fetchAdmissionsDocumentRequirements } from "@/features/settings/services/settingsService";
-import type { AdmissionsRequiredDocumentConfig } from "@/features/settings/types";
+import { useAdmissionDocumentRequirements } from "@/features/admissions/applications/hooks/useAdmissionDocumentRequirements";
 import { isApiError } from "@/lib/api-error";
 import { useToast } from "@/components/ui/toast/Toast";
 import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
 import { usePermissions } from "@/hooks/usePermissions";
 import { downloadFileBlob } from "@/services/filesService";
-
-const DOCUMENT_TYPES = [
-  "Birth Certificate",
-  "Passport Copy",
-  "Medical Report",
-  "Previous School Certificate",
-  "National ID",
-  "Vaccination Record",
-  "Report Card",
-  "Transfer Certificate",
-];
-
-const DOCUMENT_TYPE_LABEL_KEYS: Record<string, string> = {
-  "Birth Certificate": "documents.types.birth_certificate",
-  "Passport Copy": "documents.types.passport_copy",
-  "Medical Report": "documents.types.medical_report",
-  "Previous School Certificate": "documents.types.previous_school_certificate",
-  "National ID": "documents.types.national_id",
-  "Vaccination Record": "documents.types.vaccination_record",
-  "Report Card": "documents.types.report_card",
-  "Transfer Certificate": "documents.types.transfer_certificate",
-};
 
 interface DocumentsTabProps {
   application: Application;
@@ -121,15 +99,30 @@ export default function DocumentsTab({
   initialDocuments,
 }: DocumentsTabProps) {
   const t = useTranslations("admissions.application360");
+  const tCommon = useTranslations("common");
   const translateRef = useRef(t);
   useEffect(() => {
     translateRef.current = t;
   }, [t]);
   const locale = useLocale();
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const schoolId = user?.activeMembership?.schoolId ?? "";
   const { hasPermission } = usePermissions();
   const canViewDocuments = hasPermission("admissions.documents.view");
   const canManageDocuments = hasPermission("admissions.documents.manage");
+  const canUploadFiles = hasPermission("files.uploads.manage");
+  const documentRequirementsState = useAdmissionDocumentRequirements({
+    enabled: canManageDocuments,
+    schoolId,
+    loadErrorMessage: t("documents.errors.load_failed"),
+  });
+  const {
+    requirements: documentRequirements,
+    isLoading: isLoadingRequirements,
+    error: requirementsError,
+    reload: reloadDocumentRequirements,
+  } = documentRequirementsState;
   const [documents, setDocuments] = useState<Document[]>(
     initialDocuments ?? application.documents,
   );
@@ -144,10 +137,6 @@ export default function DocumentsTab({
   } | null>(null);
   const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
   const [selectedType, setSelectedType] = useState("");
-  const [customType, setCustomType] = useState("");
-  const [documentRequirements, setDocumentRequirements] = useState<
-    AdmissionsRequiredDocumentConfig[]
-  >([]);
   const [reviewingDocumentId, setReviewingDocumentId] = useState<string | null>(
     null,
   );
@@ -159,58 +148,41 @@ export default function DocumentsTab({
   const [downloadingDocumentId, setDownloadingDocumentId] = useState<string | null>(null);
   const viewerUrlRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const latestDocumentsRequestId = useRef(0);
 
   const isEditable =
     canManageDocuments &&
     ["documents_pending", "submitted", "under_review"].includes(application.status);
 
   const loadDocuments = useCallback(async () => {
-    if (!canViewDocuments) return;
+    const requestId = ++latestDocumentsRequestId.current;
+    if (!canViewDocuments) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
       const nextDocuments = await fetchApplicationDocuments(application.id);
+      if (requestId !== latestDocumentsRequestId.current) return;
       setDocuments(nextDocuments);
     } catch (loadError) {
+      if (requestId !== latestDocumentsRequestId.current) return;
       console.error("Failed to load application documents:", loadError);
       setError(documentLoadErrorMessage(loadError, translateRef.current));
     } finally {
-      setIsLoading(false);
+      if (requestId === latestDocumentsRequestId.current) {
+        setIsLoading(false);
+      }
     }
   }, [application.id, canViewDocuments]);
 
   useEffect(() => {
     void Promise.resolve().then(loadDocuments);
-  }, [loadDocuments]);
-
-  useEffect(() => {
-    if (!canManageDocuments) return;
-    let isMounted = true;
-
-    async function loadDocumentRequirements() {
-      try {
-        const requirements = await fetchAdmissionsDocumentRequirements();
-        if (isMounted) {
-          setDocumentRequirements(
-            requirements
-              .filter((requirement) => requirement.active)
-              .sort((first, second) => first.sortOrder - second.sortOrder),
-          );
-        }
-      } catch (requirementsError) {
-        console.error("Failed to load admissions document requirements:", requirementsError);
-        if (isMounted) {
-          setDocumentRequirements([]);
-        }
-      }
-    }
-
-    void loadDocumentRequirements();
-
     return () => {
-      isMounted = false;
+      latestDocumentsRequestId.current += 1;
     };
-  }, [canManageDocuments]);
+  }, [loadDocuments]);
 
   useEffect(() => {
     return () => {
@@ -267,13 +239,20 @@ export default function DocumentsTab({
       showToast(t("documents.errors.manage_permission"), "error");
       return;
     }
+    if (!canUploadFiles) {
+      showToast(t("documents.errors.manage_permission"), "error");
+      return;
+    }
+    if (isLoadingRequirements || requirementsError) {
+      showToast(requirementsError || t("documents.loading"), "error");
+      return;
+    }
     setSelectedType("");
-    setCustomType("");
     setIsTypeModalOpen(true);
   };
 
   const handleTypeConfirm = () => {
-    const docType = selectedType === "__custom__" ? customType.trim() : selectedType;
+    const docType = selectedType;
     if (!docType) {
       showToast(t("documents.errors.select_type"), "error");
       return;
@@ -283,7 +262,7 @@ export default function DocumentsTab({
   };
 
   const getResolvedType = () => {
-    return selectedType === "__custom__" ? customType.trim() : selectedType;
+    return selectedType;
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -291,17 +270,19 @@ export default function DocumentsTab({
       showToast(t("documents.errors.manage_permission"), "error");
       return;
     }
+    if (!canUploadFiles) {
+      showToast(t("documents.errors.manage_permission"), "error");
+      return;
+    }
 
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const allowedTypes = [
-      "application/pdf",
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-    ];
-    if (!allowedTypes.includes(file.type)) {
+    const selectedRequirement = documentRequirements.find(
+      (requirement) => requirement.title === getResolvedType(),
+    );
+    const allowedTypes = selectedRequirement?.acceptedFileTypes ?? [];
+    if (allowedTypes.length > 0 && !allowedTypes.includes(file.type)) {
       showToast(t("documents.errors.file_type"), "error");
       return;
     }
@@ -477,18 +458,22 @@ export default function DocumentsTab({
     return doc.labelEn || doc.type;
   };
 
-  const usedTypes = new Set(documents.map((d) => d.type));
-  const configuredTypeOptions = documentRequirements.map((requirement) => ({
-    value: requirement.nameEn,
-    label: locale === "ar" ? requirement.nameAr || requirement.nameEn : requirement.nameEn,
-  }));
-  const documentTypeOptions =
-      configuredTypeOptions.length > 0
-      ? configuredTypeOptions
-      : DOCUMENT_TYPES.map((type) => ({
-          value: type,
-          label: t(DOCUMENT_TYPE_LABEL_KEYS[type]),
-        }));
+  const typeCounts = documents.reduce((counts, document) => {
+    counts.set(document.type, (counts.get(document.type) ?? 0) + 1);
+    return counts;
+  }, new Map<string, number>());
+  const documentTypeOptions = documentRequirements
+    .slice()
+    .sort((first, second) => first.sortOrder - second.sortOrder)
+    .map((requirement) => ({
+      value: requirement.title,
+      label: requirement.title,
+      isAtLimit:
+        (typeCounts.get(requirement.title) ?? 0) >= requirement.maxFiles,
+    }));
+  const selectedRequirement = documentRequirements.find(
+    (requirement) => requirement.title === selectedType,
+  );
 
   if (!canViewDocuments) {
     return <AdmissionsAccessDenied />;
@@ -501,11 +486,15 @@ export default function DocumentsTab({
           <h3 className="font-semibold text-gray-900">
             {t("documents.title")}
           </h3>
-          {isEditable && (
+          {isEditable && canUploadFiles && (
             <Button
               size="sm"
               onClick={handleAddClick}
-              disabled={isUploading}
+              disabled={
+                isUploading ||
+                isLoadingRequirements ||
+                Boolean(requirementsError)
+              }
               className="flex items-center gap-2"
             >
               {isUploading ? (
@@ -521,7 +510,11 @@ export default function DocumentsTab({
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.jpg,.jpeg,.png"
+          accept={
+            selectedRequirement?.acceptedFileTypes.length
+              ? selectedRequirement.acceptedFileTypes.join(",")
+              : undefined
+          }
           className="hidden"
           onChange={handleFileChange}
         />
@@ -530,6 +523,20 @@ export default function DocumentsTab({
           <p className="text-sm text-gray-500">{t("documents.loading")}</p>
         ) : null}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {canManageDocuments && requirementsError ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            <p>{requirementsError}</p>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="mt-2 text-red-800"
+              onClick={() => void reloadDocumentRequirements()}
+            >
+              {tCommon("retry")}
+            </Button>
+          </div>
+        ) : null}
 
         {documents.length === 0 && !isLoading ? (
           <div className="rounded-lg border-2 border-dashed border-gray-200 p-8 text-center">
@@ -537,7 +544,7 @@ export default function DocumentsTab({
             <p className="text-sm text-gray-500">
               {t("documents.empty")}
             </p>
-            {isEditable && (
+            {isEditable && canUploadFiles && !requirementsError && (
               <Button
                 size="sm"
                 variant="outline"
@@ -582,7 +589,7 @@ export default function DocumentsTab({
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   <StatusBadge status={doc.status} />
-                  {isEditable && (doc.canReview ?? doc.status === "pending_review") && (
+                  {isEditable && doc.canReview === true && (
                     <div className="flex flex-wrap items-center justify-end gap-2">
                       <Button
                         size="sm"
@@ -671,10 +678,7 @@ export default function DocumentsTab({
             </Button>
             <Button
               onClick={handleTypeConfirm}
-              disabled={
-                !selectedType ||
-                (selectedType === "__custom__" && !customType.trim())
-              }
+              disabled={!selectedType}
             >
               {t("documents.choose_file")}
             </Button>
@@ -690,7 +694,7 @@ export default function DocumentsTab({
                   selectedType === type.value
                     ? "border-primary bg-primary/5"
                     : "border-gray-200 hover:border-gray-300"
-                } ${usedTypes.has(type.value) ? "opacity-50" : ""}`}
+                } ${type.isAtLimit ? "opacity-50" : ""}`}
               >
                 <input
                   type="radio"
@@ -698,47 +702,18 @@ export default function DocumentsTab({
                   value={type.value}
                   checked={selectedType === type.value}
                   onChange={() => setSelectedType(type.value)}
+                  disabled={type.isAtLimit}
                   className="text-primary focus:ring-primary"
                 />
                 <span className="text-sm text-gray-900">{type.label}</span>
-                {usedTypes.has(type.value) && (
+                {type.isAtLimit && (
                   <span className="ml-auto text-xs text-gray-400">
                     {t("documents.already_uploaded")}
                   </span>
                 )}
               </label>
             ))}
-            <label
-              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                selectedType === "__custom__"
-                  ? "border-primary bg-primary/5"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              <input
-                type="radio"
-                name="documentType"
-                value="__custom__"
-                checked={selectedType === "__custom__"}
-                onChange={() => setSelectedType("__custom__")}
-                className="text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-gray-900">
-                {t("documents.other_type")}
-              </span>
-            </label>
           </div>
-
-          {selectedType === "__custom__" && (
-            <input
-              type="text"
-              value={customType}
-              onChange={(e) => setCustomType(e.target.value)}
-              placeholder={t("documents.enter_type")}
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-              autoFocus
-            />
-          )}
         </div>
       </Modal>
 

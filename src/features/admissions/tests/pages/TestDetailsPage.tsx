@@ -19,8 +19,6 @@ import {
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import TestScoreModal from "@/features/admissions/tests/components/TestScoreModal";
 import ScheduleTestModal from "@/features/admissions/tests/components/ScheduleTestModal";
-import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
-import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { Button, EmptyState } from "@/components/ui";
 import {
@@ -30,6 +28,8 @@ import {
 } from "@/features/admissions/tests/services/testsApiService";
 import type { Test } from "@/features/admissions/types/admissions";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
+import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
 
 interface TestDetailsPageProps {
   testId: string;
@@ -39,8 +39,10 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
   const t = useTranslations("admissions.tests");
   const locale = useLocale();
   const router = useRouter();
-  const { isReadOnly } = useAdmissionsYearTermContext();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canViewTests = hasPermission("admissions.tests.view");
+  const canManageTests = hasPermission("admissions.tests.manage");
 
   const [test, setTest] = useState<Test | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,6 +50,10 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
 
   const loadTest = useCallback(async () => {
+    if (!canViewTests) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       const data = await fetchPlacementTestById(testId);
@@ -59,11 +65,15 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [testId]);
+  }, [canViewTests, testId]);
 
   useEffect(() => {
     void Promise.resolve().then(loadTest);
   }, [loadTest]);
+
+  if (!canViewTests) {
+    return <AdmissionsAccessDenied />;
+  }
 
   if (isLoading) {
     return <MainLoader />;
@@ -90,7 +100,6 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
   const studentName = test.studentName || "";
 
   const handleAddScore = () => {
-    if (isReadOnly) return;
     setIsScoreModalOpen(true);
   };
 
@@ -111,7 +120,6 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
   };
 
   const handleReschedule = () => {
-    if (isReadOnly) return;
     setIsRescheduleModalOpen(true);
   };
 
@@ -187,7 +195,6 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
         </div>
 
         {/* Test Details */}
-        {isReadOnly && <AdmissionsReadOnlyBanner />}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <h2 className="text-lg font-bold text-gray-900 mb-6">
             {t("details.test_information")}
@@ -297,11 +304,10 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
             <h2 className="text-lg font-bold text-gray-900">
               {t("details.score_notes")}
             </h2>
-            {test.status !== "cancelled" && (
+            {canManageTests && test.status !== "cancelled" && (
               <Button
                 type="button"
                 onClick={handleAddScore}
-                disabled={isReadOnly}
                 size="sm"
                 leftIcon={<Edit className="w-4 h-4" />}
               >
@@ -363,18 +369,19 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
         {/* Action Bar */}
         <div className="bg-white rounded-xl shadow-sm p-6 sticky bottom-4">
           <div className="flex items-center gap-3 flex-wrap">
-            {(test.status === "scheduled" || test.status === "rescheduled") && (
+            {canManageTests &&
+              (test.status === "scheduled" || test.status === "rescheduled") && (
               <Button
                 type="button"
                 onClick={handleReschedule}
-                disabled={isReadOnly}
                 variant="secondary"
                 size="sm"
               >
                 {t("actions.reschedule")}
               </Button>
             )}
-            {(test.status === "scheduled" ||
+            {canManageTests &&
+              (test.status === "scheduled" ||
               test.status === "rescheduled" ||
               test.status === "completed" ||
               test.status === "failed") &&
@@ -382,7 +389,6 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
                 <Button
                   type="button"
                   onClick={handleAddScore}
-                  disabled={isReadOnly}
                   size="sm"
                 >
                   {t("actions.add_score")}
@@ -405,7 +411,7 @@ export default function TestDetailsPage({ testId }: TestDetailsPageProps) {
       </div>
 
       {/* Score Modal */}
-      {test && (
+      {test && canManageTests && (
         <TestScoreModal
           test={{
             ...test,

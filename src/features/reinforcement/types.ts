@@ -778,6 +778,54 @@ export interface ReviewReinforcementSubmissionPayload {
   noteAr?: string;
 }
 
+export interface ReinforcementReviewTask {
+  id?: string;
+  titleEn?: string | null;
+  titleAr?: string | null;
+  source?: string | null;
+  status?: string | null;
+  dueDate?: string | null;
+  [key: string]: unknown;
+}
+
+export interface ReinforcementReviewStage {
+  id?: string;
+  titleEn?: string | null;
+  titleAr?: string | null;
+  proofType?: string | null;
+  requiresApproval?: boolean;
+  [key: string]: unknown;
+}
+
+export interface ReinforcementReviewStudent {
+  id?: string;
+  name?: string | null;
+  nameEn?: string | null;
+  nameAr?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  code?: string | null;
+  admissionNo?: string | null;
+  [key: string]: unknown;
+}
+
+export interface ReinforcementReviewProof {
+  proofText?: string | null;
+  proofFileId?: string | null;
+  [key: string]: unknown;
+}
+
+export interface ReinforcementReviewHistoryEntry {
+  id?: string;
+  status?: ReinforcementReviewStatus;
+  outcome?: ReinforcementReviewStatus;
+  note?: string | null;
+  noteAr?: string | null;
+  reviewerName?: string | null;
+  reviewedAt?: string | null;
+  [key: string]: unknown;
+}
+
 export interface ReinforcementReviewItem {
   id: string;
   assignmentId: string;
@@ -786,15 +834,15 @@ export interface ReinforcementReviewItem {
   studentId: string;
   enrollmentId: string;
   status: ReinforcementReviewStatus;
-  submittedAt?: string;
-  reviewedAt?: string;
-  task: Record<string, unknown>;
-  stage: Record<string, unknown>;
-  student: Record<string, unknown>;
+  submittedAt?: string | null;
+  reviewedAt?: string | null;
+  task: ReinforcementReviewTask;
+  stage: ReinforcementReviewStage;
+  student: ReinforcementReviewStudent;
   assignment: Record<string, unknown>;
-  proof: Record<string, unknown>;
-  currentReview?: Record<string, unknown>;
-  reviewHistory?: Array<Record<string, unknown>>;
+  proof: ReinforcementReviewProof;
+  currentReview?: Record<string, unknown> | null;
+  reviewHistory?: ReinforcementReviewHistoryEntry[];
   createdAt?: string;
   updatedAt?: string;
   [key: string]: unknown;

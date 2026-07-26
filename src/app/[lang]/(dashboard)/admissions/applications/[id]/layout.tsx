@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -19,8 +19,6 @@ import DecisionModal from "@/features/admissions/decisions/components/DecisionMo
 import ApplicationRegistrationWizard from "@/features/admissions/applications/components/registration/ApplicationRegistrationWizard";
 import { useSectionTabs } from "@/hooks/useSectionTabs";
 import { buildLocalePath } from "@/lib/routing/localePath";
-import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
-import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -35,7 +33,7 @@ import {
 } from "@/features/admissions/applications/services/applicationsApiService";
 import { createPlacementTest } from "@/features/admissions/tests/services/testsApiService";
 import { createInterview } from "@/features/admissions/interviews/services/interviewsApiService";
-import { useApplicationRelatedData } from "@/features/admissions/applications/hooks/useApplicationRelatedData";
+import { useAdmissionsGradeLabels } from "@/features/admissions/applications/hooks/useAdmissionsGradeLabels";
 import {
   getApplicationActionBlockers,
   getDecisionActionState,
@@ -65,11 +63,14 @@ export default function ApplicationProfileLayout({
   const params = useParams();
   const lang = (params.lang as string) || "en";
   const { showToast } = useToast();
-  const { isReadOnly } = useAdmissionsYearTermContext();
   const { hasPermission, hasAllPermissions } = usePermissions();
   const canViewApplications = hasPermission("admissions.applications.view");
   const canViewDocuments = hasPermission("admissions.documents.view");
+  const canViewTests = hasPermission("admissions.tests.view");
+  const canViewInterviews = hasPermission("admissions.interviews.view");
   const canManageApplications = hasPermission("admissions.applications.manage");
+  const canManageTests = hasPermission("admissions.tests.manage");
+  const canManageInterviews = hasPermission("admissions.interviews.manage");
   const canManageDecisions = hasPermission("admissions.decisions.manage");
   const canRegisterApplication = hasAllPermissions([
     "admissions.applications.manage",
@@ -77,9 +78,12 @@ export default function ApplicationProfileLayout({
     "students.guardians.manage",
     "students.enrollments.manage",
   ]);
-  const visibleTabs = canViewDocuments
-    ? tabs
-    : tabs.filter((tab) => tab.key !== "documents");
+  const visibleTabs = tabs.filter((tab) => {
+    if (tab.key === "documents") return canViewDocuments;
+    if (tab.key === "tests") return canViewTests;
+    if (tab.key === "interviews") return canViewInterviews;
+    return true;
+  });
 
   const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false);
   const [isScheduleInterviewOpen, setIsScheduleInterviewOpen] = useState(false);
@@ -127,11 +131,14 @@ export default function ApplicationProfileLayout({
     setApplication(await fetchApplicationById(applicationId));
   };
 
-  const relatedData = useApplicationRelatedData(
-    applicationId,
-    application?.requestedGradeId,
+  const gradeReferences = useMemo(
+    () => (application ? [application] : []),
+    [application],
   );
-  const displayGrade = relatedData.gradeLabel;
+  const gradeLabels = useAdmissionsGradeLabels(gradeReferences, locale);
+  const displayGrade = application?.requestedGradeId
+    ? gradeLabels.get(application.requestedGradeId)
+    : null;
 
   if (!canViewApplications) {
     return (
@@ -189,7 +196,6 @@ export default function ApplicationProfileLayout({
   const actionBlockers = getApplicationActionBlockers(application);
   const registrationAction = getRegistrationActionState(application, {
     canRegisterApplication,
-    isReadOnly,
     permissionRequiredMessage: t("registration.permission_required"),
   });
   const finalDecisionMessage =
@@ -259,8 +265,6 @@ export default function ApplicationProfileLayout({
         {/* Content */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">{children}</div>
 
-        {isReadOnly && <AdmissionsReadOnlyBanner />}
-
         {/* Sticky Action Bar */}
         <div className="bg-white rounded-xl shadow-sm p-6 sticky bottom-4">
           {application.registrationState?.registered ? (
@@ -287,7 +291,7 @@ export default function ApplicationProfileLayout({
               <div className="flex items-center gap-3 flex-wrap">
                 {application.status === "documents_pending" && (
                   <button
-                    disabled={isReadOnly || !canManageApplications}
+                    disabled={!canManageApplications}
                     onClick={async () => {
                       try {
                         await submitApplication(application.id);
@@ -302,27 +306,28 @@ export default function ApplicationProfileLayout({
                     {t("actions.submit_application")}
                   </button>
                 )}
-                {canManageApplications && canScheduleAdmissionsStep && (
+                {canScheduleAdmissionsStep && (
                   <>
+                    {canManageTests && (
                     <button
-                      disabled={isReadOnly}
                       onClick={() => setIsScheduleTestOpen(true)}
                       className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {t("actions.schedule_test")}
                     </button>
+                    )}
+                    {canManageInterviews && (
                     <button
-                      disabled={isReadOnly}
                       onClick={() => setIsScheduleInterviewOpen(true)}
                       className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {t("actions.schedule_interview")}
                     </button>
+                    )}
                   </>
                 )}
                 {canManageDecisions && canMakeDecision && (
                   <button
-                    disabled={isReadOnly}
                     onClick={() => setIsDecisionOpen(true)}
                     className="px-4 py-2 bg-[#036b80] hover:bg-[#024d5c] text-white rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   >

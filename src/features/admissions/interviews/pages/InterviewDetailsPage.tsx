@@ -17,8 +17,6 @@ import {
 } from "lucide-react";
 import StatusBadge from "@/features/admissions/shared/StatusBadge";
 import InterviewRatingModal from "@/features/admissions/interviews/components/InterviewRatingModal";
-import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
-import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { Button, EmptyState } from "@/components/ui";
 import {
@@ -28,6 +26,8 @@ import {
 } from "@/features/admissions/interviews/services/interviewsApiService";
 import type { Interview } from "@/features/admissions/types/admissions";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
+import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
 
 interface InterviewDetailsPageProps {
   interviewId: string;
@@ -39,14 +39,20 @@ export default function InterviewDetailsPage({
   const t = useTranslations("admissions.interviews");
   const locale = useLocale();
   const router = useRouter();
-  const { isReadOnly } = useAdmissionsYearTermContext();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canViewInterviews = hasPermission("admissions.interviews.view");
+  const canManageInterviews = hasPermission("admissions.interviews.manage");
 
   const [interview, setInterview] = useState<Interview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
 
   const loadInterview = useCallback(async () => {
+    if (!canViewInterviews) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       const data = await fetchInterviewById(interviewId);
@@ -57,11 +63,15 @@ export default function InterviewDetailsPage({
     } finally {
       setIsLoading(false);
     }
-  }, [interviewId]);
+  }, [canViewInterviews, interviewId]);
 
   useEffect(() => {
     void Promise.resolve().then(loadInterview);
   }, [loadInterview]);
+
+  if (!canViewInterviews) {
+    return <AdmissionsAccessDenied />;
+  }
 
   if (isLoading) {
     return <MainLoader />;
@@ -88,7 +98,6 @@ export default function InterviewDetailsPage({
   const studentName = interview.studentName || "";
 
   const handleComplete = () => {
-    if (isReadOnly) return;
     setIsRatingModalOpen(true);
   };
 
@@ -111,7 +120,6 @@ export default function InterviewDetailsPage({
   };
 
   const handleReschedule = async () => {
-    if (isReadOnly) return;
     // For now, just update status to rescheduled
     try {
       await updateInterview(interviewId, { status: "rescheduled" });
@@ -172,7 +180,6 @@ export default function InterviewDetailsPage({
         </div>
 
         {/* Interview Details */}
-        {isReadOnly && <AdmissionsReadOnlyBanner />}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <h2 className="text-lg font-bold text-gray-900 mb-6">
             {t("details.interview_information")}
@@ -270,11 +277,12 @@ export default function InterviewDetailsPage({
             <h2 className="text-lg font-bold text-gray-900">
               {t("details.notes")}
             </h2>
-            {interview.status !== "cancelled" && interview.status !== "completed" && (
+            {canManageInterviews &&
+              interview.status !== "cancelled" &&
+              interview.status !== "completed" && (
               <Button
                 type="button"
                 onClick={handleComplete}
-                disabled={isReadOnly}
                 size="sm"
                 leftIcon={<Edit className="w-4 h-4" />}
               >
@@ -304,12 +312,13 @@ export default function InterviewDetailsPage({
         {/* Action Bar */}
         <div className="bg-white rounded-xl shadow-sm p-6 sticky bottom-4">
           <div className="flex items-center gap-3 flex-wrap">
-            {(interview.status === "scheduled" || interview.status === "rescheduled") && (
+            {canManageInterviews &&
+              (interview.status === "scheduled" ||
+                interview.status === "rescheduled") && (
               <>
                 <Button
                   type="button"
                   onClick={handleReschedule}
-                  disabled={isReadOnly}
                   variant="secondary"
                   size="sm"
                 >
@@ -318,7 +327,6 @@ export default function InterviewDetailsPage({
                 <Button
                   type="button"
                   onClick={handleComplete}
-                  disabled={isReadOnly}
                   size="sm"
                 >
                   {t("complete")}
@@ -342,7 +350,7 @@ export default function InterviewDetailsPage({
       </div>
 
       {/* Rating/Complete Modal */}
-      {interview && (
+      {interview && canManageInterviews && (
         <InterviewRatingModal
           isOpen={isRatingModalOpen}
           onClose={() => setIsRatingModalOpen(false)}

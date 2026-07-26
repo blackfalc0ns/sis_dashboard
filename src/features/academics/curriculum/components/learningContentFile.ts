@@ -7,6 +7,7 @@ export const MAX_LEARNING_CONTENT_NON_VIDEO_FILE_SIZE = 10 * 1024 * 1024;
 export const MAX_LEARNING_CONTENT_VIDEO_FILE_SIZE = 200 * 1024 * 1024;
 export const LEARNING_CONTENT_FILE_ACCEPT =
   ".pdf,.txt,.jpg,.jpeg,.png,.mp3,.m4a,.webm,.mp4";
+export const LEARNING_CONTENT_VIDEO_ACCEPT = ".webm,.mp4";
 export const ALLOWED_LEARNING_CONTENT_MIME_TYPES = new Set([
   "application/pdf",
   "image/jpeg",
@@ -20,13 +21,23 @@ export const ALLOWED_LEARNING_CONTENT_MIME_TYPES = new Set([
 ]);
 
 export type FileValidationError = "required" | "size" | "mime";
+export type LearningContentFormType = LessonContentType | "VIDEO";
 
-export function learningContentTypeOptions(canUploadFiles: boolean) {
+export type LearningContentTypeLabels = Record<
+  LearningContentFormType,
+  string
+>;
+
+export function learningContentTypeOptions(
+  canUploadFiles: boolean,
+  labels: LearningContentTypeLabels,
+) {
   return [
-    { value: "TEXT", label: "TEXT" },
-    { value: "FILE", label: "FILE", disabled: !canUploadFiles },
-    { value: "VIDEO_LINK", label: "VIDEO_LINK" },
-    { value: "EXTERNAL_LINK", label: "EXTERNAL_LINK" },
+    { value: "TEXT", label: labels.TEXT },
+    { value: "FILE", label: labels.FILE, disabled: !canUploadFiles },
+    { value: "VIDEO", label: labels.VIDEO, disabled: !canUploadFiles },
+    { value: "VIDEO_LINK", label: labels.VIDEO_LINK },
+    { value: "EXTERNAL_LINK", label: labels.EXTERNAL_LINK },
   ];
 }
 
@@ -52,7 +63,7 @@ export async function resolveLessonContentFileId(
 
 export type ContentForm = {
   id?: string;
-  type: LessonContentType;
+  type: LearningContentFormType;
   title: string;
   bodyText: string;
   url: string;
@@ -74,6 +85,15 @@ export function validateLearningContentFile(
   return null;
 }
 
+export function validateLearningContentVideo(
+  file: File | undefined,
+  existingFileId: string | null,
+): FileValidationError | null {
+  const validation = validateLearningContentFile(file, existingFileId);
+  if (validation || !file) return validation;
+  return file.type.startsWith("video/") ? null : "mime";
+}
+
 export function buildContentPayload(
   form: ContentForm,
   fileId?: string | null,
@@ -90,8 +110,8 @@ export function buildContentPayload(
   if (form.type === "TEXT") {
     return { ...common, type: "TEXT", bodyText: form.bodyText.trim(), url: null };
   }
-  if (form.type === "FILE") {
-    if (!fileId) throw new Error("FILE content requires a backend fileId.");
+  if (form.type === "FILE" || form.type === "VIDEO") {
+    if (!fileId) throw new Error("File content requires a backend fileId.");
     return { ...common, type: "FILE", bodyText: null, fileId };
   }
   return { ...common, type: form.type, bodyText: null, url: form.url.trim() };

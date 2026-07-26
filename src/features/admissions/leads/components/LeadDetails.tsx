@@ -12,7 +12,6 @@ import {
   Mail,
   Calendar,
   Tag,
-  MessageCircle,
   ArrowRight,
   Edit,
 } from "lucide-react";
@@ -20,8 +19,6 @@ import MainLoader from "@/components/ui/loaders/MainLoader";
 import LeadStatusBadge from "@/features/admissions/leads/components/LeadStatusBadge";
 import CreateLeadModal from "@/features/admissions/leads/components/CreateLeadModal";
 import ApplicationCreateStepper from "@/features/admissions/applications/components/ApplicationCreateStepper";
-import LeadChatPanel from "@/features/admissions/leads/components/LeadChatPanel";
-import TabNavigation from "@/features/admissions/shared/TabNavigation";
 import { Button } from "@/components/ui";
 import {
   fetchLeadById,
@@ -35,8 +32,10 @@ import {
   mapLeadChannelToApplicationSource,
   type ApplicationCreationPayload,
 } from "@/features/admissions/applications/services/applicationCreationService";
-import { createApplication } from "@/features/admissions/applications/services/applicationsApiService";
+import { createApplicationIntake } from "@/features/admissions/applications/services/applicationIntakeService";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
+import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
 
 interface LeadDetailsProps {
   leadId: string;
@@ -48,14 +47,25 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
   const t_leads = useTranslations("admissions.leads");
   const locale = useLocale();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canViewLeads = hasPermission("admissions.leads.view");
+  const canManageLeads = hasPermission("admissions.leads.manage");
+  const canManageApplications = hasPermission("admissions.applications.manage");
   const [lead, setLead] = useState<Lead | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [unreadCount] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreateApplicationOpen, setIsCreateApplicationOpen] = useState(false);
+  const [creationRecovery, setCreationRecovery] = useState<{
+    applicationId: string;
+    failedDocuments: string[];
+    conversionFailed: boolean;
+  } | null>(null);
 
   const loadLead = useCallback(async () => {
+    if (!canViewLeads) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       const foundLead = await fetchLeadById(leadId);
@@ -67,11 +77,15 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [leadId, router, locale, showToast]);
+  }, [canViewLeads, leadId, router, locale, showToast]);
 
   useEffect(() => {
     void Promise.resolve().then(loadLead);
   }, [loadLead]);
+
+  if (!canViewLeads) {
+    return <AdmissionsAccessDenied />;
+  }
 
   if (isLoading || !lead) {
     return <MainLoader />;
@@ -87,15 +101,39 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
     data: ApplicationCreationPayload,
   ) => {
     try {
-      const createdApplication = await createApplication({
+      const intakeOutcome = await createApplicationIntake({
         ...data,
         leadId: lead.id,
         source: mapLeadChannelToApplicationSource(lead.channel),
       });
-      await updateLead(lead.id, { status: "Converted" });
-      showToast(t("marked_converted"), "success");
       setIsCreateApplicationOpen(false);
-      router.push(`/${locale}/admissions/applications/${createdApplication.id}`);
+
+      if (intakeOutcome.failedDocumentLabels.length > 0) {
+        setCreationRecovery({
+          applicationId: intakeOutcome.application.id,
+          failedDocuments: intakeOutcome.failedDocumentLabels,
+          conversionFailed: false,
+        });
+        return;
+      }
+
+      try {
+        await updateLead(lead.id, { status: "Converted" });
+      } catch (conversionError) {
+        console.error("Failed to convert lead after application creation:", conversionError);
+        setCreationRecovery({
+          applicationId: intakeOutcome.application.id,
+          failedDocuments: [],
+          conversionFailed: true,
+        });
+        return;
+      }
+
+      setCreationRecovery(null);
+      showToast(t("marked_converted"), "success");
+      router.push(
+        `/${locale}/admissions/applications/${intakeOutcome.application.id}`,
+      );
     } catch (err) {
       console.error("Failed to create application from lead:", err);
       showToast(t("mark_converted_failed"), "error");
@@ -115,23 +153,8 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
     }
   };
 
-  const tabs = [
-    {
-      id: "chat",
-      label: t("messages"),
-      icon: <MessageCircle className="w-4 h-4" />,
-      badge: unreadCount,
-    },
-    {
-      id: "overview",
-      label: t("overview"),
-      icon: <User className="w-4 h-4" />,
-    },
-  ];
-
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-4 mb-4">
         <Button
           type="button"
@@ -154,14 +177,34 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
         <LeadStatusBadge status={lead.status} size="md" />
       </div>
 
-      {/* Tabs */}
+      {creationRecovery && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-semibold">{t_leads("partial_creation.title")}</p>
+          <p className="mt-1">
+            {creationRecovery.conversionFailed
+              ? t_leads("partial_creation.conversion_failed")
+              : t_leads("partial_creation.documents_failed", {
+                  documents: creationRecovery.failedDocuments.join(", "),
+                })}
+          </p>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="mt-3"
+            onClick={() =>
+              router.push(
+                `/${locale}/admissions/applications/${creationRecovery.applicationId}/documents`,
+              )
+            }
+          >
+            {t_leads("partial_creation.open_documents")}
+          </Button>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-sm">
-        <div className="px-6 pt-4 flex items-center justify-between">
-          <TabNavigation
-            tabs={tabs}
-            activeTab={activeTab}
-            onChange={setActiveTab}
-          />
+        {canManageLeads && <div className="px-6 pt-4 flex items-center justify-end">
           <div className="flex items-center gap-3 flex-wrap">
             <Button
               type="button"
@@ -172,21 +215,21 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
             >
               {t_leads("edit")}
             </Button>
-            <Button
-              type="button"
-              onClick={handleConvertToApplication}
-              size="sm"
-            >
-              {t("mark_converted")}
-            </Button>
+            {canManageApplications && (
+              <Button
+                type="button"
+                onClick={handleConvertToApplication}
+                size="sm"
+              >
+                {t("mark_converted")}
+              </Button>
+            )}
           </div>
-        </div>
+        </div>}
 
         <div className="px-6 py-6">
-          {activeTab === "overview" && (
-            <div className="space-y-6">
-              {/* Guardian/Parent Contact Information */}
-              <div className="bg-linear-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
+              <section className="h-full rounded-lg border border-purple-200 bg-linear-to-br from-purple-50 to-purple-100 p-4">
                 <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                   <User className="w-4 h-4 text-purple-600" />
                   {t("guardian_parent_contact")}
@@ -219,10 +262,9 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
                     </div>
                   )}
                 </div>
-              </div>
+              </section>
 
-              {/* Lead Details */}
-              <div className="bg-gray-50 rounded-lg p-4">
+              <section className="h-full rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                   <Tag className="w-4 h-4" />
                   {t("lead_details")}
@@ -253,7 +295,7 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
                   {lead.studentName && (
                     <div>
                       <p className="text-xs text-gray-500">
-                        Student Name
+                        {t_leads("student_name")}
                       </p>
                       <p className="text-sm font-medium text-gray-900">
                         {lead.studentName}
@@ -265,7 +307,7 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
                       <Calendar className="w-3 h-3" /> {t("created")}
                     </p>
                     <p className="text-sm font-medium text-gray-900">
-                      {new Date(lead.createdAt).toLocaleDateString("en-US", {
+                      {new Date(lead.createdAt).toLocaleDateString(locale, {
                         year: "numeric",
                         month: "short",
                         day: "numeric",
@@ -273,35 +315,24 @@ export default function LeadDetails({ leadId }: LeadDetailsProps) {
                     </p>
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "chat" && (
-            <LeadChatPanel
-              leadId={lead.id}
-              leadName={displayName}
-              leadPhone={lead.phone}
-              leadEmail={lead.email || ""}
-              onMessagesRead={() => {}}
-            />
-          )}
+              </section>
+          </div>
         </div>
       </div>
 
-      <CreateLeadModal
+      {canManageLeads && <CreateLeadModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSubmit={handleUpdateLead}
         initialLead={lead}
         mode="update"
-      />
-      <ApplicationCreateStepper
+      />}
+      {canManageLeads && canManageApplications && <ApplicationCreateStepper
         lead={lead}
         isOpen={isCreateApplicationOpen}
         onClose={() => setIsCreateApplicationOpen(false)}
         onSubmit={handleCreateApplicationFromLead}
-      />
+      />}
     </div>
   );
 }

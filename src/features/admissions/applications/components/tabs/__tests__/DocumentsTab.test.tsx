@@ -63,7 +63,7 @@ const serviceMocks = vi.hoisted(() => ({
 }));
 
 const settingsMocks = vi.hoisted(() => ({
-  fetchAdmissionsDocumentRequirements: vi.fn(),
+  fetchAdmissionRequiredDocumentsForSchool: vi.fn(),
 }));
 
 const toastMocks = vi.hoisted(() => ({
@@ -87,6 +87,12 @@ vi.mock(
 
 vi.mock("@/features/settings/services/settingsService", () => settingsMocks);
 
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({
+    user: { activeMembership: { schoolId: "school-1" } },
+  }),
+}));
+
 vi.mock("@/components/ui/toast/Toast", () => ({
   useToast: () => ({
     showToast: toastMocks.showToast,
@@ -107,6 +113,7 @@ const applicationDocuments: Document[] = [
     name: "passport.pdf",
     labelEn: "Pending document",
     status: "pending_review",
+    canReview: true,
     fileId: "file-pending",
     fileType: "pdf",
   },
@@ -171,11 +178,14 @@ function renderDocumentsTabWithDocuments(documents: Document[]) {
 describe("DocumentsTab review actions", () => {
   beforeEach(() => {
     Object.values(serviceMocks).forEach((mock) => mock.mockReset());
-    settingsMocks.fetchAdmissionsDocumentRequirements.mockReset().mockResolvedValue([]);
+    settingsMocks.fetchAdmissionRequiredDocumentsForSchool
+      .mockReset()
+      .mockResolvedValue([]);
     toastMocks.showToast.mockReset();
     permissionMocks.permissions = new Set([
       "admissions.documents.view",
       "admissions.documents.manage",
+      "files.uploads.manage",
     ]);
     fileServiceMocks.downloadFileBlob.mockReset();
     vi.stubGlobal("URL", {
@@ -428,9 +438,14 @@ describe("DocumentsTab review actions", () => {
 
   it("uses configured admissions document requirements as upload type choices", async () => {
     const user = userEvent.setup();
-    settingsMocks.fetchAdmissionsDocumentRequirements.mockResolvedValue([
+    settingsMocks.fetchAdmissionRequiredDocumentsForSchool.mockResolvedValue([
       {
         id: "birth-certificate",
+        title: "Configured Birth Certificate",
+        description: "",
+        isMandatory: true,
+        acceptedFileTypes: ["application/pdf"],
+        maxFiles: 1,
         nameEn: "Configured Birth Certificate",
         nameAr: "شهادة ميلاد",
         required: true,
@@ -439,6 +454,11 @@ describe("DocumentsTab review actions", () => {
       },
       {
         id: "inactive-passport",
+        title: "Inactive Passport",
+        description: "",
+        isMandatory: false,
+        acceptedFileTypes: [],
+        maxFiles: 1,
         nameEn: "Inactive Passport",
         nameAr: "جواز سفر",
         required: false,
@@ -451,8 +471,11 @@ describe("DocumentsTab review actions", () => {
     await user.click(await screen.findByRole("button", { name: "documents.add" }));
 
     expect(screen.getByText("Configured Birth Certificate")).toBeInTheDocument();
-    expect(screen.queryByText("Inactive Passport")).not.toBeInTheDocument();
+    expect(screen.getByText("Inactive Passport")).toBeInTheDocument();
     expect(screen.queryByText("Passport Copy")).not.toBeInTheDocument();
+    expect(
+      settingsMocks.fetchAdmissionRequiredDocumentsForSchool,
+    ).toHaveBeenCalledWith("school-1");
   });
 
   it("revalidates empty initial documents from the Admissions API on entry", async () => {

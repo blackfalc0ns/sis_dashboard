@@ -10,6 +10,7 @@ import DatePicker from "@/components/ui/input/DatePicker";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useBehaviorYearTermContext } from "../../shared/hooks/useBehaviorYearTermContext";
 import { fetchAllStudents } from "@/features/students-guardians/students/services/studentsService";
+import { isApiError } from "@/lib/api-error";
 import {
   listBehaviorCategories,
   createBehaviorCategory,
@@ -185,13 +186,7 @@ function CategoryModal({
       }
       onSuccess();
     } catch (error) {
-      const errObj = error as Record<string, any>;
-      const errorCode =
-        errObj?.code ||
-        errObj?.response?.data?.code ||
-        errObj?.response?.data?.error?.code;
-
-      if (errorCode === "behavior.category.in_use") {
+      if (isApiError(error) && error.code === "behavior.category.in_use") {
         showError(t("errors.categoryInUse"));
       } else {
         showError(behaviorUiError(error, t("messages.loadError"), t).message);
@@ -278,7 +273,16 @@ function RecordModal({
   const minDate = currentTerm?.startDate ? new Date(currentTerm.startDate) : undefined;
   const maxDate = currentTerm?.endDate ? new Date(currentTerm.endDate) : undefined;
 
-  const [form, setForm] = useState(() => ({
+  const [form, setForm] = useState<{
+    studentId: string;
+    enrollmentId: string;
+    categoryId: string;
+    titleEn: string;
+    titleAr: string;
+    noteEn: string;
+    noteAr: string;
+    occurredAt: Date | null;
+  }>(() => ({
     studentId: record?.studentId ?? "",
     enrollmentId: record?.enrollmentId ?? "",
     categoryId: record?.categoryId ?? "",
@@ -460,7 +464,7 @@ function RecordModal({
           <DatePicker
             label={t("record.occurredAt")}
             value={form.occurredAt}
-            onChange={(d) => set("occurredAt", d as any)}
+            onChange={(date) => set("occurredAt", date)}
             minDate={minDate}
             maxDate={maxDate}
           />

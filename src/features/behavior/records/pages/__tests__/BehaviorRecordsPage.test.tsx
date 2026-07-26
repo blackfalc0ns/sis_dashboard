@@ -5,6 +5,8 @@ import {
   listBehaviorRecords,
 } from "@/features/behavior/services/behaviorApiService";
 import type { BehaviorRecordListResponse } from "@/features/behavior/types";
+import type { DatePickerProps } from "@/components/ui/input/DatePicker";
+import type { SelectProps } from "@/components/ui/input/Select";
 
 // Mock next-intl
 const tCache = new Map<string, (key: string) => string>();
@@ -35,14 +37,16 @@ vi.mock("next/navigation", () => ({
 // Mock DatePicker
 vi.mock("@/components/ui/input/DatePicker", () => ({
   __esModule: true,
-  default: ({ label, value, onChange }: any) => (
+  default: ({ label, value, onChange }: DatePickerProps) => (
     <div>
       <label htmlFor={label}>{label}</label>
       <input
         id={label}
         type="date"
         value={value ? new Date(value).toISOString().split('T')[0] : ""}
-        onChange={(e) => onChange(e.target.value ? new Date(e.target.value) : null)}
+        onChange={(e) =>
+          onChange?.(e.target.value ? new Date(e.target.value) : null)
+        }
       />
     </div>
   ),
@@ -51,15 +55,15 @@ vi.mock("@/components/ui/input/DatePicker", () => ({
 // Mock Select
 vi.mock("@/components/ui/input/Select", () => ({
   __esModule: true,
-  default: ({ label, value, onChange, options }: any) => (
+  default: ({ label, value, onChange, options = [] }: SelectProps) => (
     <div>
       <label htmlFor={label}>{label}</label>
       <select
         id={label}
         value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange?.(e.target.value)}
       >
-        {options.map((opt: any) => (
+        {options.map((opt) => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>

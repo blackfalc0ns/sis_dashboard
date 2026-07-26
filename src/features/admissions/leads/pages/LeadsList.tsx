@@ -37,45 +37,44 @@ import {
   mapLeadChannelToApplicationSource,
   type ApplicationCreationPayload,
 } from "@/features/admissions/applications/services/applicationCreationService";
-import { createApplication } from "@/features/admissions/applications/services/applicationsApiService";
-import {
-  uploadAdmissionsFile,
-  createApplicationDocument,
-} from "@/features/admissions/applications/services/applicationDocumentsApiService";
+import { createApplicationIntake } from "@/features/admissions/applications/services/applicationIntakeService";
 import { Lead, LeadStatus, LeadChannel } from "@/features/admissions";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
-import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
-import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
 import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
+import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
 
 export default function LeadsList() {
   const router = useRouter();
   const t = useTranslations("admissions.leads");
   const locale = useLocale();
-  const {
-    yearId,
-    termId,
-    isReadOnly,
-    isLoading: contextLoading,
-    error,
-  } = useAdmissionsYearTermContext();
   const { showToast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canViewLeads = hasPermission("admissions.leads.view");
+  const canManageLeads = hasPermission("admissions.leads.manage");
+  const canManageApplications = hasPermission("admissions.applications.manage");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [applicationLead, setApplicationLead] = useState<Lead | null>(null);
+  const [creationRecovery, setCreationRecovery] = useState<{
+    applicationId: string;
+    failedDocuments: string[];
+    conversionFailed: boolean;
+  } | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const [showFilters, setShowFilters] = useState(false);
-  void yearId;
-  void termId;
-
   // Load leads from API
   const loadLeads = useCallback(async () => {
+    if (!canViewLeads) {
+      setIsDataLoading(false);
+      return;
+    }
     setIsDataLoading(true);
     try {
       const data = await fetchLeads();
@@ -86,7 +85,7 @@ export default function LeadsList() {
     } finally {
       setIsDataLoading(false);
     }
-  }, [showToast]);
+  }, [canViewLeads, showToast]);
 
   useEffect(() => {
     void Promise.resolve().then(loadLeads);
@@ -310,33 +309,42 @@ export default function LeadsList() {
     if (!applicationLead) return;
 
     try {
-      const createdApplication = await createApplication({
+      const intakeOutcome = await createApplicationIntake({
         ...data,
         leadId: applicationLead.id,
-        requestedAcademicYearId: yearId || undefined,
         source: mapLeadChannelToApplicationSource(applicationLead.channel),
       });
+      setApplicationLead(null);
 
-      // Upload documents and link them to the application
-      const uploadedDocs = data.documents.filter((doc) => doc.uploaded && doc.file);
-      for (const doc of uploadedDocs) {
-        try {
-          const fileId = await uploadAdmissionsFile(doc.file!);
-          await createApplicationDocument(createdApplication.id, {
-            fileId,
-            documentType: doc.labelEn,
-            status: "complete",
-          });
-        } catch (docError) {
-          console.error(`Failed to upload document ${doc.labelEn}:`, docError);
-        }
+      if (intakeOutcome.failedDocumentLabels.length > 0) {
+        setCreationRecovery({
+          applicationId: intakeOutcome.application.id,
+          failedDocuments: intakeOutcome.failedDocumentLabels,
+          conversionFailed: false,
+        });
+        await loadLeads();
+        return;
       }
 
-      await updateLead(applicationLead.id, { status: "Converted" });
+      try {
+        await updateLead(applicationLead.id, { status: "Converted" });
+      } catch (conversionError) {
+        console.error("Failed to convert lead after application creation:", conversionError);
+        setCreationRecovery({
+          applicationId: intakeOutcome.application.id,
+          failedDocuments: [],
+          conversionFailed: true,
+        });
+        await loadLeads();
+        return;
+      }
+
+      setCreationRecovery(null);
       showToast(t("marked_converted"), "success");
-      setApplicationLead(null);
       await loadLeads();
-      router.push(`/${locale}/admissions/applications/${createdApplication.id}`);
+      router.push(
+        `/${locale}/admissions/applications/${intakeOutcome.application.id}`,
+      );
     } catch (err) {
       console.error("Failed to create application from lead:", err);
       showToast(t("mark_converted_failed"), "error");
@@ -406,12 +414,11 @@ export default function LeadsList() {
       key: "actions",
       label: t("actions"),
       sortable: false,
-      render: (_: unknown, row: Lead) => (
+      render: (_: unknown, row: Lead) => canManageLeads ? (
         <div className="flex items-center gap-2">
           <Button
             type="button"
             onClick={(e) => handleEditLead(row, e)}
-            disabled={isReadOnly}
             variant="secondary"
             size="sm"
             leftIcon={<Edit className="h-3.5 w-3.5" />}
@@ -419,32 +426,27 @@ export default function LeadsList() {
           >
             {t("edit")}
           </Button>
-          <Button
-            type="button"
-            onClick={(e) => handleConvertToApplication(row, e)}
-            disabled={isReadOnly}
-            size="sm"
-            className="px-3 py-1"
-          >
-            {t("mark_converted")}
-          </Button>
+          {canManageApplications && (
+            <Button
+              type="button"
+              onClick={(e) => handleConvertToApplication(row, e)}
+              size="sm"
+              className="px-3 py-1"
+            >
+              {t("mark_converted")}
+            </Button>
+          )}
         </div>
-      ),
+      ) : null,
     },
   ];
 
-  const isLoading = contextLoading || isDataLoading;
-
-  if (isLoading) {
-    return <MainLoader />;
+  if (!canViewLeads) {
+    return <AdmissionsAccessDenied />;
   }
 
-  if (error) {
-    return (
-      <div className="rounded-xl bg-white shadow-sm">
-        <EmptyState message={error} className="text-red-600" />
-      </div>
-    );
+  if (isDataLoading) {
+    return <MainLoader />;
   }
 
   return (
@@ -509,19 +511,42 @@ export default function LeadsList() {
           >
             {t("export")}
           </Button>
-          <Button
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            disabled={isReadOnly}
-            leftIcon={<Plus className="w-4 h-4" />}
-          >
-            {t("new_lead")}
-          </Button>
+          {canManageLeads && (
+            <Button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              leftIcon={<Plus className="w-4 h-4" />}
+            >
+              {t("new_lead")}
+            </Button>
+          )}
         </div>
       </div>
-
-      {isReadOnly && <AdmissionsReadOnlyBanner />}
-
+      {creationRecovery && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-semibold">{t("partial_creation.title")}</p>
+          <p className="mt-1">
+            {creationRecovery.conversionFailed
+              ? t("partial_creation.conversion_failed")
+              : t("partial_creation.documents_failed", {
+                  documents: creationRecovery.failedDocuments.join(", "),
+                })}
+          </p>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="mt-3"
+            onClick={() =>
+              router.push(
+                `/${locale}/admissions/applications/${creationRecovery.applicationId}/documents`,
+              )
+            }
+          >
+            {t("partial_creation.open_documents")}
+          </Button>
+        </div>
+      )}
       {/* Filters */}
       <FilterPanel
         searchSlot={
@@ -634,24 +659,30 @@ export default function LeadsList() {
       )}
 
       {/* Modals */}
-      <CreateLeadModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={handleCreateLead}
-      />
-      <CreateLeadModal
-        isOpen={Boolean(editingLead)}
-        onClose={() => setEditingLead(null)}
-        onSubmit={handleUpdateLead}
-        initialLead={editingLead}
-        mode="update"
-      />
-      <ApplicationCreateStepper
-        lead={applicationLead || undefined}
-        isOpen={Boolean(applicationLead)}
-        onClose={() => setApplicationLead(null)}
-        onSubmit={handleCreateApplicationFromLead}
-      />
+      {canManageLeads && (
+        <>
+          <CreateLeadModal
+            isOpen={isCreateModalOpen}
+            onClose={() => setIsCreateModalOpen(false)}
+            onSubmit={handleCreateLead}
+          />
+          <CreateLeadModal
+            isOpen={Boolean(editingLead)}
+            onClose={() => setEditingLead(null)}
+            onSubmit={handleUpdateLead}
+            initialLead={editingLead}
+            mode="update"
+          />
+        </>
+      )}
+      {canManageLeads && canManageApplications && (
+        <ApplicationCreateStepper
+          lead={applicationLead || undefined}
+          isOpen={Boolean(applicationLead)}
+          onClose={() => setApplicationLead(null)}
+          onSubmit={handleCreateApplicationFromLead}
+        />
+      )}
       <AdmissionsGlobalExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}

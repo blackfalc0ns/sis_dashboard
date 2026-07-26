@@ -179,7 +179,7 @@ export default function ReinforcementReviewDetailPage({
       : (obj[enKey] as string) || (obj[arKey] as string) || "-";
   };
 
-  const formatDate = (dateStr?: string): string => {
+  const formatDate = (dateStr?: string | null): string => {
     if (!dateStr) return "-";
     return new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", {
       dateStyle: "medium",

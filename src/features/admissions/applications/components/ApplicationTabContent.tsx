@@ -34,12 +34,12 @@ export default function ApplicationTabContent({
   const t = useTranslations("admissions.application360");
   const { hasPermission } = usePermissions();
   const canViewApplications = hasPermission("admissions.applications.view");
+  const canManageApplications = hasPermission("admissions.applications.manage");
   const [application, setApplication] = useState<Application | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const needsRegistrationHandoff = tab === "guardians";
+  const needsRegistrationHandoff = tab === "guardians" && canManageApplications;
   const relatedData = useApplicationRelatedData(
     applicationId,
-    application?.requestedGradeId,
     needsRegistrationHandoff,
   );
 
@@ -63,7 +63,10 @@ export default function ApplicationTabContent({
     };
   }, [applicationId, canViewApplications]);
 
-  if (!canViewApplications) {
+  if (
+    !canViewApplications ||
+    (tab === "guardians" && !canManageApplications)
+  ) {
     return <AdmissionsAccessDenied />;
   }
 

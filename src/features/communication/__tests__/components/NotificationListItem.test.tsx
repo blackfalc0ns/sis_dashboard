@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import NotificationListItem from "../../components/notifications/NotificationListItem";
+import type { NotificationStatus } from "../../types/notification.types";
 
 describe("NotificationListItem", () => {
   const onMarkReadMock = vi.fn();
@@ -178,7 +179,7 @@ describe("NotificationListItem", () => {
     it("renders both Read and Archived status badges side-by-side when notification is read and archived", () => {
       const archivedNotification = {
         ...mockNotification,
-        status: "archived" as any,
+        status: "archived" as const,
         readAt: "2026-06-27T20:00:00.000Z",
       };
 
@@ -202,7 +203,7 @@ describe("NotificationListItem", () => {
     it("renders both Read and Archived (fallback) status badges when labels.archived is undefined", () => {
       const archivedNotification = {
         ...mockNotification,
-        status: "archived" as any,
+        status: "archived" as const,
         readAt: "2026-06-27T20:00:00.000Z",
       };
 
@@ -221,7 +222,7 @@ describe("NotificationListItem", () => {
     it("renders a neutral badge with formatted text when an unknown status is passed", () => {
       const snoozedNotification = {
         ...mockNotification,
-        status: "snoozed_again" as any,
+        status: "snoozed_again" as unknown as NotificationStatus,
         readAt: "2026-06-27T20:00:00.000Z",
       };
 

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import {
   Search,
@@ -17,8 +17,6 @@ import { KPICardV2 } from "@/components/ui/kpi-card";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import { Decision, DecisionType } from "@/features/admissions/types/admissions";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
-import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
-import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import AdmissionsGlobalExportModal from "@/features/admissions/shared/components/export/AdmissionsGlobalExportModal";
 import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
 import { formatVisibleDecisionsForExport } from "@/features/admissions/applications/utils/admissionsExportUtils";
@@ -27,11 +25,13 @@ import { useToast } from "@/components/ui/toast/Toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
 import DecisionDetailsDrawer from "@/features/admissions/decisions/components/DecisionDetailsDrawer";
+import type { AdmissionsPagination } from "@/features/admissions/shared/services/admissionsApiUtils";
+
+const DEFAULT_PAGE_SIZE = 20;
 
 export default function DecisionsList() {
   const t = useTranslations("admissions.decisions");
   const locale = useLocale();
-  const { isReadOnly } = useAdmissionsYearTermContext();
   const { showToast } = useToast();
   const { hasPermission } = usePermissions();
   const canViewDecisions = hasPermission("admissions.decisions.view");
@@ -41,6 +41,14 @@ export default function DecisionsList() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedDecisionId, setSelectedDecisionId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [pagination, setPagination] = useState<AdmissionsPagination>({
+    page: 1,
+    limit: DEFAULT_PAGE_SIZE,
+    total: 0,
+  });
+  const latestRequestId = useRef(0);
   const closeDecisionDrawer = useCallback(() => {
     setSelectedDecisionId(null);
   }, []);
@@ -48,30 +56,13 @@ export default function DecisionsList() {
     setSelectedDecisionId(decision.id);
   }, []);
 
-  const loadDecisions = useCallback(async () => {
-    if (!canViewDecisions) {
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const data = await fetchDecisions();
-      setDecisions(data);
-    } catch (err) {
-      console.error("Failed to fetch decisions:", err);
-      showToast("Failed to load decisions", "error");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [canViewDecisions, showToast]);
-
-  useEffect(() => {
-    void Promise.resolve().then(loadDecisions);
-  }, [loadDecisions]);
-
   const normalizeQueryValues = useCallback(
-    (values: Record<"search" | "decision", string>) => {
+    (
+      values: Record<
+        "search" | "decision" | "dateFrom" | "dateTo",
+        string
+      >,
+    ) => {
       const updates: Partial<Record<keyof typeof values, string | null>> = {};
       const validDecisions = new Set(["all", "accept", "waitlist", "reject"]);
 
@@ -87,10 +78,14 @@ export default function DecisionsList() {
   const { values, setValue, reset } = useAdmissionsUrlQueryState<{
     search: string;
     decision: string;
+    dateFrom: string;
+    dateTo: string;
   }>({
     defaults: {
       search: "",
       decision: "all",
+      dateFrom: "",
+      dateTo: "",
     },
     debouncedKeys: ["search"],
     modeByKey: {
@@ -101,28 +96,54 @@ export default function DecisionsList() {
 
   const searchQuery = values.search;
   const decisionFilter = values.decision as DecisionType | "all";
+  const dateFrom = values.dateFrom;
+  const dateTo = values.dateTo;
 
-  // Filter decisions
-  const filteredDecisions = useMemo(() => {
-    return decisions.filter((decision) => {
-      const matchesSearch =
-        searchQuery === "" ||
-        (decision.studentName ?? "")
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        decision.decidedBy.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        decision.reason.toLowerCase().includes(searchQuery.toLowerCase());
+  const loadDecisions = useCallback(async () => {
+    const requestId = ++latestRequestId.current;
+    if (!canViewDecisions) {
+      setIsLoading(false);
+      return;
+    }
 
-      const matchesDecision =
-        decisionFilter === "all" || decision.decision === decisionFilter;
+    setIsLoading(true);
+    try {
+      const decisionsPage = await fetchDecisions({
+        search: searchQuery,
+        decision: decisionFilter === "all" ? undefined : decisionFilter,
+        dateFrom,
+        dateTo,
+        page,
+        limit: pageSize,
+      });
+      if (requestId !== latestRequestId.current) return;
+      setDecisions(decisionsPage.items);
+      setPagination(decisionsPage.pagination);
+    } catch (err) {
+      if (requestId !== latestRequestId.current) return;
+      console.error("Failed to fetch decisions:", err);
+      showToast("Failed to load decisions", "error");
+    } finally {
+      if (requestId === latestRequestId.current) setIsLoading(false);
+    }
+  }, [
+    canViewDecisions,
+    dateFrom,
+    dateTo,
+    decisionFilter,
+    page,
+    pageSize,
+    searchQuery,
+    showToast,
+  ]);
 
-      return matchesSearch && matchesDecision;
-    });
-  }, [decisions, searchQuery, decisionFilter]);
+  useEffect(() => {
+    void Promise.resolve().then(loadDecisions);
+  }, [loadDecisions]);
 
   // Calculate KPIs
   const kpis = useMemo(() => {
-    const total = decisions.length;
+    const total = pagination.total;
     const accepted = decisions.filter((d) => d.decision === "accept").length;
     const waitlisted = decisions.filter((d) => d.decision === "waitlist").length;
     const rejected = decisions.filter((d) => d.decision === "reject").length;
@@ -130,7 +151,7 @@ export default function DecisionsList() {
       total > 0 ? ((accepted / total) * 100).toFixed(1) : "0.0";
 
     return { total, accepted, waitlisted, rejected, acceptanceRate };
-  }, [decisions]);
+  }, [decisions, pagination.total]);
 
   const columns = useMemo(() => [
     {
@@ -175,15 +196,20 @@ export default function DecisionsList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [locale]);
 
-  const hasActiveFilters = searchQuery !== "" || decisionFilter !== "all";
+  const hasActiveFilters =
+    searchQuery !== "" ||
+    decisionFilter !== "all" ||
+    dateFrom !== "" ||
+    dateTo !== "";
 
   const clearFilters = () => {
+    setPage(1);
     reset(undefined, "replace");
   };
 
   const handleExport = async (format: "csv" | "json" | "excel") => {
     const exportLocale = format === "json" ? "en" : locale;
-    const exportData = filteredDecisions.map((d) => ({
+    const exportData = decisions.map((d) => ({
       ...d,
       studentName: d.studentName ?? "",
       grade: "",
@@ -238,7 +264,6 @@ export default function DecisionsList() {
         />
       </div>
 
-      {isReadOnly && <AdmissionsReadOnlyBanner />}
 
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -265,7 +290,10 @@ export default function DecisionsList() {
                 type="text"
                 placeholder={t("search_placeholder")}
                 value={searchQuery}
-                onChange={(e) => setValue("search", e.target.value, "replace")}
+                onChange={(e) => {
+                  setPage(1);
+                  setValue("search", e.target.value, "replace");
+                }}
                 leftIcon={<Search className="w-4 h-4" />}
                 className={searchQuery ? "border-primary ring-2 ring-primary/20" : ""}
               />
@@ -283,17 +311,18 @@ export default function DecisionsList() {
           </div>
         }
         filtersSlot={
-          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <Select
               label={t("decision")}
               value={decisionFilter}
-              onChange={(value) =>
+              onChange={(value) => {
+                setPage(1);
                 setValue(
                   "decision",
                   value as DecisionType | "all",
                   "push",
-                )
-              }
+                );
+              }}
               options={[
                 { value: "all", label: t("all_decisions") },
                 { value: "accept", label: t("accept") },
@@ -301,6 +330,24 @@ export default function DecisionsList() {
                 { value: "reject", label: t("reject") },
               ]}
               className="max-w-xs"
+            />
+            <Input
+              type="date"
+              aria-label={t("date_from")}
+              value={dateFrom}
+              onChange={(event) => {
+                setPage(1);
+                setValue("dateFrom", event.target.value, "push");
+              }}
+            />
+            <Input
+              type="date"
+              aria-label={t("date_to")}
+              value={dateTo}
+              onChange={(event) => {
+                setPage(1);
+                setValue("dateTo", event.target.value, "push");
+              }}
             />
           </div>
         }
@@ -318,7 +365,7 @@ export default function DecisionsList() {
         <div className="bg-white rounded-xl p-12 shadow-sm">
           <PartialLoader />
         </div>
-      ) : filteredDecisions.length === 0 ? (
+      ) : decisions.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm">
           <EmptyState
             message={hasActiveFilters ? t("no_match") : t("no_decisions")}
@@ -336,13 +383,23 @@ export default function DecisionsList() {
       ) : (
         <DataTable
           columns={columns}
-          data={filteredDecisions as (Decision & { [key: string]: unknown })[]}
+          data={decisions as (Decision & { [key: string]: unknown })[]}
           onRowClick={openDecisionDrawer}
           searchQuery={searchQuery}
           urlState={{
             keyPrefix: "decisionsTable",
-            syncPagination: true,
             syncSorting: true,
+          }}
+          serverPagination={{
+            enabled: true,
+            currentPage: pagination.page,
+            pageSize: pagination.limit,
+            totalItems: pagination.total,
+            onPageChange: setPage,
+            onPageSizeChange: (nextPageSize) => {
+              setPage(1);
+              setPageSize(nextPageSize);
+            },
           }}
         />
       )}
@@ -353,7 +410,7 @@ export default function DecisionsList() {
         onExport={({ format }) => handleExport(format)}
         mode="list"
         confirmLabel={t("export")}
-        datasetCount={filteredDecisions.length}
+        datasetCount={decisions.length}
         emptyStateMessage={hasActiveFilters ? t("no_match") : t("no_decisions")}
       />
       <DecisionDetailsDrawer

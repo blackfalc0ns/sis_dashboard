@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
@@ -30,7 +30,9 @@ import ApplicationReadinessPanel from "@/features/admissions/applications/compon
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
 import { useToast } from "@/components/ui/toast/Toast";
 import { usePermissions } from "@/hooks/usePermissions";
+import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
 import { useApplicationRelatedData } from "@/features/admissions/applications/hooks/useApplicationRelatedData";
+import { useAdmissionsGradeLabels } from "@/features/admissions/applications/hooks/useAdmissionsGradeLabels";
 import type {
   Application,
   ApplicationStatus,
@@ -43,6 +45,11 @@ import {
   createDecision,
   getDecisionFriendlyErrorMessage,
 } from "@/features/admissions/decisions/services/decisionsApiService";
+import {
+  getApplicationActionBlockers,
+  getDecisionActionState,
+  getRegistrationActionState,
+} from "@/features/admissions/applications/utils/applicationActionReadiness";
 
 interface ApplicationDetailsPageProps {
   applicationId: string;
@@ -56,7 +63,12 @@ export default function ApplicationDetailsPage({
   const router = useRouter();
   const { showToast } = useToast();
   const { hasPermission, hasAllPermissions } = usePermissions();
-  const canManageApplications = hasPermission("admissions.applications.manage");
+  const canViewApplications = hasPermission("admissions.applications.view");
+  const canViewDocuments = hasPermission("admissions.documents.view");
+  const canViewTests = hasPermission("admissions.tests.view");
+  const canViewInterviews = hasPermission("admissions.interviews.view");
+  const canManageTests = hasPermission("admissions.tests.manage");
+  const canManageInterviews = hasPermission("admissions.interviews.manage");
   const canManageDecisions = hasPermission("admissions.decisions.manage");
   const canRegisterApplication = hasAllPermissions([
     "admissions.applications.manage",
@@ -68,7 +80,6 @@ export default function ApplicationDetailsPage({
     const validTabs = new Set([
       "details",
       "readiness",
-      "guardians",
       "documents",
       "tests",
       "interviews",
@@ -98,11 +109,19 @@ export default function ApplicationDetailsPage({
   const needsRegistrationHandoff = activeTab === "guardians";
   const relatedData = useApplicationRelatedData(
     applicationId,
-    application?.requestedGradeId,
     needsRegistrationHandoff,
   );
+  const gradeReferences = useMemo(
+    () => (application ? [application] : []),
+    [application],
+  );
+  const gradeLabels = useAdmissionsGradeLabels(gradeReferences, locale);
 
   const loadApplication = useCallback(async () => {
+    if (!canViewApplications) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -114,11 +133,15 @@ export default function ApplicationDetailsPage({
     } finally {
       setIsLoading(false);
     }
-  }, [applicationId, t]);
+  }, [applicationId, canViewApplications, t]);
 
   useEffect(() => {
     void Promise.resolve().then(loadApplication);
   }, [loadApplication]);
+
+  if (!canViewApplications) {
+    return <AdmissionsAccessDenied />;
+  }
 
   if (isLoading) {
     return (
@@ -174,7 +197,12 @@ export default function ApplicationDetailsPage({
       label: t("tabs.interviews"),
       icon: <MessageSquare className="w-4 h-4" />,
     },
-  ];
+  ].filter((tab) => {
+    if (tab.id === "documents") return canViewDocuments;
+    if (tab.id === "tests") return canViewTests;
+    if (tab.id === "interviews") return canViewInterviews;
+    return true;
+  });
 
   const finalDecisionStatuses: ApplicationStatus[] = [
     "accepted",
@@ -186,20 +214,18 @@ export default function ApplicationDetailsPage({
     "under_review",
     "documents_pending",
   ];
-  const canMakeDecisionStatuses: ApplicationStatus[] = [
-    "submitted",
-    "under_review",
-  ];
   const isFinalDecisionStatus = finalDecisionStatuses.includes(
     application.status,
   );
   const canScheduleAdmissionsStep = canScheduleAdmissionsSteps.includes(
     application.status,
   );
-  const canMakeDecision =
-    application.dashboardState?.canProceedToDecision ??
-    canMakeDecisionStatuses.includes(application.status);
-  const actionBlockers = application.dashboardState?.blockers ?? [];
+  const { canMakeDecision } = getDecisionActionState(application);
+  const actionBlockers = getApplicationActionBlockers(application);
+  const registrationAction = getRegistrationActionState(application, {
+    canRegisterApplication,
+    permissionRequiredMessage: t("registration.permission_required"),
+  });
   const finalDecisionMessage =
     application.status === "waitlisted"
       ? t("actions.waitlisted_no_transition")
@@ -315,7 +341,12 @@ export default function ApplicationDetailsPage({
                   {t("header.title")}
                 </h1>
                 <p className="text-sm text-gray-500 mt-1">
-                  {[application.studentName, relatedData.gradeLabel]
+                  {[
+                    application.studentName,
+                    application.requestedGradeId
+                      ? gradeLabels.get(application.requestedGradeId)
+                      : null,
+                  ]
                     .filter(Boolean)
                     .join(" - ")}
                 </p>
@@ -385,8 +416,9 @@ export default function ApplicationDetailsPage({
               </div>
             )}
             <div className="flex items-center gap-3 flex-wrap">
-              {canManageApplications && canScheduleAdmissionsStep && (
+              {canScheduleAdmissionsStep && (
                 <>
+                  {canManageTests && (
                   <Button
                     type="button"
                     onClick={handleScheduleTest}
@@ -395,6 +427,8 @@ export default function ApplicationDetailsPage({
                   >
                     {t("actions.schedule_test")}
                   </Button>
+                  )}
+                  {canManageInterviews && (
                   <Button
                     type="button"
                     onClick={handleScheduleInterview}
@@ -403,6 +437,7 @@ export default function ApplicationDetailsPage({
                   >
                     {t("actions.schedule_interview")}
                   </Button>
+                  )}
                 </>
               )}
               {canManageDecisions && canMakeDecision && (
@@ -410,23 +445,12 @@ export default function ApplicationDetailsPage({
                   {t("actions.make_decision")}
                 </Button>
               )}
-              {application.status === "accepted" &&
-                !application.registrationState?.registered && (
+              {registrationAction.isVisible && (
                   <Button
                     type="button"
                     onClick={handleEnroll}
-                    disabled={
-                      !canRegisterApplication ||
-                      application.dashboardState?.canRegister === false
-                    }
-                    title={
-                      canRegisterApplication &&
-                      application.dashboardState?.canRegister !== false
-                        ? undefined
-                        : application.dashboardState?.blockers
-                            ?.map((blocker) => blocker.message)
-                            .join("; ") || t("registration_blocked")
-                    }
+                    disabled={registrationAction.isDisabled}
+                    title={registrationAction.title}
                     variant="success"
                     size="sm"
                   >

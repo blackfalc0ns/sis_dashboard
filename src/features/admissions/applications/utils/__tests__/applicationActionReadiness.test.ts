@@ -91,7 +91,6 @@ describe("application action readiness", () => {
     expect(
       getRegistrationActionState(application, {
         canRegisterApplication: true,
-        isReadOnly: false,
         permissionRequiredMessage: "Missing permissions",
       }),
     ).toEqual({

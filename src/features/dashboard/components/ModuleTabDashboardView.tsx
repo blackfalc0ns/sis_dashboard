@@ -381,7 +381,7 @@ export default function ModuleTabDashboardView({
 
             const chartDataPoints = chartData.data?.series[0]?.points || [];
             const formattedData = chartDataPoints.map((point, index) => {
-              const item: any = { name: point.x };
+              const item: Record<string, string | number> = { name: point.x };
               (chartData.data?.series || []).forEach((s) => {
                 item[s.key] = s.points[index]?.y ?? 0;
               });

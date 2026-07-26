@@ -1215,7 +1215,12 @@
       "loading": "Loading applications...",
       "not_available": "Not available",
       "processing_hours": "{hours}h",
-      "processing_days": "{days} days"
+      "processing_days": "{days} days",
+      "partial_creation": {
+        "title": "Application created with document issues",
+        "description": "The application was created, but these documents could not be added: {documents}.",
+        "open_documents": "Open documents"
+      }
     },
     "filters": {
       "filters_button": "Filters",
@@ -1365,15 +1370,11 @@
         "cancel": "Cancel",
         "submit": "Import Leads"
       },
-      "chat": {
-        "no_messages": "No messages yet",
-        "start_conversation": "Start a conversation with the parent",
-        "type_message": "Type your message...",
-        "send": "Send",
-        "press_enter": "Press Enter to send, Shift+Enter for new line",
-        "loading": "Loading messages...",
-        "load_failed": "Failed to load conversation. The chat service may be unavailable.",
-        "send_failed": "Failed to send message. Please try again."
+      "partial_creation": {
+        "title": "Application created, but lead conversion is incomplete",
+        "documents_failed": "The application was created, but these documents could not be added: {documents}. The lead was not converted.",
+        "conversion_failed": "The application and documents were created, but the lead could not be marked as converted.",
+        "open_documents": "Open application documents"
       }
     },
     "lead_details": {
@@ -1384,7 +1385,6 @@
       "mark_converted_confirm": "Mark lead \"{name}\" as converted?",
       "marked_converted": "Lead marked as converted",
       "mark_converted_failed": "Failed to mark lead as converted",
-      "messages": "Messages",
       "overview": "Overview",
       "activity_log": "Activity Log",
       "notes": "Notes",
@@ -1777,7 +1777,7 @@
           "open_failed": "Failed to open document.",
           "download_failed": "Failed to download document.",
           "select_type": "Please select or enter a document type.",
-          "file_type": "Only PDF, JPG, and PNG files are allowed.",
+          "file_type": "This file format is not allowed for the selected document type.",
           "file_size": "File size must be less than 5MB.",
           "type_missing": "Document type is missing.",
           "upload_success": "Document uploaded successfully.",
@@ -2107,6 +2107,8 @@
       "enter_score": "Score",
       "all_statuses": "All Statuses",
       "all_types": "All Types",
+      "date_from": "From date",
+      "date_to": "To date",
       "no_match": "No tests match your filters",
       "no_tests": "No tests found",
       "found": "found",
@@ -2177,6 +2179,8 @@
       "edit": "Edit",
       "rate": "Rate",
       "all_statuses": "All Statuses",
+      "date_from": "From date",
+      "date_to": "To date",
       "no_match": "No interviews match your filters",
       "no_interviews": "No interviews found",
       "clear_filters": "Clear filters",
@@ -2282,6 +2286,8 @@
       "decided_by": "Decided By",
       "reason": "Reason",
       "all_decisions": "All Decisions",
+      "date_from": "From date",
+      "date_to": "To date",
       "accept": "Accepted",
       "waitlist": "Waitlisted",
       "reject": "Rejected",
@@ -2342,6 +2348,14 @@
       "no_match": "No enrollments match your filters",
       "no_enrollments": "No enrollments found",
       "load_error": "Unable to load enrollments.",
+      "context": {
+        "loading": "Loading the academic context...",
+        "scope_help": "The academic year filters this list. The term controls the grades and classrooms available for placement.",
+        "selection_required": "Select an academic year and term to create an enrollment.",
+        "structure_loading": "Loading grades and classrooms for this term...",
+        "structure_load_error": "The academic structure could not be loaded for this term.",
+        "structure_missing": "Create grades, sections, and classrooms for this term before enrolling a student."
+      },
       "clear_filters": "Clear filters",
       "found": "found",
       "promote_students": "Promote Students",
@@ -2386,12 +2400,21 @@
           "new_title": "New enrollment",
           "edit_title": "Edit placement",
           "student": "Student",
+          "academic_context": "Academic context",
           "academic_year": "Academic year",
+          "term": "Term",
           "grade": "Grade",
           "section": "Section",
           "classroom": "Classroom",
           "enrollment_date": "Enrollment date",
-          "save_error": "The enrollment could not be saved."
+          "save_error": "The enrollment could not be saved.",
+          "validation": {
+            "student_required": "Select a student.",
+            "grade_required": "Select a grade.",
+            "section_required": "Select a section.",
+            "classroom_required": "Select a classroom.",
+            "enrollment_date_required": "Select an enrollment date."
+          }
         },
         "workflow": {
           "titles": {
@@ -5093,15 +5116,24 @@
         "assignments": "Assignments",
         "close": "Close",
         "body_text": "Body text",
+        "types": {
+          "text": "Text",
+          "file": "File",
+          "video": "Video",
+          "video_link": "Video link",
+          "external_link": "External link"
+        },
         "file_permission_tooltip": "You need file upload permission to add file content.",
         "choose_file": "Choose file",
         "dropzone_title": "Drop a file here or browse",
         "dropzone_subtitle": "Choose one resource for this learning-content item.",
         "current_file": "Current file: {name}",
         "file_help": "PDF, text, images, audio, or video. Video is limited to 200 MB; other files to 10 MB.",
+        "video_file_help": "MP4 or WebM video up to 200 MB.",
         "file_required": "Select a file to upload.",
         "file_size": "The selected file exceeds the allowed size limit.",
         "file_mime": "Select a supported PDF, text, image, audio, or video file.",
+        "file_unsupported_container": "This media file is not in a supported MP4 or WebM container. Export it as MP4 or WebM, then upload it again.",
         "download": "Open or download file",
         "preview": "Preview",
         "download_failed": "Could not download the file.",

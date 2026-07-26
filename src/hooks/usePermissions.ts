@@ -9,8 +9,14 @@ import { useAuth } from "@/hooks/use-auth";
 
 export type PermissionKey =
   | "dashboard.analytics.view"
+  | "admissions.leads.view"
+  | "admissions.leads.manage"
   | "admissions.applications.view"
   | "admissions.applications.manage"
+  | "admissions.tests.view"
+  | "admissions.tests.manage"
+  | "admissions.interviews.view"
+  | "admissions.interviews.manage"
   | "admissions.decisions.view"
   | "admissions.decisions.manage"
   | "admissions.documents.view"
@@ -205,7 +211,10 @@ export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
   {
     ...settingsNavigationPermissionByKey,
     ...reinforcementNavigationPermissionByKey,
+    "admissions-leads": "admissions.leads.view",
     "admissions-applications": "admissions.applications.view",
+    "admissions-tests": "admissions.tests.view",
+    "admissions-interviews": "admissions.interviews.view",
     "admissions-workflow-policy": "admissions.applications.view",
     "admissions-decisions": "admissions.decisions.view",
     "admissions-enrollment": "students.enrollments.view",

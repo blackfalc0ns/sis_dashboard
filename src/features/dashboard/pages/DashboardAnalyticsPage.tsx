@@ -37,6 +37,7 @@ import {
   Legend,
   LabelList,
 } from "recharts";
+import type { PieLabelRenderProps } from "recharts";
 import { Button, DatePicker, FilterPanel, Select } from "@/components/ui";
 import AccessDenied from "@/components/ui/access-denied/AccessDenied";
 import MainLoader from "@/components/ui/loaders/MainLoader";
@@ -1493,8 +1494,7 @@ function DashboardAnalyticsChartContent({
 
     const innerRadius = chart.type === "donut" ? 60 : 0;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const renderCustomLabel = (props: any) => {
+    const renderCustomLabel = (props: PieLabelRenderProps) => {
       const { cx, cy, midAngle, outerRadius: or, percent, name } = props;
       if (!percent || percent < 0.05) return null;
 

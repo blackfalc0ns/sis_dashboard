@@ -40,7 +40,7 @@ describe("ApiError", () => {
       location: {
         pathname: "/en/dashboard",
       },
-    } as any;
+    } as unknown as Window & typeof globalThis;
 
     try {
       const errorEn = ApiError.network();

@@ -1,11 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocale } from "next-intl";
-import {
-  fetchStructureTree,
-  type Grade,
-} from "@/features/academics/academic-structure-tree/services/structureService";
 import { getApplicationRegistrationHandoff } from "@/features/admissions/applications/api/applicationRegistrationApi";
 import type {
   RegistrationHandoffResponseDto,
@@ -13,15 +8,12 @@ import type {
 } from "@/features/admissions/applications/api/registrationDtos";
 import type { Guardian } from "@/features/admissions/applications/types/guardian";
 import type { Document } from "@/features/admissions/applications/types/document";
-import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
 
 interface ApplicationRelatedData {
   handoff: RegistrationHandoffResponseDto | null;
   guardians: Guardian[];
   documents: Document[];
   studentDraft: Partial<RegistrationStudentRequest> | null;
-  gradeLabel: string | null;
-  academicYearLabel: string | null;
   previousSchool: string | null;
   isLoadingHandoff: boolean;
   handoffError: string | null;
@@ -30,17 +22,13 @@ interface ApplicationRelatedData {
 
 export function useApplicationRelatedData(
   applicationId: string | null | undefined,
-  requestedGradeId?: string | null,
   enabled = true,
 ): ApplicationRelatedData {
-  const locale = useLocale();
-  const { yearId, termId } = useAdmissionsYearTermContext();
   const [handoff, setHandoff] = useState<RegistrationHandoffResponseDto | null>(
     null,
   );
   const [handoffError, setHandoffError] = useState<string | null>(null);
   const [isLoadingHandoff, setIsLoadingHandoff] = useState(false);
-  const [grades, setGrades] = useState<Grade[]>([]);
 
   const reloadHandoff = useCallback(async () => {
     if (!enabled || !applicationId) {
@@ -66,61 +54,6 @@ export function useApplicationRelatedData(
   useEffect(() => {
     void Promise.resolve().then(reloadHandoff);
   }, [reloadHandoff]);
-
-  useEffect(() => {
-    if (!enabled || !yearId || !termId) {
-      setGrades([]);
-      return;
-    }
-
-    let isMounted = true;
-
-    async function loadGrades() {
-      try {
-        const tree = await fetchStructureTree(yearId as string, termId as string);
-        if (isMounted) {
-          setGrades(tree.grades);
-        }
-      } catch (error) {
-        console.error("Failed to load application grade labels:", error);
-        if (isMounted) {
-          setGrades([]);
-        }
-      }
-    }
-
-    void loadGrades();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [enabled, termId, yearId]);
-
-  const gradeLabel = useMemo(() => {
-    const handoffGradeName =
-      handoff?.wizardDraft?.enrollment?.gradeId === requestedGradeId
-        ? handoff?.source?.application?.requestedGradeName
-        : handoff?.source?.application?.requestedGradeName ??
-          handoff?.source?.applicantRequest?.requestedGradeName;
-
-    if (handoffGradeName) return handoffGradeName;
-
-    const gradeId =
-      requestedGradeId ??
-      handoff?.wizardDraft?.enrollment?.gradeId ??
-      handoff?.source?.application?.requestedGradeId ??
-      handoff?.source?.applicantRequest?.requestedGradeId;
-
-    if (!gradeId) return null;
-    const grade = grades.find((item) => item.id === gradeId);
-    if (!grade) return null;
-    return locale === "ar" ? grade.nameAr || grade.name : grade.nameEn || grade.name;
-  }, [grades, handoff, locale, requestedGradeId]);
-
-  const academicYearLabel =
-    handoff?.source?.application?.requestedAcademicYearName ??
-    handoff?.source?.applicantRequest?.requestedAcademicYearName ??
-    null;
 
   const studentDraft = handoff?.wizardDraft?.student ?? null;
   const previousSchool = handoff?.source?.applicantRequest?.previousSchool ?? null;
@@ -171,8 +104,6 @@ export function useApplicationRelatedData(
     guardians,
     documents,
     studentDraft,
-    gradeLabel,
-    academicYearLabel,
     previousSchool,
     isLoadingHandoff,
     handoffError,

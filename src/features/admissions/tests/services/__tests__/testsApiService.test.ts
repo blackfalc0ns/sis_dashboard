@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { apiPatch, apiPost } from "@/lib/api";
+import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import {
   completePlacementTest,
   createPlacementTest,
+  fetchPlacementTests,
 } from "@/features/admissions/tests/services/testsApiService";
 
 vi.mock("@/lib/api", () => ({
@@ -13,6 +14,7 @@ vi.mock("@/lib/api", () => ({
 
 const postTest = vi.mocked(apiPost);
 const patchTest = vi.mocked(apiPatch);
+const getTests = vi.mocked(apiGet);
 const response = {
   id: "test-1",
   applicationId: "application-1",
@@ -28,6 +30,10 @@ const response = {
 
 describe("placement test request mapping", () => {
   beforeEach(() => {
+    getTests.mockReset().mockResolvedValue({
+      items: [response],
+      pagination: { page: 2, limit: 20, total: 25 },
+    });
     postTest.mockReset().mockResolvedValue(response);
     patchTest.mockReset().mockResolvedValue({
       ...response,
@@ -35,6 +41,24 @@ describe("placement test request mapping", () => {
       result: "Passed",
       status: "completed",
     });
+  });
+
+  it("returns pagination and sends all supported filters", async () => {
+    const result = await fetchPlacementTests({
+      search: "Student",
+      status: "scheduled",
+      type: "Placement Test",
+      dateFrom: "2026-07-01",
+      dateTo: "2026-07-31",
+      page: 2,
+      limit: 20,
+    });
+
+    expect(getTests).toHaveBeenCalledWith(
+      "/admissions/tests?search=Student&status=scheduled&type=Placement+Test&dateFrom=2026-07-01&dateTo=2026-07-31&page=2&limit=20",
+    );
+    expect(result.pagination).toEqual({ page: 2, limit: 20, total: 25 });
+    expect(result.items).toHaveLength(1);
   });
 
   it("sends the selected subject identity when scheduling", async () => {

@@ -4,8 +4,9 @@ import {
   buildQueryString,
   normalizeTest,
   toIsoFromDateAndTime,
-  unwrapArrayResponse,
+  unwrapPaginatedResponse,
   unwrapItemResponse,
+  type PaginatedAdmissionsResult,
 } from "@/features/admissions/shared/services/admissionsApiUtils";
 
 const TESTS_ENDPOINT = "/admissions/tests";
@@ -51,11 +52,15 @@ const toCreateBody = (payload: CreatePlacementTestPayload) => ({
 
 export async function fetchPlacementTests(
   params: FetchPlacementTestsParams = {},
-): Promise<Test[]> {
+): Promise<PaginatedAdmissionsResult<Test>> {
   const response = await apiGet<unknown>(
     `${TESTS_ENDPOINT}${buildQueryString(params)}`,
   );
-  return unwrapArrayResponse(response, "placement tests").map(normalizeTest);
+  const paginatedTests = unwrapPaginatedResponse(response, "placement tests");
+  return {
+    items: paginatedTests.items.map(normalizeTest),
+    pagination: paginatedTests.pagination,
+  };
 }
 
 export async function fetchPlacementTestById(id: string): Promise<Test> {

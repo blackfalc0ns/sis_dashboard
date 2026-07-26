@@ -25,28 +25,20 @@ import AdmissionsGlobalExportModal from "@/features/admissions/shared/components
 import { downloadAdmissionsExport } from "@/features/admissions/shared/utils/admissionsExport";
 import type { ApplicationCreationPayload } from "@/features/admissions/applications/services/applicationCreationService";
 import {
-  createApplication,
   fetchApplications,
   submitApplication,
 } from "@/features/admissions/applications/services/applicationsApiService";
-import {
-  uploadAdmissionsFile,
-  createApplicationDocument,
-} from "@/features/admissions/applications/services/applicationDocumentsApiService";
+import { createApplicationIntake } from "@/features/admissions/applications/services/applicationIntakeService";
 import {
   Application,
   ApplicationStatus,
 } from "@/features/admissions/types/admissions";
 import { useAdmissionsUrlQueryState } from "@/features/admissions/shared/hooks/useAdmissionsUrlQueryState";
-import { useAdmissionsYearTermContext } from "@/features/admissions/shared/hooks/useAdmissionsYearTermContext";
-import AdmissionsReadOnlyBanner from "@/features/admissions/shared/components/AdmissionsReadOnlyBanner";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/components/ui/toast/Toast";
-import {
-  fetchStructureTree,
-  type Grade,
-} from "@/features/academics/academic-structure-tree/services/structureService";
 import { applicationSourceLabel } from "@/features/admissions/applications/utils/applicationSourceLabel";
+import { AdmissionsAccessDenied } from "@/features/admissions/shared/components/AdmissionsAccessGuard";
+import { useAdmissionsGradeLabels } from "@/features/admissions/applications/hooks/useAdmissionsGradeLabels";
 
 export default function ApplicationsList() {
   const t = useTranslations("admissions.applications");
@@ -55,9 +47,9 @@ export default function ApplicationsList() {
   const tSource = useTranslations("admissions.source");
   const locale = useLocale();
   const router = useRouter();
-  const { yearId, termId, isReadOnly } = useAdmissionsYearTermContext();
   const { hasPermission } = usePermissions();
   const { showToast } = useToast();
+  const canViewApplications = hasPermission("admissions.applications.view");
   const canManageApplications = hasPermission("admissions.applications.manage");
   const sourceLabels: Record<string, string> = {
     in_app: tSource("in_app"),
@@ -67,15 +59,18 @@ export default function ApplicationsList() {
   };
 
   const [isCreateAppOpen, setIsCreateAppOpen] = useState(false);
+  const [creationRecovery, setCreationRecovery] = useState<{
+    applicationId: string;
+    failedDocuments: string[];
+  } | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoadingApplications, setIsLoadingApplications] = useState(true);
   const [applicationsError, setApplicationsError] = useState<string | null>(
     null,
   );
-  const [grades, setGrades] = useState<Grade[]>([]);
-
   const [showFilters, setShowFilters] = useState(false);
+  const gradeLabels = useAdmissionsGradeLabels(applications, locale);
 
   const scopedApplications = applications;
 
@@ -124,6 +119,10 @@ export default function ApplicationsList() {
   const searchQuery = values.search;
   const statusFilter = values.status as ApplicationStatus | "all";
   const loadApplications = useCallback(async () => {
+    if (!canViewApplications) {
+      setIsLoadingApplications(false);
+      return;
+    }
     setIsLoadingApplications(true);
     setApplicationsError(null);
     try {
@@ -138,51 +137,11 @@ export default function ApplicationsList() {
     } finally {
       setIsLoadingApplications(false);
     }
-  }, [statusFilter, t]);
+  }, [canViewApplications, statusFilter, t]);
 
   useEffect(() => {
     void Promise.resolve().then(loadApplications);
   }, [loadApplications]);
-
-  useEffect(() => {
-    if (!yearId || !termId) {
-      setGrades([]);
-      return;
-    }
-
-    let isMounted = true;
-
-    async function loadGrades() {
-      try {
-        const tree = await fetchStructureTree(yearId as string, termId as string);
-        if (isMounted) {
-          setGrades(tree.grades);
-        }
-      } catch (error) {
-        console.error("Failed to load application grade labels:", error);
-        if (isMounted) {
-          setGrades([]);
-        }
-      }
-    }
-
-    void loadGrades();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [termId, yearId]);
-
-  const gradeLabels = useMemo(() => {
-    return new Map(
-      grades.map((grade) => [
-        grade.id,
-        locale === "ar"
-          ? grade.nameAr || grade.name
-          : grade.nameEn || grade.name,
-      ]),
-    );
-  }, [grades, locale]);
 
   const filteredApplications = useMemo(() => {
     const normalizedSearchQuery = searchQuery.trim().toLowerCase();
@@ -360,7 +319,7 @@ export default function ApplicationsList() {
           <Button
             type="button"
             onClick={(e) => handleSubmitApp(row.id, e)}
-            disabled={isReadOnly || !canManageApplications}
+            disabled={!canManageApplications}
             size="sm"
             className="px-3 py-1"
           >
@@ -386,28 +345,17 @@ export default function ApplicationsList() {
     data: ApplicationCreationPayload,
   ) => {
     try {
-      const createdApplication = await createApplication({
-        ...data,
-        requestedAcademicYearId: yearId,
-      } as ApplicationCreationPayload & { requestedAcademicYearId?: string });
-
-      // Upload documents and link them to the application
-      const uploadedDocs = data.documents.filter((doc) => doc.uploaded && doc.file);
-      for (const doc of uploadedDocs) {
-        try {
-          const fileId = await uploadAdmissionsFile(doc.file!);
-          await createApplicationDocument(createdApplication.id, {
-            fileId,
-            documentType: doc.labelEn,
-            status: "complete",
-          });
-        } catch (docError) {
-          console.error(`Failed to upload document ${doc.labelEn}:`, docError);
-        }
-      }
-
+      const intakeOutcome = await createApplicationIntake(data);
       await loadApplications();
       setIsCreateAppOpen(false);
+      setCreationRecovery(
+        intakeOutcome.failedDocumentLabels.length > 0
+          ? {
+              applicationId: intakeOutcome.application.id,
+              failedDocuments: intakeOutcome.failedDocumentLabels,
+            }
+          : null,
+      );
     } catch (error) {
       console.error("Failed to create application:", error);
       showToast(t("create_error"), "error");
@@ -423,6 +371,10 @@ export default function ApplicationsList() {
       emptyMessage: hasActiveFilters ? t("no_match") : t("no_applications"),
     });
   };
+
+  if (!canViewApplications) {
+    return <AdmissionsAccessDenied />;
+  }
 
   return (
     <div className="space-y-6">
@@ -506,7 +458,6 @@ export default function ApplicationsList() {
             <Button
               type="button"
               onClick={() => setIsCreateAppOpen(true)}
-              disabled={isReadOnly}
               leftIcon={<Plus className="w-4 h-4" />}
             >
               {t("new_application")}
@@ -515,7 +466,29 @@ export default function ApplicationsList() {
         </div>
       </div>
 
-      {isReadOnly && <AdmissionsReadOnlyBanner />}
+      {creationRecovery && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-semibold">{t("partial_creation.title")}</p>
+          <p className="mt-1">
+            {t("partial_creation.description", {
+              documents: creationRecovery.failedDocuments.join(", "),
+            })}
+          </p>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="mt-3"
+            onClick={() =>
+              router.push(
+                `/${locale}/admissions/applications/${creationRecovery.applicationId}/documents`,
+              )
+            }
+          >
+            {t("partial_creation.open_documents")}
+          </Button>
+        </div>
+      )}
 
       {/* Filters */}
       <FilterPanel
@@ -525,6 +498,7 @@ export default function ApplicationsList() {
               <Input
                 type="text"
                 placeholder={t("search_placeholder")}
+                aria-label={t("search_placeholder")}
                 value={searchQuery}
                 onChange={(e) => setValue("search", e.target.value, "replace")}
                 leftIcon={<Search className="w-4 h-4" />}
@@ -592,13 +566,14 @@ export default function ApplicationsList() {
         <div className="rounded-xl border border-red-200 bg-red-50">
           <EmptyState message={applicationsError} className="text-red-700" />
         </div>
-      ) : null}
-
-      {/* Table */}
-      {isLoadingApplications ? (
-        <div className="rounded-xl bg-white shadow-sm">
-          <EmptyState message={t("loading")} />
-        </div>
+      ) : isLoadingApplications ? (
+        <DataTable<Application>
+          columns={columns}
+          data={[]}
+          isLoading
+          skeletonRows={6}
+          showPagination={false}
+        />
       ) : filteredApplications.length === 0 ? (
         <div className="rounded-xl bg-white shadow-sm">
           <EmptyState

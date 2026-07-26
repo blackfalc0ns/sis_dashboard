@@ -1,6 +1,5 @@
 // Leads Feature
 export { default as CreateLeadModal } from "../components/CreateLeadModal";
-export { default as LeadChatPanel } from "../components/LeadChatPanel";
 export { default as LeadDetails } from "../components/LeadDetails";
 export { default as LeadsList } from "@/features/admissions/leads/pages/LeadsList";
 export { default as LeadStatusBadge } from "../components/LeadStatusBadge";
