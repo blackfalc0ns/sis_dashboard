@@ -125,9 +125,7 @@ export const menuItems: MenuItem[] = [
     href_en: "/en/dashboard",
     href_ar: "/ar/dashboard",
     icon: Home,
-    subgroups: [
-      { key: "general", label_en: "General", label_ar: "عام" },
-    ],
+    subgroups: [{ key: "general", label_en: "General", label_ar: "عام" }],
     children: [
       {
         key: "dashboard-overview",
@@ -939,15 +937,6 @@ export const menuItems: MenuItem[] = [
         href_en: "/en/settings/branding",
         href_ar: "/ar/settings/branding",
         icon: Building2,
-      },
-      {
-        key: "settings-onboarding",
-        subgroup: "general",
-        label_en: "School setup",
-        label_ar: "إعداد المدرسة",
-        href_en: "/en/settings/onboarding",
-        href_ar: "/ar/settings/onboarding",
-        icon: ListChecks,
       },
       {
         key: "settings-users",

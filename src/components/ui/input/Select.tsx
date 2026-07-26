@@ -76,9 +76,11 @@ export default function Select({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [menuPosition, setMenuPosition] = useState({
-    top: 0,
+    top: null as number | null,
+    bottom: null as number | null,
     left: 0,
     width: 0,
+    maxHeight: MENU_MAX_HEIGHT,
   });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -98,19 +100,17 @@ export default function Select({
     const spaceAbove = rect.top - MENU_GAP;
     const shouldOpenAbove =
       spaceBelow < MENU_MAX_HEIGHT && spaceAbove > spaceBelow;
-    const availableHeight = Math.max(
-      80,
-      shouldOpenAbove ? spaceAbove : spaceBelow,
-    );
     setMenuPosition({
-      top: shouldOpenAbove
-        ? Math.max(
-            MENU_GAP,
-            rect.top - Math.min(MENU_MAX_HEIGHT, availableHeight) - MENU_GAP,
-          )
-        : rect.bottom + MENU_GAP,
+      top: shouldOpenAbove ? null : rect.bottom + MENU_GAP,
+      bottom: shouldOpenAbove
+        ? viewportHeight - rect.top + MENU_GAP
+        : null,
       left: rect.left,
       width: rect.width,
+      maxHeight: Math.min(
+        MENU_MAX_HEIGHT,
+        shouldOpenAbove ? spaceAbove : spaceBelow,
+      ),
     });
   }, []);
 
@@ -188,13 +188,15 @@ export default function Select({
     <div
       id={menuId}
       ref={menuRef}
-      className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200"
+      className="fixed z-[9999] flex flex-col bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-fadeIn hover:shadow-xl transition-shadow duration-200"
       dir={isRTL ? "rtl" : "ltr"}
       style={{
-        top: menuPosition.top,
+        top: menuPosition.top ?? undefined,
+        bottom: menuPosition.bottom ?? undefined,
         left: menuPosition.left,
         width: fullWidth ? menuPosition.width : undefined,
         minWidth: menuPosition.width,
+        maxHeight: menuPosition.maxHeight,
       }}
     >
       {searchable && (
@@ -220,8 +222,7 @@ export default function Select({
         </div>
       )}
       <ul
-        className="py-1 overflow-y-auto"
-        style={{ maxHeight: MENU_MAX_HEIGHT }}
+        className="min-h-0 flex-1 py-1 overflow-y-auto"
         onScroll={(event) => {
           const list = event.currentTarget;
           if (list.scrollHeight - list.scrollTop - list.clientHeight <= 40) {

@@ -63,7 +63,9 @@ describe("Select", () => {
     const option = screen.getByRole("button", { name: "Quiz" });
     const menu = option.closest("div");
 
-    expect(Number.parseFloat(menu?.style.top || "0")).toBeLessThan(720);
+    expect(menu?.style.top).toBe("");
+    expect(menu?.style.bottom).toBe("88px");
+    expect(menu?.style.maxHeight).toBe("240px");
 
     vi.unstubAllGlobals();
     container.remove();

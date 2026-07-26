@@ -80,6 +80,28 @@ describe("CredentialsPage filters", () => {
     return within(roleFilter as HTMLElement).getByRole("button");
   }
 
+  it("keeps the page visible while credentials load in the table", async () => {
+    apiMocks.apiGet.mockImplementation((path: string) => {
+      if (path.startsWith("/settings/users/credentials/status")) {
+        return new Promise(() => undefined);
+      }
+      if (path.startsWith("/settings/roles")) {
+        return fetchRolesResponse();
+      }
+      return Promise.reject(new Error(`Unexpected GET ${path}`));
+    });
+
+    render(
+      <ToastProvider>
+        <CredentialsPage />
+      </ToastProvider>,
+    );
+
+    expect(await screen.findByText("title")).toBeInTheDocument();
+    expect(await screen.findByRole("table")).toBeInTheDocument();
+    expect(screen.queryByText("empty.title")).not.toBeInTheDocument();
+  });
+
   it("does not expose the unsupported user status filter", async () => {
     await renderOpenFilters();
 

@@ -15,6 +15,7 @@ interface CredentialStatusTableProps {
   page: number;
   limit: number;
   total: number;
+  isLoading: boolean;
   canManage: boolean;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
@@ -53,6 +54,7 @@ export default function CredentialStatusTable({
   page,
   limit,
   total,
+  isLoading,
   canManage,
   onPageChange,
   onPageSizeChange,
@@ -211,6 +213,8 @@ export default function CredentialStatusTable({
     <DataTable
       columns={columns}
       data={records as unknown as Record<string, unknown>[]}
+      isLoading={isLoading}
+      skeletonRows={limit}
       showPagination
       itemsPerPage={limit}
       searchQuery={searchQuery}

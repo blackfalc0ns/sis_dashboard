@@ -458,7 +458,10 @@ export default function Sidebar({
 
         {/* Logo Section (fixed top) */}
         <div className="px-4 py-6 flex items-center justify-center shrink-0">
-          <div className="text-primary font-bold text-3xl tracking-tight flex items-center justify-center">
+          <GuardedLink
+            href={isArabic ? "/ar/dashboard" : "/en/dashboard"}
+            className="flex items-center justify-center rounded-lg text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#065769]"
+          >
             <Image
               src="/images/logo/moazez_white_logo.svg"
               alt="Logo"
@@ -467,7 +470,7 @@ export default function Sidebar({
               priority
               className="transition-all duration-300"
             />
-          </div>
+          </GuardedLink>
         </div>
 
         {/* School Selector (fixed top) */}

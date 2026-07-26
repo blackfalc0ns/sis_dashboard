@@ -5,7 +5,6 @@ import { KeyRound, RefreshCcw, X } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
-import MainLoader from "@/components/ui/loaders/MainLoader";
 import { FilterPanel } from "@/components/ui";
 import { useToast } from "@/components/ui/toast/Toast";
 import SettingsAccessGuard from "@/features/settings/components/SettingsAccessGuard";
@@ -332,10 +331,6 @@ export default function CredentialsPage() {
     setPage(1);
   };
 
-  if (isLoading) {
-    return <MainLoader />;
-  }
-
   return (
     <SettingsAccessGuard permission="settings.users.view">
       <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
@@ -462,7 +457,7 @@ export default function CredentialsPage() {
             />
           </div>
 
-          {records.length === 0 ? (
+          {!isLoading && !isFetching && records.length === 0 ? (
             <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
               <p className="font-semibold text-gray-900">{t("empty.title")}</p>
               <p className="mt-1 text-sm text-gray-500">
@@ -476,6 +471,7 @@ export default function CredentialsPage() {
               page={page}
               limit={limit}
               total={total}
+              isLoading={isLoading || isFetching}
               canManage={canManage}
               onPageChange={setPage}
               onPageSizeChange={(nextLimit) => {

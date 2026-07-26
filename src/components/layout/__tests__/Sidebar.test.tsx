@@ -43,6 +43,21 @@ vi.mock("next/image", () => ({
 }));
 
 describe("Sidebar toggle control", () => {
+  it("links the logo to the localized dashboard", () => {
+    navigationState.pathname = "/ar/settings/users";
+
+    try {
+      render(<Sidebar isOpen onToggle={vi.fn()} />);
+
+      expect(screen.getByRole("link", { name: "Logo" })).toHaveAttribute(
+        "href",
+        "/ar/dashboard",
+      );
+    } finally {
+      navigationState.pathname = "/en/dashboard";
+    }
+  });
+
   it("filters top-level and child navigation labels", () => {
     const topLevelMatches = filterMenuItems(menuItems, "dash", false);
     const childMatches = filterMenuItems(menuItems, "application", false);

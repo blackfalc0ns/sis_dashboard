@@ -18,7 +18,6 @@ import Button from "@/components/ui/button/Button";
 import { DataTable, FilterPanel } from "@/components/ui";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
-import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
 import SettingsAccessGuard from "@/features/settings/components/SettingsAccessGuard";
 import SettingsPageHeader from "@/features/settings/components/SettingsPageHeader";
@@ -262,18 +261,23 @@ export default function SettingsUsersPage() {
   }, [hasActiveFilters, showFilters]);
 
   const refresh = async () => {
-    const usersParams: FetchSettingsUsersParams = {
-      search,
-      page,
-      limit,
-      roleId: roleFilter,
-      status: statusFilter as SettingsUserRecord["status"] | "all",
-    };
-    const result = await fetchSettingsUsers(usersParams);
-    setUsers(result.items);
-    setTotalUsers(result.pagination.total);
-    setPage(result.pagination.page);
-    setLimit(result.pagination.limit);
+    setIsFetching(true);
+    try {
+      const usersParams: FetchSettingsUsersParams = {
+        search,
+        page,
+        limit,
+        roleId: roleFilter,
+        status: statusFilter as SettingsUserRecord["status"] | "all",
+      };
+      const result = await fetchSettingsUsers(usersParams);
+      setUsers(result.items);
+      setTotalUsers(result.pagination.total);
+      setPage(result.pagination.page);
+      setLimit(result.pagination.limit);
+    } finally {
+      setIsFetching(false);
+    }
   };
 
   const getCredentialStatusLabel = (user: SettingsUserRecord) => {
@@ -543,10 +547,6 @@ export default function SettingsUsersPage() {
     },
   ];
 
-  if (isLoading) {
-    return <MainLoader />;
-  }
-
   return (
     <SettingsAccessGuard permission="settings.users.view">
       <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
@@ -666,6 +666,8 @@ export default function SettingsUsersPage() {
           <DataTable
             columns={columns}
             data={users as unknown as Record<string, unknown>[]}
+            isLoading={isLoading || isFetching}
+            skeletonRows={limit}
             showPagination
             itemsPerPage={limit}
             searchQuery={search}

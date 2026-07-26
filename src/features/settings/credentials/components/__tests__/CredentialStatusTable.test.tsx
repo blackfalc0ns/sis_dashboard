@@ -40,6 +40,7 @@ describe("CredentialStatusTable", () => {
         page={1}
         limit={10}
         total={records.length}
+        isLoading={false}
         canManage={false}
         onPageChange={vi.fn()}
         onPageSizeChange={vi.fn()}
