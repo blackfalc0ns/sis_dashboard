@@ -540,15 +540,12 @@ export default function AttendanceReportsPage() {
     exportDataset,
     filters.dateFrom,
     filters.dateTo,
-    filters.scopeIds,
-    filters.scopeType,
     locale,
     report,
     selectedTermName,
     selectedYearName,
     selectedScopeName,
     structure,
-    t,
     term,
   ]);
 

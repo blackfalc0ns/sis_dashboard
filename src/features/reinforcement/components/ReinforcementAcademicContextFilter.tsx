@@ -423,6 +423,7 @@ export default function ReinforcementAcademicContextFilter({
     },
     [
       subjectAllocations.data,
+      subjectDependsOnGrade,
       students.data,
       terms.data,
       tree.data,
@@ -448,7 +449,7 @@ export default function ReinforcementAcademicContextFilter({
     }
 
     persistContext(value.academicYearId, value.termId);
-  }, [value.academicYearId, value.termId]);
+  }, [showAcademicYearTerm, value.academicYearId, value.termId]);
 
   /* ─── Restore from localStorage on mount ─── */
   useEffect(() => {
@@ -509,7 +510,13 @@ export default function ReinforcementAcademicContextFilter({
       setTerms((current) => ({ ...current, loading: true, error: null }));
     });
     return;
-  }, [copy.error, resolvedFilterOptions, showAcademicYearTerm, value.academicYearId]);
+  }, [
+    copy.error,
+    resolvedFilterOptions,
+    showAcademicYearTerm,
+    value.academicYearId,
+    value.termId,
+  ]);
 
   /* ─── Fetch tree, subjects, students ─── */
   useEffect(() => {
@@ -654,7 +661,13 @@ export default function ReinforcementAcademicContextFilter({
     }
 
     emit({ subjectId: undefined });
-  }, [emit, filteredSubjects, subjectAllocations.loading, value.subjectId]);
+  }, [
+    emit,
+    filteredSubjects,
+    subjectAllocations.loading,
+    tree.loading,
+    value.subjectId,
+  ]);
 
   const filteredGrades = tree.data.grades.filter(
     (grade) => !value.stageId || grade.stageId === value.stageId,

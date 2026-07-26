@@ -127,7 +127,7 @@ export default function GlobalMessageNotifications() {
       socket.off(COMMUNICATION_SOCKET_EVENTS.notificationCreated, handleNotification);
       socket.off(COMMUNICATION_SOCKET_EVENTS.announcementPublished, handleAnnouncement);
     };
-  }, [socket, notify, user?.id]);
+  }, [locale, socket, notify, user?.id]);
 
   return (
     <NotificationToastContainer

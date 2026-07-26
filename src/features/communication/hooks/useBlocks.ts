@@ -184,7 +184,7 @@ export function useBlocks() {
         if (mountedRef.current) setIsMutating(false);
       }
     },
-    [refresh, user?.id],
+    [refresh, user],
   );
 
   const remove = useCallback(

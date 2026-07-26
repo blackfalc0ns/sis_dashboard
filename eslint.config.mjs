@@ -22,6 +22,7 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    "docs/Reusable Light Mode Dropdown/**",
     ".tmp-backend-reference/**",
     "next-env.d.ts",
   ]),

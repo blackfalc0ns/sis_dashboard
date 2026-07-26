@@ -290,13 +290,7 @@ export default function BehaviorOverviewPage() {
   }, [
     yearId,
     termId,
-    filters.classroomId,
-    filters.studentId,
-    filters.type,
-    filters.severity,
-    filters.status,
-    filters.occurredFrom,
-    filters.occurredTo,
+    filters,
     tBehavior,
   ]);
 

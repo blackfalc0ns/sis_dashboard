@@ -178,6 +178,8 @@ export default function EditConversationDialog({
             className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 transition hover:bg-slate-200"
           >
             {avatarPreview ? (
+              // FileReader data URLs are local previews, so Next image optimization cannot help here.
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
             ) : (
               <Camera className="h-6 w-6 text-slate-400" />

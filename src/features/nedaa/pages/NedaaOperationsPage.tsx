@@ -1,6 +1,12 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   Activity,
   AlertTriangle,
@@ -1146,6 +1152,60 @@ export default function NedaaOperationsPage() {
     [historyItems, t],
   );
 
+  const openRecipients = useCallback((request?: ActiveDismissalRequest) => {
+    if (!request) return;
+    setRequestDetail(null);
+    setPickupRecipients(null);
+    setHistoryDetail(null);
+    setReadOnlyModalError(null);
+    setReadOnlyModalLoading(true);
+    setActionModal({
+      type: "recipients",
+      requestId: request.id,
+      title: request.child.displayName,
+    });
+    void listDismissalPickupRecipients(request.id)
+      .then((response) => setPickupRecipients(response))
+      .catch(() => setReadOnlyModalError(t("operations.detail_failed")))
+      .finally(() => setReadOnlyModalLoading(false));
+  }, [t]);
+
+  const openDetail = useCallback((requestId?: string) => {
+    if (!requestId) return;
+    setRequestDetail(null);
+    setPickupRecipients(null);
+    setHistoryDetail(null);
+    setReadOnlyModalError(null);
+    setReadOnlyModalLoading(true);
+    setActionModal({
+      type: "detail",
+      requestId,
+      title: t("operations_actions.view"),
+    });
+    void fetchDismissalRequest(requestId)
+      .then((response) => setRequestDetail(response.request))
+      .catch(() => setReadOnlyModalError(t("operations.detail_failed")))
+      .finally(() => setReadOnlyModalLoading(false));
+  }, [t]);
+
+  const openHistoryDetail = useCallback((requestId?: string) => {
+    if (!requestId) return;
+    setRequestDetail(null);
+    setPickupRecipients(null);
+    setHistoryDetail(null);
+    setReadOnlyModalError(null);
+    setReadOnlyModalLoading(true);
+    setActionModal({
+      type: "history",
+      requestId,
+      title: t("operations_actions.view_history"),
+    });
+    void fetchDismissalRequestHistoryItem(requestId)
+      .then((response) => setHistoryDetail(response.request))
+      .catch(() => setReadOnlyModalError(t("operations.detail_failed")))
+      .finally(() => setReadOnlyModalLoading(false));
+  }, [t]);
+
   const activeColumns = useMemo<Column<OperationTableRow>[]>(
     () => [
       {
@@ -1207,7 +1267,7 @@ export default function NedaaOperationsPage() {
         ),
       },
     ],
-    [canManage, t],
+    [canManage, openDetail, openRecipients, t],
   );
 
   const waitingColumns = useMemo<Column<OperationTableRow>[]>(
@@ -1274,7 +1334,7 @@ export default function NedaaOperationsPage() {
         ),
       },
     ],
-    [t],
+    [openHistoryDetail, t],
   );
 
   const updateCurrentFilters = (updates: Partial<OperationsFilters>) => {
@@ -1373,60 +1433,6 @@ export default function NedaaOperationsPage() {
       requestId: request.id,
       title: request.child.displayName,
     });
-  };
-
-  const openRecipients = (request?: ActiveDismissalRequest) => {
-    if (!request) return;
-    setRequestDetail(null);
-    setPickupRecipients(null);
-    setHistoryDetail(null);
-    setReadOnlyModalError(null);
-    setReadOnlyModalLoading(true);
-    setActionModal({
-      type: "recipients",
-      requestId: request.id,
-      title: request.child.displayName,
-    });
-    void listDismissalPickupRecipients(request.id)
-      .then((response) => setPickupRecipients(response))
-      .catch(() => setReadOnlyModalError(t("operations.detail_failed")))
-      .finally(() => setReadOnlyModalLoading(false));
-  };
-
-  const openDetail = (requestId?: string) => {
-    if (!requestId) return;
-    setRequestDetail(null);
-    setPickupRecipients(null);
-    setHistoryDetail(null);
-    setReadOnlyModalError(null);
-    setReadOnlyModalLoading(true);
-    setActionModal({
-      type: "detail",
-      requestId,
-      title: t("operations_actions.view"),
-    });
-    void fetchDismissalRequest(requestId)
-      .then((response) => setRequestDetail(response.request))
-      .catch(() => setReadOnlyModalError(t("operations.detail_failed")))
-      .finally(() => setReadOnlyModalLoading(false));
-  };
-
-  const openHistoryDetail = (requestId?: string) => {
-    if (!requestId) return;
-    setRequestDetail(null);
-    setPickupRecipients(null);
-    setHistoryDetail(null);
-    setReadOnlyModalError(null);
-    setReadOnlyModalLoading(true);
-    setActionModal({
-      type: "history",
-      requestId,
-      title: t("operations_actions.view_history"),
-    });
-    void fetchDismissalRequestHistoryItem(requestId)
-      .then((response) => setHistoryDetail(response.request))
-      .catch(() => setReadOnlyModalError(t("operations.detail_failed")))
-      .finally(() => setReadOnlyModalLoading(false));
   };
 
   const closeActionModal = () => {

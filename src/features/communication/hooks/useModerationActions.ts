@@ -167,7 +167,7 @@ export function useModerationActions() {
         if (mountedRef.current) setIsMutating(false);
       }
     },
-    [load, message?.id],
+    [load, message],
   );
 
   useEffect(() => {

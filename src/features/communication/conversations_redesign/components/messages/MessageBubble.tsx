@@ -227,7 +227,7 @@ export function MessageBubble({
     longPressTimerRef.current = setTimeout(() => {
       setShowMobileMenu(true);
     }, 500);
-  }, [canSwipeReply, clearLongPressTimer]);
+  }, [canSwipeReply, clearLongPressTimer, setShowMobileMenu]);
 
   const resetSwipeGesture = useCallback(() => {
     swipeGestureRef.current = null;

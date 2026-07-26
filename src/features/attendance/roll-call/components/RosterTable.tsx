@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Image from "next/image";
 import { useTranslations, useLocale } from "next-intl";
 import { User } from "lucide-react";
 import DataTable from "@/components/ui/data-table/DataTable";
@@ -51,9 +52,12 @@ export default function RosterTable({
       render: (_: unknown, row: RosterStudent) => (
         <div className="flex items-center gap-3">
           {row.photoUrl ? (
-            <img
+            <Image
               src={row.photoUrl}
               alt={locale === "ar" ? row.nameAr : row.nameEn}
+              width={32}
+              height={32}
+              unoptimized
               className="w-8 h-8 rounded-full object-cover"
             />
           ) : (

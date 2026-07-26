@@ -130,7 +130,10 @@ export default function AcademicsOverviewPage() {
     return "summary";
   }, [searchParams]);
 
-  const exportLabels = t.raw("exportLabels") as Record<string, string>;
+  const exportLabels = useMemo(
+    () => t.raw("exportLabels") as Record<string, string>,
+    [t],
+  );
 
   const tGlobal = useTranslations();
 
@@ -386,10 +389,13 @@ export default function AcademicsOverviewPage() {
     academicYearId,
     academicYears,
     exportDataset,
+    exportLabels,
     checklist,
+    lang,
     locale,
     response,
     t,
+    tGlobal,
     termId,
     terms,
     tTypes,

@@ -604,24 +604,21 @@ export default function AllocationMatrixView({
     }));
   }, [filteredSubjects, locale]);
 
-  const changedCellKeys = useMemo(() => {
-    const keys = new Set<string>();
-    matrixRows.forEach((row) => {
-      matrixColumns.forEach((column) => {
-        const target = {
-          sectionId: row.section.id,
-          classroomId: row.classroom.id,
-          subjectId: column.subject.id,
-        };
-        const originalTeacherId = teacherIdForCell(originalAllocations, target);
-        const localTeacherId = teacherIdForCell(localAllocations, target);
-        if (originalTeacherId !== localTeacherId) {
-          keys.add(teacherAllocationCellKey(row.classroom.id, column.subject.id));
-        }
-      });
+  const changedCellKeys = new Set<string>();
+  matrixRows.forEach((row) => {
+    matrixColumns.forEach((column) => {
+      const target = {
+        sectionId: row.section.id,
+        classroomId: row.classroom.id,
+        subjectId: column.subject.id,
+      };
+      const originalTeacherId = teacherIdForCell(originalAllocations, target);
+      const localTeacherId = teacherIdForCell(localAllocations, target);
+      if (originalTeacherId !== localTeacherId) {
+        changedCellKeys.add(teacherAllocationCellKey(row.classroom.id, column.subject.id));
+      }
     });
-    return keys;
-  }, [localAllocations, matrixColumns, matrixRows, originalAllocations]);
+  });
 
   useEffect(() => {
     if (!highlightedCellKey) {
@@ -636,18 +633,17 @@ export default function AllocationMatrixView({
     });
   }, [highlightedCellKey, matrixRows, matrixColumns]);
 
-  const selectedSubject = useMemo(() => {
-    if (!selectedSubjectId) return null;
-    return subjects.find((subject) => subject.id === selectedSubjectId) || null;
-  }, [selectedSubjectId, subjects]);
+  const selectedSubject = selectedSubjectId
+    ? subjects.find((subject) => subject.id === selectedSubjectId) || null
+    : null;
 
-  const clearSubjectClassroomIds = useMemo(() => {
+  const clearSubjectClassroomIds = (() => {
     const sectionIds = new Set(filteredSections.map((section) => section.id));
     return classrooms
       .filter((classroom) => sectionIds.has(classroom.sectionId))
       .filter((classroom) => !selectedClassroomId || classroom.id === selectedClassroomId)
       .map((classroom) => classroom.id);
-  }, [classrooms, filteredSections, selectedClassroomId]);
+  })();
 
   const clearSubjectScope: ClearSubjectScope | null = selectedSectionId || selectedClassroomId
     ? "classrooms"

@@ -163,7 +163,7 @@ export default function LearningContentPanel({
     setUploadStage(null);
     setUploadProgress(null);
     setIsUploadRetryAvailable(false);
-  }, []);
+  }, [setPendingArchiveItem, setPendingDeleteItem]);
 
   const loadItems = useCallback(async () => {
     setLoading(true);

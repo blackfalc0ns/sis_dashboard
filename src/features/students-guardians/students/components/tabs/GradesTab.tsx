@@ -78,8 +78,8 @@ export default function GradesTab({
     };
   }, [student.id, academicYearId, termId, t]);
 
-  const subjectRows = snapshot?.subjectRows || [];
-  const assessments = snapshot?.assessments || [];
+  const subjectRows = useMemo(() => snapshot?.subjectRows || [], [snapshot]);
+  const assessments = useMemo(() => snapshot?.assessments || [], [snapshot]);
 
   const subjectColumns = useMemo(
     () => [

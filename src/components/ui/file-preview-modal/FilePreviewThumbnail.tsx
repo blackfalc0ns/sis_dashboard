@@ -36,7 +36,11 @@ export default function FilePreviewThumbnail({ alt, fileId }: FilePreviewThumbna
   }
 
   if (file.mimeType.startsWith("image/")) {
-    return <span className={frameClass}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={file.url} alt={alt} className="h-full w-full object-cover" /></span>;
+    return <span className={frameClass}>
+      {/* Blob URLs from authenticated downloads cannot be optimized by next/image. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={file.url} alt={alt} className="h-full w-full object-cover" />
+    </span>;
   }
 
   if (file.mimeType.startsWith("video/")) {

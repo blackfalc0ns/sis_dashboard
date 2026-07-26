@@ -5,6 +5,16 @@ import type { ConversationRedesignLabels } from "@/features/communication/conver
 import type { MessageAttachment } from "@/features/communication/types/message.types";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 
+type LegacyFileMetadata = NonNullable<MessageAttachment["file"]> & {
+  displayName?: string;
+  sizeBytes?: string;
+  mimetype?: string;
+};
+
+type WindowWithWebkitAudioContext = Window & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
 export function AttachmentCard({
   attachment,
   canDelete,
@@ -19,21 +29,22 @@ export function AttachmentCard({
   onDelete: () => Promise<unknown>;
 }) {
   const file = attachment.file;
+  const legacyFile = file as LegacyFileMetadata | undefined;
   const name =
     attachment.name ||
     file?.originalName ||
     file?.filename ||
-    (file as Record<string, unknown> | undefined)?.displayName as string ||
+    legacyFile?.displayName ||
     attachment.url?.split("/").pop() ||
     labels.attachment;
   const size = formatFileSize(
     attachment.size ||
     file?.size ||
-    (file as Record<string, unknown> | undefined)?.sizeBytes as string | undefined,
+    legacyFile?.sizeBytes,
   );
   const fileId = attachment.fileId || file?.id;
   const href = attachment.url || file?.url || (fileId ? `${process.env.NEXT_PUBLIC_API_URL || "https://api.moazez.sa/api/v1"}/files/${fileId}/download` : undefined);
-  const mimeType = attachment.mimeType || file?.mimeType || (file as any)?.mimetype;
+  const mimeType = attachment.mimeType || file?.mimeType || legacyFile?.mimetype;
   const isImage = Boolean(
     mimeType?.startsWith("image/") ||
     name.toLowerCase().endsWith(".png") ||
@@ -107,7 +118,9 @@ export function AttachmentCard({
 
         if (isAudio) {
           // Web Audio API Peak analysis
-          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+          const AudioContextClass =
+            window.AudioContext ||
+            (window as WindowWithWebkitAudioContext).webkitAudioContext;
           if (typeof AudioContextClass !== "undefined") {
             const arrayBuffer = await blob.arrayBuffer();
             
@@ -311,6 +324,8 @@ export function AttachmentCard({
           className="relative overflow-hidden rounded-2xl border border-slate-200/50 bg-slate-50/50 max-w-[240px] sm:max-w-[280px] max-h-[240px] sm:max-h-[280px] flex items-center justify-center group cursor-pointer"
           onClick={() => window.open(mediaUrl || href, "_blank")}
         >
+          {/* Attachment URLs may be authenticated blob URLs and cannot be optimized by next/image. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={mediaUrl || href}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"

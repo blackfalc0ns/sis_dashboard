@@ -715,21 +715,12 @@ export default function TimetableView({
     ? sections.find((item) => item.id === editingSlot.sectionId)
     : selectedSection;
   const editingGradeId = editingSection?.gradeId ?? selectedGradeId;
-  const editableSlotSubjects = useMemo(
-    () =>
-      subjectOptionsForGradeAllocations({
-        subjects,
-        subjectAllocations,
-        gradeId: editingGradeId,
-        currentSubjectId: editingSlot?.entry?.subjectId,
-      }),
-    [
-      editingGradeId,
-      editingSlot?.entry?.subjectId,
-      subjectAllocations,
-      subjects,
-    ],
-  );
+  const editableSlotSubjects = subjectOptionsForGradeAllocations({
+    subjects,
+    subjectAllocations,
+    gradeId: editingGradeId,
+    currentSubjectId: editingSlot?.entry?.subjectId,
+  });
   const displayedClassrooms = useMemo(() => {
     if (selectedClassroom) {
       return [selectedClassroom];
@@ -943,7 +934,7 @@ export default function TimetableView({
   const schoolName = brandingProfile?.schoolName.trim() || tRoot("school_name");
   const printLogoUrl = "/images/logo/moazzez_logo.svg";
 
-  const selectedPrintTarget = useMemo(() => {
+  const selectedPrintTarget = (() => {
     if (selectedClassroom) {
       return {
         label: t("target.classroom"),
@@ -969,14 +960,7 @@ export default function TimetableView({
       };
     }
     return null;
-  }, [
-    getDisplayName,
-    selectedClassroom,
-    selectedGrade,
-    selectedSection,
-    selectedStage,
-    t,
-  ]);
+  })();
 
   if (!canViewTimetable) {
     return (

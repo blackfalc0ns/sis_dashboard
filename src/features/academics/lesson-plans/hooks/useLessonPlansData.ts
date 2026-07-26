@@ -495,6 +495,7 @@ export function useLessonPlansData(params: Params) {
     selectedSectionId,
     selectedSubjectId,
     termId,
+    refreshSummaryAndValidation,
   ]);
 
   useEffect(() => {

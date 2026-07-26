@@ -94,7 +94,6 @@ export function MessagesPanel({
   // Scroll to bottom on initial load and when new messages arrive at the bottom
   // The unread jump control depends on measured scroll position, which is not
   // available during render.
-  /* eslint-disable react-hooks/set-state-in-effect */
   useLayoutEffect(() => {
     if (!scrollRef.current) return;
     const container = scrollRef.current;
@@ -141,7 +140,6 @@ export function MessagesPanel({
 
     messageSnapshotRef.current = current;
   }, [currentUserId, messages]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (wasLoadingOlderRef.current && !isLoadingOlder) {
