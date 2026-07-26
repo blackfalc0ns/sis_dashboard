@@ -112,8 +112,11 @@ export default function NedaaSettingsView({
           <p className="mt-1 text-sm text-gray-500">{t("settings.subtitle")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={onOpenExport}>
-            <Download className="h-4 w-4" />
+          <Button
+            variant="outline"
+            onClick={onOpenExport}
+            leftIcon={<Download className="h-4 w-4" />}
+          >
             {t("export.button")}
           </Button>
           <Button

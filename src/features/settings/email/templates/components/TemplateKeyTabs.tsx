@@ -33,7 +33,7 @@ export default function TemplateKeyTabs({
           <button
             key={key}
             type="button"
-            className={`shrink-0 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+            className={`shrink-0 flex gap-1 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
               isSelected
                 ? "border-primary bg-primary text-white"
                 : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
@@ -41,15 +41,15 @@ export default function TemplateKeyTabs({
             onClick={() => onSelect(key)}
           >
             <span>{labels[key]}</span>
-            <span
-              className={`mx-2.5 rounded-full px-2 py-0.5 text-xs ${
+            <div
+              className={`rounded-full px-2 py-0.5 text-xs ${
                 isSelected
                   ? "bg-white/20 text-white"
                   : "bg-gray-100 text-gray-600"
               }`}
             >
               {template?.isActive ? activeLabel : inactiveLabel}
-            </span>
+            </div>
           </button>
         );
       })}
