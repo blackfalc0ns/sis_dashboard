@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Save, RotateCcw } from "lucide-react";
@@ -77,17 +77,22 @@ export default function AllocationMatrix({
     queryState;
 
   const [localAllocations, setLocalAllocations] = useState<SubjectAllocation[]>(
-    [],
+    allocations,
   );
   const [originalAllocations, setOriginalAllocations] = useState<
     SubjectAllocation[]
-  >([]);
+  >(allocations);
+  const previousAllocationsRef = useRef(allocations);
   const [isSaving, setIsSaving] = useState(false);
   const [focusedCell, setFocusedCell] = useState<string | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
 
   // Initialize local allocations
   useEffect(() => {
+    if (previousAllocationsRef.current === allocations) {
+      return;
+    }
+    previousAllocationsRef.current = allocations;
     void Promise.resolve().then(() => {
       setLocalAllocations(allocations);
       setOriginalAllocations(allocations);

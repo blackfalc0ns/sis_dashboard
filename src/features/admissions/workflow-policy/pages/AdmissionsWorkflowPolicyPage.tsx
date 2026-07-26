@@ -21,7 +21,9 @@ export default function AdmissionsWorkflowPolicyPage() {
   const canView = hasPermission("admissions.applications.view");
   const canManage = hasPermission("admissions.applications.manage");
   const [policy, setPolicy] = useState<AdmissionWorkflowPolicy | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(
+    () => !isPermissionsReady || canView,
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
@@ -39,10 +41,11 @@ export default function AdmissionsWorkflowPolicyPage() {
   }, [canView]);
 
   useEffect(() => {
-    if (isPermissionsReady && canView) void Promise.resolve().then(loadPolicy);
-    else if (isPermissionsReady) {
-      void Promise.resolve().then(() => setIsLoading(false));
+    if (!isPermissionsReady || !canView) {
+      return;
     }
+
+    void Promise.resolve().then(loadPolicy);
   }, [canView, isPermissionsReady, loadPolicy]);
 
   const savePolicy = async (changes: UpdateAdmissionWorkflowPolicy) => {

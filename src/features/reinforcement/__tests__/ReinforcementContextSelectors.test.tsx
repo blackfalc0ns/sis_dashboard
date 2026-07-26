@@ -123,7 +123,20 @@ describe("Reinforcement context selector components", () => {
       structureTree,
     );
     subjectMocks.fetchSubjectAllocations.mockReset().mockResolvedValue([
-      { id: "subject-1", termId: "term-1", nameEn: "Math", nameAr: "رياضيات" },
+      {
+        id: "allocation-1",
+        termId: "term-1",
+        gradeId: "grade-1",
+        subjectId: "subject-1",
+        weeklyHours: 4,
+        subject: {
+          id: "subject-1",
+          nameEn: "Math",
+          nameAr: "Math AR",
+          code: "MATH",
+          color: null,
+        },
+      },
     ]);
     studentMocks.fetchStudentsWithEnrollmentForContext
       .mockReset()
@@ -171,7 +184,7 @@ describe("Reinforcement context selector components", () => {
         termId: "term-1",
       });
       expect(academicMocks.fetchAcademicStructureTree).not.toHaveBeenCalled();
-      expect(subjectMocks.fetchSubjectAllocations).not.toHaveBeenCalled();
+      expect(subjectMocks.fetchSubjectAllocations).toHaveBeenCalledWith("term-1");
       expect(studentMocks.fetchStudentsWithEnrollmentForContext).not.toHaveBeenCalled();
     });
   });

@@ -224,6 +224,13 @@ export default function RegistrationWizardPage() {
   const [years, setYears] = useState<AcademicYear[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [tree, setTree] = useState<StructureTree | null>(null);
+  const academicYearId = form.enrollment.academicYearId;
+  const termId = form.enrollment.termId;
+  const previousAcademicYearIdRef = useRef(academicYearId);
+  const previousStructureSelectionRef = useRef({
+    academicYearId,
+    termId,
+  });
   const hasExisting = form.guardians.some(
     (guardian) => guardian.mode === "existing",
   );
@@ -236,26 +243,33 @@ export default function RegistrationWizardPage() {
       .catch(() => setErrors([t("errors.load_years_failed")]));
   }, [t]);
   useEffect(() => {
-    if (!form.enrollment.academicYearId) {
-      void Promise.resolve().then(() => setTerms([]));
+    const previousAcademicYearId = previousAcademicYearIdRef.current;
+    previousAcademicYearIdRef.current = academicYearId;
+
+    if (!academicYearId) {
+      if (previousAcademicYearId) {
+        void Promise.resolve().then(() => setTerms([]));
+      }
       return;
     }
-    void fetchTermsByYear(form.enrollment.academicYearId)
+    void fetchTermsByYear(academicYearId)
       .then(setTerms)
       .catch(() => setTerms([]));
-  }, [form.enrollment.academicYearId]);
+  }, [academicYearId]);
   useEffect(() => {
-    if (!form.enrollment.academicYearId || !form.enrollment.termId) {
-      void Promise.resolve().then(() => setTree(null));
+    const previousSelection = previousStructureSelectionRef.current;
+    previousStructureSelectionRef.current = { academicYearId, termId };
+
+    if (!academicYearId || !termId) {
+      if (previousSelection.academicYearId && previousSelection.termId) {
+        void Promise.resolve().then(() => setTree(null));
+      }
       return;
     }
-    void fetchStructureTree(
-      form.enrollment.academicYearId,
-      form.enrollment.termId,
-    )
+    void fetchStructureTree(academicYearId, termId)
       .then(setTree)
       .catch(() => setTree(null));
-  }, [form.enrollment.academicYearId, form.enrollment.termId]);
+  }, [academicYearId, termId]);
 
   const updateGuardian = (
     key: string,

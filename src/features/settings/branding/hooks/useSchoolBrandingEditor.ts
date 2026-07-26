@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getEmptyBrandingProfile } from "../../services/brandingService";
 import type {
   ResolvedSchoolLocation,
@@ -49,8 +49,13 @@ export function useSchoolBrandingEditor({
   const [logoError, setLogoError] = useState("");
   const [logoStatus, setLogoStatus] = useState("");
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const previousInitialProfileRef = useRef(initialProfile);
 
   useEffect(() => {
+    if (previousInitialProfileRef.current === initialProfile) {
+      return;
+    }
+    previousInitialProfileRef.current = initialProfile;
     void Promise.resolve().then(() => {
       setProfile(cloneProfile(initialProfile));
       setSavedProfile(cloneProfile(initialProfile));

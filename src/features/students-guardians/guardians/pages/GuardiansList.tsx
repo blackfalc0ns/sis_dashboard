@@ -60,7 +60,7 @@ export default function GuardiansList() {
   const params = useParams();
   const lang = (params.lang as string) || "en";
   const [guardians, setGuardians] = useState<StudentGuardian[]>([]);
-  const [isPageLoading, setIsPageLoading] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
 
   // Filters

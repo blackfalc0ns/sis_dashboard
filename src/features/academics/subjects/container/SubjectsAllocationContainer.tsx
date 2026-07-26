@@ -41,13 +41,15 @@ export default function SubjectsAllocationContainer() {
     terms,
   } = useAcademicYearTermLayoutContext();
   const { hasPermission } = usePermissions();
+  const canView = hasPermission("academics.subjects.view");
+  const canManage = hasPermission("academics.subjects.manage");
 
   // Data
   const [stages, setStages] = useState<Stage[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [allocations, setAllocations] = useState<SubjectAllocation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(canView);
   const [isMatrixLoading, setIsMatrixLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [apiErrorTraceId, setApiErrorTraceId] = useState<string | undefined>();
@@ -65,8 +67,6 @@ export default function SubjectsAllocationContainer() {
     [searchParams]
   );
 
-  const canView = hasPermission("academics.subjects.view");
-  const canManage = hasPermission("academics.subjects.manage");
   const isReadOnly = termStatus === "closed" || !canManage;
 
   const loadSubjectAllocationData = useCallback(async () => {
@@ -127,8 +127,11 @@ export default function SubjectsAllocationContainer() {
 
   // Load data when year/term changes
   useEffect(() => {
+    if (!canView) {
+      return;
+    }
     void Promise.resolve().then(loadSubjectAllocationData);
-  }, [loadSubjectAllocationData]);
+  }, [canView, loadSubjectAllocationData]);
 
   const contextBarActions = useMemo(
     () => ({

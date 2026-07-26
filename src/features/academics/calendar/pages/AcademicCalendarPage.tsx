@@ -148,7 +148,7 @@ export default function AcademicCalendarPage() {
   const [currentDate, setCurrentDate] = useState(queryState.currentDate);
   const [events, setEvents] = useState<AcademicEvent[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<AcademicEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(canView);
 
   // Scope options
   const [stages, setStages] = useState<CalendarScopeTargetOption[]>([]);
@@ -157,6 +157,10 @@ export default function AcademicCalendarPage() {
 
   // Load structure data for scope target filter
   useEffect(() => {
+    if (!canView) {
+      return;
+    }
+
     const requestId = ++structureRequestIdRef.current;
 
     if (!academicYearId || !termId) {
@@ -210,7 +214,7 @@ export default function AcademicCalendarPage() {
         setGrades([]);
         setSections([]);
       });
-  }, [academicYearId, termId]);
+  }, [academicYearId, canView, termId]);
 
   // View and display mode state
   const [view, setView] = useState<"month" | "week" | "agenda">(queryState.view);
@@ -419,17 +423,20 @@ export default function AcademicCalendarPage() {
 
   // Load events when dependencies change
   useEffect(() => {
-    if (isInitializing) {
+    if (!canView || isInitializing) {
       return;
     }
 
     void Promise.resolve().then(loadEvents);
-  }, [isInitializing, loadEvents]);
+  }, [canView, isInitializing, loadEvents]);
 
   // Apply filters when events or filters change
   useEffect(() => {
+    if (!canView) {
+      return;
+    }
     void Promise.resolve().then(() => setFilteredEvents(filterEvents(events)));
-  }, [events, filterEvents]);
+  }, [canView, events, filterEvents]);
 
   const updateURL = useCallback(
     (

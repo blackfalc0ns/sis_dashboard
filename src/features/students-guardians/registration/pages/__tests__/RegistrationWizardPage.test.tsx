@@ -1,9 +1,9 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ useParams: () => ({ lang: "en" }), useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@/features/academics/academic-structure-tree/services/structureService", () => ({
-  fetchAcademicYears: vi.fn().mockResolvedValue([]), fetchTermsByYear: vi.fn().mockResolvedValue([]), fetchStructureTree: vi.fn().mockResolvedValue(null),
+  fetchAcademicYears: vi.fn(() => new Promise(() => undefined)), fetchTermsByYear: vi.fn().mockResolvedValue([]), fetchStructureTree: vi.fn().mockResolvedValue(null),
 }));
 
 const translations: Record<string, string> = {
@@ -99,8 +99,8 @@ import RegistrationWizardPage from "@/features/students-guardians/registration/p
 describe("RegistrationWizardPage step navigation", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("keeps the user on the current step when validation fails", async () => {
-    await act(async () => render(<RegistrationWizardPage />));
+  it("keeps the user on the current step when validation fails", () => {
+    render(<RegistrationWizardPage />);
 
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
 
@@ -109,8 +109,8 @@ describe("RegistrationWizardPage step navigation", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("at least two words");
   });
 
-  it("keeps native input values in wizard state across step navigation", async () => {
-    await act(async () => render(<RegistrationWizardPage />));
+  it("keeps native input values in wizard state across step navigation", () => {
+    render(<RegistrationWizardPage />);
 
     fireEvent.input(screen.getByLabelText(/English full name/), { target: { value: "Ahmed Mostafa" } });
     fireEvent.input(screen.getByLabelText("Date of birth"), { target: { value: "2015-05-10" } });

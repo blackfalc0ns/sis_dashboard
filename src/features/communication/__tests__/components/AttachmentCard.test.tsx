@@ -38,6 +38,7 @@ describe("AttachmentCard Voice Waveform", () => {
   });
 
   it("displays error message if fetching audio file fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
     const attachment: MessageAttachment = {
       id: "attachment-1",
       fileId: "file-audio-1",
@@ -273,6 +274,7 @@ describe("AttachmentCard Voice Waveform", () => {
   });
 
   it("falls back to default peaks if decoding audio data fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
     const mockAudioContext = {
       decodeAudioData: vi.fn().mockRejectedValue(new Error("Decode error")),
       close: vi.fn().mockResolvedValue(undefined),

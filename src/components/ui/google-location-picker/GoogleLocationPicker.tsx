@@ -86,9 +86,15 @@ export default function GoogleLocationPicker({
   const geocoderRef = useRef<GoogleGeocoder | null>(null);
   const mountedRef = useRef(true);
   const requestIdRef = useRef(0);
-  const [query, setQuery] = useState(
-    value?.formattedAddress || value?.label || "",
-  );
+  const controlledLatitude = value?.latitude;
+  const controlledLongitude = value?.longitude;
+  const controlledQuery = value?.formattedAddress || value?.label || "";
+  const previousCoordinatesRef = useRef({
+    latitude: controlledLatitude,
+    longitude: controlledLongitude,
+  });
+  const previousQueryRef = useRef(controlledQuery);
+  const [query, setQuery] = useState(controlledQuery);
   const [predictions, setPredictions] = useState<GooglePlacePrediction[]>([]);
   const [draft, setDraft] = useState({
     latitude: value ? String(value.latitude) : "",
@@ -106,9 +112,6 @@ export default function GoogleLocationPicker({
   const [errorKey, setErrorKey] = useState<keyof typeof labels.errors | null>(
     apiKey ? null : "api_key_missing",
   );
-  const controlledLatitude = value?.latitude;
-  const controlledLongitude = value?.longitude;
-
   useEffect(() => {
     return () => {
       mountedRef.current = false;
@@ -118,6 +121,18 @@ export default function GoogleLocationPicker({
   }, []);
 
   useEffect(() => {
+    const previousCoordinates = previousCoordinatesRef.current;
+    if (
+      previousCoordinates.latitude === controlledLatitude &&
+      previousCoordinates.longitude === controlledLongitude
+    ) {
+      return;
+    }
+    previousCoordinatesRef.current = {
+      latitude: controlledLatitude,
+      longitude: controlledLongitude,
+    };
+
     void Promise.resolve().then(() => {
       setDraft({
         latitude:
@@ -129,14 +144,12 @@ export default function GoogleLocationPicker({
   }, [controlledLatitude, controlledLongitude]);
 
   useEffect(() => {
-    if (value) {
-      void Promise.resolve().then(() => {
-        setQuery(value.formattedAddress || value.label || "");
-      });
-    } else {
-      void Promise.resolve().then(() => setQuery(""));
+    if (previousQueryRef.current === controlledQuery) {
+      return;
     }
-  }, [value]);
+    previousQueryRef.current = controlledQuery;
+    void Promise.resolve().then(() => setQuery(controlledQuery));
+  }, [controlledQuery]);
 
 
   const updateMapPosition = useCallback((position: GoogleLatLngLiteral) => {

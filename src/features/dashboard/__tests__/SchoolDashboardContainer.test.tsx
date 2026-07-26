@@ -8,6 +8,8 @@ import {
   fetchDashboardSummary,
   fetchDashboardModules,
   fetchDashboardModuleByKey,
+  fetchDashboardWidgets,
+  fetchLightModeDropdown,
 } from "@/features/dashboard/services/dashboardApiService";
 import {
   dashboardActivityFeedResponse,
@@ -25,6 +27,8 @@ vi.mock("@/features/dashboard/services/dashboardApiService", () => ({
   fetchDashboardActivityFeed: vi.fn(),
   fetchDashboardModules: vi.fn(),
   fetchDashboardModuleByKey: vi.fn(),
+  fetchDashboardWidgets: vi.fn(),
+  fetchLightModeDropdown: vi.fn(),
 }));
 
 vi.mock("@/features/onboarding/components/SetupGuideCard", () => ({
@@ -47,6 +51,8 @@ const mockedFetchDashboardAlerts = vi.mocked(fetchDashboardAlerts);
 const mockedFetchDashboardActivityFeed = vi.mocked(fetchDashboardActivityFeed);
 const mockedFetchDashboardModules = vi.mocked(fetchDashboardModules);
 const mockedFetchDashboardModuleByKey = vi.mocked(fetchDashboardModuleByKey);
+const mockedFetchDashboardWidgets = vi.mocked(fetchDashboardWidgets);
+const mockedFetchLightModeDropdown = vi.mocked(fetchLightModeDropdown);
 type DashboardModulesResult = Awaited<ReturnType<typeof fetchDashboardModules>>;
 type DashboardModuleResult = Awaited<ReturnType<typeof fetchDashboardModuleByKey>>;
 
@@ -57,6 +63,48 @@ describe("SchoolDashboardContainer", () => {
     mockedFetchDashboardActivityFeed.mockReset();
     mockedFetchDashboardModules.mockReset();
     mockedFetchDashboardModuleByKey.mockReset();
+    mockedFetchDashboardWidgets.mockReset().mockResolvedValue({
+      generatedAt: "2026-07-15T09:00:00.000Z",
+      widgets: [],
+      summary: { total: 0, byType: {}, bySource: {} },
+      filters: { source: null, type: null, limit: 4 },
+      deferred: {
+        customLayouts: "deferred",
+        widgetPreferences: "deferred",
+        analyticsCharts: "available",
+        weatherWidgets: "deferred",
+        todoWidgets: "available",
+        analyticsStandalone: "available",
+        todosStandalone: "persisted",
+        calendarTodoComposition: "available",
+        plannerCalendar: "available",
+        crossModulePlannerItems: "available",
+      },
+    });
+    mockedFetchLightModeDropdown.mockReset().mockResolvedValue({
+      location: {
+        label: "Cairo Campus",
+        city: "Cairo",
+        country: "Egypt",
+        timezone: "Africa/Cairo",
+      },
+      weather: {
+        status: "provider_not_configured",
+        current: {
+          temperature: null,
+          lowTemperature: null,
+          feelsLike: null,
+          condition: "Weather unavailable",
+        },
+        emptyState: { message: "Weather provider is not configured." },
+      },
+      planner: {
+        date: "2026-07-15",
+        timezone: "Africa/Cairo",
+        eventDates: [],
+        todos: [],
+      },
+    });
     
     // Set default mock response so existing tests pass
     mockedFetchDashboardModules.mockResolvedValue([

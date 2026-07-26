@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Save, RotateCcw, AlertCircle, Users, Trash2 } from "lucide-react";
@@ -166,8 +166,11 @@ export default function AllocationMatrixView({
     highlightedCellKey,
   } = queryState;
 
-  const [localAllocations, setLocalAllocations] = useState<TeacherAllocation[]>([]);
-  const [originalAllocations, setOriginalAllocations] = useState<TeacherAllocation[]>([]);
+  const [localAllocations, setLocalAllocations] =
+    useState<TeacherAllocation[]>(teacherAllocations);
+  const [originalAllocations, setOriginalAllocations] =
+    useState<TeacherAllocation[]>(teacherAllocations);
+  const previousTeacherAllocationsRef = useRef(teacherAllocations);
   const [isSaving, setIsSaving] = useState(false);
   const [isClearingSubject, setIsClearingSubject] = useState(false);
   const [operationError, setOperationError] = useState<OperationError | null>(null);
@@ -180,6 +183,11 @@ export default function AllocationMatrixView({
   const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
+    if (previousTeacherAllocationsRef.current === teacherAllocations) {
+      return;
+    }
+    previousTeacherAllocationsRef.current = teacherAllocations;
+
     void Promise.resolve().then(() => {
       setLocalAllocations(teacherAllocations);
       setOriginalAllocations(teacherAllocations);

@@ -10,6 +10,16 @@ import type {
   CreateConversationDialogProps,
 } from "@/features/communication/components/conversations/CreateConversationDialog";
 
+vi.mock("@/features/communication/api/communication-selectors.service", () => ({
+  searchAcademicYears: vi.fn().mockResolvedValue([]),
+  searchTerms: vi.fn().mockResolvedValue([]),
+  searchStages: vi.fn().mockResolvedValue([]),
+  searchGrades: vi.fn().mockResolvedValue([]),
+  searchSections: vi.fn().mockResolvedValue([]),
+  searchClassrooms: vi.fn().mockResolvedValue([]),
+  searchSubjects: vi.fn().mockResolvedValue([]),
+}));
+
 const labels: CreateConversationDialogLabels = {
   createTitle: "Create Conversation",
   editTitle: "Edit Conversation",

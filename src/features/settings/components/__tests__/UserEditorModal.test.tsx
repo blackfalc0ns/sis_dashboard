@@ -29,7 +29,7 @@ describe("UserEditorModal Sprint 11 behavior", () => {
       available: true,
     });
 
-    const { container } = render(
+    render(
       <UserEditorModal
         isOpen
         mode="create"
@@ -39,10 +39,12 @@ describe("UserEditorModal Sprint 11 behavior", () => {
       />,
     );
 
-    const inputs = container.querySelectorAll("input");
-    await user.type(inputs[0], "Amina Teacher");
-    await user.type(inputs[1], "amina");
-    await user.type(inputs[2], "amina.personal@example.com");
+    await user.type(screen.getByLabelText("table.name"), "Amina Teacher");
+    await user.type(screen.getByLabelText("table.username"), "amina");
+    await user.type(
+      screen.getByLabelText("table.contact_email"),
+      "amina.personal@example.com",
+    );
     await user.click(screen.getByRole("button", { name: "save" }));
 
     await waitFor(() => {

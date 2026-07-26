@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { teacherFixture } from "@/features/teachers/__tests__/fixtures";
@@ -39,12 +39,24 @@ describe("teacher form dialogs", () => {
 
     await user.click(screen.getByLabelText("form.identity_modes.loginEmail"));
     expect(screen.getByText("form.legacy_login_email_help")).toBeVisible();
-    await user.type(screen.getByLabelText(/fields.login_email/), "nour@school.example");
-    await user.type(screen.getByLabelText(/fields.code/), "tch 001");
-    await user.type(screen.getByLabelText(/fields\.first_name \(arabic\)/), "نور");
-    await user.type(screen.getByLabelText(/fields\.first_name \(english\)/), "Nour");
-    await user.type(screen.getByLabelText(/fields\.last_name \(arabic\)/), "علي");
-    await user.type(screen.getByLabelText(/fields\.last_name \(english\)/), "Ali");
+    fireEvent.change(screen.getByLabelText(/fields.login_email/), {
+      target: { value: "nour@school.example" },
+    });
+    fireEvent.change(screen.getByLabelText(/fields.code/), {
+      target: { value: "tch 001" },
+    });
+    fireEvent.change(screen.getByLabelText(/fields\.first_name \(arabic\)/), {
+      target: { value: "نور" },
+    });
+    fireEvent.change(screen.getByLabelText(/fields\.first_name \(english\)/), {
+      target: { value: "Nour" },
+    });
+    fireEvent.change(screen.getByLabelText(/fields\.last_name \(arabic\)/), {
+      target: { value: "علي" },
+    });
+    fireEvent.change(screen.getByLabelText(/fields\.last_name \(english\)/), {
+      target: { value: "Ali" },
+    });
     await user.click(screen.getByLabelText(/fields.gender/));
     await user.click(screen.getByRole("button", { name: "gender.female" }));
     await user.click(screen.getByRole("button", { name: "dialog.create_action" }));

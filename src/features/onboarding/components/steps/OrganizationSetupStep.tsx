@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Button from "@/components/ui/button/Button";
 import { SchoolBrandingEditor } from "@/features/settings/branding/components/SchoolBrandingEditor";
 import type { SchoolBrandingFormCopy } from "@/features/settings/branding/components/SchoolBrandingEditor";
@@ -134,8 +134,14 @@ export function OrganizationSetupStep({
     createInitialProfile(profile),
   );
   const [isEditing, setIsEditing] = useState(profile === null);
+  const previousProfileRef = useRef(profile);
 
   useEffect(() => {
+    if (previousProfileRef.current === profile) {
+      return;
+    }
+    previousProfileRef.current = profile;
+
     void Promise.resolve().then(() => {
       setSavedProfile(createInitialProfile(profile));
     });

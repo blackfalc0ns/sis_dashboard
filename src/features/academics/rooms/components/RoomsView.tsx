@@ -96,7 +96,7 @@ export default function RoomsView({
   const canMutateRooms = canManageRooms && !isReadOnly;
 
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(canViewRooms);
   const [loadError, setLoadError] = useState<string | null>(null);
   const queryState = useMemo<RoomsQueryState>(
     () => ({
@@ -181,8 +181,11 @@ export default function RoomsView({
   }, [canViewRooms, schoolId, showToast, t]);
 
   useEffect(() => {
+    if (!canViewRooms) {
+      return;
+    }
     void Promise.resolve().then(loadRooms);
-  }, [loadRooms]);
+  }, [canViewRooms, loadRooms]);
 
   const openAddRoomDialog = () => {
     if (!canMutateRooms) return;

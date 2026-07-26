@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import Modal from "@/components/ui/modal/Modal";
@@ -53,10 +53,14 @@ export default function UserEditorModal({
 }: UserEditorModalProps) {
   const t = useTranslations("settings.users");
   const tCommon = useTranslations("common");
-  const [fullName, setFullName] = useState("");
-  const [username, setUsername] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [roleId, setRoleId] = useState("");
+  const [fullName, setFullName] = useState(() => user?.fullName || "");
+  const [username, setUsername] = useState(() => user?.username || "");
+  const [contactEmail, setContactEmail] = useState(
+    () => user?.contactEmail || "",
+  );
+  const [roleId, setRoleId] = useState(
+    () => user?.roleId || roles[0]?.id || "",
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [preview, setPreview] = useState<UsernamePreviewResponse | null>(null);
   const [availability, setAvailability] =
@@ -67,9 +71,25 @@ export default function UserEditorModal({
   const usesUsernameFlow = mode !== "edit";
   const generatedLoginEmail = preview?.loginEmail || user?.email || "";
   const isUsernameAvailable = availability?.available ?? null;
+  const previousOpenRef = useRef(isOpen);
+  const previousModeRef = useRef(mode);
+  const previousUserRef = useRef(user);
+  const rolesKey = roles.map((role) => role.id).join("|");
+  const previousRolesKeyRef = useRef(rolesKey);
 
   useEffect(() => {
-    if (!isOpen) {
+    const opened = isOpen && !previousOpenRef.current;
+    const targetChanged =
+      isOpen &&
+      (previousModeRef.current !== mode ||
+        previousUserRef.current !== user ||
+        previousRolesKeyRef.current !== rolesKey);
+    previousOpenRef.current = isOpen;
+    previousModeRef.current = mode;
+    previousUserRef.current = user;
+    previousRolesKeyRef.current = rolesKey;
+
+    if (!isOpen || (!opened && !targetChanged)) {
       return;
     }
     void Promise.resolve().then(() => {
@@ -82,7 +102,7 @@ export default function UserEditorModal({
       setAvailability(null);
       setIdentityError(null);
     });
-  }, [isOpen, roles, user]);
+  }, [isOpen, mode, roles, rolesKey, user]);
 
   useEffect(() => {
     if (!isOpen || !usesUsernameFlow) {

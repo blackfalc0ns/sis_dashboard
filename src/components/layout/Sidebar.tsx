@@ -40,6 +40,49 @@ interface SidebarProps {
   isRTL?: boolean;
 }
 
+function getActiveExpandedKeys(
+  items: ReadonlyArray<(typeof menuItems)[number]>,
+  pathname: string,
+  isArabic: boolean,
+) {
+  return items.reduce<string[]>((nextExpandedKeys, item) => {
+    if (!item.children) {
+      return nextExpandedKeys;
+    }
+
+    const isChildActive = item.children.some((child) => {
+      const childHref = isArabic ? child.href_ar : child.href_en;
+      if (pathname === childHref) return true;
+
+      return child.children?.some((grandchild) => {
+        const grandchildHref = isArabic
+          ? grandchild.href_ar
+          : grandchild.href_en;
+        return pathname === grandchildHref;
+      });
+    });
+
+    if (isChildActive) {
+      nextExpandedKeys.push(item.key);
+    }
+
+    item.children.forEach((child) => {
+      const isGrandchildActive = child.children?.some((grandchild) => {
+        const grandchildHref = isArabic
+          ? grandchild.href_ar
+          : grandchild.href_en;
+        return pathname === grandchildHref;
+      });
+
+      if (isGrandchildActive) {
+        nextExpandedKeys.push(child.key);
+      }
+    });
+
+    return nextExpandedKeys;
+  }, []);
+}
+
 export default function Sidebar({
   onSelect,
   schoolName = "School Name",
@@ -60,9 +103,11 @@ export default function Sidebar({
     string | null
   >(null);
   const [collapsedFlyoutTop, setCollapsedFlyoutTop] = useState(0);
-  const lastAutoExpandedPathRef = useRef<string | null>(null);
-
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const lastAutoExpandedPathRef = useRef(pathname);
+  const previousIsOpenRef = useRef(isOpen);
+  const [expandedItems, setExpandedItems] = useState<string[]>(() =>
+    getActiveExpandedKeys(menuItems, pathname, isArabic),
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchSnapshotRef = useRef<string[] | null>(null);
@@ -115,7 +160,9 @@ export default function Sidebar({
   }, [pathname]);
 
   useEffect(() => {
-    if (isOpen) {
+    const wasOpen = previousIsOpenRef.current;
+    previousIsOpenRef.current = isOpen;
+    if (isOpen && !wasOpen) {
       void Promise.resolve().then(() => setHoveredCollapsedItemKey(null));
     }
   }, [isOpen]);
@@ -172,44 +219,10 @@ export default function Sidebar({
       return;
     }
 
-    const activeExpandedKeys = visibleMenuItems.reduce<string[]>(
-      (nextExpandedKeys, item) => {
-        if (!item.children) {
-          return nextExpandedKeys;
-        }
-
-        const isChildActive = item.children.some((child) => {
-          const childHref = isArabic ? child.href_ar : child.href_en;
-          if (pathname === childHref) return true;
-
-          return child.children?.some((grandchild) => {
-            const grandchildHref = isArabic
-              ? grandchild.href_ar
-              : grandchild.href_en;
-            return pathname === grandchildHref;
-          });
-        });
-
-        if (isChildActive && !nextExpandedKeys.includes(item.key)) {
-          nextExpandedKeys.push(item.key);
-        }
-
-        item.children.forEach((child) => {
-          const isGrandchildActive = child.children?.some((grandchild) => {
-            const grandchildHref = isArabic
-              ? grandchild.href_ar
-              : grandchild.href_en;
-            return pathname === grandchildHref;
-          });
-
-          if (isGrandchildActive && !nextExpandedKeys.includes(child.key)) {
-            nextExpandedKeys.push(child.key);
-          }
-        });
-
-        return nextExpandedKeys;
-      },
-      [],
+    const activeExpandedKeys = getActiveExpandedKeys(
+      visibleMenuItems,
+      pathname,
+      isArabic,
     );
 
     if (activeExpandedKeys.length === 0) {

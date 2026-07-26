@@ -65,7 +65,7 @@ export function useApplicationRegistration({
 }: RegistrationHookOptions) {
   const [form, setForm] = useState(() => emptyRegistrationForm(studentName));
   const [context, setContext] = useState<RegistrationContext | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(enabled);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

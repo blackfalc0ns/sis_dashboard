@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ReinforcementProgressTab from "../ReinforcementProgressTab";
 import { getStudentReinforcementProgress } from "@/features/reinforcement/services/reinforcementOverviewService";
+import type { StudentReinforcementProgress } from "@/features/reinforcement/types";
 
 const permissionState = vi.hoisted(() => ({ canView: true }));
 
@@ -27,12 +28,73 @@ vi.mock("@/features/reinforcement/services/reinforcementOverviewService", () => 
 }));
 
 const response = {
-  studentId: "student-1",
-  student: { name: "Ali Dahshan" },
-  assignments: { total: 1, completed: 1 },
-  tasks: [{ taskId: "task-1", status: "completed", task: { id: "task-1", titleEn: "Mission One" } }],
-  xp: { totalXp: 10, recentLedgerEntries: [] },
-};
+  student: {
+    id: "student-1",
+    firstName: "Ali",
+    lastName: "Dahshan",
+    name: "Ali Dahshan",
+    nameAr: null,
+    code: null,
+    admissionNo: null,
+  },
+  enrollment: {
+    enrollmentId: "enrollment-1",
+    classroomId: "classroom-1",
+    sectionId: "section-1",
+    gradeId: "grade-1",
+    stageId: "stage-1",
+  },
+  assignments: {
+    total: 1,
+    notCompleted: 0,
+    inProgress: 0,
+    underReview: 0,
+    completed: 1,
+    cancelled: 0,
+    completionRate: 100,
+  },
+  tasks: [
+    {
+      taskId: "task-1",
+      assignmentId: "assignment-1",
+      status: "completed",
+      progress: 100,
+      assignedAt: "2026-07-01T08:00:00.000Z",
+      startedAt: "2026-07-01T09:00:00.000Z",
+      completedAt: "2026-07-02T09:00:00.000Z",
+      cancelledAt: null,
+      task: {
+        id: "task-1",
+        academicYearId: "year-1",
+        termId: "term-1",
+        subjectId: null,
+        titleEn: "Mission One",
+        titleAr: "Mission One AR",
+        source: "teacher",
+        status: "completed",
+        dueDate: null,
+        assignedById: "teacher-1",
+        assignedByName: "Teacher One",
+        createdAt: "2026-07-01T08:00:00.000Z",
+        updatedAt: "2026-07-02T09:00:00.000Z",
+      },
+    },
+  ],
+  submissions: {
+    submitted: 0,
+    approved: 1,
+    rejected: 0,
+    pendingReview: 0,
+  },
+  xp: {
+    totalXp: 10,
+    bySourceType: [
+      { sourceType: "assignment", count: 1, totalXp: 10 },
+    ],
+    recentLedgerEntries: [],
+  },
+  recentReviews: [],
+} satisfies StudentReinforcementProgress;
 
 describe("ReinforcementProgressTab", () => {
   beforeEach(() => {

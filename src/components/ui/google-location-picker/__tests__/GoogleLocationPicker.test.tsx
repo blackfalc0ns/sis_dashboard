@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import GoogleLocationPicker, {
@@ -89,7 +89,7 @@ describe("GoogleLocationPicker", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it("syncs the query input when the value prop changes", () => {
+  it("syncs the query input when the value prop changes", async () => {
     const { rerender } = render(
       <GoogleLocationPicker value={null} labels={labels} onChange={vi.fn()} />,
     );
@@ -110,7 +110,6 @@ describe("GoogleLocationPicker", () => {
       />,
     );
 
-    expect(input.value).toBe("Riyadh, Saudi Arabia");
+    await waitFor(() => expect(input.value).toBe("Riyadh, Saudi Arabia"));
   });
 });
-

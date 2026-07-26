@@ -9,8 +9,10 @@ vi.mock("next-intl", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   useParams: () => ({ lang: "en" }),
+  usePathname: () => "/en/students-guardians/guardians",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock(
@@ -54,10 +56,6 @@ vi.mock("@/features/students-guardians/students/services/studentsService", () =>
   fetchAllGuardians: vi.fn(),
 }));
 
-vi.mock("@/components/ui/loaders/MainLoader", () => ({
-  default: () => <div>guardians-loading</div>,
-}));
-
 vi.mock("@/components/ui/kpi-card/KPICardV2", () => ({
   default: () => null,
 }));
@@ -78,14 +76,15 @@ vi.mock(
 );
 
 describe("GuardiansList", () => {
-  it("shows the loader on the first frame while guardians are pending", () => {
+  it("shows the table loading state on the first frame while guardians are pending", () => {
     vi.mocked(studentsService.fetchAllGuardians).mockReturnValue(
       new Promise(() => {}),
     );
 
     render(<GuardiansList />);
 
-    expect(screen.getByText("guardians-loading")).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "title" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "title" })).toBeInTheDocument();
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.queryByText("no_guardians")).not.toBeInTheDocument();
   });
 });

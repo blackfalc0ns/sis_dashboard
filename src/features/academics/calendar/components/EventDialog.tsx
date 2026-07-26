@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
@@ -51,17 +51,31 @@ export default function EventDialog({
   const t = useTranslations("academics.calendar");
   const tValidation = useTranslations("validation");
   const locale = useLocale();
+  const initialDate = prefilledDate || new Date();
+  const previousInitializationRef = useRef({
+    isOpen,
+    event,
+    prefilledDate,
+  });
 
   // Form state
-  const [title, setTitle] = useState("");
-  const [type, setType] = useState<AcademicEvent["type"]>("OTHER");
-  const [allDay, setAllDay] = useState(true);
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
-  const [scopeType, setScopeType] = useState<AcademicEvent["scopeType"]>("SCHOOL");
-  const [scopeId, setScopeId] = useState("");
-  const [description, setDescription] = useState("");
-  const [notes, setNotes] = useState("");
+  const [title, setTitle] = useState(event?.title ?? "");
+  const [type, setType] = useState<AcademicEvent["type"]>(
+    event?.type ?? "OTHER",
+  );
+  const [allDay, setAllDay] = useState(event?.allDay ?? true);
+  const [startDate, setStartDate] = useState<Date | null>(() =>
+    event ? parseCalendarDate(event.startDate) : initialDate,
+  );
+  const [endDate, setEndDate] = useState<Date | null>(() =>
+    event ? parseCalendarDate(event.endDate) : initialDate,
+  );
+  const [scopeType, setScopeType] = useState<AcademicEvent["scopeType"]>(
+    event?.scopeType ?? "SCHOOL",
+  );
+  const [scopeId, setScopeId] = useState(event?.scopeId ?? "");
+  const [description, setDescription] = useState(event?.description ?? "");
+  const [notes, setNotes] = useState(event?.notes ?? "");
 
   // UI state
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -71,6 +85,16 @@ export default function EventDialog({
 
   // Initialize form when dialog opens
   useEffect(() => {
+    const previousInitialization = previousInitializationRef.current;
+    if (
+      previousInitialization.isOpen === isOpen &&
+      previousInitialization.event === event &&
+      previousInitialization.prefilledDate === prefilledDate
+    ) {
+      return;
+    }
+    previousInitializationRef.current = { isOpen, event, prefilledDate };
+
     if (isOpen) {
       if (event) {
         // Edit mode

@@ -107,6 +107,15 @@ const section = {
   capacity: 30,
   order: 1,
 };
+const classroom = {
+  id: "classroom-1",
+  name: "Classroom 1",
+  nameAr: "Classroom 1 AR",
+  nameEn: "Classroom 1",
+  sectionId: section.id,
+  capacity: 30,
+  order: 1,
+};
 const subject = {
   id: "subject-1",
   name: "Math",
@@ -133,7 +142,7 @@ function mockSuccessfulLoad() {
     stages: [stage],
     grades: [grade],
     sections: [section],
-    classrooms: [],
+    classrooms: [classroom],
   });
   mockedFetchSubjects.mockResolvedValue([subject]);
   mockedFetchSubjectAllocations.mockResolvedValue([

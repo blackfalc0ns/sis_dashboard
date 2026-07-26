@@ -177,10 +177,18 @@ export default function TopNavNotificationDropdown({
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   // Track mute state locally to handle state update correctly
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(getNotificationMuted);
+  const wasOpenRef = useRef(isOpen);
 
   useEffect(() => {
-    // Initialise and sync with sound control state
+    const opened = isOpen && !wasOpenRef.current;
+    wasOpenRef.current = isOpen;
+    if (!opened) {
+      return;
+    }
+
+    // Re-sync if another notification control changed the persisted preference
+    // while this dropdown was closed.
     void Promise.resolve().then(() => setMuted(getNotificationMuted()));
   }, [isOpen]);
 
