@@ -57,6 +57,22 @@ describe("useTypingIndicator", () => {
       ]);
     });
 
+    it("uses the backend actor displayName field", () => {
+      const { result } = renderHook(() => useTypingIndicator(CONVERSATION_ID));
+
+      act(() => {
+        result.current.handleTypingStarted({
+          conversationId: CONVERSATION_ID,
+          userId: "user-abc",
+          actor: { userId: "user-abc", displayName: "Alice Backend" },
+        });
+      });
+
+      expect(result.current.typingUsers).toEqual([
+        { userId: "user-abc", name: "Alice Backend" },
+      ]);
+    });
+
     it("adds multiple users to the typing list", () => {
       const { result } = renderHook(() => useTypingIndicator(CONVERSATION_ID));
 
@@ -83,6 +99,31 @@ describe("useTypingIndicator", () => {
         userId: "user-2",
         name: "Bob",
       });
+    });
+
+    it("removes a remote typing user when the backend expiry is reached", () => {
+      const { result } = renderHook(() => useTypingIndicator(CONVERSATION_ID));
+      const expiresAt = new Date(Date.now() + 2_000).toISOString();
+
+      act(() => {
+        result.current.handleTypingStarted({
+          conversationId: CONVERSATION_ID,
+          actor: { id: "user-1", name: "Alice" },
+          expiresAt,
+        });
+      });
+
+      expect(result.current.typingUsers).toHaveLength(1);
+
+      act(() => {
+        vi.advanceTimersByTime(1_999);
+      });
+      expect(result.current.typingUsers).toHaveLength(1);
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(result.current.typingUsers).toEqual([]);
     });
 
     it("ignores typing events from the current user", () => {

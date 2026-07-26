@@ -3,6 +3,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { conversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import { AttachmentCard } from "@/features/communication/conversations_redesign/components/messages/AttachmentCard";
 import type { MessageAttachment } from "@/features/communication/types/message.types";
+import { clearAuthenticatedFileUrlCache } from "@/lib/files/authenticatedFileUrlCache";
 
 const labels = conversationRedesignLabels.en;
 
@@ -29,6 +30,10 @@ beforeAll(() => {
       });
     };
   }
+});
+
+afterEach(() => {
+  clearAuthenticatedFileUrlCache();
 });
 
 describe("AttachmentCard Voice Waveform", () => {
@@ -68,7 +73,7 @@ describe("AttachmentCard Voice Waveform", () => {
         isOwn={false}
         labels={labels}
         onDelete={vi.fn().mockResolvedValue(undefined)}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -95,7 +100,10 @@ describe("AttachmentCard Voice Waveform", () => {
       close: vi.fn().mockResolvedValue(undefined),
     };
 
-    vi.stubGlobal("AudioContext", vi.fn().mockImplementation(() => mockAudioContext));
+    vi.stubGlobal(
+      "AudioContext",
+      vi.fn().mockImplementation(() => mockAudioContext),
+    );
 
     const attachment: MessageAttachment = {
       id: "attachment-1",
@@ -129,7 +137,7 @@ describe("AttachmentCard Voice Waveform", () => {
         isOwn={false}
         labels={labels}
         onDelete={vi.fn().mockResolvedValue(undefined)}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -150,7 +158,10 @@ describe("AttachmentCard Voice Waveform", () => {
       decodeAudioData: vi.fn().mockResolvedValue(mockAudioBuffer),
       close: vi.fn().mockResolvedValue(undefined),
     };
-    vi.stubGlobal("AudioContext", vi.fn().mockImplementation(() => mockAudioContext));
+    vi.stubGlobal(
+      "AudioContext",
+      vi.fn().mockImplementation(() => mockAudioContext),
+    );
 
     const attachment: MessageAttachment = {
       id: "attachment-1",
@@ -184,7 +195,7 @@ describe("AttachmentCard Voice Waveform", () => {
         isOwn={false}
         labels={labels}
         onDelete={vi.fn().mockResolvedValue(undefined)}
-      />
+      />,
     );
 
     const speedButton = await screen.findByRole("button", { name: "1x" });
@@ -213,7 +224,10 @@ describe("AttachmentCard Voice Waveform", () => {
       decodeAudioData: vi.fn().mockResolvedValue(mockAudioBuffer),
       close: vi.fn().mockResolvedValue(undefined),
     };
-    vi.stubGlobal("AudioContext", vi.fn().mockImplementation(() => mockAudioContext));
+    vi.stubGlobal(
+      "AudioContext",
+      vi.fn().mockImplementation(() => mockAudioContext),
+    );
 
     const attachment: MessageAttachment = {
       id: "attachment-1",
@@ -247,7 +261,7 @@ describe("AttachmentCard Voice Waveform", () => {
         isOwn={false}
         labels={labels}
         onDelete={vi.fn().mockResolvedValue(undefined)}
-      />
+      />,
     );
 
     const waveform = await screen.findByTestId("waveform-container");
@@ -260,16 +274,16 @@ describe("AttachmentCard Voice Waveform", () => {
 
     const audioElement = container.querySelector("audio");
     expect(audioElement).toBeInTheDocument();
-    
+
     Object.defineProperty(audioElement, "duration", {
       configurable: true,
       value: 100,
     });
-    
+
     fireEvent(audioElement!, new Event("loadedmetadata"));
 
     fireEvent.click(waveform, { clientX: 60 });
-    
+
     expect(audioElement!.currentTime).toBe(50);
   });
 
@@ -279,7 +293,10 @@ describe("AttachmentCard Voice Waveform", () => {
       decodeAudioData: vi.fn().mockRejectedValue(new Error("Decode error")),
       close: vi.fn().mockResolvedValue(undefined),
     };
-    vi.stubGlobal("AudioContext", vi.fn().mockImplementation(() => mockAudioContext));
+    vi.stubGlobal(
+      "AudioContext",
+      vi.fn().mockImplementation(() => mockAudioContext),
+    );
 
     const attachment: MessageAttachment = {
       id: "attachment-fallback",
@@ -313,7 +330,7 @@ describe("AttachmentCard Voice Waveform", () => {
         isOwn={false}
         labels={labels}
         onDelete={vi.fn().mockResolvedValue(undefined)}
-      />
+      />,
     );
 
     const waveform = await screen.findByTestId("waveform-container");
@@ -337,7 +354,10 @@ describe("AttachmentCard Voice Waveform", () => {
       decodeAudioData: vi.fn().mockResolvedValue(mockAudioBuffer),
       close: vi.fn().mockResolvedValue(undefined),
     };
-    vi.stubGlobal("AudioContext", vi.fn().mockImplementation(() => mockAudioContext));
+    vi.stubGlobal(
+      "AudioContext",
+      vi.fn().mockImplementation(() => mockAudioContext),
+    );
 
     const attachment: MessageAttachment = {
       id: "attachment-coord",
@@ -371,7 +391,7 @@ describe("AttachmentCard Voice Waveform", () => {
         isOwn={false}
         labels={labels}
         onDelete={vi.fn().mockResolvedValue(undefined)}
-      />
+      />,
     );
 
     await screen.findByTestId("waveform-container");
@@ -391,9 +411,15 @@ describe("AttachmentCard Voice Waveform", () => {
     expect(playSpy).toHaveBeenCalled();
 
     fireEvent(audioElement, new Event("play"));
-    expect(await screen.findByRole("button", { name: "Pause" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Pause" }),
+    ).toBeInTheDocument();
 
-    window.dispatchEvent(new CustomEvent("voice-play", { detail: { fileId: "different-file-id" } }));
+    window.dispatchEvent(
+      new CustomEvent("voice-play", {
+        detail: { fileId: "different-file-id" },
+      }),
+    );
 
     expect(pauseSpy).toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
@@ -428,7 +454,7 @@ describe("AttachmentCard Document Redesign", () => {
         isOwn={false}
         labels={labels}
         onDelete={vi.fn().mockResolvedValue(undefined)}
-      />
+      />,
     );
 
     // Assert file name is displayed
@@ -467,11 +493,28 @@ describe("AttachmentCard Image and Video Previews", () => {
     };
 
     const { apiClient } = await import("@/lib/api");
-    vi.mocked(apiClient.get).mockResolvedValue({
-      data: new Blob([new Uint8Array(100)]),
-      headers: { "content-type": "image/png" },
-    });
+    vi.mocked(apiClient.get)
+      .mockReset()
+      .mockResolvedValue({
+        data: new Blob([new Uint8Array(100)]),
+        headers: { "content-type": "image/png" },
+      });
 
+    const firstRender = render(
+      <AttachmentCard
+        attachment={attachment}
+        canDelete={true}
+        isOwn={false}
+        labels={labels}
+        onDelete={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    const imageElement = await screen.findByRole("img", { name: "avatar.png" });
+    expect(imageElement).toBeInTheDocument();
+    expect(imageElement).toHaveAttribute("src", "blob:mock-url");
+
+    firstRender.unmount();
     render(
       <AttachmentCard
         attachment={attachment}
@@ -479,12 +522,14 @@ describe("AttachmentCard Image and Video Previews", () => {
         isOwn={false}
         labels={labels}
         onDelete={vi.fn().mockResolvedValue(undefined)}
-      />
+      />,
     );
 
-    const imageElement = await screen.findByRole("img", { name: "avatar.png" });
-    expect(imageElement).toBeInTheDocument();
-    expect(imageElement).toHaveAttribute("src", "blob:mock-url");
+    expect(screen.getByRole("img", { name: "avatar.png" })).toHaveAttribute(
+      "src",
+      "blob:mock-url",
+    );
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
   });
 
   it("renders video preview with playback controls", async () => {
@@ -520,7 +565,7 @@ describe("AttachmentCard Image and Video Previews", () => {
         isOwn={false}
         labels={labels}
         onDelete={vi.fn().mockResolvedValue(undefined)}
-      />
+      />,
     );
 
     const videoElement = await screen.findByTestId("video-element");
@@ -557,18 +602,24 @@ describe("AttachmentCard Image and Video Previews", () => {
         isOwn={false}
         labels={labels}
         onDelete={onDeleteMock}
-      />
+      />,
     );
 
     // Click delete button
-    const deleteButton = screen.getByRole("button", { name: labels.deleteAttachmentConfirm });
+    const deleteButton = screen.getByRole("button", {
+      name: labels.deleteAttachmentConfirm,
+    });
     fireEvent.click(deleteButton);
 
     // Verify confirmation modal is open by searching for description or title
-    expect(screen.getByText(labels.deleteAttachmentConfirm)).toBeInTheDocument();
+    expect(
+      screen.getByText(labels.deleteAttachmentConfirm),
+    ).toBeInTheDocument();
 
     // Click confirm/Delete button inside the modal
-    const confirmButton = screen.getByRole("button", { name: labels.deleteMessage });
+    const confirmButton = screen.getByRole("button", {
+      name: labels.deleteMessage,
+    });
     fireEvent.click(confirmButton);
 
     // Verify onDelete is called
@@ -577,5 +628,3 @@ describe("AttachmentCard Image and Video Previews", () => {
     });
   });
 });
-
-

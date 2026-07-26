@@ -91,6 +91,32 @@ describe("useConversationRealtime", () => {
 
       expect(mockJoinConversation).not.toHaveBeenCalled();
     });
+
+    it("waits for room authorization before joining or dispatching events", () => {
+      const handlers = createDefaultHandlers();
+      const { rerender } = renderHook(
+        ({ enabled }) => useConversationRealtime({ ...handlers, enabled }),
+        { initialProps: { enabled: false } },
+      );
+
+      expect(mockJoinConversation).not.toHaveBeenCalled();
+      act(() => {
+        mockSocket.simulateEvent(COMMUNICATION_SOCKET_EVENTS.messageCreated, {
+          conversationId: "conv-123",
+        });
+      });
+      expect(handlers.onMessageCreated).not.toHaveBeenCalled();
+
+      rerender({ enabled: true });
+
+      expect(mockJoinConversation).toHaveBeenCalledWith("conv-123");
+      act(() => {
+        mockSocket.simulateEvent(COMMUNICATION_SOCKET_EVENTS.messageCreated, {
+          conversationId: "conv-123",
+        });
+      });
+      expect(handlers.onMessageCreated).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("leaveConversation on unmount (Property 26)", () => {

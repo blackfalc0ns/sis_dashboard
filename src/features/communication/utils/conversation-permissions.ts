@@ -29,7 +29,9 @@ export function getConversationPermissionFlags({
     ? participants.find((participant) => participantUserId(participant) === currentUserId)
     : undefined;
   const currentParticipantRole = currentParticipant?.role;
-  const isActiveParticipant = currentParticipant?.status === "active";
+  const isActiveParticipant =
+    currentParticipant?.status === "active" ||
+    currentParticipant?.status === "muted";
   const canManageConversation = currentParticipantRole
     ? MANAGEMENT_ROLES.has(currentParticipantRole)
     : false;
@@ -41,6 +43,7 @@ export function getConversationPermissionFlags({
     currentParticipantId: currentParticipant?.id,
     currentParticipantRole,
     isActiveParticipant,
+    canManageConversation,
     canManageParticipants: canManageConversation,
     canManageInvites: canManageConversation,
     canReviewJoinRequests: canManageConversation,

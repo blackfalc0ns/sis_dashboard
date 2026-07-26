@@ -1,9 +1,15 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TopNavNotificationDropdown from "../TopNavNotificationDropdown";
-import { getNotificationMuted, setNotificationMuted } from "@/features/communication/hooks/useNotificationSound";
-import { getMessage } from "@/features/communication/api/communication.service";
-import type { NotificationStatus } from "@/features/communication/types/notification.types";
+import {
+  getNotificationMuted,
+  setNotificationMuted,
+} from "@/features/communication/hooks/useNotificationSound";
+import {
+  getConversation,
+  getMessage,
+  getMessageInfo,
+} from "@/features/communication/api/communication.service";
 
 // Mock next/navigation
 const mockPush = vi.fn();
@@ -32,7 +38,9 @@ vi.mock("@/features/communication/hooks/useNotificationSound", () => {
 });
 
 vi.mock("@/features/communication/api/communication.service", () => ({
+  getConversation: vi.fn(),
   getMessage: vi.fn(),
+  getMessageInfo: vi.fn(),
 }));
 
 describe("TopNavNotificationDropdown", () => {
@@ -84,6 +92,12 @@ describe("TopNavNotificationDropdown", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getMessage).mockResolvedValue({});
+    vi.mocked(getConversation).mockImplementation(
+      () => new Promise<Awaited<ReturnType<typeof getConversation>>>(() => {}),
+    );
+    vi.mocked(getMessageInfo).mockImplementation(
+      () => new Promise<Awaited<ReturnType<typeof getMessageInfo>>>(() => {}),
+    );
   });
 
   it("renders nothing when isOpen is false", () => {
@@ -96,12 +110,23 @@ describe("TopNavNotificationDropdown", () => {
         onArchive={onArchiveMock}
         isOpen={false}
         onClose={onCloseMock}
-      />
+      />,
     );
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders correctly with notifications list, icons, badges, and unread indicator", () => {
+  it("renders enriched notification hierarchy, priority, and unread indicators", async () => {
+    vi.mocked(getConversation).mockResolvedValue({
+      data: { id: "conv-456", title: "Grade 5A" },
+    });
+    vi.mocked(getMessageInfo).mockResolvedValue({
+      data: {
+        message: {
+          sender: { displayName: "Teacher", userId: "teacher-1" },
+        },
+      },
+    });
+
     render(
       <TopNavNotificationDropdown
         notifications={mockNotifications}
@@ -111,7 +136,7 @@ describe("TopNavNotificationDropdown", () => {
         onArchive={onArchiveMock}
         isOpen={true}
         onClose={onCloseMock}
-      />
+      />,
     );
 
     // Verify Title and Unread count summary
@@ -120,8 +145,10 @@ describe("TopNavNotificationDropdown", () => {
 
     // Verify Notification titles are rendered
     expect(screen.getByText("New Announcement")).toBeInTheDocument();
-    expect(screen.getByText("New Message")).toBeInTheDocument();
     expect(screen.getByText("Absence Record")).toBeInTheDocument();
+    expect(await screen.findByText("Teacher")).toBeInTheDocument();
+    expect(screen.getByText("Grade 5A")).toBeInTheDocument();
+    expect(screen.getByText("Hello there")).toBeInTheDocument();
 
     // Verify Priority Pill Badges are rendered
     expect(screen.getByText("Urgent")).toBeInTheDocument();
@@ -130,6 +157,73 @@ describe("TopNavNotificationDropdown", () => {
     // Verify unread indicator dots (we will search by data-testid or visual class if any, or just check they exist)
     const unreadDots = screen.getAllByTestId("unread-indicator");
     expect(unreadDots.length).toBe(2);
+  });
+
+  it("shows the sender when a persisted message notification has no deep link", async () => {
+    vi.mocked(getMessageInfo).mockResolvedValue({
+      message: {
+        messageId: "msg-source-only",
+        conversationId: "conv-source-only",
+        sender: {
+          displayName: "Ahmed Mostafa",
+          userId: "sender-1",
+          userType: "school_user",
+          isMe: false,
+        },
+        type: "text",
+        status: "sent",
+        body: "Source-only notification",
+        content: "Source-only notification",
+        createdAt: "2026-06-27T19:00:00.000Z",
+        readCount: 0,
+      },
+      readers: [],
+      readCount: 0,
+      participantsCount: 2,
+      fullyRead: false,
+      pagination: { page: 1, limit: 50, total: 0 },
+    });
+    vi.mocked(getConversation).mockResolvedValue({
+      id: "conv-source-only",
+      title: "Parent Support",
+    });
+
+    render(
+      <TopNavNotificationDropdown
+        notifications={[
+          {
+            id: "notif-source-only",
+            type: "message_received",
+            sourceModule: "communication",
+            sourceId: "msg-source-only",
+            title: "New message",
+            body: "Source-only notification",
+            status: "unread",
+            priority: "normal",
+            deepLink: null,
+            createdAt: "2026-06-27T19:00:00.000Z",
+          },
+        ]}
+        unreadCount={1}
+        onMarkRead={onMarkReadMock}
+        onMarkAllRead={onMarkAllReadMock}
+        onArchive={onArchiveMock}
+        isOpen
+        onClose={onCloseMock}
+      />,
+    );
+
+    const messageAction = await screen.findByRole("button", {
+      name: "Open conversation: Ahmed Mostafa",
+    });
+    expect(screen.getByText("Parent Support")).toBeInTheDocument();
+
+    fireEvent.click(messageAction);
+    await waitFor(() =>
+      expect(mockPush).toHaveBeenCalledWith(
+        "/en/communication/conversations?conversationId=conv-source-only",
+      ),
+    );
   });
 
   it("has the approved responsive layout classes on the wrapper dialog container", () => {
@@ -142,12 +236,17 @@ describe("TopNavNotificationDropdown", () => {
         onArchive={onArchiveMock}
         isOpen={true}
         onClose={onCloseMock}
-      />
+      />,
     );
 
     const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveClass("fixed", "start-4", "end-4", "top-[72px]");
-    expect(dialog).toHaveClass("sm:absolute", "sm:start-auto", "sm:end-0", "sm:w-96");
+    expect(dialog).toHaveClass("fixed", "start-3", "end-3", "top-[72px]");
+    expect(dialog).toHaveClass(
+      "sm:absolute",
+      "sm:start-auto",
+      "sm:end-0",
+      "sm:w-[400px]",
+    );
   });
 
   it("triggers onMarkRead and redirects to deepLink on item card click", () => {
@@ -160,7 +259,7 @@ describe("TopNavNotificationDropdown", () => {
         onArchive={onArchiveMock}
         isOpen={true}
         onClose={onCloseMock}
-      />
+      />,
     );
 
     // Click on the second notification (unread message)
@@ -202,7 +301,7 @@ describe("TopNavNotificationDropdown", () => {
         onArchive={onArchiveMock}
         isOpen={true}
         onClose={onCloseMock}
-      />
+      />,
     );
 
     const messageCard = screen.getByText("New Message").closest("button");
@@ -244,7 +343,7 @@ describe("TopNavNotificationDropdown", () => {
         onArchive={onArchiveMock}
         isOpen={true}
         onClose={onCloseMock}
-      />
+      />,
     );
 
     const messageCard = screen.getByText("Stored Message").closest("button");
@@ -282,7 +381,7 @@ describe("TopNavNotificationDropdown", () => {
         onArchive={onArchiveMock}
         isOpen={true}
         onClose={onCloseMock}
-      />
+      />,
     );
 
     const messageCard = screen
@@ -327,12 +426,10 @@ describe("TopNavNotificationDropdown", () => {
         onArchive={onArchiveMock}
         isOpen={true}
         onClose={onCloseMock}
-      />
+      />,
     );
 
-    const messageCard = screen
-      .getByText("Message Source")
-      .closest("button");
+    const messageCard = screen.getByText("Message Source").closest("button");
     expect(messageCard).toBeInTheDocument();
 
     if (messageCard) {
@@ -370,7 +467,7 @@ describe("TopNavNotificationDropdown", () => {
         onArchive={onArchiveMock}
         isOpen={true}
         onClose={onCloseMock}
-      />
+      />,
     );
 
     const card = screen.getByText("New Announcement Title").closest("button");
@@ -408,7 +505,7 @@ describe("TopNavNotificationDropdown", () => {
         onArchive={onArchiveMock}
         isOpen={true}
         onClose={onCloseMock}
-      />
+      />,
     );
 
     const card = screen.getByText("Backend Announcement").closest("button");
@@ -436,11 +533,13 @@ describe("TopNavNotificationDropdown", () => {
         onArchive={onArchiveMock}
         isOpen={true}
         onClose={onCloseMock}
-      />
+      />,
     );
 
     // Find the toggle button
-    const soundButton = screen.getByRole("button", { name: /mute notifications/i });
+    const soundButton = screen.getByRole("button", {
+      name: /mute notifications/i,
+    });
     expect(soundButton).toBeInTheDocument();
 
     // Click sound control
@@ -460,11 +559,13 @@ describe("TopNavNotificationDropdown", () => {
         onArchive={onArchiveMock}
         isOpen={true}
         onClose={onCloseMock}
-      />
+      />,
     );
 
     // Verify the button label / accessibility name changes
-    const soundButtonMuted = screen.getByRole("button", { name: /unmute notifications/i });
+    const soundButtonMuted = screen.getByRole("button", {
+      name: /unmute notifications/i,
+    });
     expect(soundButtonMuted).toBeInTheDocument();
 
     // Click it again
@@ -482,11 +583,13 @@ describe("TopNavNotificationDropdown", () => {
         onArchive={onArchiveMock}
         isOpen={true}
         onClose={onCloseMock}
-      />
+      />,
     );
 
     // Find Archive buttons
-    const archiveButtons = screen.getAllByRole("button", { name: /^archive:/i });
+    const archiveButtons = screen.getAllByRole("button", {
+      name: /^archive:/i,
+    });
     expect(archiveButtons.length).toBe(3);
 
     // Click the first one
@@ -509,13 +612,17 @@ describe("TopNavNotificationDropdown", () => {
         onClose={onCloseMock}
         activeTab="all"
         onTabChange={onTabChangeMock}
-      />
+      />,
     );
 
     expect(screen.getByRole("tab", { name: /All/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Chat/i })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Announcements/i })).toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: /Academics/i })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: /Announcements/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("tab", { name: /Academics/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("calls onTabChange callback when a tab is clicked", () => {
@@ -531,7 +638,7 @@ describe("TopNavNotificationDropdown", () => {
         onClose={onCloseMock}
         activeTab="all"
         onTabChange={onTabChangeMock}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole("tab", { name: /Chat/i }));
@@ -539,7 +646,6 @@ describe("TopNavNotificationDropdown", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: /Announcements/i }));
     expect(onTabChangeMock).toHaveBeenCalledWith("announcements");
-
   });
 
   it("uses list semantics with separate notification actions", () => {
@@ -584,15 +690,19 @@ describe("TopNavNotificationDropdown", () => {
         onClose={onCloseMock}
         activeTab="all"
         onTabChange={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByText("Attendance Notification")).toBeInTheDocument();
     expect(screen.getByText("Grade Notification")).toBeInTheDocument();
     expect(screen.getByText("Chat Notification")).toBeInTheDocument();
-    expect(screen.getByRole("list", { name: "Notification list" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("list", { name: "Notification list" }),
+    ).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(3);
-    expect(screen.getByRole("button", { name: /^archive: chat notification$/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^archive: chat notification$/i }),
+    ).toBeInTheDocument();
   });
 
   it("shows loading and retry states without using the empty state", () => {
@@ -608,7 +718,7 @@ describe("TopNavNotificationDropdown", () => {
         onRefresh={onRefresh}
         isOpen
         onClose={onCloseMock}
-      />
+      />,
     );
 
     expect(screen.getByLabelText("Loading notifications")).toBeInTheDocument();
@@ -625,10 +735,12 @@ describe("TopNavNotificationDropdown", () => {
         onRefresh={onRefresh}
         isOpen
         onClose={onCloseMock}
-      />
+      />,
     );
 
-    expect(screen.getByText("Unable to load notifications")).toBeInTheDocument();
+    expect(
+      screen.getByText("Unable to load notifications"),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRefresh).toHaveBeenCalledTimes(1);
   });
@@ -648,21 +760,19 @@ describe("TopNavNotificationDropdown", () => {
           viewAll: "عرض كل الإشعارات",
           listLabel: "قائمة الإشعارات",
         }}
-      />
+      />,
     );
 
     expect(
       screen.getByRole("button", { name: "أرشفة: New Announcement" }),
     ).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "عرض كل الإشعارات" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "عرض كل الإشعارات" }));
     expect(onCloseMock).toHaveBeenCalled();
     expect(mockPush).toHaveBeenCalledWith("/en/communication/notifications");
   });
 
-  describe("status badges rendering", () => {
-    it("renders both Read and Archived status badges next to the title when notification is read and archived", () => {
+  describe("status presentation", () => {
+    it("keeps routine read state quiet and labels only archived items", () => {
       const archivedNotification = {
         ...mockNotifications[0],
         status: "archived" as const,
@@ -671,55 +781,24 @@ describe("TopNavNotificationDropdown", () => {
 
       render(
         <TopNavNotificationDropdown
-          notifications={[archivedNotification]}
-          unreadCount={0}
+          notifications={[mockNotifications[1], archivedNotification]}
+          unreadCount={1}
           onMarkRead={onMarkReadMock}
           onMarkAllRead={onMarkAllReadMock}
           onArchive={onArchiveMock}
           isOpen={true}
           onClose={onCloseMock}
-          labels={{
-            read: "Read",
-            archived: "Archived",
-          }}
-        />
+          labels={{ archived: "Archived" }}
+        />,
       );
 
-      const readBadge = screen.getByText("Read");
       const archivedBadge = screen.getByText("Archived");
 
-      expect(readBadge).toBeInTheDocument();
       expect(archivedBadge).toBeInTheDocument();
-
-      expect(readBadge).toHaveClass("bg-slate-100", "text-slate-700");
       expect(archivedBadge).toHaveClass("bg-amber-50", "text-amber-700");
-    });
-
-    it("renders a neutral badge showing the unknown status text formatted when an unknown status is passed", () => {
-      const snoozedNotification = {
-        ...mockNotifications[0],
-        status: "snoozed_again" as unknown as NotificationStatus,
-        readAt: "2026-06-27T20:00:00.000Z",
-      };
-
-      render(
-        <TopNavNotificationDropdown
-          notifications={[snoozedNotification]}
-          unreadCount={0}
-          onMarkRead={onMarkReadMock}
-          onMarkAllRead={onMarkAllReadMock}
-          onArchive={onArchiveMock}
-          isOpen={true}
-          onClose={onCloseMock}
-        />
-      );
-
-      const readBadge = screen.getByText("Read");
-      const snoozedBadge = screen.getByText("snoozed again");
-
-      expect(readBadge).toBeInTheDocument();
-      expect(snoozedBadge).toBeInTheDocument();
-      expect(snoozedBadge).toHaveClass("bg-slate-50", "text-slate-600");
+      expect(screen.queryByText("Read")).not.toBeInTheDocument();
+      expect(screen.queryByText("Unread")).not.toBeInTheDocument();
+      expect(screen.getAllByTestId("unread-indicator")).toHaveLength(1);
     });
   });
 });

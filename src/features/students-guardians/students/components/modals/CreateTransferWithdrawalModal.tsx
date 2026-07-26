@@ -4,10 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Search } from "lucide-react";
 import {
-  fetchAllStudents,
-  getStudentEnrollment,
+  fetchStudentsWithEnrollment,
+  type StudentWithEnrollmentContext,
 } from "@/features/students-guardians/students/services/studentsService";
-import type { Student } from "@/features/students-guardians/students/types";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import { Button, Input, Modal, Select, TextArea } from "@/components/ui";
 
@@ -62,7 +61,9 @@ export default function CreateTransferWithdrawalModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [showStudentSearch, setShowStudentSearch] = useState(false);
-  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [allStudents, setAllStudents] = useState<
+    StudentWithEnrollmentContext[]
+  >([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
 
   useEffect(() => {
@@ -76,7 +77,7 @@ export default function CreateTransferWithdrawalModal({
       setIsLoadingStudents(true);
 
       try {
-        const students = await fetchAllStudents();
+        const students = await fetchStudentsWithEnrollment();
 
         if (!isMounted) {
           return;
@@ -110,13 +111,13 @@ export default function CreateTransferWithdrawalModal({
     });
   }, [allStudents, searchQuery]);
 
-  const handleStudentSelect = (student: Student) => {
-    const enrollment = getStudentEnrollment(student.id);
+  const handleStudentSelect = (student: StudentWithEnrollmentContext) => {
+    const enrollment = student.enrollment;
     const stage = student.stage || getStageFromGrade(student.gradeRequested);
 
     setFormData((prev) => ({
       ...prev,
-      studentId: student.student_id || student.id,
+        studentId: student.id,
       studentName: student.full_name_en,
       stage,
       grade: enrollment?.grade || student.gradeRequested,
@@ -215,7 +216,7 @@ export default function CreateTransferWithdrawalModal({
                   <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {filteredStudents.length > 0 ? (
                       filteredStudents.map((student) => {
-                        const enrollment = getStudentEnrollment(student.id);
+                        const enrollment = student.enrollment;
                         const placement = [
                           enrollment?.grade || student.gradeRequested,
                           enrollment?.section,

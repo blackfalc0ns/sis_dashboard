@@ -104,7 +104,7 @@ export default function EmailDeliveriesPage() {
   );
 
   useEffect(() => {
-    void Promise.resolve().then(() => hydrate());
+    void Promise.resolve().then(() => hydrate("refresh"));
   }, [hydrate]);
 
   useEffect(() => {
@@ -227,13 +227,14 @@ export default function EmailDeliveriesPage() {
           title={t("table.title")}
           description={t("table.description")}
         >
-          {batches.length > 0 ? (
+          {batches.length > 0 || isRefreshing ? (
             <DeliveryBatchTable
               batches={batches}
               page={page}
               limit={limit}
               total={total}
               canManage={canManage}
+              isLoading={isRefreshing}
               isCancellingBatchId={cancellingBatchId}
               onPageChange={setPage}
               onPageSizeChange={(nextLimit) => {

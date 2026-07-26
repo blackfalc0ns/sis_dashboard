@@ -15,4 +15,3 @@ export interface StudentMedicalProfile {
 }
 
 // Backward compatibility alias
-export type StudentMedicalProfileMock = StudentMedicalProfile;

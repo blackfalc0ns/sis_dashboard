@@ -2,12 +2,28 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useMessageAttachments } from "@/features/communication/hooks/useMessageAttachments";
 import type { ConversationMessage } from "@/features/communication/hooks/useConversationMessages";
+import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
 
 const apiMocks = vi.hoisted(() => ({
   deleteAttachment: vi.fn(),
   getAttachments: vi.fn(),
   linkAttachment: vi.fn(),
 }));
+
+const socketHarness = vi.hoisted(() => {
+  const listeners = new Map<string, (payload: unknown) => void>();
+  return {
+    listeners,
+    socket: {
+      on: vi.fn((event: string, listener: (payload: unknown) => void) => {
+        listeners.set(event, listener);
+      }),
+      off: vi.fn((event: string) => {
+        listeners.delete(event);
+      }),
+    },
+  };
+});
 
 vi.mock("@/features/communication/api/communication.service", () => apiMocks);
 
@@ -16,12 +32,13 @@ vi.mock("@/features/communication/api/files.service", () => ({
 }));
 
 vi.mock("@/features/communication/hooks/useCommunicationSocket", () => ({
-  useCommunicationSocket: () => ({ socket: null }),
+  useCommunicationSocket: () => ({ socket: socketHarness.socket }),
 }));
 
 describe("useMessageAttachments", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    socketHarness.listeners.clear();
     apiMocks.getAttachments.mockResolvedValue({ items: [] });
   });
 
@@ -117,48 +134,48 @@ describe("useMessageAttachments", () => {
     });
   });
 
-  it("sends delete requests for every stored attachment when removing a message", async () => {
-    const messageWithAttachments = {
-      id: "message-1",
-      conversationId: "conversation-1",
-      body: "Files",
-      attachments: [
-        {
-          id: "attachment-1",
-          messageId: "message-1",
-          fileId: "file-1",
-          displayName: "first.pdf",
-        },
-        {
-          id: "attachment-2",
-          messageId: "message-1",
-          fileId: "file-2",
-          displayName: "second.pdf",
-        },
-      ],
-    } satisfies ConversationMessage;
-    const messages = [messageWithAttachments];
-    apiMocks.deleteAttachment.mockResolvedValue({ data: { success: true } });
-
+  it("adds an attachment from the backend attachmentId payload", async () => {
+    const messages = [
+      {
+        id: "message-1",
+        conversationId: "conversation-1",
+        body: "Existing message",
+        attachments: [],
+      },
+    ] satisfies ConversationMessage[];
     const { result } = renderHook(() => useMessageAttachments(messages));
-
     await waitFor(() => {
-      expect(result.current.attachmentsByMessageId["message-1"]).toHaveLength(2);
+      expect(
+        socketHarness.listeners.has(
+          COMMUNICATION_SOCKET_EVENTS.attachmentLinked,
+        ),
+      ).toBe(true);
     });
 
-    await act(async () => {
-      await result.current.removeMessageAttachments("message-1");
+    act(() => {
+      socketHarness.listeners.get(
+        COMMUNICATION_SOCKET_EVENTS.attachmentLinked,
+      )?.({
+        conversationId: "conversation-1",
+        messageId: "message-1",
+        attachment: {
+          attachmentId: "attachment-1",
+          fileId: "file-1",
+          displayName: "report.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: "1200",
+          downloadPath: "/api/v1/files/file-1/download",
+        },
+      });
     });
 
-    expect(apiMocks.deleteAttachment).toHaveBeenCalledTimes(2);
-    expect(apiMocks.deleteAttachment).toHaveBeenCalledWith(
-      "message-1",
-      "attachment-1",
+    expect(result.current.attachmentsByMessageId["message-1"]?.[0]).toEqual(
+      expect.objectContaining({
+        id: "attachment-1",
+        name: "report.pdf",
+        size: 1200,
+        url: "/api/v1/files/file-1/download",
+      }),
     );
-    expect(apiMocks.deleteAttachment).toHaveBeenCalledWith(
-      "message-1",
-      "attachment-2",
-    );
-    expect(result.current.attachmentsByMessageId["message-1"]).toBeUndefined();
   });
 });

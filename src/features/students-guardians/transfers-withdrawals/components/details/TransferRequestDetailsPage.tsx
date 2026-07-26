@@ -270,6 +270,7 @@ export default function TransferRequestDetailsPage({
         </div>
 
         {/* Behavior Summary */}
+        {transferState.behaviorScore != null && transferState.behaviorBand ? (
         <div className="bg-white rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <AlertTriangle className="w-5 h-5 text-primary" />
@@ -294,6 +295,7 @@ export default function TransferRequestDetailsPage({
             </div>
           </div>
         </div>
+        ) : null}
       </div>
 
       {/* Tabs Section */}

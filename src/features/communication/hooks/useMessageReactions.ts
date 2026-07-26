@@ -31,18 +31,16 @@ function unwrapList<T>(response: unknown): T[] {
   ].filter(isRecord);
   const itemSource = sources.find((source) => Array.isArray(source.items));
   if (itemSource) return itemSource.items as T[];
-  const arraySource = [
-    response.data,
-    response.result,
-    response.payload,
-  ].find(Array.isArray);
+  const arraySource = [response.data, response.result, response.payload].find(
+    Array.isArray,
+  );
   return arraySource ? (arraySource as T[]) : [];
 }
 
 function unwrapReaction(payload: unknown): MessageReaction | null {
   if (!isRecord(payload)) return null;
-  const source = [payload.reaction, payload.data, payload.payload].find(isRecord) ??
-    payload;
+  const source =
+    [payload.reaction, payload.data, payload.payload].find(isRecord) ?? payload;
   if (!isRecord(source)) return null;
   const messageId =
     stringValue(source.messageId) ?? stringValue(payload.messageId);
@@ -50,7 +48,8 @@ function unwrapReaction(payload: unknown): MessageReaction | null {
   if (!messageId || !type) return null;
   return {
     ...(source as MessageReaction),
-    id: stringValue(source.id) ?? `${messageId}-${type}-${source.userId ?? "me"}`,
+    id:
+      stringValue(source.id) ?? `${messageId}-${type}-${source.userId ?? "me"}`,
     messageId,
     type,
     userId: stringValue(source.userId) ?? stringValue(payload.userId),
@@ -75,7 +74,10 @@ function mergeReaction(
   return [...next, incoming];
 }
 
-export function useMessageReactions(messageIds: string[]) {
+export function useMessageReactions(
+  messageIds: string[],
+  skipInitialFetchMessageIds: string[] = [],
+) {
   const { socket } = useCommunicationSocket();
   const mountedRef = useRef(false);
   const messageIdsRef = useRef<Set<string>>(new Set(messageIds));
@@ -89,10 +91,9 @@ export function useMessageReactions(messageIds: string[]) {
 
   const refreshMessage = useCallback(async (messageId: string) => {
     const response = await getReactions(messageId);
-    const reactions = unwrapList<MessageReaction>(response).reduce<MessageReaction[]>(
-      (next, reaction) => mergeReaction(next, reaction),
-      [],
-    );
+    const reactions = unwrapList<MessageReaction>(response).reduce<
+      MessageReaction[]
+    >((next, reaction) => mergeReaction(next, reaction), []);
     if (!mountedRef.current) return;
     setReactionsByMessageId((current) => ({
       ...current,
@@ -101,6 +102,13 @@ export function useMessageReactions(messageIds: string[]) {
   }, []);
 
   const fetchedIdsRef = useRef<Set<string>>(new Set());
+  const skipInitialFetchIdsRef = useRef<Set<string>>(
+    new Set(skipInitialFetchMessageIds),
+  );
+
+  useEffect(() => {
+    skipInitialFetchIdsRef.current = new Set(skipInitialFetchMessageIds);
+  }, [skipInitialFetchMessageIds]);
 
   const refreshAll = useCallback(async () => {
     fetchedIdsRef.current = new Set(messageIds);
@@ -110,9 +118,12 @@ export function useMessageReactions(messageIds: string[]) {
   useEffect(() => {
     mountedRef.current = true;
     // Only fetch reactions for message IDs we haven't fetched yet
-    const newIds = messageIds.filter((id) => !fetchedIdsRef.current.has(id));
+    const newIds = messageIds.filter((id) => {
+      if (fetchedIdsRef.current.has(id)) return false;
+      fetchedIdsRef.current.add(id);
+      return !skipInitialFetchIdsRef.current.has(id);
+    });
     if (newIds.length > 0) {
-      newIds.forEach((id) => fetchedIdsRef.current.add(id));
       void Promise.all(newIds.map((id) => refreshMessage(id)));
     }
     return () => {
@@ -149,7 +160,10 @@ export function useMessageReactions(messageIds: string[]) {
 
     const handleUpserted = (payload: unknown) => {
       const reaction = unwrapReaction(payload);
-      if (!reaction?.messageId || !messageIdsRef.current.has(reaction.messageId)) {
+      if (
+        !reaction?.messageId ||
+        !messageIdsRef.current.has(reaction.messageId)
+      ) {
         return;
       }
       setReactionsByMessageId((current) => ({
@@ -166,15 +180,21 @@ export function useMessageReactions(messageIds: string[]) {
       const messageId =
         reaction?.messageId ??
         (isRecord(payload) ? stringValue(payload.messageId) : undefined);
+      const reactionId =
+        reaction?.id ??
+        (isRecord(payload) ? stringValue(payload.reactionId) : undefined);
+      const userId =
+        reaction?.userId ??
+        (isRecord(payload) ? stringValue(payload.userId) : undefined);
       if (!messageId || !messageIdsRef.current.has(messageId)) return;
       setReactionsByMessageId((current) => ({
         ...current,
         [messageId]: (current[messageId] ?? []).filter((item) => {
-          if (reaction?.id && item.id === reaction.id) return false;
+          if (reactionId && item.id === reactionId) return false;
           if (
-            reaction?.userId &&
+            userId &&
             item.messageId === messageId &&
-            item.userId === reaction.userId
+            item.userId === userId
           ) {
             return false;
           }

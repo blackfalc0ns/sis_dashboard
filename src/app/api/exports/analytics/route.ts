@@ -10,11 +10,23 @@ import {
   createAnalyticsJSON,
   generateExportFilename,
 } from "@/features/admissions/applications/utils/admissionsExportUtils";
+import type { Lead } from "@/features/admissions/leads/types/lead";
+import type { Application } from "@/features/admissions/types/admissions";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { format, startDate, endDate, daysBack, locale } = body;
+    const { format, startDate, endDate, daysBack, locale, data } = body as {
+      format: string;
+      startDate?: string;
+      endDate?: string;
+      daysBack?: number;
+      locale?: string;
+      data?: {
+        leads?: Lead[];
+        applications?: Application[];
+      };
+    };
     const exportLocale = locale === "ar" ? "ar" : "en";
 
     // Validate format
@@ -35,7 +47,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Get analytics data using existing aggregation logic
-    const analyticsData = getAdmissionsAnalytics(days);
+    const analyticsData = getAdmissionsAnalytics(days, {
+      leads: data?.leads ?? [],
+      applications: data?.applications ?? [],
+    });
 
     // Prepare date range for export
     const dateRange = {

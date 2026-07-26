@@ -1,12 +1,19 @@
 // FILE: src/features/auth/context/AuthProvider.tsx
 "use client";
 
-import React, { useCallback, useEffect, useState, useMemo, useRef } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+} from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { AuthContext } from "./AuthContext";
 import { authService } from "@/services/auth-service";
 import { tokenStorage } from "@/lib/token-storage";
 import { SESSION_EXPIRED_EVENT } from "@/lib/api";
+import { clearAuthenticatedFileUrlCache } from "@/lib/files/authenticatedFileUrlCache";
 import type {
   ChangePasswordRequest,
   ChangePasswordResponse,
@@ -38,7 +45,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginPathWithRedirect = useCallback(() => {
     const loginPath = getLocalizedPath("login");
     const isLoginRoute = pathname === loginPath;
-    const isRootRoute = pathname === "/" || pathname === "/ar" || pathname === "/en";
+    const isRootRoute =
+      pathname === "/" || pathname === "/ar" || pathname === "/en";
     const queryString = searchParams.toString();
     const currentPath = queryString ? `${pathname}?${queryString}` : pathname;
 
@@ -68,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(normalizedUser);
         return normalizedUser;
       } else {
+        clearAuthenticatedFileUrlCache();
         setUser(null);
         return null;
       }
@@ -80,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!isApiError(error) || error.status === 401) {
         tokenStorage.clearTokens();
+        clearAuthenticatedFileUrlCache();
       }
       return null;
     } finally {
@@ -93,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleSessionExpired = () => {
+      clearAuthenticatedFileUrlCache();
       setUser(null);
       setIsLoading(false);
     };
@@ -108,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (credentials: LoginRequest) => {
       setIsLoading(true);
       try {
+        clearAuthenticatedFileUrlCache();
         const loginResponse = await authService.login(credentials);
         return await loadUser(loginResponse.user.mustChangePassword);
       } finally {
@@ -121,6 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       await authService.logout();
+      clearAuthenticatedFileUrlCache();
       setUser(null);
       router.push(getLocalizedPath("login"));
     } finally {
@@ -134,9 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [loadUser]);
 
   const changePassword = useCallback(
-    async (
-      payload: ChangePasswordRequest,
-    ): Promise<ChangePasswordResponse> => {
+    async (payload: ChangePasswordRequest): Promise<ChangePasswordResponse> => {
       return authService.changePassword(payload);
     },
     [],
@@ -152,7 +163,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const changePasswordPath = getLocalizedPath("change-password");
       const isLoginRoute = pathname === loginPath;
       const isChangePasswordRoute = pathname === changePasswordPath;
-      const isRootRoute = pathname === "/" || pathname === "/ar" || pathname === "/en";
+      const isRootRoute =
+        pathname === "/" || pathname === "/ar" || pathname === "/en";
       let redirectPath: string | null = null;
 
       if (!user && !isLoginRoute && !isRootRoute) {
@@ -165,7 +177,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         (isLoginRoute || isChangePasswordRoute)
       ) {
         redirectPath = isLoginRoute
-          ? loginReturnPath() ?? dashboardPath
+          ? (loginReturnPath() ?? dashboardPath)
           : dashboardPath;
       }
 
@@ -186,7 +198,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loginReturnPath,
     mustChangePassword,
   ]);
-
 
   const value = useMemo(
     () => ({

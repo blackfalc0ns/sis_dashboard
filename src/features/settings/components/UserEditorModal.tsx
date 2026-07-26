@@ -15,6 +15,7 @@ import type {
   UsernameAvailabilityResponse,
   UsernamePreviewResponse,
 } from "@/features/settings/login-identity/types";
+import { isApiError } from "@/lib/api-error";
 import type {
   RoleDefinition,
   SettingsUserRecord,
@@ -71,6 +72,12 @@ export default function UserEditorModal({
   const usesUsernameFlow = mode !== "edit";
   const generatedLoginEmail = preview?.loginEmail || user?.email || "";
   const isUsernameAvailable = availability?.available ?? null;
+  const usernameAvailabilityMessage = (reason?: string | null) => reason === "username_invalid"
+    ? t("identity.username_invalid")
+    : reason === "reserved_username"
+      ? t("identity.username_reserved")
+      : t("identity.username_unavailable");
+  const availabilityMessage = usernameAvailabilityMessage(availability?.reason);
   const previousOpenRef = useRef(isOpen);
   const previousModeRef = useRef(mode);
   const previousUserRef = useRef(user);
@@ -128,10 +135,14 @@ export default function UserEditorModal({
             setPreview(nextPreview);
           }
         })
-        .catch(() => {
+        .catch((error) => {
           if (!cancelled) {
             setPreview(null);
-            setIdentityError(t("identity.preview_failed"));
+            setIdentityError(
+              isApiError(error) && error.code === "iam.user.username_invalid"
+                ? t("identity.username_invalid")
+                : t("identity.preview_failed"),
+            );
           }
         })
         .finally(() => {
@@ -190,7 +201,11 @@ export default function UserEditorModal({
           ? availability
           : await handleCheckAvailability();
       if (!nextAvailability?.available) {
-        setIdentityError(nextAvailability?.reason || t("identity.username_unavailable"));
+        setIdentityError(
+          nextAvailability
+            ? usernameAvailabilityMessage(nextAvailability.reason)
+            : t("identity.username_unavailable"),
+        );
         return;
       }
     }
@@ -299,13 +314,13 @@ export default function UserEditorModal({
                   }`}
                 >
                   {isUsernameAvailable ? (
-                    <CheckCircle2 className="h-4 w-4" />
+                    <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                   ) : (
-                    <XCircle className="h-4 w-4" />
+                    <XCircle className="h-4 w-4" aria-hidden="true" />
                   )}
                   {isUsernameAvailable
                     ? t("identity.username_available")
-                    : availability.reason || t("identity.username_unavailable")}
+                    : availabilityMessage}
                 </span>
               ) : null}
             </div>

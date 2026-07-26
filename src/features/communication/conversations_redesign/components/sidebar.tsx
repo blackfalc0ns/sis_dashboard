@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useLocale } from "next-intl";
 import Input from "@/components/ui/input/Input";
+import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
 import Avatar from "@/features/communication/conversations_redesign/components/Avatar";
 import {
   labelsForLocale,
@@ -33,13 +34,13 @@ import type { ConversationStatus } from "@/features/communication/types/conversa
 export type ConversationRedesignFilter =
   | "all"
   | "active"
-  | "unread"
   | "pinned"
   | "archived"
   | "closed";
 
 export interface ConversationSidebarProps {
   conversations: ConversationListItemModel[];
+  error?: string | null;
   selectedConversationId?: string | null;
   filter: ConversationRedesignFilter;
   typeFilter: string;
@@ -52,6 +53,7 @@ export interface ConversationSidebarProps {
   onSearchChange: (value: string) => void;
   onRefresh: () => void;
   onCreateConversation: () => void;
+  canCreateConversation?: boolean;
   className?: string;
   loadMore?: () => void;
   hasMore?: boolean;
@@ -59,11 +61,10 @@ export interface ConversationSidebarProps {
 
 const primaryFilters: Array<{
   value: ConversationRedesignFilter;
-  labelKey: "all" | "active" | "unread" | "pinned" | "archived" | "closed";
+  labelKey: "all" | "active" | "pinned" | "archived" | "closed";
 }> = [
   { value: "all", labelKey: "all" },
   { value: "active", labelKey: "active" },
-  { value: "unread", labelKey: "unread" },
   { value: "pinned", labelKey: "pinned" },
 ];
 
@@ -76,7 +77,6 @@ const statusByRedesignFilter: Partial<
   Record<ConversationRedesignFilter, ConversationStatus | "all">
 > = {
   all: "all",
-  unread: "all",
   pinned: "all",
   active: "active",
   archived: "archived",
@@ -166,7 +166,6 @@ function rowMatchesFilter(
   typeFilter?: string,
 ) {
   if (typeFilter && conversation.type !== typeFilter) return false;
-  if (filter === "unread") return (conversation.unreadCount ?? 0) > 0;
   if (filter === "pinned") return Boolean(conversation.isPinned);
   if (filter === "archived" || filter === "closed") {
     return conversation.status === filter;
@@ -220,8 +219,10 @@ function ConversationTypeBadge({
 }
 
 export default function ConversationSidebar({
+  canCreateConversation = true,
   className = "",
   conversations,
+  error = null,
   filter,
   typeFilter,
   isLoading,
@@ -281,6 +282,7 @@ export default function ConversationSidebar({
 
   return (
     <aside
+      aria-label={labels.conversations}
       className={`flex h-full min-h-0 flex-col border-e border-slate-200 bg-white ${className}`}
     >
       {/* ── Header ── */}
@@ -319,17 +321,20 @@ export default function ConversationSidebar({
               className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-wait disabled:opacity-60"
             >
               <RefreshCw
-                className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                className={`h-4 w-4 ${isRefreshing ? "motion-safe:animate-spin" : ""}`}
+                aria-hidden="true"
               />
             </button>
-            <button
-              type="button"
-              onClick={onCreateConversation}
-              aria-label={labels.createConversation}
-              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-primary text-white shadow-md shadow-primary/25 transition-all duration-200 hover:bg-primary/90 hover:shadow-primary/40"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
+            {canCreateConversation ? (
+              <button
+                type="button"
+                onClick={onCreateConversation}
+                aria-label={labels.createConversation}
+                className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-primary text-white shadow-md shadow-primary/25 transition-all duration-200 hover:bg-primary/90 hover:shadow-primary/40"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -459,19 +464,42 @@ export default function ConversationSidebar({
         }
       }}>
         {isLoading ? (
-          <div className="space-y-0">
+          <div
+            role="status"
+            aria-busy="true"
+            aria-live="polite"
+            className="space-y-0"
+          >
+            <span className="sr-only">{labels.loadingConversations}</span>
             {Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
+                aria-hidden="true"
                 className="flex items-start gap-3 border-b border-slate-100 px-4 py-3"
               >
-                <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-slate-200" />
+                <div className="h-10 w-10 shrink-0 rounded-full bg-slate-200 motion-safe:animate-pulse" />
                 <div className="flex-1 space-y-2 pt-1">
-                  <div className="h-3 w-3/4 animate-pulse rounded bg-slate-200" />
-                  <div className="h-2.5 w-1/2 animate-pulse rounded bg-slate-100" />
+                  <div className="h-3 w-3/4 rounded bg-slate-200 motion-safe:animate-pulse" />
+                  <div className="h-2.5 w-1/2 rounded bg-slate-100 motion-safe:animate-pulse" />
                 </div>
               </div>
             ))}
+          </div>
+        ) : error ? (
+          <div className="p-4">
+            <CommunicationErrorState
+              message={error}
+              action={
+                <button
+                  type="button"
+                  onClick={onRefresh}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-rose-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-rose-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-700 focus-visible:ring-offset-2"
+                >
+                  <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                  {labels.retry}
+                </button>
+              }
+            />
           </div>
         ) : visibleConversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
@@ -492,6 +520,15 @@ export default function ConversationSidebar({
                 className="mt-3 cursor-pointer text-xs font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 {labels.clearFilters}
+              </button>
+            ) : canCreateConversation ? (
+              <button
+                type="button"
+                onClick={onCreateConversation}
+                className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                {labels.createConversation}
               </button>
             ) : null}
           </div>

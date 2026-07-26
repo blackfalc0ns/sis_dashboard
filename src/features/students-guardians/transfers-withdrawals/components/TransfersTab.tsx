@@ -139,13 +139,6 @@ export default function TransfersTab() {
           icon={ArrowLeftRight}
           iconColor="#3b82f6"
           iconBgColor="#dbeafe"
-          chartData={[
-            { label: "W1", value: 8 },
-            { label: "W2", value: 12 },
-            { label: "W3", value: 10 },
-            { label: "W4", value: transfersThisMonth },
-          ]}
-          chartColor="#3b82f6"
         />
         <KPICardV2
           title={t("transfers.kpis.internal_transfers")}
@@ -154,13 +147,6 @@ export default function TransfersTab() {
           icon={ArrowRight}
           iconColor="#10b981"
           iconBgColor="#d1fae5"
-          chartData={[
-            { label: "W1", value: 5 },
-            { label: "W2", value: 7 },
-            { label: "W3", value: 6 },
-            { label: "W4", value: internalTransfers },
-          ]}
-          chartColor="#10b981"
         />
         <KPICardV2
           title={t("transfers.kpis.external_transfers")}
@@ -169,13 +155,6 @@ export default function TransfersTab() {
           icon={ArrowLeft}
           iconColor="#f59e0b"
           iconBgColor="#fef3c7"
-          chartData={[
-            { label: "W1", value: 3 },
-            { label: "W2", value: 5 },
-            { label: "W3", value: 4 },
-            { label: "W4", value: externalTransfers },
-          ]}
-          chartColor="#f59e0b"
         />
         <KPICardV2
           title={t("transfers.kpis.net_change")}
@@ -188,13 +167,6 @@ export default function TransfersTab() {
           icon={TrendingUp}
           iconColor={netChange >= 0 ? "#10b981" : "#ef4444"}
           iconBgColor={netChange >= 0 ? "#d1fae5" : "#fee2e2"}
-          chartData={[
-            { label: "W1", value: 2 },
-            { label: "W2", value: 2 },
-            { label: "W3", value: 2 },
-            { label: "W4", value: Math.abs(netChange) },
-          ]}
-          chartColor={netChange >= 0 ? "#10b981" : "#ef4444"}
         />
       </div>
 

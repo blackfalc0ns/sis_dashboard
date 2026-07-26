@@ -1,5 +1,9 @@
 import { apiGet, apiPost } from "@/lib/api";
-import type { StudentEnrollment } from "@/features/students-guardians/students/types";
+import type {
+  EnrollmentMovement,
+  EnrollmentMovementAction,
+  StudentEnrollment,
+} from "@/features/students-guardians/students/types";
 import {
   buildQueryString,
   normalizeEnrollment,
@@ -29,6 +33,28 @@ export interface FetchEnrollmentsParams {
   academicYearId?: string;
   academicYear?: string;
   status?: string;
+}
+
+export interface TransferStudentPayload {
+  studentId: string;
+  targetSectionId: string;
+  targetClassroomId?: string;
+  effectiveDate: string;
+  reason?: string;
+  notes?: string;
+  sourceRequestId?: string;
+}
+
+export interface WithdrawStudentPayload {
+  studentId: string;
+  effectiveDate: string;
+  reason?: string;
+  notes?: string;
+  actionType?: Extract<
+    EnrollmentMovementAction,
+    "withdrawn" | "transferred_external"
+  >;
+  sourceRequestId?: string;
 }
 
 export async function validateEnrollment(
@@ -97,4 +123,24 @@ export async function fetchEnrollmentAcademicYears(): Promise<unknown[]> {
     `${ENROLLMENTS_BASE_PATH}/academic-years`,
   );
   return unwrapArrayResponse(response, "Enrollment academic years");
+}
+
+export async function transferStudent(
+  payload: TransferStudentPayload,
+): Promise<EnrollmentMovement> {
+  const response = await apiPost<unknown>(
+    `${ENROLLMENTS_BASE_PATH}/transfer`,
+    payload,
+  );
+  return unwrapItemResponse(response, "Enrollment transfer");
+}
+
+export async function withdrawStudent(
+  payload: WithdrawStudentPayload,
+): Promise<EnrollmentMovement> {
+  const response = await apiPost<unknown>(
+    `${ENROLLMENTS_BASE_PATH}/withdraw`,
+    payload,
+  );
+  return unwrapItemResponse(response, "Enrollment withdrawal");
 }

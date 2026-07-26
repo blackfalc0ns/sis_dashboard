@@ -19,4 +19,3 @@ export interface StudentTimelineEvent {
 }
 
 // Backward compatibility alias
-export type StudentTimelineEventMock = StudentTimelineEvent;

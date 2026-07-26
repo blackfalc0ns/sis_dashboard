@@ -28,7 +28,7 @@ describe("AppDownloadScreen", () => {
     authMocks.logout.mockReset();
   });
 
-  it("shows the student application with safe Android and iOS links", () => {
+  it("disables store actions until real download URLs are configured", () => {
     render(<AppDownloadScreen audience="student" />);
 
     expect(
@@ -36,11 +36,8 @@ describe("AppDownloadScreen", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("main")).toHaveClass("app-download-background");
     expect(screen.getByRole("region")).toHaveClass("app-download-card");
-    expect(screen.getByRole("link", { name: "android" })).toHaveAttribute(
-      "target",
-      "_blank",
-    );
-    expect(screen.getByRole("link", { name: "android" })).toHaveClass(
+    expect(screen.getByRole("button", { name: "Google Play" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Google Play" })).toHaveClass(
       "app-download-store-link--google-play",
     );
     expect(screen.getByAltText("Google Play")).toHaveAttribute(
@@ -50,11 +47,8 @@ describe("AppDownloadScreen", () => {
     expect(screen.getByAltText("Google Play")).not.toHaveAttribute(
       "data-nimg",
     );
-    expect(screen.getByRole("link", { name: "ios" })).toHaveAttribute(
-      "rel",
-      "noopener noreferrer",
-    );
-    expect(screen.getByRole("link", { name: "ios" })).toHaveClass(
+    expect(screen.getByRole("button", { name: "App Store" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "App Store" })).toHaveClass(
       "app-download-store-link--app-store",
     );
     expect(screen.getByAltText("App Store")).toHaveAttribute(

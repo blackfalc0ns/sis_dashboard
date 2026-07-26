@@ -88,66 +88,12 @@ const termsByYearCache = new Map<string, Term[]>();
 const pendingTermsByYearRequests = new Map<string, Promise<Term[]>>();
 const structureByTermCache = new Map<string, StructureTree>();
 
-const fallbackAcademicYears: AcademicYear[] = [
-  {
-    id: "year-2",
-    name: "2025-2026",
-    nameAr: "2025-2026",
-    nameEn: "2025-2026",
-    startDate: "2025-09-01",
-    endDate: "2026-06-30",
-    isActive: true,
-  },
-];
-
-const fallbackTermsByYear = new Map<string, Term[]>([
-  [
-    "year-2",
-    [
-      {
-        id: "term-2-2",
-        name: "Term 2",
-        nameAr: "الفصل الثاني",
-        nameEn: "Term 2",
-        yearId: "year-2",
-        status: "open",
-        startDate: "2026-01-01",
-        endDate: "2026-03-31",
-      },
-    ],
-  ],
-]);
-
-const fallbackStructureTree: StructureTree = {
-  stages: [
-    { id: "stage-1", name: "Primary", nameAr: "ابتدائي", nameEn: "Primary", order: 1 },
-    { id: "stage-2", name: "Middle", nameAr: "متوسط", nameEn: "Middle", order: 2 },
-    { id: "stage-3", name: "High", nameAr: "ثانوي", nameEn: "High", order: 3 },
-  ],
-  grades: [
-    { id: "grade-1", name: "Grade 1", nameAr: "الصف الأول", nameEn: "Grade 1", stageId: "stage-1", capacity: 30, order: 1 },
-    { id: "grade-4", name: "Grade 6", nameAr: "الصف السادس", nameEn: "Grade 6", stageId: "stage-2", capacity: 30, order: 1 },
-    { id: "grade-5", name: "Grade 7", nameAr: "الصف السابع", nameEn: "Grade 7", stageId: "stage-2", capacity: 30, order: 2 },
-    { id: "grade-6", name: "Grade 8", nameAr: "الصف الثامن", nameEn: "Grade 8", stageId: "stage-2", capacity: 30, order: 3 },
-    { id: "grade-7", name: "Grade 9", nameAr: "الصف التاسع", nameEn: "Grade 9", stageId: "stage-3", capacity: 30, order: 1 },
-  ],
-  sections: [
-    { id: "section-1", name: "Section A", nameAr: "شعبة أ", nameEn: "Section A", gradeId: "grade-1", capacity: 30, order: 1 },
-    { id: "section-5", name: "Section A", nameAr: "شعبة أ", nameEn: "Section A", gradeId: "grade-4", capacity: 30, order: 1 },
-    { id: "section-7", name: "Section A", nameAr: "شعبة أ", nameEn: "Section A", gradeId: "grade-5", capacity: 28, order: 1 },
-    { id: "section-8", name: "Section B", nameAr: "شعبة ب", nameEn: "Section B", gradeId: "grade-5", capacity: 28, order: 2 },
-    { id: "section-9", name: "Section A", nameAr: "شعبة أ", nameEn: "Section A", gradeId: "grade-6", capacity: 26, order: 1 },
-    { id: "section-11", name: "Section A", nameAr: "شعبة أ", nameEn: "Section A", gradeId: "grade-7", capacity: 24, order: 1 },
-  ],
-  classrooms: [
-    { id: "classroom-1", name: "Classroom 101", nameAr: "فصل 101", nameEn: "Classroom 101", sectionId: "section-1", capacity: 30, order: 1 },
-    { id: "classroom-6", name: "Classroom 601", nameAr: "فصل 601", nameEn: "Classroom 601", sectionId: "section-5", capacity: 30, order: 1 },
-    { id: "classroom-9", name: "Classroom 701", nameAr: "فصل 701", nameEn: "Classroom 701", sectionId: "section-7", capacity: 28, order: 1 },
-    { id: "classroom-10", name: "Classroom 702", nameAr: "فصل 702", nameEn: "Classroom 702", sectionId: "section-8", capacity: 28, order: 1 },
-    { id: "classroom-11", name: "Classroom 801", nameAr: "فصل 801", nameEn: "Classroom 801", sectionId: "section-9", capacity: 26, order: 1 },
-    { id: "classroom-13", name: "Classroom 901", nameAr: "فصل 901", nameEn: "Classroom 901", sectionId: "section-11", capacity: 24, order: 1 },
-  ],
-};
+const emptyStructureTree = (): StructureTree => ({
+  stages: [],
+  grades: [],
+  sections: [],
+  classrooms: [],
+});
 
 const keyForTerm = (yearId: string, termId: string) => `${yearId}::${termId}`;
 
@@ -161,13 +107,10 @@ const cloneTree = (tree: StructureTree): StructureTree => ({
 const cloneYears = (years: AcademicYear[]) => years.map((item) => ({ ...item }));
 const cloneTerms = (terms: Term[]) => terms.map((item) => ({ ...item }));
 
-const getFallbackTermsByYear = (yearId: string) =>
-  cloneTerms(fallbackTermsByYear.get(yearId) || []);
-
 const readTreeFromCache = (yearId: string, termId: string): StructureTree => {
   const cached = structureByTermCache.get(keyForTerm(yearId, termId));
   if (!cached) {
-    return cloneTree(fallbackStructureTree);
+    return emptyStructureTree();
   }
   return cloneTree(cached);
 };
@@ -385,7 +328,7 @@ export const updateAcademicYear = async (
   payload: Partial<Omit<AcademicYear, "id">>
 ): Promise<AcademicYear> => {
   const updated = await structureApiAdapter.updateAcademicYear(id, payload);
-  yearsCache = (yearsCache.length > 0 ? yearsCache : fallbackAcademicYears).map((item) =>
+  yearsCache = yearsCache.map((item) =>
     item.id === id ? { ...updated } : { ...item }
   );
   return updated;
@@ -397,7 +340,7 @@ export const updateTerm = async (
 ): Promise<Term> => {
   const updated = await structureApiAdapter.updateTerm(id, payload);
   const yearId = updated.yearId;
-  const existing = termsByYearCache.get(yearId) || getFallbackTermsByYear(yearId);
+  const existing = termsByYearCache.get(yearId) || [];
   termsByYearCache.set(
     yearId,
     existing.map((item) => (item.id === id ? { ...updated } : { ...item }))
@@ -543,31 +486,19 @@ export const resetStructureAdapter = () => {};
 export const activateStructureAdapter = () => {};
 
 export const getAcademicYearsSnapshot = (): AcademicYear[] =>
-  cloneYears(yearsCache.length > 0 ? yearsCache : fallbackAcademicYears);
+  cloneYears(yearsCache);
 
 export const getTermsSnapshotByYear = (yearId: string): Term[] =>
-  cloneTerms(
-    (termsByYearCache.get(yearId) || []).length > 0
-      ? termsByYearCache.get(yearId) || []
-      : getFallbackTermsByYear(yearId)
-  );
+  cloneTerms(termsByYearCache.get(yearId) || []);
 
 export const getAcademicYearById = (yearId: string): AcademicYear | undefined =>
-  (yearsCache.length > 0 ? yearsCache : fallbackAcademicYears).find(
-    (year) => year.id === yearId
-  );
+  yearsCache.find((year) => year.id === yearId);
 
 export const getTermById = (termId: string): Term | undefined => {
   for (const terms of termsByYearCache.values()) {
     const found = terms.find((term) => term.id === termId);
     if (found) {
       return found;
-    }
-  }
-  for (const terms of fallbackTermsByYear.values()) {
-    const found = terms.find((term) => term.id === termId);
-    if (found) {
-      return { ...found };
     }
   }
   return undefined;
@@ -586,20 +517,13 @@ export const resolveStructureContextForAcademicYear = (
       item.name === academicYearName ||
       item.nameAr === academicYearName ||
       item.nameEn === academicYearName
-  ) || fallbackAcademicYears.find(
-    (item) =>
-      item.name === academicYearName ||
-      item.nameAr === academicYearName ||
-      item.nameEn === academicYearName
   );
 
   if (!year) {
     return null;
   }
 
-  const terms = (termsByYearCache.get(year.id) || []).length > 0
-    ? termsByYearCache.get(year.id) || []
-    : getFallbackTermsByYear(year.id);
+  const terms = termsByYearCache.get(year.id) || [];
   const openTerm = terms.find((term) => term.status === "open");
   const firstTerm = openTerm || terms[0];
 

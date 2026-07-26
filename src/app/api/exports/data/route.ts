@@ -1,8 +1,9 @@
 // FILE: src/app/api/exports/data/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { getLeads } from "@/api/mockLeadsApi";
-import { mockApplications } from "@/data/mockAdmissions";
+import type { Lead } from "@/features/admissions/leads/types/lead";
+import type { Application } from "@/features/admissions/types/admissions";
+import type { StudentEnrollment } from "@/features/students-guardians/students/types";
 import {
   convertToCSV,
   formatLeadsForExport,
@@ -15,7 +16,21 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { datasets, format, startDate, endDate, locale } = body;
+    const { datasets, format, startDate, endDate, locale, data } = body as {
+      datasets: string[];
+      format: string;
+      startDate?: string;
+      endDate?: string;
+      locale?: string;
+      data?: {
+        leads?: Lead[];
+        applications?: Application[];
+        enrollments?: StudentEnrollment[];
+      };
+    };
+    const leads = data?.leads ?? [];
+    const applications = data?.applications ?? [];
+    const enrollments = data?.enrollments ?? [];
 
     // Validate inputs
     if (!datasets || !Array.isArray(datasets) || datasets.length === 0) {
@@ -55,13 +70,12 @@ export async function POST(request: NextRequest) {
     const exportData: Record<string, Array<Record<string, unknown>>> = {};
 
     if (datasets.includes("leads")) {
-      const allLeads = getLeads();
-      const filteredLeads = filterByDate(allLeads, "createdAt");
+      const filteredLeads = filterByDate(leads, "createdAt");
       exportData.leads = formatLeadsForExport(filteredLeads, exportLocale);
     }
 
     if (datasets.includes("applications")) {
-      const filteredApps = filterByDate(mockApplications, "submittedDate");
+      const filteredApps = filterByDate(applications, "submittedDate");
       exportData.applications = formatApplicationsForExport(
         filteredApps,
         exportLocale,
@@ -69,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (datasets.includes("decisions")) {
-      const filteredApps = filterByDate(mockApplications, "submittedDate");
+      const filteredApps = filterByDate(applications, "submittedDate");
       exportData.decisions = formatDecisionsForExport(
         filteredApps,
         undefined,
@@ -78,9 +92,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (datasets.includes("enrollments")) {
-      const filteredApps = filterByDate(mockApplications, "submittedDate");
       exportData.enrollments = formatEnrollmentsForExport(
-        filteredApps,
+        enrollments,
         exportLocale,
       );
     }

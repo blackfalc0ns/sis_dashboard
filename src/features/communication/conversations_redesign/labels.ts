@@ -49,7 +49,8 @@ export const conversationRedesignLabels = {
     unableToCreateJoinRequest: "Unable to create join request.",
     readOnly: "Read only",
     readOnlyConversation: "This conversation is read-only.",
-    readOnlyComposer: "This conversation is read-only. Only admins can send messages.",
+    readOnlyComposer:
+      "This conversation is read-only. Only admins can send messages.",
     loadingMessages: "Loading messages...",
     noMessagesYet: "No messages yet.",
     newMessage: "1 new message",
@@ -60,8 +61,12 @@ export const conversationRedesignLabels = {
     send: "Send",
     cancel: "Cancel",
     dismiss: "Dismiss",
+    retry: "Retry",
     save: "Save",
     create: "Create",
+    realtimeReconnecting: "Reconnecting to live updates...",
+    realtimeUnavailable:
+      "Live updates are unavailable. Messages may be delayed.",
     refreshConversations: "Refresh conversations",
     refreshConversation: "Refresh conversation",
     backToConversations: "Back to conversations",
@@ -72,12 +77,15 @@ export const conversationRedesignLabels = {
     loading: "Loading...",
     untitledConversation: "Untitled conversation",
     direct: "Direct",
+    directUnavailable:
+      "Direct conversations cannot be started here yet. Existing direct conversations remain available.",
     participantsCount: "Participants",
     writeMessage: "Write a message...",
     addCaption: "Add a caption...",
     voiceNote: "Voice note",
     recording: "Recording...",
-    voiceRecordingUnavailable: "Voice recording is not available in this browser.",
+    voiceRecordingUnavailable:
+      "Voice recording is not available in this browser.",
     tapToRecord: "Tap to record",
     attachFile: "Attach file",
     attachFileToMessage: "Attach file to message",
@@ -87,6 +95,7 @@ export const conversationRedesignLabels = {
     failed: "Failed",
     edited: "Edited",
     sent: "Sent",
+    readStatus: "Read",
     readBy: "Read by {count}",
     deleteMessageConfirm: "Delete this message?",
     deleteAttachmentConfirm: "Delete this attachment?",
@@ -104,7 +113,8 @@ export const conversationRedesignLabels = {
     unableToRemoveReaction: "Unable to remove reaction.",
     attachmentUploaded: "Attachment uploaded.",
     unableToUploadAttachment: "Unable to upload attachment.",
-    sendMessageBeforeAttach: "Send a message first, then attach the file to it.",
+    sendMessageBeforeAttach:
+      "Send a message first, then attach the file to it.",
     uploadingAttachment: "Uploading attachment...",
     like: "Like",
     readMore: "Read more",
@@ -185,7 +195,8 @@ export const conversationRedesignLabels = {
     demoteParticipantTitle: "Demote Participant",
     targetRole: "Target role",
     removeParticipantTitle: "Remove Participant",
-    removeParticipantDescription: "This participant will be removed from the conversation.",
+    removeParticipantDescription:
+      "This participant will be removed from the conversation.",
     leaveConversationTitle: "Leave Conversation",
     leaveConversationDescription:
       "You will leave this conversation and may need to be added again to rejoin.",
@@ -209,13 +220,28 @@ export const conversationRedesignLabels = {
     unableToCloseConversation: "Unable to close conversation.",
     unableToReopenConversation: "Unable to reopen conversation.",
     unableToUpdateConversation: "Unable to update conversation.",
-    archiveConversationConfirm: "Archive this conversation? It can be reopened later.",
-    closeConversationConfirm: "Close this conversation? It can be reopened later.",
+    archiveConversationConfirm:
+      "Archive this conversation? It can be reopened later.",
+    closeConversationConfirm:
+      "Close this conversation? It can be reopened later.",
     moreActions: "More actions",
     reply: "Reply",
     copy: "Copy",
     report: "Report",
     messageInfo: "Info",
+    messageDetails: "Message details",
+    messageInfoDescription: "Delivery and read activity",
+    messageInfoSender: "Sender",
+    messageInfoSentAt: "Sent at",
+    messageInfoType: "Message type",
+    messageInfoStatus: "Status",
+    messageInfoPreview: "Message",
+    messageInfoReadProgress: "Read by {read} of {total} recipients",
+    messageInfoReadByEveryone: "Read by everyone",
+    messageInfoNotRead: "Not read yet",
+    messageInfoReaders: "Readers",
+    messageInfoNoReaders: "No recipient has read this message yet.",
+    unableToLoadMessageInfo: "Unable to load message details.",
     readByList: "Read by",
     messageCopied: "Message copied.",
     reportSent: "Report sent.",
@@ -244,8 +270,10 @@ export const conversationRedesignLabels = {
     errorConversationClosed: "This conversation is closed.",
     errorConversationInvalidType: "Conversation type is invalid.",
     errorConversationDirectDuplicate: "Direct conversation already exists.",
-    errorConversationGroupLimitExceeded: "Conversation group member limit is exceeded.",
-    errorParticipantAlreadyExists: "Participant already exists in this conversation.",
+    errorConversationGroupLimitExceeded:
+      "Conversation group member limit is exceeded.",
+    errorParticipantAlreadyExists:
+      "Participant already exists in this conversation.",
     errorParticipantNotFound: "Participant was not found.",
     errorParticipantLimitExceeded: "Participant limit is exceeded.",
     errorParticipantRoleForbidden: "Participant role is not allowed.",
@@ -278,12 +306,15 @@ export const conversationRedesignLabels = {
     errorModerationForbidden: "Moderation action is not allowed.",
     errorUserBlocked: "User is blocked.",
     errorUserRestricted: "User is restricted.",
-    errorUserRestrictionConflict: "User restriction conflicts with an active state.",
-    bannerArchived: "This conversation is archived. You can view messages but cannot send new ones.",
+    errorUserRestrictionConflict:
+      "User restriction conflicts with an active state.",
+    bannerArchived:
+      "This conversation is archived. You can view messages but cannot send new ones.",
     bannerClosed: "This conversation is closed.",
     bannerReadOnly: "This conversation is read-only.",
     bannerMuted: "You are muted in this conversation.",
-    bannerReadOnlyParticipant: "You have read-only access to this conversation.",
+    bannerReadOnlyParticipant:
+      "You have read-only access to this conversation.",
   },
   ar: {
     conversations: "المحادثات",
@@ -320,7 +351,8 @@ export const conversationRedesignLabels = {
     joinRequestRejected: "تم رفض طلب الانضمام.",
     readOnly: "للقراءة فقط",
     readOnlyConversation: "هذه المحادثة للقراءة فقط.",
-    readOnlyComposer: "هذه المحادثة للقراءة فقط. يمكن للمشرفين فقط إرسال الرسائل.",
+    readOnlyComposer:
+      "هذه المحادثة للقراءة فقط. يمكن للمشرفين فقط إرسال الرسائل.",
     loadingMessages: "جاري تحميل الرسائل...",
     noMessagesYet: "لا توجد رسائل بعد.",
     newMessage: "رسالة جديدة واحدة",
@@ -331,8 +363,11 @@ export const conversationRedesignLabels = {
     send: "إرسال",
     cancel: "إلغاء",
     dismiss: "إغلاق",
+    retry: "إعادة المحاولة",
     save: "حفظ",
     create: "إنشاء",
+    realtimeReconnecting: "جارٍ إعادة الاتصال بالتحديثات المباشرة...",
+    realtimeUnavailable: "التحديثات المباشرة غير متاحة. قد تتأخر الرسائل.",
     refreshConversations: "تحديث المحادثات",
     refreshConversation: "تحديث المحادثة",
     backToConversations: "العودة إلى المحادثات",
@@ -343,6 +378,8 @@ export const conversationRedesignLabels = {
     loading: "جاري التحميل...",
     untitledConversation: "محادثة بدون عنوان",
     direct: "مباشر",
+    directUnavailable:
+      "لا يمكن بدء المحادثات المباشرة من هنا حالياً. تظل المحادثات المباشرة الحالية متاحة.",
     participantsCount: "مشارك",
     writeMessage: "اكتب رسالة...",
     addCaption: "أضف تعليقاً...",
@@ -358,6 +395,7 @@ export const conversationRedesignLabels = {
     failed: "فشل",
     edited: "تم التعديل",
     sent: "تم الإرسال",
+    readStatus: "تمت القراءة",
     readBy: "قرأها {count}",
     deleteMessageConfirm: "حذف هذه الرسالة؟",
     deleteAttachmentConfirm: "حذف هذا المرفق؟",
@@ -487,6 +525,19 @@ export const conversationRedesignLabels = {
     copy: "نسخ",
     report: "إبلاغ",
     messageInfo: "معلومات",
+    messageDetails: "تفاصيل الرسالة",
+    messageInfoDescription: "حالة التسليم ونشاط القراءة",
+    messageInfoSender: "المرسل",
+    messageInfoSentAt: "وقت الإرسال",
+    messageInfoType: "نوع الرسالة",
+    messageInfoStatus: "الحالة",
+    messageInfoPreview: "الرسالة",
+    messageInfoReadProgress: "قرأها {read} من {total} مستلمين",
+    messageInfoReadByEveryone: "قرأها جميع المستلمين",
+    messageInfoNotRead: "لم تُقرأ بعد",
+    messageInfoReaders: "الذين قرؤوها",
+    messageInfoNoReaders: "لم يقرأ أي مستلم هذه الرسالة بعد.",
+    unableToLoadMessageInfo: "تعذر تحميل تفاصيل الرسالة.",
     readByList: "قرأها",
     messageCopied: "تم نسخ الرسالة.",
     reportSent: "تم إرسال البلاغ.",
@@ -528,7 +579,8 @@ export const conversationRedesignLabels = {
     errorConversationClosed: "هذه المحادثة مغلقة.",
     errorConversationInvalidType: "نوع المحادثة غير صالح.",
     errorConversationDirectDuplicate: "المحادثة المباشرة موجودة بالفعل.",
-    errorConversationGroupLimitExceeded: "تجاوز الحد الأقصى لأعضاء المجموعة في المحادثة.",
+    errorConversationGroupLimitExceeded:
+      "تجاوز الحد الأقصى لأعضاء المجموعة في المحادثة.",
     errorParticipantAlreadyExists: "المشارك موجود بالفعل في هذه المحادثة.",
     errorParticipantNotFound: "لم يتم العثور على المشارك.",
     errorParticipantLimitExceeded: "تم تجاوز الحد الأقصى للمشاركين.",
@@ -563,7 +615,8 @@ export const conversationRedesignLabels = {
     errorUserBlocked: "المستخدم محظور.",
     errorUserRestricted: "المستخدم مقيد.",
     errorUserRestrictionConflict: "تقييد المستخدم يتعارض مع حالة نشطة.",
-    bannerArchived: "هذه المحادثة مؤرشفة. يمكنك عرض الرسائل ولكن لا يمكنك إرسال رسائل جديدة.",
+    bannerArchived:
+      "هذه المحادثة مؤرشفة. يمكنك عرض الرسائل ولكن لا يمكنك إرسال رسائل جديدة.",
     bannerClosed: "هذه المحادثة مغلقة.",
     bannerReadOnly: "هذه المحادثة للقراءة فقط.",
     bannerMuted: "تم كتم صوتك في هذه المحادثة.",
@@ -575,5 +628,7 @@ export type ConversationRedesignLabels =
   (typeof conversationRedesignLabels)[ConversationRedesignLocale];
 
 export function labelsForLocale(locale: string): ConversationRedesignLabels {
-  return locale === "ar" ? conversationRedesignLabels.ar : conversationRedesignLabels.en;
+  return locale === "ar"
+    ? conversationRedesignLabels.ar
+    : conversationRedesignLabels.en;
 }

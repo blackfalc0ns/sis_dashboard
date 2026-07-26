@@ -528,7 +528,7 @@ export interface OverviewReviewQueue {
 }
 
 export interface OverviewXpBySourceType {
-  sourceType: string;
+  sourceType?: string;
   count: number;
   totalXp: number;
 }
@@ -560,13 +560,13 @@ export interface OverviewTopStudent {
 
 export interface OverviewRecentActivity {
   id: string;
-  type: string;
+  type: "submission" | "review" | "xp_ledger";
   timestamp: string;
   student: OverviewStudentInfo;
-  sourceType: string;
-  sourceId: string;
-  amount: number;
-  reason: string;
+  sourceType?: string;
+  sourceId?: string;
+  amount?: number;
+  reason?: string | null;
 }
 
 export interface ReinforcementOverviewResponse {

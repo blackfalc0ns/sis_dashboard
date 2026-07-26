@@ -16,23 +16,23 @@ export const APP_DOWNLOAD_CONFIG: Record<
 > = {
   student: {
     translationKey: "student",
-    androidUrl: "https://example.com/apps/student/android",
-    iosUrl: "https://example.com/apps/student/ios",
+    androidUrl: null,
+    iosUrl: null,
   },
   teacher: {
     translationKey: "teacher",
-    androidUrl: "https://example.com/apps/teacher/android",
-    iosUrl: "https://example.com/apps/teacher/ios",
+    androidUrl: null,
+    iosUrl: null,
   },
   parent: {
     translationKey: "parent",
-    androidUrl: "https://example.com/apps/parent/android",
-    iosUrl: "https://example.com/apps/parent/ios",
+    androidUrl: null,
+    iosUrl: null,
   },
   dismissalStaff: {
     translationKey: "dismissal_staff",
-    androidUrl: "https://example.com/apps/dismissal-staff/android",
-    iosUrl: "https://example.com/apps/dismissal-staff/ios",
+    androidUrl: null,
+    iosUrl: null,
   },
 };
 

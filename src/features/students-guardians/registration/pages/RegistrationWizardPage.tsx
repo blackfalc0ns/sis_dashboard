@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { isApiError } from "@/lib/api-error";
 import { fetchGuardians } from "@/features/students-guardians/guardians/services/guardiansApiService";
 import { fetchSettingsUsers } from "@/features/settings/services/settingsUsersService";
 import {
@@ -80,6 +81,7 @@ function Field({
   type = "text",
   required = false,
   disabled = false,
+  error,
 }: {
   label: string;
   value?: string;
@@ -87,6 +89,7 @@ function Field({
   type?: string;
   required?: boolean;
   disabled?: boolean;
+  error?: string;
 }) {
   const name = label
     .toLowerCase()
@@ -105,8 +108,14 @@ function Field({
         disabled={disabled}
         onInput={synchronizeValue}
         onBlur={synchronizeValue}
-        className={inputClass}
+        aria-invalid={Boolean(error)}
+        className={`${inputClass} ${error ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}`}
       />
+      {error ? (
+        <span className="mt-1 block text-xs font-normal text-red-700">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -218,6 +227,10 @@ export default function RegistrationWizardPage() {
   );
   const [step, setStep] = useState<RegistrationStep>(0);
   const [errors, setErrors] = useState<string[]>([]);
+  const [usernamePolicyError, setUsernamePolicyError] = useState<{
+    username?: string;
+    message: string;
+  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<RegistrationResult | null>(null);
   const stepContentRef = useRef<HTMLDivElement>(null);
@@ -300,11 +313,21 @@ export default function RegistrationWizardPage() {
     event.preventDefault();
     const nextErrors = validateRegistrationForm(form);
     setErrors(nextErrors);
+    setUsernamePolicyError(null);
     if (nextErrors.length) return;
     setSubmitting(true);
     try {
       setResult(await submitRegistration(form));
     } catch (error) {
+      if (isApiError(error) && error.code === "iam.user.username_invalid") {
+        const username = (error.details as { username?: string } | undefined)
+          ?.username;
+        const message = t("errors.username_invalid");
+        setUsernamePolicyError({ username, message });
+        setErrors([message]);
+        setStep(2);
+        return;
+      }
       setErrors([
         error instanceof Error
           ? error.message
@@ -399,6 +422,8 @@ export default function RegistrationWizardPage() {
                 form={form}
                 setForm={setForm}
                 updateGuardian={updateGuardian}
+                usernamePolicyError={usernamePolicyError}
+                onAccountChange={() => setUsernamePolicyError(null)}
               />
             )}
             {step === 3 && (
@@ -786,6 +811,8 @@ function AccountsStep({
   form,
   setForm,
   updateGuardian,
+  usernamePolicyError,
+  onAccountChange,
 }: {
   form: RegistrationWizardFormState;
   setForm: React.Dispatch<React.SetStateAction<RegistrationWizardFormState>>;
@@ -793,6 +820,8 @@ function AccountsStep({
     key: string,
     patch: Partial<RegistrationGuardianFormState>,
   ) => void;
+  usernamePolicyError: { username?: string; message: string } | null;
+  onAccountChange: () => void;
 }) {
   const t = useTranslations("students_guardians.registration");
   return (
@@ -804,8 +833,16 @@ function AccountsStep({
         <AccountCard
           title={t("accounts_step.student_account")}
           account={form.studentAccount}
-          update={(account) =>
-            setForm((current) => ({ ...current, studentAccount: account }))
+          update={(account) => {
+            onAccountChange();
+            setForm((current) => ({ ...current, studentAccount: account }));
+          }}
+          usernameError={
+            usernamePolicyError &&
+            (!usernamePolicyError.username ||
+              usernamePolicyError.username === form.studentAccount.username?.trim())
+              ? usernamePolicyError.message
+              : undefined
           }
         />
         {form.guardians.map((guardian, index) => (
@@ -819,8 +856,18 @@ function AccountsStep({
                 t("guardians_step.fields.profile_options.create"),
             })}
             account={guardian.account}
-            update={(account) => updateGuardian(guardian.key, { account })}
+            update={(account) => {
+              onAccountChange();
+              updateGuardian(guardian.key, { account });
+            }}
             existingGuardian={guardian.mode === "existing"}
+            usernameError={
+              usernamePolicyError &&
+              (!usernamePolicyError.username ||
+                usernamePolicyError.username === guardian.account.username?.trim())
+                ? usernamePolicyError.message
+                : undefined
+            }
           />
         ))}
       </div>
@@ -833,11 +880,13 @@ function AccountCard({
   account,
   update,
   existingGuardian = false,
+  usernameError,
 }: {
   title: string;
   account: RegistrationAccountFormState;
   update: (account: RegistrationAccountFormState) => void;
   existingGuardian?: boolean;
+  usernameError?: string;
 }) {
   const t = useTranslations("students_guardians.registration");
   const [query, setQuery] = useState("");
@@ -886,6 +935,7 @@ function AccountCard({
               required
               value={account.username}
               onChange={(username) => update({ ...account, username })}
+              error={usernameError}
             />
             <Field
               label={t("accounts_step.fields.contact_email")}

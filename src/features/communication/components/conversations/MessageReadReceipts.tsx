@@ -12,29 +12,17 @@ export default function MessageReadReceipts({
   labels,
   readSummary,
 }: MessageReadReceiptsProps) {
-  if (
-    typeof readSummary?.readCount !== "number" &&
-    typeof readSummary?.unreadCount !== "number"
-  ) {
-    return null;
-  }
+  if (!readSummary) return null;
+  const readCount = readSummary.items.reduce(
+    (total, message) => total + message.readCount,
+    0,
+  );
 
   return (
     <div className="text-xs text-slate-500">
-      {typeof readSummary.readCount === "number" ? (
-        <span>
-          {labels.read}: {readSummary.readCount}
-        </span>
-      ) : null}
-      {typeof readSummary.readCount === "number" &&
-      typeof readSummary.unreadCount === "number" ? (
-        <span className="mx-1">•</span>
-      ) : null}
-      {typeof readSummary.unreadCount === "number" ? (
-        <span>
-          {labels.unread}: {readSummary.unreadCount}
-        </span>
-      ) : null}
+      <span>
+        {labels.read}: {readCount}
+      </span>
     </div>
   );
 }

@@ -49,7 +49,7 @@ describe("ChangePasswordForm Sprint 11 behavior", () => {
     const inputs = container.querySelectorAll("input");
 
     await user.type(inputs[0], "old-password");
-    await user.type(inputs[1], "new-password-1");
+    await user.type(inputs[1], "New-password-1!");
     await user.type(inputs[2], "different-password");
     await user.click(screen.getByRole("button", { name: /submit/i }));
 
@@ -66,14 +66,14 @@ describe("ChangePasswordForm Sprint 11 behavior", () => {
     const inputs = container.querySelectorAll("input");
 
     await user.type(inputs[0], "old-password");
-    await user.type(inputs[1], "new-password-1");
-    await user.type(inputs[2], "new-password-1");
+    await user.type(inputs[1], "New-password-1!");
+    await user.type(inputs[2], "New-password-1!");
     await user.click(screen.getByRole("button", { name: /submit/i }));
 
     await waitFor(() => {
       expect(mockChangePassword).toHaveBeenCalledWith({
         currentPassword: "old-password",
-        newPassword: "new-password-1",
+        newPassword: "New-password-1!",
       });
     });
     expect(mockRefreshCurrentUser).toHaveBeenCalled();

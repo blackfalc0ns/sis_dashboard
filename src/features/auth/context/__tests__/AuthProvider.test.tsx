@@ -1,6 +1,20 @@
 import { act, render, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { AuthProvider } from "@/features/auth/context/AuthProvider";
+import {
+  clearAuthenticatedFileUrlCache,
+  getCachedAuthenticatedFile,
+  loadAuthenticatedFileUrl,
+} from "@/lib/files/authenticatedFileUrlCache";
 
 const authProviderMocks = vi.hoisted(() => ({
   pathname: "/ar/login",
@@ -9,6 +23,7 @@ const authProviderMocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   hasTokens: vi.fn(),
   clearTokens: vi.fn(),
+  downloadFileBlob: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -37,7 +52,25 @@ vi.mock("@/lib/token-storage", () => ({
   },
 }));
 
+vi.mock("@/services/filesService", () => ({
+  downloadFileBlob: authProviderMocks.downloadFileBlob,
+}));
+
+const createObjectUrlMock = vi.fn(() => "blob:private-file");
+const revokeObjectUrlMock = vi.fn();
+
 describe("AuthProvider route redirects", () => {
+  beforeAll(() => {
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectUrlMock,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: revokeObjectUrlMock,
+    });
+  });
+
   beforeEach(() => {
     authProviderMocks.pathname = "/ar/login";
     authProviderMocks.searchParams = new URLSearchParams();
@@ -45,6 +78,16 @@ describe("AuthProvider route redirects", () => {
     authProviderMocks.getCurrentUser.mockReset();
     authProviderMocks.hasTokens.mockReset();
     authProviderMocks.clearTokens.mockReset();
+    authProviderMocks.downloadFileBlob.mockReset();
+  });
+
+  afterEach(() => {
+    clearAuthenticatedFileUrlCache();
+  });
+
+  afterAll(() => {
+    Reflect.deleteProperty(URL, "createObjectURL");
+    Reflect.deleteProperty(URL, "revokeObjectURL");
   });
 
   it("returns an authenticated user from login to the safe next path", async () => {
@@ -88,11 +131,18 @@ describe("AuthProvider route redirects", () => {
       expect(authProviderMocks.getCurrentUser).toHaveBeenCalledTimes(1);
     });
     authProviderMocks.push.mockClear();
+    authProviderMocks.downloadFileBlob.mockResolvedValue(
+      new Blob(["private"], { type: "image/png" }),
+    );
+    await loadAuthenticatedFileUrl("private-file-1");
+    expect(getCachedAuthenticatedFile("private-file-1")).toBeDefined();
 
     act(() => {
       window.dispatchEvent(new Event("moazez:session-expired"));
       window.dispatchEvent(new Event("moazez:session-expired"));
     });
+
+    expect(getCachedAuthenticatedFile("private-file-1")).toBeUndefined();
 
     rerender(
       <AuthProvider>

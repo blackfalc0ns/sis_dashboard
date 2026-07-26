@@ -38,10 +38,17 @@ export interface EmailCampaignPreviewRecipientsRequest {
 export interface EmailCampaignPreviewRecipient {
   userId?: string | null;
   fullName?: string | null;
-  email: string;
+  username?: string | null;
+  toEmail?: string | null;
   contactEmail?: string | null;
-  eligible: boolean;
-  skipReason?: string | null;
+  loginEmail?: string | null;
+  userType?: string | null;
+  roleKey?: string | null;
+  hasPassword?: boolean | null;
+  mustChangePassword?: boolean | null;
+  credentialVersion?: number | null;
+  eligible?: boolean;
+  reason?: string | null;
 }
 
 export interface EmailCampaignPreviewRecipientsResponse {

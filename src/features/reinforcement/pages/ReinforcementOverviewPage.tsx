@@ -7,8 +7,11 @@ import {
   Award,
   BarChart3,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Coins,
+  FileCheck2,
   ListChecks,
   RefreshCw,
   ShieldAlert,
@@ -58,6 +61,42 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "#ef4444",
 };
 
+const COLLAPSED_LIST_SIZE = 5;
+
+function ExpandableList({ items }: { items: React.ReactNode[] }) {
+  const t = useTranslations("reinforcement");
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hasMoreItems = items.length > COLLAPSED_LIST_SIZE;
+  const visibleItems = isExpanded
+    ? items
+    : items.slice(0, COLLAPSED_LIST_SIZE);
+
+  return (
+    <div>
+      <div className="space-y-2">{visibleItems}</div>
+      {hasMoreItems ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          fullWidth
+          className="mt-3 cursor-pointer text-primary hover:bg-primary/5 hover:text-primary focus:ring-2 focus:ring-primary/30"
+          rightIcon={
+            isExpanded ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )
+          }
+          aria-expanded={isExpanded}
+          onClick={() => setIsExpanded((currentValue) => !currentValue)}
+        >
+          {t(isExpanded ? "showLess" : "showMore")}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
 
 
 function AccessNotice() {
@@ -214,13 +253,30 @@ function ActivityRow({
       ? activity.student.nameAr
       : activity.student.name;
 
-  const typeLabel =
-    t(`sourceType.${activity.sourceType}`, { defaultValue: activity.sourceType });
+  const isXpActivity = activity.type === "xp_ledger";
+  const typeLabel = isXpActivity
+    ? activity.sourceType
+      ? t(`sourceType.${activity.sourceType}`, {
+          defaultValue: activity.sourceType,
+        })
+      : t("sourceType.unknown")
+    : activity.type === "submission"
+      ? t("activityType.submission")
+      : activity.type === "review"
+        ? t("activityType.review")
+        : t("activityType.unknown");
+  const activityDetail = isXpActivity
+    ? [typeLabel, activity.reason].filter(Boolean).join(" · ")
+    : typeLabel;
 
   return (
     <div className="flex items-start gap-3 rounded-lg border border-gray-50 px-3 py-3 transition-colors hover:bg-gray-50">
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-50 text-cyan-700">
-        <Coins className="h-4 w-4" />
+        {isXpActivity ? (
+          <Coins className="h-4 w-4" />
+        ) : (
+          <FileCheck2 className="h-4 w-4" />
+        )}
       </div>
       <div className="min-w-0 flex-1">
         {studentHref ? (
@@ -234,14 +290,20 @@ function ActivityRow({
           <p className="text-sm font-semibold text-gray-900">{name}</p>
         )}
         <p className="mt-0.5 text-xs text-gray-500">
-          {typeLabel} · {activity.reason}
+          {activityDetail}
         </p>
       </div>
       <div className="shrink-0 text-end">
-        <span className="text-sm font-bold text-emerald-600">
-          +{activity.amount} XP
-        </span>
-        <p className="mt-0.5 text-xs text-gray-400">
+        {isXpActivity ? (
+          <span className="text-sm font-bold text-emerald-600">
+            +{activity.amount} XP
+          </span>
+        ) : (
+          <span className="inline-flex rounded-full bg-cyan-50 px-2 py-1 text-xs font-medium text-cyan-700">
+            {typeLabel}
+          </span>
+        )}
+        <p className="mt-1 text-xs text-gray-500" dir="ltr">
           {new Intl.DateTimeFormat(locale, {
             dateStyle: "medium",
             timeStyle: "short",
@@ -392,7 +454,11 @@ export default function ReinforcementOverviewPage() {
     return overview.xp.bySourceType
       .filter((item) => item.totalXp > 0 || item.count > 0)
       .map((item) => ({
-        label: t(`sourceType.${item.sourceType}`, { defaultValue: item.sourceType }),
+        label: item.sourceType
+          ? t(`sourceType.${item.sourceType}`, {
+              defaultValue: item.sourceType,
+            })
+          : t("sourceType.unknown"),
         totalXp: item.totalXp,
         count: item.count,
       }));
@@ -731,8 +797,8 @@ export default function ReinforcementOverviewPage() {
           <div className="grid gap-4 xl:grid-cols-[1fr,1.2fr]">
             <SectionCard title={t("charts.topStudents")}>
               {overview.topStudents.length > 0 ? (
-                <div className="space-y-2">
-                  {overview.topStudents.map((student, index) => (
+                <ExpandableList
+                  items={overview.topStudents.map((student, index) => (
                     <TopStudentRow
                       key={student.studentId}
                       student={student}
@@ -741,7 +807,7 @@ export default function ReinforcementOverviewPage() {
                       href={getStudentProgressHref(student.studentId)}
                     />
                   ))}
-                </div>
+                />
               ) : (
                 <div className="flex flex-col items-center gap-2 py-8 text-gray-400">
                   <Award className="h-8 w-8" />
@@ -755,8 +821,8 @@ export default function ReinforcementOverviewPage() {
               subtitle={t("recentActivitySubtitle")}
             >
               {overview.recentActivity.length > 0 ? (
-                <div className="space-y-2">
-                  {overview.recentActivity.map((activity) => (
+                <ExpandableList
+                  items={overview.recentActivity.map((activity) => (
                     <ActivityRow
                       key={activity.id}
                       activity={activity}
@@ -768,7 +834,7 @@ export default function ReinforcementOverviewPage() {
                       }
                     />
                   ))}
-                </div>
+                />
               ) : (
                 <div className="flex flex-col items-center gap-2 py-8 text-gray-400">
                   <Clock className="h-8 w-8" />

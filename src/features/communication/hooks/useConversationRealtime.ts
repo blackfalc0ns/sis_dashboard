@@ -7,6 +7,7 @@ import { useCommunicationSocket } from "./useCommunicationSocket";
 
 interface ConversationRealtimeHandlers {
   conversationId: string;
+  enabled?: boolean;
   onMessageCreated: (payload: unknown) => void;
   onMessageUpdated: (payload: unknown) => void;
   onMessageDeleted: (payload: unknown) => void;
@@ -51,6 +52,7 @@ function extractConversationId(payload: unknown): string | undefined {
 
 export function useConversationRealtime({
   conversationId,
+  enabled = true,
   onMessageCreated,
   onMessageDeleted,
   onMessageRead,
@@ -116,13 +118,19 @@ export function useConversationRealtime({
   ]);
 
   useEffect(() => {
-    if (!isConnected) return;
+    if (!enabled || !isConnected) return;
     joinConversation(conversationId);
     return () => leaveConversation(conversationId);
-  }, [conversationId, isConnected, joinConversation, leaveConversation]);
+  }, [
+    conversationId,
+    enabled,
+    isConnected,
+    joinConversation,
+    leaveConversation,
+  ]);
 
   useEffect(() => {
-    if (!socket) return;
+    if (!enabled || !socket) return;
 
     const isForActiveConversation = (payload: unknown) => {
       const payloadConversationId = extractConversationId(payload);
@@ -252,11 +260,11 @@ export function useConversationRealtime({
         handlePresenceUpdated,
       );
     };
-  }, [conversationId, socket]);
+  }, [conversationId, enabled, socket]);
 
   useEffect(() => {
-    if (resyncVersion > 0) {
+    if (enabled && resyncVersion > 0) {
       handlersRef.current.onReconnect();
     }
-  }, [resyncVersion]);
+  }, [enabled, resyncVersion]);
 }

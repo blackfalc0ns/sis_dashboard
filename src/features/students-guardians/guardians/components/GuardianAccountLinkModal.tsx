@@ -91,9 +91,15 @@ export default function GuardianAccountLinkModal({
             setPreviewEmail(preview.loginEmail || "");
           }
         })
-        .catch(() => {
+        .catch((previewError) => {
           if (!isCancelled) {
             setPreviewEmail("");
+            if (
+              isApiError(previewError) &&
+              previewError.code === "iam.user.username_invalid"
+            ) {
+              setError(t("validation.username_invalid"));
+            }
           }
         })
         .finally(() => {
@@ -107,7 +113,7 @@ export default function GuardianAccountLinkModal({
       isCancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [isOpen, mode, username]);
+  }, [isOpen, mode, t, username]);
 
   const handleClose = () => {
     setLinkedResponse(null);
@@ -211,7 +217,10 @@ export default function GuardianAccountLinkModal({
             <Input
               label={t("fields.username")}
               value={username}
-              onChange={(event) => setUsername(event.target.value)}
+              onChange={(event) => {
+                setUsername(event.target.value);
+                setError(null);
+              }}
               dir="ltr"
               required
             />

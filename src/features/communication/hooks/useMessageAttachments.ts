@@ -61,16 +61,14 @@ function unwrapAttachment(payload: unknown): MessageAttachment | null {
   const source = [payload.attachment, payload.data, payload.payload].find(isRecord) ??
     payload;
   if (!isRecord(source)) return null;
-  const id = stringValue(source.id);
   const messageId =
     stringValue(source.messageId) ?? stringValue(payload.messageId);
-  if (!id || !messageId) return null;
-  return {
+  if (!messageId) return null;
+  return normalizeAttachment({
     ...(source as MessageAttachment),
-    id,
     messageId,
     fileId: stringValue(source.fileId) ?? stringValue(payload.fileId),
-  };
+  }, messageId);
 }
 
 function mergeAttachment(
@@ -139,14 +137,7 @@ export function useMessageAttachments(
   const [attachmentsByMessageId, setAttachmentsByMessageId] = useState<
     Record<string, MessageAttachment[]>
   >({});
-  const attachmentsByMessageIdRef = useRef<Record<string, MessageAttachment[]>>(
-    {},
-  );
   const [uploadingMessageId, setUploadingMessageId] = useState<string | null>(null);
-
-  useEffect(() => {
-    attachmentsByMessageIdRef.current = attachmentsByMessageId;
-  }, [attachmentsByMessageId]);
 
   useEffect(() => {
     const nextMessageIds = new Set(messageIds);
@@ -289,19 +280,6 @@ export function useMessageAttachments(
     [],
   );
 
-  const removeMessageAttachments = useCallback(async (messageId: string) => {
-    const attachments = attachmentsByMessageIdRef.current[messageId] ?? [];
-    await Promise.all(
-      attachments.map((attachment) => deleteAttachment(messageId, attachment.id)),
-    );
-    void Promise.resolve().then(() => setAttachmentsByMessageId((current) => {
-      if (!current[messageId]) return current;
-      const next = { ...current };
-      delete next[messageId];
-      return next;
-    }));
-  }, []);
-
   useEffect(() => {
     if (!socket) return;
 
@@ -357,6 +335,5 @@ export function useMessageAttachments(
     refreshAll,
     attachFile,
     removeAttachment,
-    removeMessageAttachments,
   };
 }

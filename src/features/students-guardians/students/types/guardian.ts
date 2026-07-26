@@ -33,5 +33,3 @@ export interface StudentGuardianLink {
 }
 
 // Backward compatibility aliases
-export type StudentGuardianMock = StudentGuardian;
-export type StudentGuardianLinkMock = StudentGuardianLink;

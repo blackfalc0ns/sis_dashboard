@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import UserSearchSelect from "./UserSearchSelect";
+import type { CommunicationSelectorOption } from "@/features/communication/api/communication-selectors.service";
 
 export interface UserMultiSearchSelectProps {
   label: string;
@@ -25,6 +26,9 @@ export default function UserMultiSearchSelect({
   value,
 }: UserMultiSearchSelectProps) {
   const [pendingUserId, setPendingUserId] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState<
+    Record<string, { label: string; description?: string }>
+  >({});
 
   const addUser = (userId: string) => {
     setPendingUserId(userId);
@@ -35,6 +39,22 @@ export default function UserMultiSearchSelect({
 
   const removeUser = (userId: string) => {
     onChange(value.filter((item) => item !== userId));
+    setSelectedUsers((current) => {
+      const nextUsers = { ...current };
+      delete nextUsers[userId];
+      return nextUsers;
+    });
+  };
+
+  const rememberUserLabel = (option: CommunicationSelectorOption | null) => {
+    if (!option) return;
+    setSelectedUsers((current) => ({
+      ...current,
+      [option.id]: {
+        label: option.label,
+        description: option.description,
+      },
+    }));
   };
 
   return (
@@ -47,6 +67,7 @@ export default function UserMultiSearchSelect({
         error={error}
         disabled={disabled}
         onChange={addUser}
+        onOptionChange={rememberUserLabel}
       />
       {value.length > 0 ? (
         <div className="flex flex-wrap gap-2">
@@ -55,7 +76,14 @@ export default function UserMultiSearchSelect({
               key={userId}
               className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
             >
-              {userId}
+              <span>
+                {selectedUsers[userId]?.label || "Selected user"}
+                {selectedUsers[userId]?.description ? (
+                  <span className="text-slate-500">
+                    {` · ${selectedUsers[userId].description}`}
+                  </span>
+                ) : null}
+              </span>
               <Button
                 type="button"
                 size="sm"

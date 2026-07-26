@@ -54,15 +54,19 @@ describe("getConversationPermissionFlags", () => {
     expect(flags.canCreateJoinRequest).toBe(true);
   });
 
-  it("does not allow an active participant to create a join request", () => {
-    const current = participant("member");
-    const flags = getConversationPermissionFlags({
-      currentUserId: current.userId,
-      participants: [current],
-    });
+  it.each(["active", "muted"] as const)(
+    "treats a %s participant as a current member",
+    (status) => {
+      const current = participant("member", status);
+      const flags = getConversationPermissionFlags({
+        currentUserId: current.userId,
+        participants: [current],
+      });
 
-    expect(flags.canCreateJoinRequest).toBe(false);
-  });
+      expect(flags.isActiveParticipant).toBe(true);
+      expect(flags.canCreateJoinRequest).toBe(false);
+    },
+  );
 
   it("allows a participant to leave a normal conversation", () => {
     const current = participant("member");

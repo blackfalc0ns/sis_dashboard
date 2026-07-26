@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Loader2, MessageCircle } from "lucide-react";
 
 export function PanelLayout({
   action,
@@ -95,18 +96,42 @@ export function PanelState({ label }: { label: string }) {
   );
 }
 
-export function CenteredState({ label }: { label: string }) {
+export function CenteredState({
+  isLoading = false,
+  label,
+}: {
+  isLoading?: boolean;
+  label: string;
+}) {
   return (
-    <div className="flex min-h-[260px] items-center justify-center text-sm text-slate-500">
-      {label}
+    <div
+      role={isLoading ? "status" : undefined}
+      aria-busy={isLoading || undefined}
+      aria-live={isLoading ? "polite" : undefined}
+      className="flex min-h-[260px] flex-col items-center justify-center gap-3 px-6 text-center text-sm text-slate-500"
+    >
+      {isLoading ? (
+        <Loader2
+          className="h-6 w-6 motion-safe:animate-spin"
+          aria-hidden="true"
+        />
+      ) : (
+        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100">
+          <MessageCircle className="h-5 w-5" aria-hidden="true" />
+        </span>
+      )}
+      <span>{label}</span>
     </div>
   );
 }
 
 export function EmptyDetail({ label }: { label: string }) {
   return (
-    <div className="flex h-full items-center justify-center bg-slate-50 text-sm text-slate-500">
-      {label}
+    <div className="flex h-full flex-col items-center justify-center gap-3 bg-slate-50 px-6 text-center text-sm text-slate-500">
+      <span className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm">
+        <MessageCircle className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <span>{label}</span>
     </div>
   );
 }

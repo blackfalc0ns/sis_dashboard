@@ -18,6 +18,7 @@ export interface CommunicationEntitySelectProps {
   clearable?: boolean;
   search: (query: string) => Promise<CommunicationSelectorOption[]>;
   onChange: (value: string) => void;
+  onOptionChange?: (option: CommunicationSelectorOption | null) => void;
 }
 
 function toSelectOption(option: CommunicationSelectorOption): SelectOption {
@@ -39,6 +40,7 @@ export default function CommunicationEntitySelect({
   helperText,
   label,
   onChange,
+  onOptionChange,
   placeholder,
   search,
   value,
@@ -128,6 +130,9 @@ export default function CommunicationEntitySelect({
     }
 
     onChange(nextValue);
+    onOptionChange?.(
+      options.find((option) => option.id === nextValue) ?? null,
+    );
   };
 
   return (

@@ -24,6 +24,7 @@ import type {
   TeacherFormErrors,
   TeacherWorkDay,
 } from "@/features/teachers/types/index";
+import { isApiError } from "@/lib/api-error";
 
 const workDays: TeacherWorkDay[] = [
   "SUNDAY",
@@ -65,6 +66,13 @@ function IdentitySection({ form, onChange, requiredError, showIdentityTools = fa
   };
 
   const username = form.identity.username.trim();
+  const availabilityMessage = availability?.reason === "username_invalid"
+    ? tUsers("identity.username_invalid")
+    : availability?.reason === "reserved_username"
+      ? tUsers("identity.username_reserved")
+      : availability?.reason === "login_email_taken"
+        ? tUsers("identity.username_unavailable")
+        : tUsers("identity.username_unavailable");
 
   useEffect(() => {
     if (!showIdentityTools || form.identity.identityMode !== "username" || !username) return;
@@ -76,10 +84,14 @@ function IdentitySection({ form, onChange, requiredError, showIdentityTools = fa
         .then((nextPreview) => {
           if (!cancelled) setPreview(nextPreview);
         })
-        .catch(() => {
+        .catch((error) => {
           if (!cancelled) {
             setPreview(null);
-            setIdentityError(tUsers("identity.preview_failed"));
+            setIdentityError(
+              isApiError(error) && error.code === "iam.user.username_invalid"
+                ? tUsers("identity.username_invalid")
+                : tUsers("identity.preview_failed"),
+            );
           }
         })
         .finally(() => {
@@ -137,8 +149,8 @@ function IdentitySection({ form, onChange, requiredError, showIdentityTools = fa
             <div className="flex flex-wrap items-center gap-2">
               <Button type="button" variant="secondary" size="sm" loading={isCheckingAvailability} disabled={!username || isCheckingAvailability} onClick={() => void checkAvailability()}>{tUsers("identity.check_availability")}</Button>
               {availability ? <span className={`inline-flex items-center gap-1 text-sm ${availability.available ? "text-green-700" : "text-red-700"}`}>
-                {availability.available ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                {availability.available ? tUsers("identity.username_available") : availability.reason || tUsers("identity.username_unavailable")}
+                {availability.available ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : <XCircle className="h-4 w-4" aria-hidden="true" />}
+                {availability.available ? tUsers("identity.username_available") : availabilityMessage}
               </span> : null}
             </div>
             {identityError ? <p className="text-sm text-red-600">{identityError}</p> : null}
@@ -236,9 +248,21 @@ function NotesSection({ form, onChange }: SectionProps) {
 
 export default function TeacherFormSections({ showIdentity = true, showIdentityTools = false, ...props }: TeacherFormSectionsProps) {
   const t = useTranslations("teachers");
+  const tUsers = useTranslations("settings.users");
   const sectionProps: SectionProps = {
     ...props,
-    requiredError: (field) => props.errors[field] ? t("validation.required") : undefined,
+    requiredError: (field) => {
+      const error = props.errors[field];
+      if (!error) return undefined;
+      if (error === "required") return t("validation.required");
+      if (field === "username" && error === "username_invalid") {
+        return tUsers("identity.username_invalid");
+      }
+      if (field === "username" && error === "reserved_username") {
+        return tUsers("identity.username_reserved");
+      }
+      return error;
+    },
   };
 
   return (

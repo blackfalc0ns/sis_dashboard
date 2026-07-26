@@ -12,6 +12,7 @@ import type { SetCredentialPasswordRequest } from "@/features/settings/credentia
 import { useTeacherCredentialActions } from "@/features/teachers/hooks/useTeacherCredentialActions";
 import type { TeacherDirectoryDetail } from "@/features/teachers/types/index";
 import { isApiError } from "@/lib/api-error";
+import { getPasswordPolicyApiFailures } from "@/utils/validation/passwordPolicy";
 
 type GenerateMode = "generate" | "regenerate";
 
@@ -50,6 +51,7 @@ export default function TeacherCredentialCard({
   const t = useTranslations("settings.credentials");
   const tCommon = useTranslations("common");
   const tTeachers = useTranslations("teachers");
+  const tPasswordPolicy = useTranslations("password_policy");
   const { showError, showSuccess } = useToast();
   const [generateMode, setGenerateMode] = useState<GenerateMode | null>(null);
   const [isSetPasswordOpen, setIsSetPasswordOpen] = useState(false);
@@ -81,7 +83,14 @@ export default function TeacherCredentialCard({
       setIsSetPasswordOpen(false);
       showSuccess(t("messages.password_set"));
     } catch (error) {
-      setSetPasswordError(isApiError(error) ? error.message : tCommon("save_failed"));
+      const policyFailures = getPasswordPolicyApiFailures(error);
+      setSetPasswordError(
+        policyFailures.length > 0
+          ? policyFailures.map((reason) => tPasswordPolicy(reason)).join(" ")
+          : isApiError(error)
+            ? error.message
+            : tCommon("save_failed"),
+      );
     }
   };
 

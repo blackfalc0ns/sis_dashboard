@@ -66,18 +66,18 @@ describe("TeacherCredentialCard", () => {
     expect(await screen.findByText("Password policy failed")).toBeVisible();
   });
 
-  it("accepts the contract minimum one-character custom password", async () => {
+  it("submits a custom password that meets the credential policy", async () => {
     const user = userEvent.setup();
     renderCredentialCard();
 
     await user.click(screen.getByRole("button", { name: "actions.set_password" }));
-    await user.type(screen.getByLabelText("set.password"), "x");
-    await user.type(screen.getByLabelText("set.confirm_password"), "x");
+    await user.type(screen.getByLabelText("set.password"), "SecurePass!2026");
+    await user.type(screen.getByLabelText("set.confirm_password"), "SecurePass!2026");
     await user.click(screen.getByRole("button", { name: "save" }));
 
     await waitFor(() => expect(apiPost).toHaveBeenCalledWith(
       "/settings/users/user-1/credentials/set",
-      { password: "x", forceResetOnLogin: true },
+      { password: "SecurePass!2026", forceResetOnLogin: true },
     ));
   });
 

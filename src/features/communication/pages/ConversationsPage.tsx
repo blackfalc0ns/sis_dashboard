@@ -66,6 +66,8 @@ const labels = {
     group: "Group",
     classroom: "Classroom",
     direct: "Direct",
+    directUnavailable:
+      "Direct conversations cannot be started here yet. Existing direct conversations remain available.",
     grade: "Grade",
     section: "Section",
     stage: "Stage",
@@ -133,6 +135,8 @@ const labels = {
     group: "مجموعة",
     classroom: "فصل",
     direct: "مباشرة",
+    directUnavailable:
+      "لا يمكن بدء المحادثات المباشرة من هنا حالياً. تظل المحادثات المباشرة الحالية متاحة.",
     grade: "صف",
     section: "شعبة",
     stage: "مرحلة",
@@ -342,6 +346,7 @@ export default function ConversationsPage() {
             group: t.group,
             classroom: t.classroom,
             direct: t.direct,
+            directUnavailable: t.directUnavailable,
             grade: t.grade,
             section: t.section,
             stage: t.stage,

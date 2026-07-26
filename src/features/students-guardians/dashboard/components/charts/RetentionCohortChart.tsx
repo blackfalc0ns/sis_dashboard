@@ -86,16 +86,6 @@ export default function RetentionCohortChart() {
       .sort((a, b) => a.year.localeCompare(b.year));
   }, [allStudents]);
 
-  // Fallback to mock data if no filtered data
-  const chartData =
-    retentionData.length > 0
-      ? retentionData
-      : [
-          { year: "2023-24", retained: 95, left: 5 },
-          { year: "2024-25", retained: 92, left: 8 },
-          { year: "2025-26", retained: 94, left: 6 },
-        ];
-
   // Period options for ChartCard
   const periodOptions: DropdownItem[] = [
     { label: t("filters.all_time"), value: "all" },
@@ -119,7 +109,7 @@ export default function RetentionCohortChart() {
             <PartialLoader />
           ) : (
           <BarChart
-            dataset={chartData}
+            dataset={retentionData}
             xAxis={[{ scaleType: "band", dataKey: "year" }]}
             series={[
               {

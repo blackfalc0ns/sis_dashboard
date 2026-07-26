@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { teacherFixture } from "@/features/teachers/__tests__/fixtures";
+import { ApiError } from "@/lib/api-error";
 import CreateTeacherDialog from "../CreateTeacherDialog";
 import EditTeacherDialog from "../EditTeacherDialog";
 
@@ -67,6 +68,31 @@ describe("teacher form dialogs", () => {
       gender: "FEMALE",
     }));
     expect(onSubmit.mock.calls[0][0]).not.toHaveProperty("username");
+  });
+
+  it("shows a clear, localized username-policy error without a duplicate form alert", async () => {
+    const user = userEvent.setup();
+    checkUsernameAvailability.mockResolvedValueOnce({
+      username: "nour",
+      available: true,
+    });
+    const onSubmit = vi.fn().mockRejectedValue(
+      new ApiError("Username is invalid", 422, "iam.user.username_invalid"),
+    );
+    render(<CreateTeacherDialog isOpen isSubmitting={false} onClose={vi.fn()} onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText(/fields\.username/), "nour");
+    fireEvent.change(screen.getByLabelText(/fields\.code/), { target: { value: "TCH001" } });
+    fireEvent.change(screen.getByLabelText(/fields\.first_name \(arabic\)/), { target: { value: "نور" } });
+    fireEvent.change(screen.getByLabelText(/fields\.first_name \(english\)/), { target: { value: "Nour" } });
+    fireEvent.change(screen.getByLabelText(/fields\.last_name \(arabic\)/), { target: { value: "علي" } });
+    fireEvent.change(screen.getByLabelText(/fields\.last_name \(english\)/), { target: { value: "Ali" } });
+    await user.click(screen.getByLabelText(/fields\.gender/));
+    await user.click(screen.getByRole("button", { name: "gender.female" }));
+    await user.click(screen.getByRole("button", { name: "dialog.create_action" }));
+
+    expect(await screen.findByText("identity.username_invalid")).toBeVisible();
+    expect(screen.queryByText("Username is invalid")).not.toBeInTheDocument();
   });
 
   it("prevents an empty edit patch", async () => {

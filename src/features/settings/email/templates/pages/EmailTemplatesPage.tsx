@@ -41,57 +41,8 @@ const templateKeys: EmailTemplateKey[] = [
   "GENERAL_MESSAGE",
 ];
 
-const fallbackPreviewData: Record<EmailTemplateKey, Record<string, unknown>> = {
-  ACCOUNT_CREDENTIALS: {
-    user: {
-      fullName: "Sara Ali",
-      username: "sara.ali",
-      loginEmail: "sara.ali@school.example",
-      contactEmail: "sara.parent@example.com",
-    },
-    credential: {
-      temporaryPassword: "preview-only",
-    },
-    school: {
-      name: "Al Amal School",
-    },
-    support: {
-      email: "support@school.example",
-    },
-  },
-  PASSWORD_RESET: {
-    user: {
-      fullName: "Sara Ali",
-      username: "sara.ali",
-      loginEmail: "sara.ali@school.example",
-      contactEmail: "sara.parent@example.com",
-    },
-    reset: {
-      url: "https://school.example/reset",
-    },
-    school: {
-      name: "Al Amal School",
-    },
-  },
-  GENERAL_MESSAGE: {
-    user: {
-      fullName: "Sara Ali",
-      username: "sara.ali",
-      loginEmail: "sara.ali@school.example",
-      contactEmail: "sara.parent@example.com",
-    },
-    school: {
-      name: "Al Amal School",
-    },
-    message: {
-      title: "School update",
-      body: "This is preview data only.",
-    },
-  },
-};
-
-function stringifyPreviewData(key: EmailTemplateKey) {
-  return JSON.stringify(fallbackPreviewData[key], null, 2);
+function emptyPreviewData() {
+  return JSON.stringify({}, null, 2);
 }
 
 export default function EmailTemplatesPage() {
@@ -110,7 +61,7 @@ export default function EmailTemplatesPage() {
   const [errors, setErrors] = useState<TemplateEditorErrors>({});
   const [pageError, setPageError] = useState<string | null>(null);
   const [previewDataJson, setPreviewDataJson] = useState(
-    stringifyPreviewData("ACCOUNT_CREDENTIALS"),
+    emptyPreviewData(),
   );
   const [previewJsonError, setPreviewJsonError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewEmailTemplateResponse | null>(
@@ -175,7 +126,7 @@ export default function EmailTemplatesPage() {
         if (nextTemplate) {
           setSelectedKey(nextTemplate.key);
           setValues(toTemplateEditorValues(nextTemplate));
-          setPreviewDataJson(stringifyPreviewData(nextTemplate.key));
+          setPreviewDataJson(emptyPreviewData());
         }
       } catch (error) {
         const message = isApiError(error)
@@ -197,7 +148,7 @@ export default function EmailTemplatesPage() {
 
   const handleSelectKey = async (key: EmailTemplateKey) => {
     setSelectedKey(key);
-    setPreviewDataJson(stringifyPreviewData(key));
+      setPreviewDataJson(emptyPreviewData());
     setPreviewJsonError(null);
     const existing = templatesByKey.get(key);
     if (existing) {

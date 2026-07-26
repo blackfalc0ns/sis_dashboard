@@ -85,6 +85,14 @@ describe("communication service backend compatibility", () => {
     );
   });
 
+  it("uses the backend message info endpoint for reader details", async () => {
+    await communicationService.getMessageInfo("message-1");
+
+    expect(apiMocks.apiGet).toHaveBeenCalledWith(
+      "/communication/messages/message-1/info",
+    );
+  });
+
   it("posts backend announcement audience payloads", async () => {
     await communicationService.createAnnouncement({
       title: "Announcement",

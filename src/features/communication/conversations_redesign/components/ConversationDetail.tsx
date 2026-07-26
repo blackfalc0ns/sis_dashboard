@@ -58,6 +58,7 @@ import {
   normalizeStatus,
 } from "@/features/communication/utils/communication-errors";
 import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   actorName,
   addDisplayName,
@@ -65,12 +66,11 @@ import {
   displayNameForUserId,
   stringValue,
 } from "@/features/communication/conversations_redesign/utils/displayNames";
-import {
-  conversationIsReadOnly,
-} from "@/features/communication/conversations_redesign/utils/formatters";
+import { conversationIsReadOnly } from "@/features/communication/conversations_redesign/utils/formatters";
 import ConversationHeader from "@/features/communication/conversations_redesign/components/ConversationHeader";
 import ConversationTabs from "@/features/communication/conversations_redesign/components/ConversationTabs";
 import EditConversationDialog from "@/features/communication/conversations_redesign/components/EditConversationDialog";
+import MessageInfoDialog from "@/features/communication/conversations_redesign/components/messages/MessageInfoDialog";
 import {
   MessageComposer,
   MessagesPanel,
@@ -82,12 +82,73 @@ import JoinRequestsPanel from "@/features/communication/conversations_redesign/c
 import {
   archiveConversation,
   closeConversation,
+  createMessageReport,
+  getMessageInfo,
   markConversationRead,
   reopenConversation,
   updateConversation,
 } from "@/features/communication/api/communication.service";
 import type { UpdateConversationPayload } from "@/features/communication/types/conversation.types";
+import type {
+  MessageInfo,
+  SendableMessageType,
+} from "@/features/communication/types/message.types";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
+
+interface MessageInfoDialogState {
+  messageId: string | null;
+  messageInfo: MessageInfo | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+const CLOSED_MESSAGE_INFO_DIALOG: MessageInfoDialogState = {
+  messageId: null,
+  messageInfo: null,
+  isLoading: false,
+  error: null,
+};
+
+function unwrapMessageInfo(response: unknown): MessageInfo | null {
+  if (!response || typeof response !== "object") return null;
+  const record = response as Record<string, unknown>;
+  const candidate =
+    record.data ?? record.item ?? record.result ?? record.payload ?? response;
+  return candidate && typeof candidate === "object"
+    ? (candidate as MessageInfo)
+    : null;
+}
+
+async function loadMessageInfoDialogState(
+  messageId: string,
+  fallbackError: string,
+): Promise<MessageInfoDialogState> {
+  try {
+    const messageInfo = unwrapMessageInfo(await getMessageInfo(messageId));
+    return {
+      messageId,
+      messageInfo,
+      isLoading: false,
+      error: messageInfo ? null : fallbackError,
+    };
+  } catch (error) {
+    return {
+      messageId,
+      messageInfo: null,
+      isLoading: false,
+      error: communicationErrorMessage(error, fallbackError),
+    };
+  }
+}
+
+function messageTypeForFiles(files: File[]): SendableMessageType {
+  if (files.length !== 1) return "file";
+  const mimeType = files[0]?.type.toLowerCase() ?? "";
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType.startsWith("video/")) return "video";
+  if (mimeType.startsWith("audio/")) return "audio";
+  return "file";
+}
 
 export default function ConversationDetail({
   conversationId,
@@ -102,6 +163,7 @@ export default function ConversationDetail({
 }) {
   const locale = useLocale();
   const { user } = useAuth();
+  const { hasPermission } = usePermissions();
   const conversationState = useConversation(conversationId);
   const messagesState = useConversationMessages(conversationId);
   const [activeTab, setActiveTab] = useState<DetailTab>("messages");
@@ -141,15 +203,39 @@ export default function ConversationDetail({
     id: string;
     body: string;
   } | null>(null);
+  const [messageInfoDialog, setMessageInfoDialog] =
+    useState<MessageInfoDialogState>(CLOSED_MESSAGE_INFO_DIALOG);
+  const messageInfoRequestRef = useRef(0);
 
   const participantsState = useConversationParticipants(conversationId, {
     enabled: true,
   });
+  const permissions = useMemo(
+    () =>
+      getConversationPermissionFlags({
+        conversation: conversationState.conversation,
+        currentUserId: user?.id,
+        participants: participantsState.participants,
+      }),
+    [conversationState.conversation, participantsState.participants, user?.id],
+  );
+  const canJoinRealtimeRoom =
+    permissions.isActiveParticipant ||
+    hasPermission("communication.messages.moderate") ||
+    hasPermission("communication.conversations.manage") ||
+    hasPermission("communication.admin.view") ||
+    hasPermission("communication.admin.manage");
   const invitesState = useConversationInvites(conversationId, {
-    enabled: loadedTabs.invites,
+    enabled:
+      loadedTabs.invites &&
+      permissions.canManageInvites &&
+      hasPermission("communication.participants.manage"),
   });
   const joinRequestsState = useConversationJoinRequests(conversationId, {
-    enabled: loadedTabs.joinRequests,
+    enabled:
+      loadedTabs.joinRequests &&
+      permissions.canReviewJoinRequests &&
+      hasPermission("communication.participants.manage"),
   });
   const presenceState = usePresence();
   const typingState = useTypingIndicator(conversationId);
@@ -161,9 +247,23 @@ export default function ConversationDetail({
       .map((message) => message.id);
     return ids;
   }, [messagesState.messages]);
+  const locallyConfirmedMessageIds = useMemo(
+    () =>
+      messagesState.messages
+        .filter(
+          (message) =>
+            message.id &&
+            message.clientMessageId &&
+            message.deliveryStatus === "sent" &&
+            message.senderId === user?.id,
+        )
+        .map((message) => message.id),
+    [messagesState.messages, user?.id],
+  );
 
   // Stabilize the messageIds array reference — only change when IDs actually differ
-  const [stableMessageIds, setStableMessageIds] = useState<string[]>(messageIds);
+  const [stableMessageIds, setStableMessageIds] =
+    useState<string[]>(messageIds);
   const isMessageIdsChanged =
     messageIds.length !== stableMessageIds.length ||
     messageIds.some((id, index) => id !== stableMessageIds[index]);
@@ -171,7 +271,10 @@ export default function ConversationDetail({
     setStableMessageIds(messageIds);
   }
 
-  const reactionsState = useMessageReactions(stableMessageIds);
+  const reactionsState = useMessageReactions(
+    stableMessageIds,
+    locallyConfirmedMessageIds,
+  );
   const attachmentMessages = useMemo(
     () =>
       messagesState.messages.filter(
@@ -241,16 +344,6 @@ export default function ConversationDetail({
     user,
   ]);
 
-  const permissions = useMemo(
-    () =>
-      getConversationPermissionFlags({
-        conversation: conversationState.conversation,
-        currentUserId: user?.id,
-        participants: participantsState.participants,
-      }),
-    [conversationState.conversation, participantsState.participants, user?.id],
-  );
-
   // Toast error handlers for details loading hooks
   useEffect(() => {
     if (conversationState.error) {
@@ -300,10 +393,17 @@ export default function ConversationDetail({
     reactionsState,
   ]);
 
+  const refreshMessageActivity = useCallback(() => {
+    if (messagesState.isMutating) return;
+    void messagesState.refresh();
+    void reactionsState.refreshAll();
+  }, [messagesState, reactionsState]);
+
   const ignoreReactionRealtimeRefresh = useCallback(() => undefined, []);
 
   useConversationRealtime({
     conversationId,
+    enabled: canJoinRealtimeRoom,
     onMessageCreated: messagesState.upsertFromRealtime,
     onMessageDeleted: messagesState.deleteFromRealtime,
     onMessageRead: messagesState.patchReadFromRealtime,
@@ -311,7 +411,7 @@ export default function ConversationDetail({
     onReactionDeleted: ignoreReactionRealtimeRefresh,
     onReactionUpserted: ignoreReactionRealtimeRefresh,
     onPresenceUpdated: presenceState.handlePresenceUpdated,
-    onReconnect: refreshAll,
+    onReconnect: refreshMessageActivity,
     onTypingStarted: typingState.handleTypingStarted,
     onTypingStopped: typingState.handleTypingStopped,
   });
@@ -348,10 +448,7 @@ export default function ConversationDetail({
 
     markLatestVisibleMessageRead();
     window.addEventListener("focus", markLatestVisibleMessageRead);
-    document.addEventListener(
-      "visibilitychange",
-      markLatestVisibleMessageRead,
-    );
+    document.addEventListener("visibilitychange", markLatestVisibleMessageRead);
     return () => {
       window.removeEventListener("focus", markLatestVisibleMessageRead);
       document.removeEventListener(
@@ -392,26 +489,108 @@ export default function ConversationDetail({
     }
   };
 
+  const openMessageInfo = useCallback(
+    async (messageId: string) => {
+      const requestId = messageInfoRequestRef.current + 1;
+      messageInfoRequestRef.current = requestId;
+      setMessageInfoDialog({
+        messageId,
+        messageInfo: null,
+        isLoading: true,
+        error: null,
+      });
+
+      const nextDialogState = await loadMessageInfoDialogState(
+        messageId,
+        labels.unableToLoadMessageInfo,
+      );
+      if (requestId !== messageInfoRequestRef.current) return;
+      setMessageInfoDialog(nextDialogState);
+    },
+    [labels.unableToLoadMessageInfo],
+  );
+
+  const closeMessageInfo = () => {
+    messageInfoRequestRef.current += 1;
+    setMessageInfoDialog(CLOSED_MESSAGE_INFO_DIALOG);
+  };
+
+  const retryMessageInfo = () => {
+    if (messageInfoDialog.messageId) {
+      void openMessageInfo(messageInfoDialog.messageId);
+    }
+  };
+
   const conversation = conversationState.conversation;
   const readOnly = conversationIsReadOnly(conversation);
   const isCommunicationEnabled = policy?.isEnabled !== false;
-  const allowReactions = policy?.allowReactions !== false;
+  const canManageConversation =
+    permissions.canManageConversation &&
+    hasPermission("communication.conversations.manage");
+  const canManageParticipants =
+    permissions.canManageParticipants &&
+    hasPermission("communication.participants.manage");
+  const canManageInvites =
+    permissions.canManageInvites &&
+    hasPermission("communication.participants.manage");
+  const canReviewJoinRequests =
+    permissions.canReviewJoinRequests &&
+    hasPermission("communication.participants.manage");
+  const canCreateJoinRequest =
+    permissions.canCreateJoinRequest &&
+    hasPermission("communication.conversations.view");
+  const canLeaveConversation =
+    permissions.canLeaveConversation &&
+    hasPermission("communication.conversations.view");
+  const canReactToMessages =
+    policy?.allowReactions !== false &&
+    hasPermission("communication.messages.react");
+  const canEditMessages =
+    policy?.allowMessageEdit !== false &&
+    policy?.allowMessageEditing !== false &&
+    hasPermission("communication.messages.edit");
+  const canDeleteMessages =
+    policy?.allowMessageDelete !== false &&
+    policy?.allowMessageDeleting !== false &&
+    hasPermission("communication.messages.delete");
+  const canManageAttachments =
+    policy?.allowAttachments !== false &&
+    hasPermission("communication.messages.attachments.manage");
+  const canReportMessages = hasPermission("communication.messages.report");
+  const availableTabs: DetailTab[] = [
+    "messages",
+    "participants",
+    ...(canManageInvites ? (["invites"] as const) : []),
+    ...(canReviewJoinRequests || canCreateJoinRequest
+      ? (["joinRequests"] as const)
+      : []),
+  ];
 
   // Determine current user's participant status
-  const currentUserParticipant = participantsState.participants.find(
-    (p) => {
-      const pUserId = p.userId ?? p.actor?.userId ?? p.actor?.id;
-      return pUserId === user?.id;
-    },
-  );
+  const currentUserParticipant = participantsState.participants.find((p) => {
+    const pUserId = p.userId ?? p.actor?.userId ?? p.actor?.id;
+    return pUserId === user?.id;
+  });
   const currentUserStatus = currentUserParticipant?.status;
   const mutedUntil = currentUserParticipant?.mutedUntil;
   const normUserStatus = normalizeStatus(currentUserStatus);
-  const isMuted = normUserStatus === "muted" || (mutedUntil != null && new Date(mutedUntil) > new Date());
-  const isBlocked = normUserStatus === "blocked" || currentUserParticipant?.isBlocked === true;
+  const isMuted =
+    normUserStatus === "muted" ||
+    (mutedUntil != null && new Date(mutedUntil) > new Date());
+  const isBlocked =
+    normUserStatus === "blocked" || currentUserParticipant?.isBlocked === true;
   const isRestricted = currentUserParticipant?.isRestricted === true;
-  const isRemovedOrLeft = currentUserStatus === "left" || currentUserStatus === "removed";
-  const canSendMessages = !readOnly && !isMuted && !isBlocked && !isRestricted && !isRemovedOrLeft && isCommunicationEnabled && permissions.isActiveParticipant;
+  const isRemovedOrLeft =
+    currentUserStatus === "left" || currentUserStatus === "removed";
+  const canSendMessages =
+    !readOnly &&
+    !isMuted &&
+    !isBlocked &&
+    !isRestricted &&
+    !isRemovedOrLeft &&
+    isCommunicationEnabled &&
+    permissions.isActiveParticipant &&
+    hasPermission("communication.messages.send");
 
   const restrictionBanner = (() => {
     const normStatus = normalizeStatus(conversation?.status);
@@ -433,7 +612,10 @@ export default function ConversationDetail({
     if (conversation?.isReadOnly || conversation?.readOnly) {
       return labels.bannerReadOnly;
     }
-    if (normalizeStatus(currentUserParticipant?.status) === "muted" || isMuted) {
+    if (
+      normalizeStatus(currentUserParticipant?.status) === "muted" ||
+      isMuted
+    ) {
       return labels.bannerMuted;
     }
     if (normalizeRole(currentUserParticipant?.role) === "READ_ONLY") {
@@ -463,7 +645,10 @@ export default function ConversationDetail({
     } catch (error) {
       onToast({
         tone: "error",
-        message: communicationErrorMessage(error, labels.unableToArchiveConversation),
+        message: communicationErrorMessage(
+          error,
+          labels.unableToArchiveConversation,
+        ),
       });
     } finally {
       setIsMutatingConversation(false);
@@ -484,7 +669,10 @@ export default function ConversationDetail({
     } catch (error) {
       onToast({
         tone: "error",
-        message: communicationErrorMessage(error, labels.unableToCloseConversation),
+        message: communicationErrorMessage(
+          error,
+          labels.unableToCloseConversation,
+        ),
       });
     } finally {
       setIsMutatingConversation(false);
@@ -500,7 +688,10 @@ export default function ConversationDetail({
     } catch (error) {
       onToast({
         tone: "error",
-        message: communicationErrorMessage(error, labels.unableToReopenConversation),
+        message: communicationErrorMessage(
+          error,
+          labels.unableToReopenConversation,
+        ),
       });
     } finally {
       setIsMutatingConversation(false);
@@ -517,7 +708,10 @@ export default function ConversationDetail({
     } catch (error) {
       onToast({
         tone: "error",
-        message: communicationErrorMessage(error, labels.unableToUpdateConversation),
+        message: communicationErrorMessage(
+          error,
+          labels.unableToUpdateConversation,
+        ),
       });
     } finally {
       setIsMutatingConversation(false);
@@ -528,9 +722,8 @@ export default function ConversationDetail({
     if (!currentUserParticipant) return;
     const newMutedUntil = isMuted ? null : "2099-12-31T23:59:59.000Z";
     try {
-      const { updateParticipant } = await import(
-        "@/features/communication/api/communication.service"
-      );
+      const { updateParticipant } =
+        await import("@/features/communication/api/communication.service");
       await updateParticipant(conversationId, currentUserParticipant.id, {
         mutedUntil: newMutedUntil,
       });
@@ -542,7 +735,10 @@ export default function ConversationDetail({
     } catch (error) {
       onToast({
         tone: "error",
-        message: communicationErrorMessage(error, labels.unableToUpdateConversation),
+        message: communicationErrorMessage(
+          error,
+          labels.unableToUpdateConversation,
+        ),
       });
     }
   };
@@ -554,8 +750,18 @@ export default function ConversationDetail({
     isPolicyLoading
   ) {
     return (
-      <div data-testid="conversation-loading-spinner" className="flex h-full items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      <div
+        data-testid="conversation-loading-spinner"
+        role="status"
+        aria-busy="true"
+        aria-live="polite"
+        className="flex h-full flex-col items-center justify-center gap-3 bg-slate-50 text-sm text-slate-500"
+      >
+        <Loader2
+          className="h-8 w-8 motion-safe:animate-spin text-slate-400"
+          aria-hidden="true"
+        />
+        <span>{labels.loading}</span>
       </div>
     );
   }
@@ -563,6 +769,8 @@ export default function ConversationDetail({
   return (
     <div className="flex h-full min-h-0 flex-col bg-slate-50">
       <ConversationHeader
+        canManageConversation={canManageConversation}
+        canMute={canManageParticipants}
         conversation={conversation}
         isMuted={isMuted}
         isLoading={conversationState.isLoading}
@@ -579,6 +787,7 @@ export default function ConversationDetail({
 
       <ConversationTabs
         activeTab={activeTab}
+        availableTabs={availableTabs}
         labels={labels}
         onTabChange={handleTabChange}
       />
@@ -586,11 +795,16 @@ export default function ConversationDetail({
       <div className="min-h-0 flex-1 overflow-hidden">
         {activeTab === "messages" ? (
           <MessagesPanel
-            allowReactions={allowReactions}
+            allowReactions={canReactToMessages}
+            canDeleteMessages={canDeleteMessages}
+            canEditMessages={canEditMessages}
+            canManageAttachments={canManageAttachments}
+            canReplyMessages={canSendMessages}
+            canReportMessages={canReportMessages}
             attachmentsByMessageId={attachmentsState.attachmentsByMessageId}
             currentUserId={user?.id}
             currentUserName={currentUserName(user, labels)}
-            error={null}
+            error={messagesState.error}
             hasOlderMessages={messagesState.hasOlderMessages}
             isLoading={messagesState.isLoading}
             isLoadingOlder={messagesState.isLoadingOlder}
@@ -621,10 +835,7 @@ export default function ConversationDetail({
             }
             onDeleteMessage={(messageId) =>
               runMutation(
-                async () => {
-                  await attachmentsState.removeMessageAttachments(messageId);
-                  await messagesState.remove(messageId);
-                },
+                () => messagesState.remove(messageId),
                 labels.messageDeleted,
                 labels.unableToDeleteMessage,
               )
@@ -646,7 +857,11 @@ export default function ConversationDetail({
               const senderName =
                 (message.sender?.name as string) ??
                 (typeof record.senderUserId === "string"
-                  ? displayNameForUserId(record.senderUserId as string, userDisplayNames, labels.someone)
+                  ? displayNameForUserId(
+                      record.senderUserId as string,
+                      userDisplayNames,
+                      labels.someone,
+                    )
                   : labels.someone);
               setReplyTo({
                 id: message.id,
@@ -654,37 +869,24 @@ export default function ConversationDetail({
                 body: message.body ?? "",
               });
             }}
-            onInfo={async (messageId) => {
-              try {
-                const { getMessage } = await import(
-                  "@/features/communication/api/communication.service"
-                );
-                const response = await getMessage(messageId);
-                const msg = response as Record<string, unknown>;
-                const data = (msg?.data ?? msg?.item ?? msg) as Record<string, unknown>;
-                const readCount = typeof data?.readCount === "number" ? data.readCount : 0;
-                onToast({
-                  tone: "info",
-                  message: `${labels.readByList}: ${readCount}`,
-                });
-              } catch {
-                onToast({ tone: "info", message: `${labels.readByList}: —` });
-              }
-            }}
+            onInfo={(messageId) => void openMessageInfo(messageId)}
             onReport={async (messageId) => {
               try {
-                const { createMessageReport } = await import(
-                  "@/features/communication/api/communication.service"
-                );
-                await createMessageReport(messageId, { reason: "inappropriate_content" });
+                await createMessageReport(messageId, {
+                  reason: "inappropriate_content",
+                });
                 onToast({ tone: "success", message: labels.reportSent });
               } catch (error) {
                 onToast({
                   tone: "error",
-                  message: communicationErrorMessage(error, labels.unableToReport),
+                  message: communicationErrorMessage(
+                    error,
+                    labels.unableToReport,
+                  ),
                 });
               }
             }}
+            onRetry={() => void messagesState.refresh()}
             reactionsByMessageId={reactionsState.reactionsByMessageId}
             typingUsers={typingState.typingUsers}
             userDisplayNames={userDisplayNames}
@@ -694,8 +896,8 @@ export default function ConversationDetail({
 
         {activeTab === "participants" ? (
           <ParticipantsPanel
-            canLeaveConversation={permissions.canLeaveConversation}
-            canManage={permissions.canManageParticipants}
+            canLeaveConversation={canLeaveConversation}
+            canManage={canManageParticipants}
             currentUserId={user?.id}
             error={null}
             isLoading={participantsState.isLoading}
@@ -722,8 +924,8 @@ export default function ConversationDetail({
 
         {activeTab === "invites" ? (
           <InvitesPanel
-            canCreate={permissions.canManageInvites}
-            canManage={permissions.canManageInvites}
+            canCreate={canManageInvites}
+            canManage={canManageInvites}
             currentUserId={user?.id}
             error={null}
             invites={invitesState.invites}
@@ -748,8 +950,8 @@ export default function ConversationDetail({
 
         {activeTab === "joinRequests" ? (
           <JoinRequestsPanel
-            canCreate={permissions.canCreateJoinRequest}
-            canReview={permissions.canReviewJoinRequests}
+            canCreate={canCreateJoinRequest}
+            canReview={canReviewJoinRequests}
             error={null}
             isLoading={joinRequestsState.isLoading}
             joinRequests={joinRequestsState.joinRequests}
@@ -779,6 +981,11 @@ export default function ConversationDetail({
           <ReadOnlyComposer labels={labels} />
         ) : (
           <MessageComposer
+            allowAttachments={policy?.allowAttachments !== false}
+            allowVoice={
+              policy?.allowAttachments !== false &&
+              policy?.allowVoiceMessages !== false
+            }
             disabled={false}
             editingMessage={editingMessage}
             labels={labels}
@@ -794,7 +1001,11 @@ export default function ConversationDetail({
             }
             onSend={async (body) => {
               const result = await runMutation(
-                () => messagesState.send(body, replyTo ? { replyToMessageId: replyTo.id } : undefined),
+                () =>
+                  messagesState.send(
+                    body,
+                    replyTo ? { replyToMessageId: replyTo.id } : undefined,
+                  ),
                 null,
                 labels.unableToSendMessage,
               );
@@ -818,17 +1029,16 @@ export default function ConversationDetail({
             }}
             onSendWithAttachment={async (files, caption) => {
               try {
-                const messageBody = caption || "📎";
-                const messageId = await messagesState.send(
-                  messageBody,
-                  replyTo ? { replyToMessageId: replyTo.id } : undefined,
-                );
-                if (messageId) {
-                  for (const file of files) {
-                    await attachmentsState.attachFile(messageId, file);
-                  }
-                  onToast({ tone: "success", message: labels.attachmentUploaded });
-                }
+                await messagesState.sendMedia({
+                  type: messageTypeForFiles(files),
+                  files,
+                  caption,
+                  ...(replyTo ? { replyToMessageId: replyTo.id } : {}),
+                });
+                onToast({
+                  tone: "success",
+                  message: labels.attachmentUploaded,
+                });
                 setReplyTo(null);
               } catch (error) {
                 onToast({
@@ -838,6 +1048,7 @@ export default function ConversationDetail({
                     labels.unableToUploadAttachment,
                   ),
                 });
+                throw error;
               }
             }}
             onStopTyping={typingState.stopOwnTyping}
@@ -1030,6 +1241,17 @@ export default function ConversationDetail({
         />
       ) : null}
 
+      <MessageInfoDialog
+        error={messageInfoDialog.error}
+        messageInfo={messageInfoDialog.messageInfo}
+        isLoading={messageInfoDialog.isLoading}
+        isOpen={messageInfoDialog.messageId !== null}
+        labels={labels}
+        locale={locale}
+        onClose={closeMessageInfo}
+        onRetry={retryMessageInfo}
+      />
+
       <ConfirmDialog
         isOpen={isConfirmArchiveOpen}
         onClose={() => setIsConfirmArchiveOpen(false)}
@@ -1056,4 +1278,3 @@ export default function ConversationDetail({
     </div>
   );
 }
-

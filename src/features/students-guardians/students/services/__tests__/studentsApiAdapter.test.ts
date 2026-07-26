@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiGet } from "@/lib/api";
-import { createStudentsApiAdapter } from "@/features/students-guardians/students/services/studentsApiAdapter";
+import { fetchStudentsWithEnrollmentForContext } from "@/features/students-guardians/students/services/studentsService";
 import { fetchStudents } from "@/features/students-guardians/students/services/studentsApiService";
 
 vi.mock("@/lib/api", () => ({
@@ -8,7 +8,7 @@ vi.mock("@/lib/api", () => ({
   apiWithToken: vi.fn(),
 }));
 
-describe("studentsApiAdapter enrollment context", () => {
+describe("studentsService enrollment context", () => {
   beforeEach(() => {
     vi.mocked(apiGet).mockReset().mockImplementation((path: string) => {
       if (path === "/students-guardians/students") {
@@ -49,11 +49,7 @@ describe("studentsApiAdapter enrollment context", () => {
   });
 
   it("loads year-scoped students and enrollments with two collection requests", async () => {
-    const adapter = createStudentsApiAdapter();
-
-    const students = await adapter.fetchStudentsWithEnrollmentForContext!(
-      "year-1",
-    );
+    const students = await fetchStudentsWithEnrollmentForContext("year-1");
 
     expect(apiGet).toHaveBeenCalledTimes(2);
     expect(students[0].enrollment?.enrollmentId).toBe("enrollment-1");

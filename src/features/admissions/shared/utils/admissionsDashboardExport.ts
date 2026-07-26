@@ -5,6 +5,9 @@ import {
   getServerExportFormat,
   type AdmissionsExportFormat,
 } from "@/features/admissions/shared/utils/admissionsExport";
+import type { Application } from "@/features/admissions/types/admissions";
+import type { Lead } from "@/features/admissions/leads/types/lead";
+import { fetchEnrollments } from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
 
 type DashboardExportType = "data" | "analytics";
 type DashboardDataset = "leads" | "applications" | "decisions" | "enrollments";
@@ -54,6 +57,10 @@ function getDateRange(currentDateRange?: DashboardDateRange) {
 export function createAdmissionsDashboardExportHandler(
   locale: string,
   currentDateRange?: DashboardDateRange,
+  data?: {
+    applications: Application[];
+    leads: Lead[];
+  },
 ) {
   return async ({
     format,
@@ -77,6 +84,7 @@ export function createAdmissionsDashboardExportHandler(
           endDate: dateRange.endDate,
           daysBack: dateRange.daysBack,
           locale,
+          data,
         }),
       });
 
@@ -93,6 +101,9 @@ export function createAdmissionsDashboardExportHandler(
       return;
     }
 
+    const enrollments = datasets?.includes("enrollments")
+      ? await fetchEnrollments()
+      : [];
     const response = await fetch("/api/exports/data", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -102,6 +113,10 @@ export function createAdmissionsDashboardExportHandler(
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
         locale,
+        data: {
+          ...data,
+          enrollments,
+        },
       }),
     });
 

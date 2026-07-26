@@ -235,7 +235,6 @@ export default function StudentsGuardiansDashboardView({
           icon={Users}
           iconColor="#3b82f6"
           iconBgColor="#dbeafe"
-          chartData={stats.totalTrend}
           chartColor="#3b82f6"
         />
         <KPICardV2
@@ -245,7 +244,6 @@ export default function StudentsGuardiansDashboardView({
           icon={UserCheck}
           iconColor="#10b981"
           iconBgColor="#d1fae5"
-          chartData={stats.activeTrend}
           chartColor="#10b981"
         />
         <KPICardV2
@@ -255,7 +253,6 @@ export default function StudentsGuardiansDashboardView({
           icon={AlertTriangle}
           iconColor="#ef4444"
           iconBgColor="#fee2e2"
-          chartData={stats.atRiskTrend}
           chartColor="#ef4444"
         />
         <KPICardV2
@@ -267,7 +264,6 @@ export default function StudentsGuardiansDashboardView({
           icon={TrendingUp}
           iconColor="#8b5cf6"
           iconBgColor="#ede9fe"
-          chartData={stats.attendanceTrend}
           chartColor="#8b5cf6"
         />
         <KPICardV2
@@ -277,7 +273,6 @@ export default function StudentsGuardiansDashboardView({
           icon={GraduationCap}
           iconColor="#6366f1"
           iconBgColor="#e0e7ff"
-          chartData={stats.gradeTrend}
           chartColor="#6366f1"
         />
         <KPICardV2
@@ -287,7 +282,6 @@ export default function StudentsGuardiansDashboardView({
           icon={UserX}
           iconColor="#6b7280"
           iconBgColor="#f3f4f6"
-          chartData={stats.withdrawnTrend}
           chartColor="#6b7280"
         />
       </div>

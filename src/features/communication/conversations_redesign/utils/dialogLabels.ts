@@ -20,6 +20,7 @@ export function createConversationDialogLabels(labels: ConversationRedesignLabel
     group: labels.group,
     classroom: labels.classroom,
     direct: labels.direct,
+    directUnavailable: labels.directUnavailable,
     grade: labels.grade,
     section: labels.section,
     stage: labels.stage,

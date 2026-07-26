@@ -1,4 +1,3 @@
-import { mockStudents } from "@/data/mockStudents";
 import { apiGet } from "@/lib/api";
 import { isApiError } from "@/lib/api-error";
 import {
@@ -195,15 +194,6 @@ function createEmptyBaseAttendanceData() {
 
 function buildStudentMap(roster: RosterStudent[]): Map<string, ReportsStudentLike> {
   const map = new Map<string, ReportsStudentLike>();
-
-  for (const student of mockStudents) {
-    map.set(student.id, {
-      id: student.id,
-      studentNumber: student.student_id || student.id,
-      studentNameAr: student.full_name_ar,
-      studentNameEn: student.full_name_en,
-    });
-  }
 
   for (const student of roster) {
     map.set(student.id, {

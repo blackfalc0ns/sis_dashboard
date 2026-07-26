@@ -44,6 +44,7 @@ import {
 } from "@/features/settings/email/deliveries/services/emailDeliveriesService";
 import {
   createEmailCampaign,
+  mapEmailCampaignRecipientsPreview,
   previewEmailCampaign,
   previewEmailCampaignRecipients,
 } from "@/features/settings/email/campaigns/services/emailCampaignsService";
@@ -400,6 +401,46 @@ describe("Sprint 11 endpoint contracts", () => {
         customEmails: ["extra@example.com"],
       }),
     );
+  });
+
+  it("maps campaign recipient preview names, usernames, delivery email, and reasons", () => {
+    expect(
+      mapEmailCampaignRecipientsPreview({
+        totalMatched: 16,
+        eligible: 8,
+        skipped: 8,
+        skippedReasons: {
+          disabled_user: 2,
+          missing_contact_email: 1,
+          duplicate_email: 5,
+        },
+        sample: {
+          eligible: [
+            {
+              userId: "29ce481f-800c-4772-85be-170dd4930f49",
+              fullName: "Abdallah",
+              username: "abdallah",
+              loginEmail: "abdallah@school.edu",
+              contactEmail: "safnks0@gmail.com",
+              toEmail: "safnks0@gmail.com",
+              userType: "school_user",
+              roleKey: "teacher",
+              hasPassword: true,
+              mustChangePassword: false,
+              credentialVersion: 2,
+              reason: null,
+            },
+          ],
+          skipped: [],
+        },
+      }).recipients[0],
+    ).toMatchObject({
+      fullName: "Abdallah",
+      username: "abdallah",
+      toEmail: "safnks0@gmail.com",
+      eligible: true,
+      reason: null,
+    });
   });
 
   it("loads the public health readiness endpoint", async () => {

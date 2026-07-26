@@ -26,6 +26,7 @@ export interface CommunicationRealtimeContextValue {
   isConnected: boolean;
   connectionError: string | null;
   resyncVersion: number;
+  retryConnection: () => void;
   joinConversation: (conversationId: string) => void;
   leaveConversation: (conversationId: string) => void;
   startTyping: (conversationId: string, messageDraftId?: string) => void;
@@ -66,6 +67,24 @@ function logConnectError(error: Error, socket: CommunicationSocket | null) {
       COMMUNICATION_REALTIME_SOCKET_PATH ??
       "(socket.io default)",
   });
+}
+
+function socketExceptionMessage(payload: unknown): string {
+  if (!payload || typeof payload !== "object") {
+    return "Realtime room request failed.";
+  }
+  const exception = payload as { code?: unknown; message?: unknown };
+  const nestedException =
+    exception.message && typeof exception.message === "object"
+      ? (exception.message as { code?: unknown; message?: unknown })
+      : undefined;
+  if (typeof exception.code === "string") return exception.code;
+  if (typeof nestedException?.code === "string") return nestedException.code;
+  if (typeof exception.message === "string") return exception.message;
+  if (typeof nestedException?.message === "string") {
+    return nestedException.message;
+  }
+  return "Realtime room request failed.";
 }
 
 export function CommunicationRealtimeProvider({
@@ -142,6 +161,10 @@ export function CommunicationRealtimeProvider({
       logConnectError(error, nextSocket);
     });
 
+    nextSocket.on("exception", (payload) => {
+      setConnectionError(socketExceptionMessage(payload));
+    });
+
     nextSocket.io.on("reconnect", () => {
       setIsConnected(true);
       setConnectionError(null);
@@ -174,12 +197,22 @@ export function CommunicationRealtimeProvider({
       return;
     }
 
-    const disconnectWhenTokenMissing = () => {
-      if (getCommunicationAccessToken()) {
+    const synchronizeSocketToken = () => {
+      const token = getCommunicationAccessToken();
+      const activeSocket = socketRef.current;
+      if (token && activeSocket) {
+        const currentAuth = activeSocket.auth as { token?: string };
+        if (currentAuth.token === token) {
+          return;
+        }
+        activeSocket.auth = { ...currentAuth, token };
+        activeSocket.disconnect();
+        activeSocket.connect();
         return;
       }
 
-      disconnectSocket(socketRef.current);
+      if (token) return;
+      disconnectSocket(activeSocket);
       socketRef.current = null;
       joinedConversationIdsRef.current.clear();
       setSocket(null);
@@ -191,10 +224,10 @@ export function CommunicationRealtimeProvider({
         return;
       }
 
-      disconnectWhenTokenMissing();
+      synchronizeSocketToken();
     };
 
-    const intervalId = window.setInterval(disconnectWhenTokenMissing, 5000);
+    const intervalId = window.setInterval(synchronizeSocketToken, 5000);
     window.addEventListener("storage", handleStorage);
     return () => {
       window.clearInterval(intervalId);
@@ -258,12 +291,21 @@ export function CommunicationRealtimeProvider({
     [],
   );
 
+  const retryConnection = useCallback(() => {
+    setConnectionError(null);
+    const activeSocket = socketRef.current;
+    if (!activeSocket?.connected) {
+      activeSocket?.connect();
+    }
+  }, []);
+
   const value = useMemo<CommunicationRealtimeContextValue>(
     () => ({
       socket,
       isConnected,
       connectionError,
       resyncVersion,
+      retryConnection,
       joinConversation: (conversationId) =>
         emitRoomEvent(
           COMMUNICATION_SOCKET_EVENTS.conversationJoin,
@@ -292,6 +334,7 @@ export function CommunicationRealtimeProvider({
       isConnected,
       connectionError,
       resyncVersion,
+      retryConnection,
       emitRoomEvent,
       emitTypingEvent,
     ],

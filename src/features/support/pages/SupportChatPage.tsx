@@ -101,6 +101,7 @@ export default function SupportChatPage() {
           onRemoveReaction={async () => undefined}
           onReply={() => undefined}
           onReport={() => undefined}
+          onRetry={() => void supportChat.refresh()}
           onStartEdit={() => undefined}
           reactionsByMessageId={{}}
           typingUsers={[]}

@@ -1,7 +1,6 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { defaultRoles } from "@/features/settings/constants/defaults";
 import { permissionCatalog } from "@/features/settings/constants/permissions";
 import { settingsNavigationPermissionByKey } from "@/hooks/usePermissions";
 
@@ -102,23 +101,6 @@ describe("granular Settings email permissions", () => {
 
     expect(new Set(catalogEmailPermissions)).toEqual(new Set(emailPermissions));
   });
-
-  it.each(["System Admin", "IT Supervisor"])(
-    "keeps Security access and grants email permissions to %s",
-    (roleName) => {
-      const rolePermissions = defaultRoles.find(
-        ({ name }) => name === roleName,
-      )?.permissions;
-
-      expect(rolePermissions).toEqual(
-        expect.arrayContaining([
-          "settings.security.view",
-          "settings.security.manage",
-          ...emailPermissions,
-        ]),
-      );
-    },
-  );
 
   it.each(emailPageContracts)(
     "enforces the permission contract in %s",

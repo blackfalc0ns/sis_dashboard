@@ -57,7 +57,13 @@ function setupDefaultMocks() {
   apiMocks.markConversationRead.mockResolvedValue({});
   apiMocks.markMessageRead.mockResolvedValue({});
   apiMocks.getConversationReadSummary.mockResolvedValue({
-    data: { readCount: 0, unreadCount: 0 },
+    data: {
+      conversationId: TEST_CONVERSATION_ID,
+      items: [],
+      total: 0,
+      limit: 100,
+      page: 1,
+    },
   });
 }
 

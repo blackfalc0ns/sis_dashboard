@@ -9,6 +9,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast/Toast";
 import { isApiError } from "@/lib/api-error";
 import { getValidationFieldErrors } from "@/lib/validation-errors";
+import {
+  getPasswordPolicyApiFailures,
+  getPasswordPolicyFailures,
+} from "@/utils/validation/passwordPolicy";
 
 interface ChangePasswordFormProps {
   currentYear: number;
@@ -29,13 +33,12 @@ const INITIAL_VALUES: ChangePasswordValues = {
   confirmPassword: "",
 };
 
-const MIN_PASSWORD_LENGTH = 8;
-
 export function ChangePasswordForm({ currentYear }: ChangePasswordFormProps) {
   const locale = useLocale();
   const isRTL = locale === "ar";
   const t = useTranslations("auth.changePassword");
   const tLogin = useTranslations("auth.login");
+  const tPasswordPolicy = useTranslations("password_policy");
   const router = useRouter();
   const { changePassword, refreshCurrentUser } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -59,12 +62,13 @@ export function ChangePasswordForm({ currentYear }: ChangePasswordFormProps) {
     if (!nextValues.currentPassword.trim()) {
       nextErrors.currentPassword = t("errors.currentRequired");
     }
+    const policyFailures = getPasswordPolicyFailures(nextValues.newPassword);
     if (!nextValues.newPassword.trim()) {
       nextErrors.newPassword = t("errors.newRequired");
-    } else if (nextValues.newPassword.length < MIN_PASSWORD_LENGTH) {
-      nextErrors.newPassword = t("errors.newMinLength", {
-        min: MIN_PASSWORD_LENGTH,
-      });
+    } else if (policyFailures.length > 0) {
+      nextErrors.newPassword = policyFailures
+        .map((reason) => tPasswordPolicy(reason))
+        .join(" ");
     } else if (nextValues.newPassword === nextValues.currentPassword) {
       nextErrors.newPassword = t("errors.newDifferent");
     }
@@ -127,7 +131,14 @@ export function ChangePasswordForm({ currentYear }: ChangePasswordFormProps) {
       await refreshCurrentUser();
       router.push(`/${locale}/dashboard`);
     } catch (error) {
-      if (isApiError(error) && error.isValidationError()) {
+      const policyFailures = getPasswordPolicyApiFailures(error);
+      if (policyFailures.length > 0) {
+        const policyMessage = policyFailures
+          .map((reason) => tPasswordPolicy(reason))
+          .join(" ");
+        setErrors((current) => ({ ...current, newPassword: policyMessage }));
+        setSubmitError(policyMessage);
+      } else if (isApiError(error) && error.isValidationError()) {
         const fieldErrors = getValidationFieldErrors(error);
         setErrors({
           currentPassword: fieldErrors.currentPassword,

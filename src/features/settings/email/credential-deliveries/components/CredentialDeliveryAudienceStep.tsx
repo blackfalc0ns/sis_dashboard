@@ -1,8 +1,7 @@
 "use client";
 
-import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
-import TextArea from "@/components/ui/input/TextArea";
+import UserMultiSearchSelect from "@/features/communication/components/selectors/UserMultiSearchSelect";
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
 import { useTranslations } from "next-intl";
 import type {
@@ -17,6 +16,14 @@ interface CredentialDeliveryAudienceStepProps {
   roles: RoleDefinition[];
   onChange: (values: Partial<CredentialDeliveryWizardValues>) => void;
 }
+
+const CREDENTIAL_DELIVERY_USER_TYPES = [
+  "SCHOOL_USER",
+  "SCHOOL_ADMIN",
+  "TEACHER",
+  "STUDENT",
+  "PARENT",
+];
 
 function parseUserIds(value: string) {
   return value
@@ -52,6 +59,23 @@ export default function CredentialDeliveryAudienceStep({
   onChange,
 }: CredentialDeliveryAudienceStepProps) {
   const t = useTranslations("settings.email.credentialDeliveries");
+  const selectedUserIds =
+    values.audience.userIds ?? parseUserIds(values.selectedUserIdsText);
+  const roleOptions = roles.map((role) => ({
+    value: role.key ?? role.id,
+    label: role.name,
+    searchText: role.description,
+  }));
+  const roleSelectOptions =
+    roleOptions.length > 0
+      ? roleOptions
+      : [
+          {
+            value: "__roles_empty",
+            label: t("audience.roles_empty"),
+            disabled: true,
+          },
+        ];
 
   const setAudienceMode = (mode: CredentialDeliveryAudienceMode) => {
     onChange({
@@ -86,19 +110,17 @@ export default function CredentialDeliveryAudienceStep({
         />
 
         {values.audienceMode === "selected-users" ? (
-          <TextArea
-            label={t("audience.selected_user_ids")}
-            rows={5}
-            dir="ltr"
-            value={values.selectedUserIdsText}
-            onChange={(event) => {
-              const selectedUserIdsText = event.target.value;
+          <UserMultiSearchSelect
+            label={t("audience.selected_users")}
+            value={selectedUserIds}
+            placeholder={t("audience.selected_users_placeholder")}
+            helperText={t("audience.selected_users_help")}
+            onChange={(userIds) => {
               onChange({
-                selectedUserIdsText,
-                audience: { userIds: parseUserIds(selectedUserIdsText) },
+                selectedUserIdsText: userIds.join("\n"),
+                audience: { userIds },
               });
             }}
-            helperText={t("audience.selected_user_ids_help")}
           />
         ) : null}
 
@@ -109,29 +131,22 @@ export default function CredentialDeliveryAudienceStep({
             onChange={(value) => onChange({ audience: { roleKey: value } })}
             placeholder={t("audience.role_placeholder")}
             searchable
-            options={roles
-              .filter((role) => role.key)
-              .map((role) => ({
-                value: role.key as string,
-                label: role.name,
-                searchText: role.description,
-              }))}
-            helperText={
-              roles.filter((role) => role.key).length === 0
-                ? t("audience.roles_empty")
-                : undefined
-            }
+            options={roleSelectOptions}
           />
         ) : null}
 
         {values.audienceMode === "user-type" ? (
-          <Input
+          <Select
             label={t("audience.user_type")}
-            dir="ltr"
             value={values.audience.userType || ""}
-            onChange={(event) =>
-              onChange({ audience: { userType: event.target.value.trim() } })
+            onChange={(value) =>
+              onChange({ audience: { userType: value } })
             }
+            placeholder={t("audience.user_type_placeholder")}
+            options={CREDENTIAL_DELIVERY_USER_TYPES.map((userType) => ({
+              value: userType,
+              label: userType,
+            }))}
           />
         ) : null}
 

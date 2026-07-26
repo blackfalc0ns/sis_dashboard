@@ -14,9 +14,8 @@ const LineChart = dynamic(
 export default function WithdrawalsTrendChart() {
   const t = useTranslations("students_guardians.transfers_withdrawals.charts");
 
-  // TODO: Replace with actual API data
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-  const withdrawalsData = [4, 6, 5, 8, 7, 6];
+  const months: string[] = [];
+  const withdrawalsData: number[] = [];
 
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm">

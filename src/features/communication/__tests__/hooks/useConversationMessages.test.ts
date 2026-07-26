@@ -73,7 +73,13 @@ function setupDefaultMocks() {
   apiMocks.markConversationRead.mockResolvedValue({});
   apiMocks.markMessageRead.mockResolvedValue({});
   apiMocks.getConversationReadSummary.mockResolvedValue({
-    data: { readCount: 0, unreadCount: 0 },
+    data: {
+      conversationId: TEST_CONVERSATION_ID,
+      items: [],
+      total: 0,
+      limit: 100,
+      page: 1,
+    },
   });
   filesApiMocks.uploadFile.mockResolvedValue({
     data: { id: "file-voice-001" },
@@ -138,6 +144,41 @@ describe("useConversationMessages", () => {
       expect(result.current.messages).toHaveLength(2);
       expect(result.current.messages[0].body).toBe("First message");
       expect(result.current.messages[1].body).toBe("Second message");
+    });
+
+    it("applies read counts from the backend paginated summary", async () => {
+      apiMocks.getMessages.mockResolvedValue({
+        data: {
+          items: [
+            createMessage({
+              id: "msg-1",
+              conversationId: TEST_CONVERSATION_ID,
+              readCount: 0,
+            }),
+          ],
+          total: 1,
+        },
+      });
+      apiMocks.getConversationReadSummary.mockResolvedValue({
+        data: {
+          conversationId: TEST_CONVERSATION_ID,
+          items: [{ messageId: "msg-1", readCount: 2 }],
+          total: 1,
+          limit: 100,
+          page: 1,
+        },
+      });
+
+      const { result } = renderHook(() =>
+        useConversationMessages(TEST_CONVERSATION_ID),
+      );
+
+      await waitFor(() => {
+        expect(result.current.messages[0]?.readCount).toBe(2);
+      });
+      expect(result.current.readSummary.items).toEqual([
+        { messageId: "msg-1", readCount: 2 },
+      ]);
     });
   });
 
@@ -316,12 +357,46 @@ describe("useConversationMessages", () => {
       // Body should remain unchanged
       expect(result.current.messages[0].body).toBe("Original");
     });
+
+    it("preserves content when moderation sends a metadata-only update", async () => {
+      apiMocks.getMessages.mockResolvedValue({
+        data: {
+          items: [
+            createMessage({
+              id: "msg-1",
+              conversationId: TEST_CONVERSATION_ID,
+              body: "Original",
+              status: "hidden",
+              createdAt: "2024-01-01T10:00:00.000Z",
+            }),
+          ],
+          total: 1,
+        },
+      });
+      const { result } = renderHook(() =>
+        useConversationMessages(TEST_CONVERSATION_ID),
+      );
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      act(() => {
+        result.current.patchFromRealtime({
+          messageId: "msg-1",
+          conversationId: TEST_CONVERSATION_ID,
+          status: "sent",
+          updatedAt: "2024-01-01T10:05:00.000Z",
+        });
+      });
+
+      expect(result.current.messages[0]).toEqual(
+        expect.objectContaining({ body: "Original", status: "sent" }),
+      );
+    });
   });
 
   // ─── Property 11: Message Delete Marks as Deleted ───────────────────────
 
-  describe("Property 11: message deletion removes the message from the list", () => {
-    it("removes the target message when deleteFromRealtime is received", async () => {
+  describe("Property 11: message deletion preserves the timeline row", () => {
+    it("marks the target message deleted when the backend event is received", async () => {
       const existingMessages = [
         createMessage({
           id: "msg-1",
@@ -352,19 +427,22 @@ describe("useConversationMessages", () => {
       });
 
       const deletePayload = {
-        message: {
-          id: "msg-2",
-          conversationId: TEST_CONVERSATION_ID,
-          clientMessageId: "client-msg-2",
-          status: "deleted",
-        },
+        messageId: "msg-2",
+        conversationId: TEST_CONVERSATION_ID,
+        status: "deleted",
+        deletedAt: "2024-01-01T10:02:00.000Z",
       };
 
       act(() => {
         result.current.deleteFromRealtime(deletePayload);
       });
 
-      expect(result.current.messages.find((m) => m.id === "msg-2")).toBeUndefined();
+      expect(result.current.messages.find((m) => m.id === "msg-2")).toEqual(
+        expect.objectContaining({
+          body: "Delete this",
+          status: "deleted",
+        }),
+      );
 
       // The other message should be unaffected
       const keptMsg = result.current.messages.find((m) => m.id === "msg-1");
@@ -372,7 +450,7 @@ describe("useConversationMessages", () => {
       expect(keptMsg?.status).toBe("sent");
     });
 
-    it("removes the entire local message row when delete is confirmed", async () => {
+    it("keeps a deleted local message in place and clears its content", async () => {
       const existingMessages = [
         createMessage({
           id: "msg-1",
@@ -417,7 +495,15 @@ describe("useConversationMessages", () => {
       expect(apiMocks.deleteMessage).toHaveBeenCalledWith("msg-2");
       expect(result.current.messages.map((message) => message.id)).toEqual([
         "msg-1",
+        "msg-2",
       ]);
+      expect(result.current.messages[1]).toEqual(
+        expect.objectContaining({
+          body: undefined,
+          attachments: [],
+          status: "deleted",
+        }),
+      );
     });
 
     it("ignores delete for a different conversation", async () => {
@@ -443,11 +529,9 @@ describe("useConversationMessages", () => {
       });
 
       const deletePayload = {
-        message: {
-          id: "msg-1",
-          conversationId: "conv-different-999",
-          status: "deleted",
-        },
+        messageId: "msg-1",
+        conversationId: "conv-different-999",
+        status: "deleted",
       };
 
       act(() => {
@@ -457,6 +541,49 @@ describe("useConversationMessages", () => {
       // Message should remain unchanged
       expect(result.current.messages[0].body).toBe("Should stay");
       expect(result.current.messages[0].status).toBe("sent");
+    });
+  });
+
+  describe("backend read receipt contract", () => {
+    it("updates only messages named by a conversation read event", async () => {
+      apiMocks.getMessages.mockResolvedValue({
+        data: {
+          items: [
+            createMessage({
+              id: "msg-1",
+              conversationId: TEST_CONVERSATION_ID,
+              readCount: 0,
+            }),
+            createMessage({
+              id: "msg-2",
+              conversationId: TEST_CONVERSATION_ID,
+              readCount: 4,
+            }),
+          ],
+          total: 2,
+        },
+      });
+      const { result } = renderHook(() =>
+        useConversationMessages(TEST_CONVERSATION_ID),
+      );
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      act(() => {
+        result.current.patchReadFromRealtime({
+          conversationId: TEST_CONVERSATION_ID,
+          readerId: "reader-1",
+          markedCount: 1,
+          messages: [{ messageId: "msg-1", readCount: 3 }],
+        });
+      });
+
+      expect(result.current.messages[0]).toEqual(
+        expect.objectContaining({
+          readCount: 3,
+          readByUserIds: ["reader-1"],
+        }),
+      );
+      expect(result.current.messages[1].readCount).toBe(4);
     });
   });
 

@@ -13,9 +13,6 @@ interface WithdrawalTabProps {
 export default function WithdrawalTab({ student }: WithdrawalTabProps) {
   const t = useTranslations("students_guardians.profile.withdrawal");
 
-  // TODO: Fetch actual withdrawal data from API
-  // For now, showing empty state or current status
-
   const isWithdrawn = student.status === "Withdrawn";
 
   return (

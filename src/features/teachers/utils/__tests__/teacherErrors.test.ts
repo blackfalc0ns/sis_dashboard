@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ApiError } from "@/lib/api-error";
-import { toTeacherUiError } from "../teacherErrors";
+import { toTeacherSubmissionFormErrors, toTeacherUiError } from "../teacherErrors";
 
 describe("teacher error mapping", () => {
   it("maps conflicts to the affected form field", () => {
@@ -18,6 +18,14 @@ describe("teacher error mapping", () => {
       username: "Identity exists",
       loginEmail: "Identity exists",
     });
+  });
+
+  it("turns an invalid username response into a field-level form error", () => {
+    expect(
+      toTeacherSubmissionFormErrors(
+        new ApiError("Username is invalid", 422, "iam.user.username_invalid"),
+      ),
+    ).toEqual({ username: "username_invalid" });
   });
 
   it("maps validation detail messages without exposing the raw error", () => {

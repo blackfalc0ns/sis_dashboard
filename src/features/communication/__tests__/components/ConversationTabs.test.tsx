@@ -22,4 +22,24 @@ describe("ConversationTabs", () => {
     fireEvent.keyDown(messagesTab, { key: "ArrowRight" });
     expect(onTabChange).toHaveBeenCalledWith("participants");
   });
+
+  it("renders only available tabs and navigates across the visible set", () => {
+    const onTabChange = vi.fn();
+    render(
+      <ConversationTabs
+        activeTab="messages"
+        availableTabs={["messages", "joinRequests"]}
+        labels={conversationRedesignLabels.en}
+        onTabChange={onTabChange}
+      />,
+    );
+
+    const messagesTab = screen.getByRole("tab", { name: "Messages" });
+    expect(
+      screen.queryByRole("tab", { name: "Invites" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.keyDown(messagesTab, { key: "ArrowRight" });
+    expect(onTabChange).toHaveBeenCalledWith("joinRequests");
+  });
 });

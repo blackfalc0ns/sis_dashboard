@@ -14,15 +14,10 @@ const BarChart = dynamic(
 export default function WithdrawalsByStageChart() {
   const t = useTranslations("students_guardians.transfers_withdrawals.charts");
 
-  // TODO: Replace with actual API data
-  const stages = [
-    t("stages.primary"),
-    t("stages.preparatory"),
-    t("stages.secondary"),
-  ];
-  const behaviorData = [3, 5, 4];
-  const financialData = [2, 3, 2];
-  const otherData = [4, 2, 3];
+  const stages: string[] = [];
+  const behaviorData: number[] = [];
+  const financialData: number[] = [];
+  const otherData: number[] = [];
 
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm">

@@ -2,11 +2,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import * as studentsService from "@/features/students-guardians/students/services/studentsService";
-import { useOptionalStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 interface HeatmapData {
   week: string;
@@ -19,54 +15,7 @@ interface AbsenceHeatmapProps {
 
 export default function AbsenceHeatmap({ data }: AbsenceHeatmapProps) {
   const t = useTranslations("students_guardians.overview");
-  const context = useOptionalStudentsGuardiansYearTermContext();
-  const yearId = context?.yearId ?? null;
-  const isContextLoading = context?.isLoading ?? false;
-
-  // Get all students
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    if (isContextLoading) {
-    void Promise.resolve().then(() => setIsLoading(true));
-      return () => {
-        isCancelled = true;
-      };
-    }
-
-    void Promise.resolve().then(async () => {
-      setIsLoading(true);
-      try {
-        if (yearId) {
-          await studentsService.fetchStudentsWithEnrollmentForContext(yearId);
-        } else {
-          await studentsService.fetchStudentsWithEnrollment();
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      }
-    });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [isContextLoading, yearId]);
-
-  // Default data if none provided - 6 days starting from Saturday
-  // In a real implementation, this would be calculated from filteredStudents
-  // For now, using mock data
-  const heatmapData: HeatmapData[] = data || [
-    { week: t("weeks.week_1"), data: [2, 3, 1, 4, 2, 3] },
-    { week: t("weeks.week_2"), data: [3, 2, 5, 3, 4, 2] },
-    { week: t("weeks.week_3"), data: [1, 4, 2, 2, 3, 4] },
-    { week: t("weeks.week_4"), data: [4, 3, 3, 5, 6, 3] },
-    { week: t("weeks.week_5"), data: [2, 1, 4, 3, 2, 5] },
-    { week: t("weeks.week_6"), data: [3, 5, 2, 4, 3, 2] },
-  ];
+  const heatmapData = data ?? [];
 
   const days = [
     t("days.sat"),
@@ -92,9 +41,6 @@ export default function AbsenceHeatmap({ data }: AbsenceHeatmapProps) {
       <h3 className="text-base sm:text-lg font-bold text-gray-900">
         {t("charts.absence_heatmap")}
       </h3>
-      {isLoading ? (
-        <PartialLoader />
-      ) : (
       <div className="overflow-x-auto overflow-y-hidden -mx-4 sm:mx-0 px-4 sm:px-0">
         <div className="min-w-[480px] sm:min-w-[500px]">
           {/* Heatmap Header */}
@@ -148,7 +94,6 @@ export default function AbsenceHeatmap({ data }: AbsenceHeatmapProps) {
           </div>
         </div>
       </div>
-      )}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import type { ConversationListItemModel } from "../../hooks/useConversations";
 // ─── Module Mocks ────────────────────────────────────────────────────────────
 
 const TEST_USER_ID = "user-test-001";
+const hasPermissionMock = vi.hoisted(() => vi.fn());
 
 // Mock useAuth
 vi.mock("@/hooks/use-auth", () => ({
@@ -40,6 +41,7 @@ const mockConversationsState = {
   isRefreshing: false,
   isMutating: false,
   error: null as string | null,
+  clearError: vi.fn(),
   hasFilters: false,
   refresh: vi.fn().mockResolvedValue(undefined),
   markAsRead: vi.fn(),
@@ -54,17 +56,25 @@ vi.mock("@/features/communication/hooks/useConversations", () => ({
   useConversations: () => mockConversationsState,
 }));
 
-// Mock useCommunicationSocket
+const mockRealtimeState = {
+  socket: null,
+  isConnected: true,
+  connectionError: null as string | null,
+  resyncVersion: 0,
+  retryConnection: vi.fn(),
+  joinConversation: vi.fn(),
+  leaveConversation: vi.fn(),
+  startTyping: vi.fn(),
+  stopTyping: vi.fn(),
+};
+
 vi.mock("@/features/communication/hooks/useCommunicationSocket", () => ({
-  useCommunicationSocket: () => ({
-    socket: null,
-    isConnected: true,
-    connectionError: null,
-    resyncVersion: 0,
-    joinConversation: vi.fn(),
-    leaveConversation: vi.fn(),
-    startTyping: vi.fn(),
-    stopTyping: vi.fn(),
+  useCommunicationSocket: () => mockRealtimeState,
+}));
+
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    hasPermission: hasPermissionMock,
   }),
 }));
 
@@ -95,8 +105,23 @@ vi.mock(
 vi.mock(
   "@/features/communication/conversations_redesign/components/ToastMessage",
   () => ({
-    ToastMessage: ({ message }: { message: string }) => (
-      <div data-testid="toast-message">{message}</div>
+    ToastMessage: ({
+      actionLabel,
+      message,
+      onAction,
+    }: {
+      actionLabel?: string;
+      message: string;
+      onAction?: () => void;
+    }) => (
+      <div data-testid="toast-message">
+        {message}
+        {actionLabel && onAction ? (
+          <button type="button" onClick={onAction}>
+            {actionLabel}
+          </button>
+        ) : null}
+      </div>
     ),
   }),
 );
@@ -118,12 +143,15 @@ function createConversationListItem(
 describe("ConversationPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hasPermissionMock.mockReturnValue(true);
     mockConversationsState.conversations = [];
     mockConversationsState.total = 0;
     mockConversationsState.isLoading = false;
     mockConversationsState.isRefreshing = false;
     mockConversationsState.isMutating = false;
     mockConversationsState.error = null;
+    mockRealtimeState.isConnected = true;
+    mockRealtimeState.connectionError = null;
     mockConversationsState.filters = {
       search: "",
       status: "all",
@@ -134,6 +162,64 @@ describe("ConversationPage", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it("shows a localized realtime authorization error", () => {
+    mockRealtimeState.connectionError =
+      "communication.conversation.not_member";
+
+    render(<ConversationPage />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "You are not a member of this conversation.",
+    );
+  });
+
+  it("hides conversation creation without the backend create permission", () => {
+    hasPermissionMock.mockImplementation(
+      (permission: string) =>
+        permission !== "communication.conversations.create",
+    );
+
+    render(<ConversationPage />);
+
+    expect(
+      screen.queryByRole("button", { name: "Create conversation" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("retries realtime and conversation loading from the connection banner", () => {
+    mockRealtimeState.isConnected = false;
+
+    render(<ConversationPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(mockRealtimeState.retryConnection).toHaveBeenCalledOnce();
+    expect(mockConversationsState.refresh).toHaveBeenCalledOnce();
+  });
+
+  it("offers a retry action when conversation loading fails", () => {
+    mockConversationsState.error = "Unable to load conversations.";
+
+    render(<ConversationPage />);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Unable to load conversations.",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    expect(mockConversationsState.refresh).toHaveBeenCalledOnce();
+  });
+
+  it("offers conversation creation from the unfiltered empty state", () => {
+    render(<ConversationPage />);
+
+    const createButtons = screen.getAllByRole("button", {
+      name: "Create Conversation",
+    });
+    expect(createButtons).toHaveLength(2);
+
+    fireEvent.click(createButtons.at(-1)!);
+    expect(screen.getByTestId("create-dialog")).toBeInTheDocument();
   });
 
   // ─── Property 2 (partial): Render Count During Initial Mount ─────────────
@@ -168,7 +254,6 @@ describe("ConversationPage", () => {
   describe("Property 19: Filter Correctness", () => {
     /**
      * Validates: Requirements 7.2, 7.3
-     * - "unread" filter returns only conversations where unreadCount > 0
      * - "pinned" filter returns only conversations where isPinned is true
      */
 
@@ -247,21 +332,13 @@ describe("ConversationPage", () => {
       ).toEqual({ search: "", status: "all", type: "classroom" });
     });
 
-    it("'unread' filter shows only conversations with unreadCount > 0", () => {
+    it("does not expose the unsupported unread filter", () => {
       render(<ConversationPage />);
 
-      // Click the "unread" filter button (the small pill-shaped filter tab, not the conversation item)
       const filterButtons = screen.getAllByRole("button").filter(
         (btn) => btn.textContent === "Unread" && btn.className.includes("h-8"),
       );
-      expect(filterButtons.length).toBeGreaterThan(0);
-      fireEvent.click(filterButtons[0]);
-
-      // Only the unread conversation should be visible
-      expect(screen.getByText("Unread Conversation")).toBeInTheDocument();
-      expect(screen.queryByText("My Conversation")).not.toBeInTheDocument();
-      expect(screen.queryByText("Pinned Conversation")).not.toBeInTheDocument();
-      expect(screen.queryByText("Other Conversation")).not.toBeInTheDocument();
+      expect(filterButtons).toHaveLength(0);
     });
 
     it("'pinned' filter shows only conversations where isPinned is true", () => {

@@ -7,7 +7,6 @@ export interface CommunicationPresence {
   userId: string;
   status?: string;
   isOnline?: boolean;
-  lastSeenAt?: string;
 }
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
@@ -38,11 +37,13 @@ export function usePresence() {
         isOnline:
           typeof source.isOnline === "boolean"
             ? source.isOnline
+            : typeof source.online === "boolean"
+              ? source.online
             : typeof payload.isOnline === "boolean"
               ? payload.isOnline
+              : typeof payload.online === "boolean"
+                ? payload.online
               : undefined,
-        lastSeenAt:
-          stringValue(source.lastSeenAt) ?? stringValue(payload.lastSeenAt),
       },
     }));
   }, []);

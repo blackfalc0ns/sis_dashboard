@@ -81,6 +81,12 @@ vi.mock("@/hooks/use-auth", () => ({
   useAuth: useAuthMock,
 }));
 
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    hasPermission: () => true,
+  }),
+}));
+
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
   useTranslations: () => (key: string) => key,
@@ -90,6 +96,8 @@ vi.mock("@/features/communication/api/communication.service", () => ({
   markConversationRead: markConversationReadMock,
   archiveConversation: vi.fn(),
   closeConversation: vi.fn(),
+  createMessageReport: vi.fn(),
+  getMessageInfo: vi.fn(),
   reopenConversation: vi.fn(),
   updateConversation: vi.fn(),
 }));

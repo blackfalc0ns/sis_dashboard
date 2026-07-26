@@ -4,10 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { X, Search, Upload, ChevronDown } from "lucide-react";
 import {
-  fetchAllStudents,
-  getStudentEnrollment,
+  fetchStudentsWithEnrollment,
+  type StudentWithEnrollmentContext,
 } from "@/features/students-guardians/students/services/studentsService";
-import type { Student } from "@/features/students-guardians/students/types";
 import type { TransferApplication } from "@/features/students-guardians/transfers-withdrawals/types/transfers-withdrawals";
 import {
   getStructureTreeSnapshot,
@@ -158,7 +157,9 @@ export default function CreateTransferModal({
   const [showSectionDropdown, setShowSectionDropdown] = useState(false);
   const [showClassroomDropdown, setShowClassroomDropdown] = useState(false);
 
-  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [allStudents, setAllStudents] = useState<
+    StudentWithEnrollmentContext[]
+  >([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
 
   useEffect(() => {
@@ -166,7 +167,7 @@ export default function CreateTransferModal({
 
     void Promise.resolve().then(async () => {
       try {
-        const students = await fetchAllStudents();
+        const students = await fetchStudentsWithEnrollment();
         if (!isCancelled) {
           setAllStudents(students);
         }
@@ -199,9 +200,7 @@ export default function CreateTransferModal({
     ? allStudents.find((item) => (item.student_id || item.id) === formData.studentId)
     : undefined;
 
-  const selectedEnrollment = selectedStudent
-    ? getStudentEnrollment(selectedStudent.id)
-    : undefined;
+  const selectedEnrollment = selectedStudent?.enrollment;
 
   const academicYear = selectedEnrollment?.academicYear;
   const structureContext = academicYear
@@ -255,12 +254,12 @@ export default function CreateTransferModal({
           : undefined,
     }));
 
-  const handleStudentSelect = (student: Student) => {
-    const enrollment = getStudentEnrollment(student.id);
+  const handleStudentSelect = (student: StudentWithEnrollmentContext) => {
+    const enrollment = student.enrollment;
 
     setFormData((prev) => ({
       ...prev,
-      studentId: student.student_id || student.id,
+        studentId: student.id,
       studentName: student.full_name_en,
       studentNameAr: student.full_name_ar || "",
       stage:
@@ -382,7 +381,7 @@ export default function CreateTransferModal({
                   <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {filteredStudents.length > 0 ? (
                       filteredStudents.map((student) => {
-                        const enrollment = getStudentEnrollment(student.id);
+                        const enrollment = student.enrollment;
                         const placement = [
                           enrollment?.grade || student.gradeRequested,
                           enrollment?.section,

@@ -2,12 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { X, Search, Upload, AlertCircle } from "lucide-react";
+import { X, Search, Upload } from "lucide-react";
 import {
-  fetchAllStudents,
-  getStudentEnrollment,
+  fetchStudentsWithEnrollment,
+  type StudentWithEnrollmentContext,
 } from "@/features/students-guardians/students/services/studentsService";
-import type { Student } from "@/features/students-guardians/students/types";
 import type { WithdrawalApplication } from "@/features/students-guardians/transfers-withdrawals/types/transfers-withdrawals";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
@@ -44,16 +43,15 @@ export default function CreateWithdrawalModal({
     reason: "relocation",
     effectiveDate: "",
     notes: "",
-    behaviorAvg: 0,
-    attendancePercent: 0,
   });
 
-  const [financialBalance, setFinancialBalance] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [showStudentSearch, setShowStudentSearch] = useState(false);
 
-  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [allStudents, setAllStudents] = useState<
+    StudentWithEnrollmentContext[]
+  >([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
 
   useEffect(() => {
@@ -61,7 +59,7 @@ export default function CreateWithdrawalModal({
 
     void Promise.resolve().then(async () => {
       try {
-        const students = await fetchAllStudents();
+        const students = await fetchStudentsWithEnrollment();
         if (!isCancelled) {
           setAllStudents(students);
         }
@@ -90,32 +88,29 @@ export default function CreateWithdrawalModal({
     [allStudents, searchQuery],
   );
 
-  const handleStudentSelect = useCallback((student: Student) => {
-    const enrollment = getStudentEnrollment(student.id);
-    const mockBehaviorAvg = Math.floor(Math.random() * 40) + 60;
-    const mockAttendance = Math.floor(Math.random() * 20) + 80;
-    const mockFinancialBalance = Math.floor(Math.random() * 5000);
+  const handleStudentSelect = useCallback(
+    (student: StudentWithEnrollmentContext) => {
+      const enrollment = student.enrollment;
 
-    setFormData((prev) => ({
-      ...prev,
-      studentId: student.student_id || student.id,
-      studentName: student.full_name_en,
-      studentNameAr: student.full_name_ar || "",
-      stage:
-        enrollment?.grade
-          ? getStageFromGrade(enrollment.grade)
-          : (student.stage as "primary" | "preparatory" | "secondary") ||
-            getStageFromGrade(student.gradeRequested),
-      grade: enrollment?.grade || student.gradeRequested,
-      section: enrollment?.section || "",
-      classroom: enrollment?.classroom || "",
-      behaviorAvg: mockBehaviorAvg,
-      attendancePercent: mockAttendance,
-    }));
-    setFinancialBalance(mockFinancialBalance);
-    setShowStudentSearch(false);
-    setSearchQuery("");
-  }, []);
+      setFormData((prev) => ({
+        ...prev,
+        studentId: student.id,
+        studentName: student.full_name_en,
+        studentNameAr: student.full_name_ar || "",
+        stage:
+          enrollment?.grade
+            ? getStageFromGrade(enrollment.grade)
+            : (student.stage as "primary" | "preparatory" | "secondary") ||
+              getStageFromGrade(student.gradeRequested),
+        grade: enrollment?.grade || student.gradeRequested,
+        section: enrollment?.section || "",
+        classroom: enrollment?.classroom || "",
+      }));
+      setShowStudentSearch(false);
+      setSearchQuery("");
+    },
+    [],
+  );
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -138,9 +133,6 @@ export default function CreateWithdrawalModal({
   };
 
   if (!isOpen) return null;
-
-  const hasFinancialIssues = financialBalance > 0;
-  const hasBehaviorIssues = (formData.behaviorAvg || 0) < 60;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -193,7 +185,7 @@ export default function CreateWithdrawalModal({
                   <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {filteredStudents.length > 0 ? (
                       filteredStudents.map((student) => {
-                        const enrollment = getStudentEnrollment(student.id);
+                        const enrollment = student.enrollment;
                         const placement = [
                           enrollment?.grade || student.gradeRequested,
                           enrollment?.section,
@@ -255,64 +247,6 @@ export default function CreateWithdrawalModal({
                     <span className="ml-2 font-medium">{formData.classroom || "—"}</span>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {formData.studentId && (
-              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                  {t("behavior_summary.title")}
-                </h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">{t("behavior_summary.behavior_avg")}:</span>
-                    <span
-                      className={`ml-2 font-semibold ${
-                        (formData.behaviorAvg || 0) >= 80
-                          ? "text-green-600"
-                          : (formData.behaviorAvg || 0) >= 60
-                            ? "text-yellow-600"
-                            : "text-red-600"
-                      }`}
-                    >
-                      {formData.behaviorAvg || 0}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">{t("behavior_summary.attendance")}:</span>
-                    <span className="ml-2 font-medium">{formData.attendancePercent || 0}%</span>
-                  </div>
-                </div>
-                {hasBehaviorIssues && (
-                  <div className="mt-3 flex items-start gap-2 text-sm text-red-700 bg-red-50 p-2 rounded">
-                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                    <span>{t("behavior_summary.low_behavior_warning")}</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {formData.studentId && (
-              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                  {t("financial_summary.title")}
-                </h4>
-                <div className="text-sm">
-                  <span className="text-gray-600">{t("financial_summary.outstanding_balance")}:</span>
-                  <span
-                    className={`ml-2 font-semibold ${
-                      hasFinancialIssues ? "text-red-600" : "text-green-600"
-                    }`}
-                  >
-                    ${financialBalance.toFixed(2)}
-                  </span>
-                </div>
-                {hasFinancialIssues && (
-                  <div className="mt-3 flex items-start gap-2 text-sm text-yellow-700 bg-yellow-50 p-2 rounded">
-                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                    <span>{t("financial_summary.pending_clearance_warning")}</span>
-                  </div>
-                )}
               </div>
             )}
 

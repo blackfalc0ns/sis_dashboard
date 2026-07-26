@@ -68,6 +68,7 @@ function createDefaultProps(overrides: Record<string, unknown> = {}) {
     onRemoveReaction: vi.fn().mockResolvedValue(undefined),
     onReply: vi.fn(),
     onReport: vi.fn(),
+    onRetry: vi.fn(),
     reactionsByMessageId: {} as Record<string, never[]>,
     typingUsers: [] as Array<{ userId: string; name?: string }>,
     userDisplayNames: {} as Record<string, string>,
@@ -107,7 +108,9 @@ describe("MessagesPanel", () => {
       />,
     );
 
-    expect(await screen.findByRole("button", { name: "1 new message" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "1 new message" }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "1 new message" }));
     expect(Element.prototype.scrollTo).toHaveBeenCalledWith({
       behavior: "smooth",
@@ -155,6 +158,45 @@ describe("MessagesPanel", () => {
     await waitFor(() => expect(scroller.scrollTop).toBe(640));
   });
 
+  it("offers a retry action when messages fail to load", () => {
+    const onRetry = vi.fn();
+    render(
+      <MessagesPanel
+        {...createDefaultProps({
+          error: "Unable to load messages.",
+          onRetry,
+        })}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Unable to load messages.",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRetry).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ["en", conversationRedesignLabels.en],
+    ["ar", conversationRedesignLabels.ar],
+  ] as const)(
+    "keeps the message panel LTR in the %s locale",
+    (locale, labels) => {
+      render(
+        <MessagesPanel
+          {...createDefaultProps({
+            labels,
+            locale,
+          })}
+        />,
+      );
+
+      expect(
+        screen.getByRole("log", { name: labels.messages }),
+      ).toHaveAttribute("dir", "ltr");
+    },
+  );
+
   // ─── Property 2: Render Isolation — new message only re-renders MessagesPanel ─
 
   describe("Property 2: Render isolation on new message", () => {
@@ -169,7 +211,9 @@ describe("MessagesPanel", () => {
       const stableParticipants = ["Dave", "Eve"];
 
       // Wrap MessagesPanel with a render counter
-      function TrackedMessagesPanel(props: ReturnType<typeof createDefaultProps>) {
+      function TrackedMessagesPanel(
+        props: ReturnType<typeof createDefaultProps>,
+      ) {
         messagesPanelRenderCount++;
         return <MessagesPanel {...props} />;
       }
@@ -182,9 +226,7 @@ describe("MessagesPanel", () => {
       }) {
         participantsPanelRenderCount++;
         return (
-          <div data-testid="participants-panel">
-            {participants.join(", ")}
-          </div>
+          <div data-testid="participants-panel">{participants.join(", ")}</div>
         );
       });
 
@@ -203,9 +245,7 @@ describe("MessagesPanel", () => {
         );
       }
 
-      const initialMessages = [
-        createMessage({ id: "msg-1", body: "Hello" }),
-      ];
+      const initialMessages = [createMessage({ id: "msg-1", body: "Hello" })];
 
       const { rerender } = render(
         <ParentComponent messages={initialMessages} />,
@@ -311,6 +351,19 @@ describe("MessagesPanel", () => {
       expect(screen.getByText(/Charlie/)).toBeInTheDocument();
     });
 
+    it("announces the typing indicator as a polite status update", () => {
+      const props = createDefaultProps({
+        typingUsers: [{ userId: "user-002", name: "Charlie" }],
+      });
+
+      render(<MessagesPanel {...props} />);
+
+      expect(screen.getByRole("status")).toHaveAttribute("aria-live", "polite");
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Charlie is typing...",
+      );
+    });
+
     it("uses 'Someone' label when typing user has no name and no display name", () => {
       const props = createDefaultProps({
         typingUsers: [{ userId: "user-unknown" }],
@@ -352,9 +405,7 @@ describe("MessagesPanel", () => {
       }) {
         participantsPanelRenderCount++;
         return (
-          <div data-testid="participants-panel">
-            {participants.join(", ")}
-          </div>
+          <div data-testid="participants-panel">{participants.join(", ")}</div>
         );
       });
 
@@ -435,9 +486,7 @@ describe("MessagesPanel", () => {
 
       // Multiple typing state changes
       rerender(
-        <ParentComponent
-          typingUsers={[{ userId: "user-a", name: "Alice" }]}
-        />,
+        <ParentComponent typingUsers={[{ userId: "user-a", name: "Alice" }]} />,
       );
       rerender(
         <ParentComponent
@@ -448,9 +497,7 @@ describe("MessagesPanel", () => {
         />,
       );
       rerender(
-        <ParentComponent
-          typingUsers={[{ userId: "user-b", name: "Bob" }]}
-        />,
+        <ParentComponent typingUsers={[{ userId: "user-b", name: "Bob" }]} />,
       );
       rerender(<ParentComponent typingUsers={[]} />);
 

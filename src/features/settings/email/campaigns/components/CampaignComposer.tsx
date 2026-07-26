@@ -147,6 +147,12 @@ export default function CampaignComposer({
   const [values, setValues] = useState<CampaignComposerValues>(initialValues);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const skippedReasonLabels = {
+    disabled_user: t("recipients.skip_reasons.disabled_user"),
+    missing_contact_email: t("recipients.skip_reasons.missing_contact_email"),
+    duplicate_email: t("recipients.skip_reasons.duplicate_email"),
+    invalid_email: t("recipients.skip_reasons.invalid_email"),
+  };
 
   const audienceValues = useMemo<CampaignAudienceValues>(
     () => ({
@@ -347,6 +353,10 @@ export default function CampaignComposer({
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <SummaryMetric
+                label={t("recipients.total_matched")}
+                value={recipientPreview.totalMatched ?? 0}
+              />
+              <SummaryMetric
                 label={t("recipients.eligible")}
                 value={recipientPreview.eligibleCount}
               />
@@ -355,6 +365,16 @@ export default function CampaignComposer({
                 value={recipientPreview.skippedCount}
               />
             </div>
+            {recipientPreview.skippedCount > 0 ? (
+              <SkippedReasonSummary
+                reasons={recipientPreview.skippedReasons}
+                labels={{
+                  title: t("recipients.skip_reasons.title"),
+                  ...skippedReasonLabels,
+                  unknown: t("recipients.skip_reasons.unknown"),
+                }}
+              />
+            ) : null}
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
               <RecipientSample
                 title={t("recipients.sample_eligible")}
@@ -369,6 +389,7 @@ export default function CampaignComposer({
                 recipients={recipientPreview.recipients.filter(
                   (recipient) => !recipient.eligible,
                 )}
+                skipReasonLabels={skippedReasonLabels}
               />
             </div>
           </div>
@@ -440,10 +461,12 @@ function RecipientSample({
   title,
   empty,
   recipients,
+  skipReasonLabels = {},
 }: {
   title: string;
   empty: string;
   recipients: EmailCampaignPreviewRecipientsResponse["recipients"];
+  skipReasonLabels?: Record<string, string>;
 }) {
   const sample = recipients.slice(0, 8);
   return (
@@ -455,16 +478,21 @@ function RecipientSample({
         <div className="divide-y divide-gray-100">
           {sample.map((recipient, index) => (
             <div
-              key={`${recipient.userId || recipient.email}-${index}`}
+              key={`${recipient.username || recipient.toEmail || "recipient"}-${index}`}
               className="px-3 py-2 text-sm"
             >
               <p className="font-medium text-gray-900">
-                {recipient.fullName || recipient.email}
+                {recipient.fullName || recipient.toEmail || "—"}
               </p>
-              <p className="break-all text-xs text-gray-500">{recipient.email}</p>
-              {recipient.skipReason ? (
+              {recipient.username ? (
+                <p className="text-xs text-gray-500">{recipient.username}</p>
+              ) : null}
+              {recipient.toEmail ? (
+                <p className="break-all text-xs text-gray-500">{recipient.toEmail}</p>
+              ) : null}
+              {recipient.reason ? (
                 <p className="mt-1 text-xs text-red-600">
-                  {recipient.skipReason}
+                  {skipReasonLabels[recipient.reason] || recipient.reason.replaceAll("_", " ")}
                 </p>
               ) : null}
             </div>
@@ -473,6 +501,33 @@ function RecipientSample({
       ) : (
         <p className="p-3 text-sm text-gray-500">{empty}</p>
       )}
+    </div>
+  );
+}
+
+function SkippedReasonSummary({
+  reasons,
+  labels,
+}: {
+  reasons?: Record<string, number>;
+  labels: Record<string, string>;
+}) {
+  const entries = Object.entries(reasons ?? {}).filter(([, count]) => count > 0);
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+      <p className="text-sm font-semibold text-amber-900">
+        {labels.title}
+      </p>
+      <ul className="mt-2 space-y-1 text-sm text-amber-800">
+        {entries.map(([reason, count]) => (
+          <li key={reason} className="flex items-center justify-between gap-3">
+            <span>{labels[reason] || reason.replaceAll("_", " ")}</span>
+            <span className="font-semibold tabular-nums">{count}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

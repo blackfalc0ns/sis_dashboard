@@ -40,6 +40,7 @@ import type {
   FetchCredentialStatusParams,
 } from "@/features/settings/credentials/types";
 import type { RoleDefinition } from "@/features/settings/types";
+import { getPasswordPolicyApiFailures } from "@/utils/validation/passwordPolicy";
 
 type GenerateModalMode = "generate" | "regenerate";
 
@@ -50,6 +51,7 @@ const ROLE_EMPTY_VALUE = "__roles_empty";
 export default function CredentialsPage() {
   const t = useTranslations("settings.credentials");
   const tCommon = useTranslations("common");
+  const tPasswordPolicy = useTranslations("password_policy");
   const { hasPermission } = usePermissions();
   const { showSuccess, showError } = useToast();
   const canManage = hasPermission("settings.users.manage");
@@ -275,7 +277,13 @@ export default function CredentialsPage() {
       await hydrate("refresh");
       showSuccess(t("messages.password_set"));
     } catch (error) {
-      const message = isApiError(error) ? error.message : tCommon("save_failed");
+      const policyFailures = getPasswordPolicyApiFailures(error);
+      const message =
+        policyFailures.length > 0
+          ? policyFailures.map((reason) => tPasswordPolicy(reason)).join(" ")
+          : isApiError(error)
+            ? error.message
+            : tCommon("save_failed");
       setSetPasswordError(message);
     } finally {
       setIsSingleSubmitting(false);

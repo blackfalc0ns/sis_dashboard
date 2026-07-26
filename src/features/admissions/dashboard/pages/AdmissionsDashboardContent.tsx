@@ -46,6 +46,9 @@ export default function AdmissionsDashboardContent() {
     value: dateRange,
     customStart: customStartDate,
     customEnd: customEndDate,
+  }, {
+    applications,
+    leads,
   });
   const scopedApplications = applications;
   const scopedLeads = leads;
@@ -142,7 +145,9 @@ export default function AdmissionsDashboardContent() {
 
     // 3. Average Processing Time (for applications in period)
     const decidedApps = applicationsInPeriodList.filter(
-      (app) => app.status === "accepted" || app.status === "rejected",
+      (app) =>
+        (app.status === "accepted" || app.status === "rejected") &&
+        app.decision?.decisionDate,
     );
 
     let avgProcessingDisplay = "N/A";
@@ -150,10 +155,7 @@ export default function AdmissionsDashboardContent() {
     if (decidedApps.length > 0) {
       const totalProcessingTime = decidedApps.reduce((sum, app) => {
         const submitted = new Date(app.submittedDate);
-        // Use decision date if available, otherwise estimate
-        const decided = app.decision?.decisionDate
-          ? new Date(app.decision.decisionDate)
-          : new Date(submitted.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const decided = new Date(app.decision!.decisionDate);
 
         const diffMs = decided.getTime() - submitted.getTime();
         const diffHours = diffMs / (1000 * 60 * 60);

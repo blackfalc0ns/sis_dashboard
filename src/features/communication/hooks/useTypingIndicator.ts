@@ -16,10 +16,15 @@ const isRecord = (value: unknown): value is CommunicationRecord =>
 const stringValue = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim() ? value : undefined;
 
+const TYPING_TTL_MS = 8_000;
+
 export function useTypingIndicator(conversationId: string) {
   const { user } = useAuth();
   const { startTyping, stopTyping } = useCommunicationSocket();
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expiryTimersRef = useRef<
+    Map<string, ReturnType<typeof setTimeout>>
+  >(new Map());
   const isTypingRef = useRef(false);
   const [typingUsers, setTypingUsers] = useState<Record<string, TypingUser>>({});
 
@@ -50,6 +55,7 @@ export function useTypingIndicator(conversationId: string) {
   }, [conversationId, stopTyping]);
 
   useEffect(() => {
+    const expiryTimers = expiryTimersRef.current;
     return () => {
       if (stopTimerRef.current) {
         clearTimeout(stopTimerRef.current);
@@ -60,6 +66,9 @@ export function useTypingIndicator(conversationId: string) {
         stopTyping(conversationId);
         isTypingRef.current = false;
       }
+
+      expiryTimers.forEach(clearTimeout);
+      expiryTimers.clear();
     };
   }, [conversationId, stopTyping]);
 
@@ -77,6 +86,7 @@ export function useTypingIndicator(conversationId: string) {
       if (!userId || userId === user?.id) return;
 
       const name =
+        stringValue(actor.displayName) ??
         stringValue(actor.name) ??
         stringValue(actor.nameEn) ??
         stringValue(actor.nameAr);
@@ -85,6 +95,25 @@ export function useTypingIndicator(conversationId: string) {
         ...current,
         [userId]: { userId, name },
       }));
+
+      const existingTimer = expiryTimersRef.current.get(userId);
+      if (existingTimer) clearTimeout(existingTimer);
+
+      const expiresAt = stringValue(payload.expiresAt);
+      const parsedExpiry = expiresAt ? Date.parse(expiresAt) : Number.NaN;
+      const delay = Number.isFinite(parsedExpiry)
+        ? Math.max(0, parsedExpiry - Date.now())
+        : TYPING_TTL_MS;
+      const timer = setTimeout(() => {
+        expiryTimersRef.current.delete(userId);
+        setTypingUsers((current) => {
+          if (!current[userId]) return current;
+          const next = { ...current };
+          delete next[userId];
+          return next;
+        });
+      }, delay);
+      expiryTimersRef.current.set(userId, timer);
     },
     [conversationId, user?.id],
   );
@@ -99,6 +128,12 @@ export function useTypingIndicator(conversationId: string) {
         stringValue(payload.userId) ??
         (isRecord(payload.actor) ? stringValue(payload.actor.id) : undefined);
       if (!userId) return;
+
+      const expiryTimer = expiryTimersRef.current.get(userId);
+      if (expiryTimer) {
+        clearTimeout(expiryTimer);
+        expiryTimersRef.current.delete(userId);
+      }
 
       setTypingUsers((current) => {
         const next = { ...current };

@@ -38,7 +38,10 @@ import { getBehaviorOverview } from "@/features/behavior/services/behaviorApiSer
 import { behaviorUiError } from "@/features/behavior/services/behaviorErrors";
 import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { StructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
-import { fetchAllStudents, getStudentsByClassroomId } from "@/features/students-guardians/students/services/studentsService";
+import {
+  fetchAllStudents,
+  fetchStudentsWithEnrollmentForContext,
+} from "@/features/students-guardians/students/services/studentsService";
 import { validateDateRange } from "@/features/behavior/shared/utils/behaviorUiRules";
 import type {
   BehaviorOverviewFilters,
@@ -234,8 +237,11 @@ export default function BehaviorOverviewPage() {
     void Promise.resolve().then(() => setFetchingOptions(true));
     const updateClassroomStudents = async () => {
       try {
-        // Fetch/retrieve classroom students asynchronously with stale fetch guard
-        const res = await Promise.resolve(getStudentsByClassroomId(selectedClassroom));
+        const res = (
+          await fetchStudentsWithEnrollmentForContext(yearId)
+        ).filter(
+          (student) => student.enrollment?.classroomId === selectedClassroom,
+        );
         
         if (cancelled) return;
 

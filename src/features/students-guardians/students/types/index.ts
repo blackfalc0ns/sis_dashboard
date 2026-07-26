@@ -19,7 +19,6 @@ export type {
 export type {
   Student,
   StudentContact,
-  StudentMock,
   UpdateStudentPayload,
 } from "./student";
 
@@ -27,23 +26,17 @@ export type {
 export type {
   StudentGuardian,
   StudentGuardianLink,
-  StudentGuardianMock,
-  StudentGuardianLinkMock,
 } from "./guardian";
 
 // Document
-export type { StudentDocument, StudentDocumentMock } from "./document";
+export type { StudentDocument } from "./document";
 
 // Medical
-export type {
-  StudentMedicalProfile,
-  StudentMedicalProfileMock,
-} from "./medical";
+export type { StudentMedicalProfile } from "./medical";
 
 // Note
 export type {
   StudentNote,
-  StudentNoteMock,
   CreateStudentNotePayload,
   NoteCategory,
   NoteVisibility,
@@ -52,10 +45,7 @@ export type {
 } from "./note";
 
 // Timeline
-export type {
-  StudentTimelineEvent,
-  StudentTimelineEventMock,
-} from "./timeline";
+export type { StudentTimelineEvent } from "./timeline";
 
 // Enrollment (ERP)
 export type {

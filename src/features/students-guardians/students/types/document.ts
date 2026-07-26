@@ -18,4 +18,3 @@ export interface StudentDocument {
 }
 
 // Backward compatibility alias
-export type StudentDocumentMock = StudentDocument;

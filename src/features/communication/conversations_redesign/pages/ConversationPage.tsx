@@ -9,10 +9,12 @@ import ConversationSidebar, {
 import ConversationDetail from "@/features/communication/conversations_redesign/components/ConversationDetail";
 import { EmptyDetail } from "@/features/communication/conversations_redesign/components/PanelLayout";
 import { ToastMessage } from "@/features/communication/conversations_redesign/components/ToastMessage";
+import RealtimeStatusBanner from "@/features/communication/conversations_redesign/components/RealtimeStatusBanner";
 import { labelsForLocale } from "@/features/communication/conversations_redesign/labels";
 import type { ToastState } from "@/features/communication/conversations_redesign/types";
 import { createConversationDialogLabels } from "@/features/communication/conversations_redesign/utils/dialogLabels";
 import { useConversations } from "@/features/communication/hooks/useConversations";
+import { useCommunicationSocket } from "@/features/communication/hooks/useCommunicationSocket";
 import type {
   ConversationFiltersState,
   ConversationFormValues,
@@ -20,6 +22,7 @@ import type {
 } from "@/features/communication/hooks/useConversations";
 import CreateConversationDialog from "@/features/communication/components/conversations/CreateConversationDialog";
 import { communicationErrorMessage } from "@/features/communication/utils/communication-errors";
+import { usePermissions } from "@/hooks/usePermissions";
 
 function filterConversations(
   conversations: ConversationListItemModel[],
@@ -31,12 +34,6 @@ function filterConversations(
   // Type filter
   if (typeFilter) {
     result = result.filter((c) => c.type === typeFilter);
-  }
-
-  if (filter === "unread") {
-    return result.filter(
-      (conversation) => (conversation.unreadCount ?? 0) > 0,
-    );
   }
 
   if (filter === "pinned") {
@@ -64,6 +61,11 @@ export default function ConversationPage({
   const locale = useLocale();
   const labels = labelsForLocale(locale);
   const conversationsState = useConversations();
+  const realtimeState = useCommunicationSocket();
+  const { hasPermission } = usePermissions();
+  const canCreateConversation = hasPermission(
+    "communication.conversations.create",
+  );
   const initialConversationIdRef = useRef(initialConversationId);
   const userClosedRef = useRef(false);
   const [filter, setFilter] = useState<ConversationRedesignFilter>("all");
@@ -125,8 +127,8 @@ export default function ConversationPage({
       selectedConversationId &&
       !visibleConversations.some((item) => item.id === selectedConversationId)
     ) {
-    void Promise.resolve().then(() => setSelectedConversationId(null));
-    void Promise.resolve().then(() => setShowMobileThread(false));
+      void Promise.resolve().then(() => setSelectedConversationId(null));
+      void Promise.resolve().then(() => setShowMobileThread(false));
     }
   }, [initialConversationId, selectedConversationId, visibleConversations]);
 
@@ -180,11 +182,30 @@ export default function ConversationPage({
   };
 
   return (
-    <main className="relative h-[100dvh] overflow-hidden bg-slate-50 text-slate-950">
-      <div className="flex h-full min-h-0">
+    <main
+      dir={locale === "ar" ? "rtl" : "ltr"}
+      className="relative flex h-[100dvh] min-w-0 flex-col overflow-hidden bg-slate-50 text-slate-950"
+    >
+      <RealtimeStatusBanner
+        connectionError={realtimeState.connectionError}
+        isConnected={realtimeState.isConnected}
+        labels={labels}
+        onRetry={() => {
+          realtimeState.retryConnection();
+          void conversationsState.refresh();
+        }}
+      />
+
+      <div className="flex min-h-0 flex-1">
         <ConversationSidebar
+          canCreateConversation={canCreateConversation}
           className={`${showMobileThread ? "hidden" : "flex"} w-full md:flex md:w-[360px] md:shrink-0`}
           conversations={conversationsState.conversations}
+          error={
+            conversationsState.conversations.length === 0
+              ? conversationsState.error
+              : null
+          }
           filter={filter}
           typeFilter={typeFilter}
           isLoading={conversationsState.isLoading}
@@ -223,14 +244,15 @@ export default function ConversationPage({
         </section>
       </div>
 
-      {conversationsState.error ? (
+      {conversationsState.error &&
+      conversationsState.conversations.length > 0 ? (
         <ToastMessage
           tone="error"
           message={conversationsState.error}
           closeLabel={labels.dismiss}
-          onClose={() =>
-            conversationsState.setFilters((current) => ({ ...current }))
-          }
+          actionLabel={labels.retry}
+          onAction={() => void conversationsState.refresh()}
+          onClose={conversationsState.clearError}
         />
       ) : null}
 
@@ -243,7 +265,7 @@ export default function ConversationPage({
         />
       ) : null}
 
-      {isCreateOpen ? (
+      {isCreateOpen && canCreateConversation ? (
         <CreateConversationDialog
           labels={createConversationDialogLabels(labels)}
           open={isCreateOpen}

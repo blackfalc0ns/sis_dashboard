@@ -133,13 +133,6 @@ export default function TransfersWithdrawalsPage() {
           icon={ArrowLeftRight}
           iconColor="#3b82f6"
           iconBgColor="#dbeafe"
-          chartData={[
-            { label: "W1", value: Math.max(metrics.transfersThisMonth - 3, 0) },
-            { label: "W2", value: Math.max(metrics.transfersThisMonth - 2, 0) },
-            { label: "W3", value: Math.max(metrics.transfersThisMonth - 1, 0) },
-            { label: "W4", value: metrics.transfersThisMonth },
-          ]}
-          chartColor="#3b82f6"
         />
         <KPICardV2
           title={t("kpis.withdrawals_this_month")}
@@ -148,13 +141,6 @@ export default function TransfersWithdrawalsPage() {
           icon={UserMinus}
           iconColor="#ef4444"
           iconBgColor="#fee2e2"
-          chartData={[
-            { label: "W1", value: Math.max(metrics.withdrawalsThisMonth - 3, 0) },
-            { label: "W2", value: Math.max(metrics.withdrawalsThisMonth - 2, 0) },
-            { label: "W3", value: Math.max(metrics.withdrawalsThisMonth - 1, 0) },
-            { label: "W4", value: metrics.withdrawalsThisMonth },
-          ]}
-          chartColor="#ef4444"
         />
         <KPICardV2
           title={t("kpis.net_change")}
@@ -163,13 +149,6 @@ export default function TransfersWithdrawalsPage() {
           icon={TrendingDown}
           iconColor={netChange >= 0 ? "#10b981" : "#f59e0b"}
           iconBgColor={netChange >= 0 ? "#d1fae5" : "#fef3c7"}
-          chartData={[
-            { label: "W1", value: Math.max(Math.abs(netChange) - 2, 0) },
-            { label: "W2", value: Math.max(Math.abs(netChange) - 1, 0) },
-            { label: "W3", value: Math.abs(netChange) },
-            { label: "W4", value: Math.abs(netChange) },
-          ]}
-          chartColor={netChange >= 0 ? "#10b981" : "#f59e0b"}
         />
         <KPICardV2
           title={t("kpis.dropout_rate")}
@@ -182,13 +161,6 @@ export default function TransfersWithdrawalsPage() {
           icon={AlertTriangle}
           iconColor={metrics.dropoutRate > dropoutThreshold ? "#ef4444" : "#10b981"}
           iconBgColor={metrics.dropoutRate > dropoutThreshold ? "#fee2e2" : "#d1fae5"}
-          chartData={[
-            { label: "M1", value: Math.max(metrics.dropoutRate - 0.6, 0) },
-            { label: "M2", value: Math.max(metrics.dropoutRate - 0.3, 0) },
-            { label: "M3", value: metrics.dropoutRate },
-            { label: "M4", value: metrics.dropoutRate },
-          ]}
-          chartColor={metrics.dropoutRate > dropoutThreshold ? "#ef4444" : "#10b981"}
         />
         <KPICardV2
           title={t("kpis.pending_requests")}
@@ -197,13 +169,6 @@ export default function TransfersWithdrawalsPage() {
           icon={Clock}
           iconColor="#f59e0b"
           iconBgColor="#fef3c7"
-          chartData={[
-            { label: "W1", value: Math.max(metrics.pendingRequests - 2, 0) },
-            { label: "W2", value: Math.max(metrics.pendingRequests - 1, 0) },
-            { label: "W3", value: metrics.pendingRequests },
-            { label: "W4", value: metrics.pendingRequests },
-          ]}
-          chartColor="#f59e0b"
         />
         <KPICardV2
           title={t("kpis.behavior_related")}
@@ -212,13 +177,6 @@ export default function TransfersWithdrawalsPage() {
           icon={Award}
           iconColor="#8b5cf6"
           iconBgColor="#ede9fe"
-          chartData={[
-            { label: "M1", value: Math.max(metrics.behaviorRelatedWithdrawals - 6, 0) },
-            { label: "M2", value: Math.max(metrics.behaviorRelatedWithdrawals - 3, 0) },
-            { label: "M3", value: metrics.behaviorRelatedWithdrawals },
-            { label: "M4", value: metrics.behaviorRelatedWithdrawals },
-          ]}
-          chartColor="#8b5cf6"
         />
       </div>
 

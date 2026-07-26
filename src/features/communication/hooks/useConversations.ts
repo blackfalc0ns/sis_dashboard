@@ -138,43 +138,8 @@ function unwrapList<T>(response: unknown): CommunicationList<T> {
   return { items: [], total: 0 };
 }
 
-function senderUserIdFromMessage(
-  message: CommunicationRecord | undefined,
-): string | undefined {
-  if (!message) return undefined;
-  const sender = isRecord(message.sender) ? message.sender : undefined;
-  return (
-    stringFromUnknown(message.senderUserId) ??
-    stringFromUnknown(message.senderId) ??
-    stringFromUnknown(message.userId) ??
-    stringFromUnknown(sender?.userId) ??
-    stringFromUnknown(sender?.id)
-  );
-}
-
-function unreadCountFromRecord(
-  record: CommunicationRecord,
-  lastMessageRecord: CommunicationRecord | undefined,
-  currentUserId?: string,
-): number | undefined {
-  const explicitUnreadCount = numberFromUnknown(record.unreadCount);
-  if (explicitUnreadCount !== undefined) return explicitUnreadCount;
-
-  if (!lastMessageRecord || !currentUserId) return 0;
-
-  const senderUserId = senderUserIdFromMessage(lastMessageRecord);
-  if (!senderUserId || senderUserId === currentUserId) return 0;
-
-  const readCount =
-    numberFromUnknown(record.lastMessageReadCount) ??
-    numberFromUnknown(lastMessageRecord.readCount);
-
-  return readCount === 0 ? 1 : 0;
-}
-
 function toConversationListItem(
   conversation: Conversation,
-  currentUserId?: string,
 ): ConversationListItemModel {
   const record = conversation as CommunicationRecord;
   const lastMessageRecord = [
@@ -189,7 +154,7 @@ function toConversationListItem(
 
   return {
     ...conversation,
-    unreadCount: unreadCountFromRecord(record, lastMessageRecord, currentUserId),
+    unreadCount: numberFromUnknown(record.unreadCount),
     lastMessage: lastMessageRecord
       ? {
           id:
@@ -373,7 +338,7 @@ function updatePayloadFromValues(
 }
 
 export function useConversations() {
-  const { socket, resyncVersion, joinConversation } = useCommunicationSocket();
+  const { socket, resyncVersion } = useCommunicationSocket();
   const { user } = useAuth();
   const mountedRef = useRef(false);
   const userIdRef = useRef(user?.id);
@@ -422,9 +387,7 @@ export function useConversations() {
 
       const normalized = sortConversations(
         dedupeConversations(
-          list.items.map((conversation) =>
-            toConversationListItem(conversation, userIdRef.current),
-          ),
+          list.items.map((conversation) => toConversationListItem(conversation)),
         ),
       );
 
@@ -497,15 +460,6 @@ export function useConversations() {
     void Promise.resolve().then(() => refresh());
     }
   }, [refresh, resyncVersion]);
-
-  // Join all conversation rooms so we receive realtime events (new messages, etc.)
-  // Re-join on every conversations change because other hooks (useConversationRealtime)
-  // may leave rooms when their components unmount
-  useEffect(() => {
-    conversations.forEach((c) => {
-      joinConversation(c.id);
-    });
-  }, [conversations, joinConversation]);
 
   useEffect(() => {
     if (!socket) {
@@ -699,6 +653,8 @@ export function useConversations() {
     void refresh(nextPage);
   }, [isLoading, isRefreshing, hasMore, page, refresh]);
 
+  const clearError = useCallback(() => setError(null), []);
+
   return {
     conversations,
     total,
@@ -708,6 +664,7 @@ export function useConversations() {
     isRefreshing,
     isMutating,
     error,
+    clearError,
     hasFilters,
     refresh,
     markAsRead,

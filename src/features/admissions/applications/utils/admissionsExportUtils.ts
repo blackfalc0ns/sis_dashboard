@@ -2,11 +2,12 @@
 
 import { Lead } from "@/features/admissions/leads/types/lead";
 import { Application } from "@/features/admissions/types/admissions";
+import type { StudentEnrollment } from "@/features/students-guardians/students/types";
 import {
   FunnelData,
   WeeklyInquiry,
   GradeDistribution,
-} from "@/features/admissions/dashboard/utils/admissionsAnalytics";
+} from "@/features/admissions/dashboard/services/admissionsAnalytics";
 
 type ExportableTestRow = {
   id: string;
@@ -374,45 +375,35 @@ export function formatDecisionsForExport(
  * Format enrollments data for export
  */
 export function formatEnrollmentsForExport(
-  applications: Application[],
+  enrollments: StudentEnrollment[],
   locale?: string,
 ): Record<string, unknown>[] {
   const exportLocale = resolveExportLocale(locale);
-  // Generate enrollments from accepted applications
-  return applications
-    .filter((app) => app.status === "accepted")
-    .map((app, index) =>
+  return enrollments.map((enrollment) =>
       localizeRowKeys(
         {
-          "Enrollment ID": `ENR-${String(index + 1).padStart(3, "0")}`,
-          "Application ID": app.id,
-          "Student Name":
-            exportLocale === "ar"
-              ? app.full_name_ar || app.studentName
-              : app.studentName,
-          Grade: app.gradeRequested,
-          Section: ["A", "B", "C"][index % 3],
-          "Academic Year": "2024-2025",
-          "Start Date": "2024-09-01",
+          "Enrollment ID": enrollment.enrollmentId,
+          "Student ID": enrollment.studentId,
+          Grade: enrollment.grade,
+          Section: enrollment.section,
+          Classroom: enrollment.classroom || "",
+          "Academic Year": enrollment.academicYear,
           "Enrolled Date": toLocaleDateTime(
-            app.decision?.decisionDate || app.submittedDate,
+            enrollment.enrollmentDate,
             exportLocale,
           ),
-          "Guardian Name": app.guardianName,
-          "Guardian Phone": app.guardianPhone,
+          Status: enrollment.status,
         },
         exportLocale,
         {
           "Enrollment ID": "رقم التسجيل",
-          "Application ID": "رقم الطلب",
-          "Student Name": "اسم الطالب",
+          "Student ID": "رقم الطالب",
           Grade: "الصف",
           Section: "الشعبة",
+          Classroom: "الفصل",
           "Academic Year": "السنة الدراسية",
-          "Start Date": "تاريخ البداية",
           "Enrolled Date": "تاريخ التسجيل",
-          "Guardian Name": "اسم ولي الأمر",
-          "Guardian Phone": "هاتف ولي الأمر",
+          Status: "الحالة",
         },
       ),
     );

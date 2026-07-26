@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Lock, Eye, EyeOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button, Input, Modal } from "@/components/ui";
+import { getPasswordPolicyFailures } from "@/utils/validation/passwordPolicy";
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export default function ChangePasswordModal({
   userType,
 }: ChangePasswordModalProps) {
   const t = useTranslations("students_guardians.change_password");
+  const tPasswordPolicy = useTranslations("password_policy");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -35,9 +37,11 @@ export default function ChangePasswordModal({
     e.preventDefault();
     setError("");
 
-    // Validation
-    if (newPassword.length < 8) {
-      setError(t("error_min_length"));
+    const policyFailures = getPasswordPolicyFailures(newPassword);
+    if (policyFailures.length > 0) {
+      setError(
+        policyFailures.map((reason) => tPasswordPolicy(reason)).join(" "),
+      );
       return;
     }
 
@@ -98,7 +102,7 @@ export default function ChangePasswordModal({
                 className="pr-10"
                 placeholder={t("enter_new_password")}
                 required
-                helperText={t("min_length")}
+                helperText={tPasswordPolicy("requirements")}
               />
               <Button
                 type="button"

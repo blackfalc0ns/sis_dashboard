@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, RefreshCw } from "lucide-react";
 import { CenteredState } from "@/features/communication/conversations_redesign/components/PanelLayout";
+import CommunicationErrorState from "@/features/communication/components/layout/CommunicationErrorState";
 import { displayNameForUserId } from "@/features/communication/conversations_redesign/utils/displayNames";
 import {
   formatMessageDateSeparator,
@@ -18,9 +19,20 @@ import type {
 } from "@/features/communication/types/message.types";
 import { MessageBubble } from "./MessageBubble";
 
+function preferredScrollBehavior(): ScrollBehavior {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    ? "auto"
+    : "smooth";
+}
+
 export function MessagesPanel({
   allowActions = true,
   allowReactions,
+  canDeleteMessages = true,
+  canEditMessages = true,
+  canManageAttachments = true,
+  canReplyMessages = true,
+  canReportMessages = true,
   attachmentsByMessageId,
   currentUserId,
   currentUserName,
@@ -41,6 +53,7 @@ export function MessagesPanel({
   onRemoveReaction,
   onReply,
   onReport,
+  onRetry,
   reactionsByMessageId,
   typingUsers,
   userDisplayNames,
@@ -48,6 +61,11 @@ export function MessagesPanel({
 }: {
   allowActions?: boolean;
   allowReactions: boolean;
+  canDeleteMessages?: boolean;
+  canEditMessages?: boolean;
+  canManageAttachments?: boolean;
+  canReplyMessages?: boolean;
+  canReportMessages?: boolean;
   attachmentsByMessageId: Record<string, MessageAttachment[]>;
   currentUserId?: string | null;
   currentUserName: string;
@@ -71,6 +89,7 @@ export function MessagesPanel({
   onRemoveReaction: (messageId: string) => Promise<unknown>;
   onReply: (message: ConversationMessage) => void;
   onReport: (messageId: string) => void;
+  onRetry: () => void;
   reactionsByMessageId: Record<string, MessageReaction[]>;
   typingUsers: Array<{ userId: string; name?: string }>;
   userDisplayNames: UserDisplayNameMap;
@@ -131,7 +150,10 @@ export function MessagesPanel({
         appendedCount > 0 &&
         (isNearBottomRef.current || ownMessageWasAppended)
       ) {
-        container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: preferredScrollBehavior(),
+        });
         setNewMessageCount(0);
       } else if (appendedCount > 0) {
         setNewMessageCount((count) => count + appendedCount);
@@ -182,17 +204,36 @@ export function MessagesPanel({
   const scrollToLatest = () => {
     const container = scrollRef.current;
     if (!container) return;
-    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: preferredScrollBehavior(),
+    });
     isNearBottomRef.current = true;
     setNewMessageCount(0);
   };
 
   if (isLoading) {
-    return <CenteredState label={labels.loadingMessages} />;
+    return <CenteredState isLoading label={labels.loadingMessages} />;
   }
 
   if (error) {
-    return <CenteredState label={error} />;
+    return (
+      <div className="flex h-full items-center justify-center p-4">
+        <CommunicationErrorState
+          message={error}
+          action={
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-rose-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-rose-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-700 focus-visible:ring-offset-2"
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              {labels.retry}
+            </button>
+          }
+        />
+      </div>
+    );
   }
 
   const newMessagesLabel =
@@ -201,7 +242,7 @@ export function MessagesPanel({
       : labels.newMessages.replace("{count}", String(newMessageCount));
 
   return (
-    <div className="relative h-full">
+    <div dir="ltr" className="relative h-full">
       <div
         ref={scrollRef}
         role="log"
@@ -209,7 +250,7 @@ export function MessagesPanel({
         aria-live="polite"
         aria-relevant="additions"
         dir="ltr"
-        className="h-full overflow-y-auto px-1.5 py-8"
+        className="h-full overflow-y-auto px-1.5 py-5 sm:py-8"
       >
         <div className="flex min-h-full flex-col gap-0.5">
           {/* Loading older messages indicator */}
@@ -266,6 +307,11 @@ export function MessagesPanel({
                 <MessageBubble
                   allowActions={allowActions}
                   allowReactions={allowReactions}
+                  canDeleteMessages={canDeleteMessages}
+                  canEditMessages={canEditMessages}
+                  canManageAttachments={canManageAttachments}
+                  canReplyMessages={canReplyMessages}
+                  canReportMessages={canReportMessages}
                   attachments={
                     attachmentsByMessageId[message.id] ??
                     message.attachments ??
@@ -302,27 +348,36 @@ export function MessagesPanel({
             );
           })}
 
-          {typingUsers.length > 0 ? (
-            <div className="flex items-center gap-2 text-xs italic text-slate-500">
-              <span className="flex gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-                <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-                <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+          <div
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            className="min-h-5 text-xs italic text-slate-500"
+          >
+            {typingUsers.length > 0 ? (
+              <span className="flex items-center gap-2">
+                <span className="flex gap-1" aria-hidden="true">
+                  <span className="h-1.5 w-1.5 rounded-full bg-slate-400 motion-safe:animate-pulse" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-slate-400 motion-safe:animate-pulse" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-slate-400 motion-safe:animate-pulse" />
+                </span>
+                <span>
+                  {typingUsers
+                    .map(
+                      (user) =>
+                        user.name ||
+                        displayNameForUserId(
+                          user.userId,
+                          userDisplayNames,
+                          labels.someone,
+                        ),
+                    )
+                    .join(", ")}{" "}
+                  {labels.typing}
+                </span>
               </span>
-              {typingUsers
-                .map(
-                  (user) =>
-                    user.name ||
-                    displayNameForUserId(
-                      user.userId,
-                      userDisplayNames,
-                      labels.someone,
-                    ),
-                )
-                .join(", ")}{" "}
-              {labels.typing}
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       </div>
       {newMessageCount > 0 ? (

@@ -49,6 +49,7 @@ export interface CommunicationServerToClientEvents {
   connect: () => void;
   disconnect: (reason: Socket.DisconnectReason) => void;
   connect_error: (error: Error) => void;
+  exception: (payload: CommunicationRealtimePayload) => void;
   reconnect: (attempt: number) => void;
   [COMMUNICATION_SOCKET_EVENTS.messageCreated]: (
     payload: CommunicationRealtimePayload,

@@ -7,6 +7,7 @@ import {
   Edit3,
   Flag,
   Info,
+  Paperclip,
   Trash2,
 } from "lucide-react";
 import { useFloating, offset, flip, shift, autoUpdate } from "@floating-ui/react";
@@ -16,12 +17,16 @@ import type { ConversationRedesignLabels } from "@/features/communication/conver
 
 export function BubbleContextMenu({
   allowReactions,
+  canAttach = false,
   canEdit,
   canDelete,
+  canReply = true,
+  canReport = true,
   isOwn,
   labels,
   messageBody,
   onAddReaction,
+  onAttach = () => undefined,
   onCopy,
   onDelete,
   onEdit,
@@ -30,12 +35,16 @@ export function BubbleContextMenu({
   onReport,
 }: {
   allowReactions: boolean;
+  canAttach?: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  canReply?: boolean;
+  canReport?: boolean;
   isOwn: boolean;
   labels: ConversationRedesignLabels;
   messageBody?: string;
   onAddReaction: (type: ReactionType) => Promise<unknown>;
+  onAttach?: () => void;
   onCopy: () => void;
   onDelete: () => void;
   onEdit: () => void;
@@ -94,17 +103,19 @@ export function BubbleContextMenu({
           className="z-50 min-w-[150px] rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
         >
           {/* Reply */}
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(false);
-              onReply();
-            }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
-          >
-            <CornerUpLeft className="h-3.5 w-3.5" />
-            {labels.reply}
-          </button>
+          {canReply ? (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onReply();
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
+            >
+              <CornerUpLeft className="h-3.5 w-3.5" />
+              {labels.reply}
+            </button>
+          ) : null}
           {/* Copy */}
           {messageBody ? (
             <button
@@ -147,8 +158,21 @@ export function BubbleContextMenu({
               {labels.editMessage}
             </button>
           ) : null}
+          {canAttach ? (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onAttach();
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
+            >
+              <Paperclip className="h-3.5 w-3.5" />
+              {labels.attachFileToMessage}
+            </button>
+          ) : null}
           {/* Report (other's messages only) */}
-          {!isOwn ? (
+          {!isOwn && canReport ? (
             <button
               type="button"
               onClick={() => {

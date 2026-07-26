@@ -21,10 +21,9 @@ export default function TransfersTrendChart() {
   const { width, height } = useResponsiveChart();
   const [selectedPeriod, setSelectedPeriod] = useState<Period>("6months");
 
-  // TODO: Replace with actual API data
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-  const internalData = [5, 8, 6, 10, 7, 9];
-  const externalData = [3, 4, 5, 3, 6, 4];
+  const months: string[] = [];
+  const internalData: number[] = [];
+  const externalData: number[] = [];
 
   const periodOptions: DropdownItem[] = [
     { label: t("filters.period.6months"), value: "6months" },

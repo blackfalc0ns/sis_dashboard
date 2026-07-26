@@ -57,4 +57,5 @@ describe("UserEditorModal Sprint 11 behavior", () => {
     });
     expect(onSubmit.mock.calls[0][0]).not.toHaveProperty("email");
   });
+
 });

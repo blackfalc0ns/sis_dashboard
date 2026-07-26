@@ -169,6 +169,18 @@ export interface MarkConversationReadPayload {
   readAt?: CommunicationDateTime;
 }
 
+export interface ConversationMessageReadCount {
+  messageId: CommunicationId;
+  readCount: number;
+}
+
+export interface ConversationReadResult extends CommunicationRecord {
+  conversationId: CommunicationId;
+  readAt: CommunicationDateTime;
+  markedCount: number;
+  messages: ConversationMessageReadCount[];
+}
+
 export type ConversationReadSummaryParams = {
   limit?: number;
   page?: number;
@@ -176,7 +188,8 @@ export type ConversationReadSummaryParams = {
 
 export interface ConversationReadSummary extends CommunicationRecord {
   conversationId: CommunicationId;
-  readCount?: number;
-  unreadCount?: number;
-  participants?: ConversationParticipant[];
+  items: ConversationMessageReadCount[];
+  total: number;
+  limit: number;
+  page: number;
 }

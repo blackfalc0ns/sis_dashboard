@@ -251,8 +251,9 @@ export default function LoginIdentityPage() {
       setPreview(previewResult.value);
     } else {
       setPreviewError(
-        isApiError(previewResult.reason)
-          ? previewResult.reason.message
+        isApiError(previewResult.reason) &&
+        previewResult.reason.code === "iam.user.username_invalid"
+          ? t("preview.reasons.username_invalid")
           : t("preview.errors.preview_failed"),
       );
     }

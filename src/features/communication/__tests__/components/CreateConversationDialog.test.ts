@@ -9,6 +9,7 @@ import type {
   CreateConversationDialogLabels,
   CreateConversationDialogProps,
 } from "@/features/communication/components/conversations/CreateConversationDialog";
+import { createConversation } from "../utils/test-data-generators";
 
 vi.mock("@/features/communication/api/communication-selectors.service", () => ({
   searchAcademicYears: vi.fn().mockResolvedValue([]),
@@ -39,6 +40,8 @@ const labels: CreateConversationDialogLabels = {
   group: "Group Option",
   classroom: "Classroom Option",
   direct: "Direct Option",
+  directUnavailable:
+    "Direct conversations cannot be started here yet. Existing direct conversations remain available.",
   grade: "Grade Option",
   section: "Section Option",
   stage: "Stage Option",
@@ -55,11 +58,10 @@ const labels: CreateConversationDialogLabels = {
 };
 
 describe("CreateConversationDialog helpers", () => {
-  it("exposes every backend-supported conversation type", () => {
+  it("omits direct creation because no recipient workflow is exposed", () => {
     expect(getConversationTypeOptions(labels).map((option) => option.value)).toEqual([
       "group",
       "classroom",
-      "direct",
       "grade",
       "section",
       "stage",
@@ -113,6 +115,30 @@ describe("CreateConversationDialog component validation", () => {
       expect(screen.getByText("Title must be 255 characters or less.")).toBeInTheDocument();
     });
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("explains why direct conversation creation is unavailable", () => {
+    render(React.createElement(CreateConversationDialog, defaultProps));
+
+    expect(screen.getByText(labels.directUnavailable)).toBeInTheDocument();
+  });
+
+  it("preserves the type when editing an existing direct conversation", () => {
+    render(
+      React.createElement(CreateConversationDialog, {
+        ...defaultProps,
+        conversation: createConversation({
+          id: "direct-conversation",
+          title: "Existing direct conversation",
+          type: "direct",
+        }),
+      }),
+    );
+
+    const typeSelect = screen.getByRole("button", { name: labels.type });
+    expect(typeSelect).toBeDisabled();
+    expect(typeSelect).toHaveTextContent(labels.direct);
+    expect(screen.queryByText(labels.directUnavailable)).not.toBeInTheDocument();
   });
 
   it("shows validation error when description exceeds 4000 characters", async () => {

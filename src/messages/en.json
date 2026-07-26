@@ -1,4 +1,13 @@
 {
+  "password_policy": {
+    "requirements": "Use 8–256 characters with uppercase and lowercase letters, a number, and a symbol.",
+    "password_too_short": "Password must be at least 8 characters.",
+    "password_too_long": "Password must not exceed 256 characters.",
+    "password_missing_uppercase": "Add at least one uppercase letter.",
+    "password_missing_lowercase": "Add at least one lowercase letter.",
+    "password_missing_number": "Add at least one number.",
+    "password_missing_symbol": "Add at least one symbol."
+  },
   "school_name": "School Name",
   "short_school_name": "School",
   "dashboard": "Dashboard",
@@ -737,8 +746,6 @@
       "submit": "Sign in",
       "submitting": "Signing in...",
       "submitError": "Unable to sign in with the provided credentials in demo mode.",
-      "demoSuccess": "Mock sign-in succeeded. API integration is still pending.",
-      "formHint": "This login screen currently uses a mocked submit handler for UI testing.",
       "showPassword": "Show password",
       "hidePassword": "Hide password",
       "languageSwitcher": {
@@ -2649,8 +2656,9 @@
         "change": "Change"
       },
       "validation": {
-        "username_required": "Username is required.",
-        "contact_email_required": "Contact email is required when creating a student account.",
+                       "username_required": "Username is required.",
+                       "username_invalid": "Use a valid username format: lowercase letters, numbers, dots, underscores, and hyphens only.",
+                       "contact_email_required": "Contact email is required when creating a student account.",
         "user_required": "Select an existing user to link."
       },
       "search_placeholder": "Search by name, username, or email",
@@ -3453,6 +3461,7 @@
       },
       "overview": {
         "risk_flags_alert": "Risk Flags Detected",
+        "empty_state": "No overview metrics are available from the backend for this student.",
         "risk_flags_detected": "Risk Flags Detected",
         "requires_attention": "This student requires additional attention and support.",
         "attendance_percentage": "Attendance Percentage",
@@ -3661,6 +3670,7 @@
         "attendance_percent": "Attendance %",
         "recent_records": "Recent Attendance Records",
         "view_only": "View-only attendance history",
+        "empty_state": "No attendance data is available from the backend for this student.",
         "date": "Date",
         "status": "Status",
         "minutes_late": "Minutes Late",
@@ -3994,8 +4004,9 @@
         "select": "Select…"
       },
       "errors": {
-        "load_years_failed": "Could not load academic years.",
-        "registration_failed": "Registration failed."
+                   "load_years_failed": "Could not load academic years.",
+                   "registration_failed": "Registration failed.",
+                   "username_invalid": "Update the username to use a valid format: lowercase letters, numbers, dots, underscores, and hyphens only."
       },
       "student_step": {
         "title": "Student information",
@@ -9095,6 +9106,8 @@
         "check_availability": "Check availability",
         "username_available": "Username is available.",
         "username_unavailable": "Username is not available.",
+        "username_invalid": "Use a valid username format: lowercase letters, numbers, dots, underscores, and hyphens only.",
+        "username_reserved": "This username is reserved. Choose a different one.",
         "username_required": "Enter a username first.",
         "preview_failed": "Failed to preview the generated login email.",
         "availability_failed": "Failed to check username availability.",
@@ -9498,12 +9511,14 @@
           "title": "Select audience",
           "description": "Choose the users who should be considered for this credential delivery.",
           "mode": "Audience",
-          "selected_user_ids": "Selected user IDs",
-          "selected_user_ids_help": "Paste user IDs separated by commas or new lines.",
+          "selected_users": "Selected users",
+          "selected_users_placeholder": "Search users",
+          "selected_users_help": "Search and add users.",
           "role_id": "Role ID",
           "role_placeholder": "Select a role",
           "roles_empty": "No roles were loaded. Refresh the wizard and try again.",
           "user_type": "User type",
+          "user_type_placeholder": "Select user type",
           "require_contact_email": "Require contactEmail",
           "require_contact_email_help": "Skip recipients without a personal contact inbox. The generated login email is not the personal inbox.",
           "options": {
@@ -9725,11 +9740,20 @@
           "back": "Back to campaigns",
           "close": "Close"
         },
-        "recipients": {
-          "title": "Recipient preview",
-          "description": "Preview eligible and skipped recipients before creating a campaign batch.",
-          "eligible": "Eligible",
-          "skipped": "Skipped",
+    "recipients": {
+      "title": "Recipient preview",
+      "description": "Preview eligible and skipped recipients before creating a campaign batch.",
+      "total_matched": "Matched",
+      "eligible": "Eligible",
+      "skipped": "Skipped",
+      "skip_reasons": {
+        "title": "Why recipients are skipped",
+        "disabled_user": "Disabled account",
+        "missing_contact_email": "No contact email",
+        "duplicate_email": "Duplicate recipient email",
+        "invalid_email": "Invalid email address",
+        "unknown": "Why recipients are skipped"
+      },
           "sample_eligible": "Sample eligible recipients",
           "sample_skipped": "Sample skipped recipients",
           "no_eligible": "No eligible recipients in the sample.",
@@ -10444,7 +10468,7 @@
       },
       "bestStage": {
         "title": "Best Performing Stage",
-        "description": "Highest average progress in the current mock journey dataset."
+        "description": "Highest average progress in the current journey data."
       }
     },
     "charts": {
@@ -10914,6 +10938,8 @@
     "rewardsDescription": "Manage the reward catalog used across reinforcement workflows.",
     "recentActivity": "Recent activity",
     "recentActivitySubtitle": "Latest operational updates across student reinforcement tasks.",
+    "showMore": "Show more",
+    "showLess": "Show less",
     "quickActions": "Quick actions",
     "quickActionsSubtitle": "Jump into the most common reinforcement workflows.",
     "loading": "Loading reinforcement data...",
@@ -10936,7 +10962,13 @@
       "behavior": "Behavior",
       "grade": "Grade",
       "attendance": "Attendance",
-      "system": "System"
+      "system": "System",
+      "unknown": "Unknown source"
+    },
+    "activityType": {
+      "submission": "Task submitted",
+      "review": "Submission reviewed",
+      "unknown": "Activity"
     },
     "rewardType": {
       "moral": "Moral",
@@ -11049,7 +11081,7 @@
       "rewardsByType": "Rewards by type",
       "rewardsByTypeSubtitle": "Completed tasks grouped by reward type.",
       "topPerformance": "Top classes and students",
-      "topPerformanceSubtitle": "Highest reinforcement activity based on current mock performance data.",
+      "topPerformanceSubtitle": "Highest reinforcement activity based on current performance data.",
       "topClasses": "Top classes",
       "topStudents": "Top students"
     },

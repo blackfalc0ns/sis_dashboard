@@ -3,6 +3,10 @@ import { FileText, Play, Pause, Trash2 } from "lucide-react";
 import { formatFileSize } from "@/features/communication/conversations_redesign/utils/formatters";
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
 import type { MessageAttachment } from "@/features/communication/types/message.types";
+import {
+  getCachedAuthenticatedFile,
+  loadAuthenticatedFileUrl,
+} from "@/lib/files/authenticatedFileUrlCache";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 
 type LegacyFileMetadata = NonNullable<MessageAttachment["file"]> & {
@@ -38,13 +42,17 @@ export function AttachmentCard({
     attachment.url?.split("/").pop() ||
     labels.attachment;
   const size = formatFileSize(
-    attachment.size ||
-    file?.size ||
-    legacyFile?.sizeBytes,
+    attachment.size || file?.size || legacyFile?.sizeBytes,
   );
   const fileId = attachment.fileId || file?.id;
-  const href = attachment.url || file?.url || (fileId ? `${process.env.NEXT_PUBLIC_API_URL || "https://api.moazez.sa/api/v1"}/files/${fileId}/download` : undefined);
-  const mimeType = attachment.mimeType || file?.mimeType || legacyFile?.mimetype;
+  const href =
+    attachment.url ||
+    file?.url ||
+    (fileId
+      ? `${process.env.NEXT_PUBLIC_API_URL || "https://api.moazez.sa/api/v1"}/files/${fileId}/download`
+      : undefined);
+  const mimeType =
+    attachment.mimeType || file?.mimeType || legacyFile?.mimetype;
   const isImage = Boolean(
     mimeType?.startsWith("image/") ||
     name.toLowerCase().endsWith(".png") ||
@@ -52,7 +60,7 @@ export function AttachmentCard({
     name.toLowerCase().endsWith(".jpeg") ||
     name.toLowerCase().endsWith(".gif") ||
     name.toLowerCase().endsWith(".webp") ||
-    name.toLowerCase().endsWith(".svg")
+    name.toLowerCase().endsWith(".svg"),
   );
 
   const isAudio = Boolean(
@@ -62,27 +70,31 @@ export function AttachmentCard({
     name.toLowerCase().endsWith(".wav") ||
     name.toLowerCase().endsWith(".m4a") ||
     (name.toLowerCase().endsWith(".ogg") && !mimeType?.startsWith("video/")) ||
-    name.toLowerCase().endsWith(".aac")
+    name.toLowerCase().endsWith(".aac"),
   );
 
   const isVideo = Boolean(
-    !isAudio && (
-      mimeType?.startsWith("video/") ||
+    !isAudio &&
+    (mimeType?.startsWith("video/") ||
       name.toLowerCase().endsWith(".mp4") ||
       name.toLowerCase().endsWith(".mov") ||
       name.toLowerCase().endsWith(".webm") ||
-      name.toLowerCase().endsWith(".ogg")
-    )
+      name.toLowerCase().endsWith(".ogg")),
   );
 
   const isMedia = isAudio || isImage || isVideo;
+  const cachedMedia = fileId ? getCachedAuthenticatedFile(fileId) : undefined;
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   // Media states
-  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(isMedia && !!fileId);
+  const [mediaUrl, setMediaUrl] = useState<string | null>(
+    cachedMedia?.url ?? null,
+  );
+  const [loading, setLoading] = useState(
+    isMedia && Boolean(fileId) && !cachedMedia,
+  );
   const [error, setError] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -96,25 +108,20 @@ export function AttachmentCard({
     if (!isMedia || !fileId) return;
 
     let active = true;
-    let objectUrl: string | null = null;
-    
+    const mediaFileId = fileId;
+
     async function loadMedia() {
       if (!active) return;
-      setLoading(true);
+      if (!getCachedAuthenticatedFile(mediaFileId)) {
+        setLoading(true);
+      }
       setError(false);
       try {
-        const { apiClient } = await import("@/lib/api");
-        const response = await apiClient.get(`/api/files/${fileId}/download`, {
-          baseURL: "",
-          responseType: "blob",
-        });
-        const blob = response.data instanceof Blob ? response.data : new Blob([response.data as BlobPart], { type: response.headers["content-type"] as string });
-        
+        const cachedFile = await loadAuthenticatedFileUrl(mediaFileId);
+        const blob = cachedFile.blob;
+
         if (!active) return;
-        objectUrl = URL.createObjectURL(blob);
-        
-        if (!active) return;
-        setMediaUrl(objectUrl);
+        setMediaUrl(cachedFile.url);
 
         if (isAudio) {
           // Web Audio API Peak analysis
@@ -123,7 +130,7 @@ export function AttachmentCard({
             (window as WindowWithWebkitAudioContext).webkitAudioContext;
           if (typeof AudioContextClass !== "undefined") {
             const arrayBuffer = await blob.arrayBuffer();
-            
+
             if (!active) return;
             const audioCtx = new AudioContextClass();
             try {
@@ -148,15 +155,24 @@ export function AttachmentCard({
               if (!active) return;
               setPeaks(calculatedPeaks);
             } catch (decodeErr) {
-              console.error("decodeAudioData failed, using fallback peaks:", decodeErr);
+              console.error(
+                "decodeAudioData failed, using fallback peaks:",
+                decodeErr,
+              );
               if (!active) return;
-              setPeaks([25, 40, 15, 60, 80, 45, 30, 70, 90, 50, 20, 35, 65, 85, 40, 30, 55, 75, 45, 25, 60, 80, 50, 30, 45, 65, 20, 15]);
+              setPeaks([
+                25, 40, 15, 60, 80, 45, 30, 70, 90, 50, 20, 35, 65, 85, 40, 30,
+                55, 75, 45, 25, 60, 80, 50, 30, 45, 65, 20, 15,
+              ]);
             } finally {
               await audioCtx.close();
             }
           } else {
             if (!active) return;
-            setPeaks([25, 40, 15, 60, 80, 45, 30, 70, 90, 50, 20, 35, 65, 85, 40, 30, 55, 75, 45, 25, 60, 80, 50, 30, 45, 65, 20, 15]);
+            setPeaks([
+              25, 40, 15, 60, 80, 45, 30, 70, 90, 50, 20, 35, 65, 85, 40, 30,
+              55, 75, 45, 25, 60, 80, 50, 30, 45, 65, 20, 15,
+            ]);
           }
         }
       } catch (err) {
@@ -174,9 +190,6 @@ export function AttachmentCard({
 
     return () => {
       active = false;
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
     };
   }, [fileId, isMedia, isAudio]);
 
@@ -234,7 +247,9 @@ export function AttachmentCard({
     if (isPlaying) {
       audioRef.current.pause();
     } else {
-      window.dispatchEvent(new CustomEvent("voice-play", { detail: { fileId } }));
+      window.dispatchEvent(
+        new CustomEvent("voice-play", { detail: { fileId } }),
+      );
       void audioRef.current.play();
     }
   };
@@ -257,6 +272,8 @@ export function AttachmentCard({
     setIsDeleting(true);
     try {
       await onDelete();
+    } catch {
+      // ConversationDetail owns the user-facing mutation error.
     } finally {
       setIsDeleting(false);
     }
@@ -279,22 +296,13 @@ export function AttachmentCard({
   const handleDownload = async () => {
     if (!fileId) return;
     try {
-      const { apiClient } = await import("@/lib/api");
-      // Fetch the file as a blob (axios follows the 307 redirect to S3)
-      const response = await apiClient.get(`/api/files/${fileId}/download`, {
-        baseURL: "",
-        responseType: "blob",
-      });
-      // Create a download link from the blob
-      const blob = new Blob([response.data as BlobPart]);
-      const url = URL.createObjectURL(blob);
+      const cachedFile = await loadAuthenticatedFileUrl(fileId);
       const link = document.createElement("a");
-      link.href = url;
+      link.href = cachedFile.url;
       link.download = name || "download";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
     } catch {
       // Fallback: open the URL directly (might work for public files)
       if (href) window.open(href, "_blank");
@@ -341,7 +349,20 @@ export function AttachmentCard({
               className="h-9 w-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center backdrop-blur-sm transition-all duration-200 active:scale-90"
               aria-label="Download"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4.5 w-4.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
             </button>
             {canDelete && (
               <button
@@ -418,7 +439,9 @@ export function AttachmentCard({
       <>
         <div
           className={`flex flex-col gap-2 rounded-2xl p-3 mb-2 w-full max-w-[280px] sm:max-w-[320px] ${
-            isOwn ? "bg-primary-700/40 text-white" : "bg-slate-100 text-slate-800"
+            isOwn
+              ? "bg-primary-700/40 text-white"
+              : "bg-slate-100 text-slate-800"
           }`}
         >
           {/* Header Row: Play/Pause button + Waveform */}
@@ -448,7 +471,9 @@ export function AttachmentCard({
                 <div className="h-2 w-2 animate-bounce rounded-full bg-current"></div>
               </div>
             ) : error ? (
-              <span className="text-[11px] text-rose-500 font-medium flex-1">Failed to load audio</span>
+              <span className="text-[11px] text-rose-500 font-medium flex-1">
+                Failed to load audio
+              </span>
             ) : (
               <div
                 data-testid="waveform-container"
@@ -456,15 +481,19 @@ export function AttachmentCard({
                 className="flex items-end gap-[2px] h-7 flex-1 cursor-pointer select-none group/wave relative"
               >
                 {peaks.map((heightPercent, index) => {
-                  const isPlayed = (index / peaks.length) <= progress;
+                  const isPlayed = index / peaks.length <= progress;
                   return (
                     <div
                       key={index}
                       style={{ height: `${heightPercent}%` }}
                       className={`w-[3px] rounded-full transition-colors duration-100 ${
                         isPlayed
-                          ? isOwn ? "bg-white" : "bg-primary"
-                          : isOwn ? "bg-white/30" : "bg-slate-300"
+                          ? isOwn
+                            ? "bg-white"
+                            : "bg-primary"
+                          : isOwn
+                            ? "bg-white/30"
+                            : "bg-slate-300"
                       }`}
                     />
                   );
@@ -547,7 +576,9 @@ export function AttachmentCard({
     if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) {
       return { bg: "bg-orange-500", text: nameUpper };
     }
-    if (["png", "jpg", "jpeg", "gif", "webp", "svg", "mp4", "mov"].includes(ext)) {
+    if (
+      ["png", "jpg", "jpeg", "gif", "webp", "svg", "mp4", "mov"].includes(ext)
+    ) {
       return { bg: "bg-indigo-500", text: nameUpper };
     }
     return { bg: "bg-slate-500", text: nameUpper || "FILE" };
@@ -576,7 +607,9 @@ export function AttachmentCard({
         </div>
 
         <div className="flex-1 min-w-0 flex flex-col">
-          <span className="block truncate text-[13px] font-semibold">{name}</span>
+          <span className="block truncate text-[13px] font-semibold">
+            {name}
+          </span>
           {size ? (
             <span
               className={`block text-[10.5px] font-medium mt-0.5 ${

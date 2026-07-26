@@ -14,14 +14,19 @@ const tabs: Array<{
 
 export default function ConversationTabs({
   activeTab,
+  availableTabs,
   labels,
   onTabChange,
 }: {
   activeTab: DetailTab;
+  availableTabs?: DetailTab[];
   labels: ConversationRedesignLabels;
   onTabChange: (tab: DetailTab) => void;
 }) {
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const renderedTabs = availableTabs
+    ? tabs.filter((tab) => availableTabs.includes(tab.value))
+    : tabs;
 
   const handleKeyDown = (
     event: React.KeyboardEvent<HTMLButtonElement>,
@@ -33,18 +38,18 @@ export default function ConversationTabs({
     let nextIndex: number | null = null;
 
     if (event.key === previousKey) {
-      nextIndex = (index - 1 + tabs.length) % tabs.length;
+      nextIndex = (index - 1 + renderedTabs.length) % renderedTabs.length;
     } else if (event.key === nextKey) {
-      nextIndex = (index + 1) % tabs.length;
+      nextIndex = (index + 1) % renderedTabs.length;
     } else if (event.key === "Home") {
       nextIndex = 0;
     } else if (event.key === "End") {
-      nextIndex = tabs.length - 1;
+      nextIndex = renderedTabs.length - 1;
     }
 
     if (nextIndex === null) return;
     event.preventDefault();
-    onTabChange(tabs[nextIndex].value);
+    onTabChange(renderedTabs[nextIndex].value);
     tabRefs.current[nextIndex]?.focus();
   };
 
@@ -54,7 +59,7 @@ export default function ConversationTabs({
       role="tablist"
       className="flex h-12 shrink-0 items-end gap-1 overflow-x-auto border-b border-slate-200 bg-white px-4"
     >
-      {tabs.map((tab, index) => (
+      {renderedTabs.map((tab, index) => (
         <button
           key={tab.value}
           ref={(element) => {

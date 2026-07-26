@@ -103,4 +103,3 @@ export interface UpdateStudentPayload {
 }
 
 // Backward compatibility aliases
-export type StudentMock = Student;

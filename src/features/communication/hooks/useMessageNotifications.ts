@@ -1,36 +1,54 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import type { MessageNotification } from "@/features/communication/components/NotificationToast";
+import type {
+  NotificationToastItem,
+  NotificationToastKind,
+} from "@/features/communication/components/NotificationToast";
+import type { NotificationPriority } from "@/features/communication/types/notification.types";
 import { useNotificationSound } from "./useNotificationSound";
 
 export function useMessageNotifications(currentConversationId?: string | null) {
-  const [notifications, setNotifications] = useState<MessageNotification[]>([]);
+  const [notifications, setNotifications] = useState<NotificationToastItem[]>([]);
   const { play: playSound } = useNotificationSound();
   const idCounterRef = useRef(0);
 
   const notify = useCallback(
     (params: {
-      conversationId: string;
-      senderName: string;
+      actionLabel: string;
       senderUserId?: string;
       body: string;
+      contextLabel: string;
+      conversationId?: string;
+      kind: NotificationToastKind;
+      priority?: NotificationPriority;
       targetUrl?: string;
+      timestamp?: number;
+      title: string;
       currentUserId?: string;
     }) => {
       // Don't notify for own messages
       if (params.currentUserId && params.senderUserId === params.currentUserId) return;
       // Don't notify if user is currently viewing that conversation
-      if (params.conversationId === currentConversationId) return;
+      if (
+        params.conversationId &&
+        params.conversationId === currentConversationId
+      ) {
+        return;
+      }
 
       const id = `notif-${Date.now()}-${++idCounterRef.current}`;
-      const notification: MessageNotification = {
-        id,
+      const notification: NotificationToastItem = {
+        actionLabel: params.actionLabel,
+        body: params.body.slice(0, 180),
+        contextLabel: params.contextLabel,
         conversationId: params.conversationId,
+        id,
+        kind: params.kind,
+        priority: params.priority,
         targetUrl: params.targetUrl,
-        senderName: params.senderName,
-        body: params.body.slice(0, 100),
-        timestamp: Date.now(),
+        timestamp: params.timestamp ?? Date.now(),
+        title: params.title,
       };
 
       setNotifications((prev) => [notification, ...prev].slice(0, 5));
@@ -38,7 +56,7 @@ export function useMessageNotifications(currentConversationId?: string | null) {
 
       // Browser notification if tab is not focused
       if (typeof document !== "undefined" && document.hidden) {
-        showBrowserNotification(params.senderName, params.body);
+        showBrowserNotification(params.title, params.body);
       }
     },
     [currentConversationId, playSound],

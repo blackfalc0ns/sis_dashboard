@@ -18,6 +18,7 @@ interface DeliveryBatchTableProps {
   limit: number;
   total: number;
   canManage: boolean;
+  isLoading?: boolean;
   isCancellingBatchId?: string | null;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
@@ -52,6 +53,7 @@ export default function DeliveryBatchTable({
   limit,
   total,
   canManage,
+  isLoading = false,
   isCancellingBatchId,
   onPageChange,
   onPageSizeChange,
@@ -155,6 +157,7 @@ export default function DeliveryBatchTable({
     <DataTable
       columns={columns}
       data={batches as unknown as Record<string, unknown>[]}
+      isLoading={isLoading}
       showPagination
       itemsPerPage={limit}
       serverPagination={{

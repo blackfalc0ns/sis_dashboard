@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Reply } from "lucide-react";
+import { Reply, ShieldAlert, Trash2 } from "lucide-react";
 import Input from "@/components/ui/input/Input";
 import Avatar from "@/features/communication/conversations_redesign/components/Avatar";
 import {
@@ -40,9 +40,25 @@ const SWIPE_REPLY_THRESHOLD = 64;
 const SWIPE_REPLY_MAX_OFFSET = 88;
 const SWIPE_DIRECTION_LOCK_DISTANCE = 8;
 
+function replyPreviewBody(
+  message: ConversationMessage | undefined,
+  labels: ConversationRedesignLabels,
+) {
+  if (!message) return "...";
+  const status = normalizeStatus(message.status);
+  if (status === "deleted") return labels.errorMessageDeleted;
+  if (status === "hidden") return labels.errorMessageHidden;
+  return message.body || "...";
+}
+
 export function MessageBubble({
   allowActions = true,
   allowReactions,
+  canDeleteMessages = true,
+  canEditMessages = true,
+  canManageAttachments = true,
+  canReplyMessages = true,
+  canReportMessages = true,
   attachments,
   currentUserId,
   currentUserName,
@@ -67,6 +83,11 @@ export function MessageBubble({
 }: {
   allowActions?: boolean;
   allowReactions: boolean;
+  canDeleteMessages?: boolean;
+  canEditMessages?: boolean;
+  canManageAttachments?: boolean;
+  canReplyMessages?: boolean;
+  canReportMessages?: boolean;
   attachments: MessageAttachment[];
   currentUserId?: string | null;
   currentUserName: string;
@@ -113,20 +134,20 @@ export function MessageBubble({
   );
   const normStatus = normalizeStatus(message.status);
   const deleted = normStatus === "deleted" || normStatus === "hidden";
-  const canMutateMessage =
+  const canMutateOwnMessage =
     isOwn &&
     !deleted &&
     message.deliveryStatus !== "pending" &&
     message.deliveryStatus !== "failed";
+  const canDeleteMessage = canMutateOwnMessage && canDeleteMessages;
+  const canEditMessage = canMutateOwnMessage && canEditMessages;
+  const canManageMessageAttachments =
+    canMutateOwnMessage && canManageAttachments;
   const readByOthersCount = (message.readByUserIds ?? []).filter(
     (id) => id !== currentUserId,
   ).length;
-  // For own messages: only show blue checks when someone ELSE has read it
-  // For others' messages: not applicable (checks only show on own messages)
-  // readByOthersCount comes from realtime events (explicit other-user reads)
-  // message.readCount from API includes self-reads, so for own messages we subtract 1
   const apiReadByOthers = typeof message.readCount === "number"
-    ? Math.max(0, message.readCount - 1)
+    ? message.readCount
     : 0;
   const isRead = isOwn
     ? readByOthersCount > 0 || apiReadByOthers > 0
@@ -136,7 +157,7 @@ export function MessageBubble({
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    await onAttachFile(file);
+    await onAttachFile(file).catch(() => undefined);
   };
 
   const handleDelete = () => {
@@ -148,6 +169,8 @@ export function MessageBubble({
     setIsActionPending(true);
     try {
       await onDeleteMessage();
+    } catch {
+      // ConversationDetail owns the user-facing mutation error.
     } finally {
       setIsActionPending(false);
     }
@@ -172,6 +195,8 @@ export function MessageBubble({
     setIsActionPending(true);
     try {
       await onAddReaction(type);
+    } catch {
+      // ConversationDetail owns the user-facing mutation error.
     } finally {
       setIsActionPending(false);
     }
@@ -182,6 +207,8 @@ export function MessageBubble({
     setIsActionPending(true);
     try {
       await onRemoveReaction();
+    } catch {
+      // ConversationDetail owns the user-facing mutation error.
     } finally {
       setIsActionPending(false);
     }
@@ -207,10 +234,16 @@ export function MessageBubble({
   }, []);
 
   const canSwipeReply =
-    allowActions && !deleted && message.deliveryStatus !== "pending";
+    allowActions &&
+    canReplyMessages &&
+    !deleted &&
+    message.deliveryStatus !== "pending";
+  const canOpenMessageActions = allowActions && !deleted;
 
   const handleTouchStart = useCallback((event: TouchEvent<HTMLElement>) => {
     clearLongPressTimer();
+    if (!canOpenMessageActions) return;
+
     const touch = event.touches[0];
     if (touch && canSwipeReply) {
       swipeGestureRef.current = {
@@ -227,7 +260,12 @@ export function MessageBubble({
     longPressTimerRef.current = setTimeout(() => {
       setShowMobileMenu(true);
     }, 500);
-  }, [canSwipeReply, clearLongPressTimer, setShowMobileMenu]);
+  }, [
+    canOpenMessageActions,
+    canSwipeReply,
+    clearLongPressTimer,
+    setShowMobileMenu,
+  ]);
 
   const resetSwipeGesture = useCallback(() => {
     swipeGestureRef.current = null;
@@ -345,26 +383,32 @@ export function MessageBubble({
         {/* Bubble */}
         <div
           onDoubleClick={() => {
-            if (!deleted) {
+            if (!deleted && canReplyMessages) {
               onReply(message);
             }
           }}
           className={`relative min-w-0 max-w-full rounded-2xl px-2.5 py-1.5 shadow-sm ${
-            isOwn
-              ? `${isFirstInGroup? "rounded-ee-md": "" } bg-primary text-white`
-              : `${isFirstInGroup? "rounded-es-md": "" } border border-slate-200 bg-white text-slate-950`
+            deleted
+              ? "border border-dashed border-slate-300 bg-slate-100 text-slate-600"
+              : isOwn
+                ? `${isFirstInGroup ? "rounded-ee-md" : ""} bg-primary text-white`
+                : `${isFirstInGroup ? "rounded-es-md" : ""} border border-slate-200 bg-white text-slate-950`
           }`}
         >
           {/* Chevron dropdown — appears on hover at top-end corner */}
           {allowActions && !deleted ? (
             <BubbleContextMenu
               allowReactions={allowReactions}
-              canEdit={canMutateMessage}
-              canDelete={canMutateMessage}
+              canAttach={canManageMessageAttachments}
+              canEdit={canEditMessage}
+              canDelete={canDeleteMessage}
+              canReply={canReplyMessages}
+              canReport={canReportMessages}
               isOwn={isOwn}
               labels={labels}
               messageBody={message.body}
               onAddReaction={handleReaction}
+              onAttach={() => fileInputRef.current?.click()}
               onCopy={() => {
                 if (message.body) {
                   void navigator.clipboard.writeText(message.body);
@@ -387,7 +431,7 @@ export function MessageBubble({
             />
           ) : null}
 
-          {message.replyToMessageId ? (() => {
+          {!deleted && message.replyToMessageId ? (() => {
             const originalMsg = allMessages.find((m) => m.id === message.replyToMessageId);
             const originalSender = originalMsg
               ? (originalMsg.sender?.name as string) ||
@@ -397,7 +441,7 @@ export function MessageBubble({
                   labels.someone,
                 )
               : labels.someone;
-            const originalBody = originalMsg?.body || "...";
+            const originalBody = replyPreviewBody(originalMsg, labels);
             return (
               <button
                 type="button"
@@ -430,10 +474,20 @@ export function MessageBubble({
           })() : null}
 
           {normStatus === "deleted" || normStatus === "hidden" ? (
-            <p dir="auto" className="whitespace-pre-wrap break-words text-sm leading-6 [overflow-wrap:anywhere]">
-              {normStatus === "deleted"
-                ? labels.errorMessageDeleted
-                : labels.errorMessageHidden}
+            <p
+              dir="auto"
+              className="flex items-center gap-2 whitespace-pre-wrap break-words text-sm italic leading-6 [overflow-wrap:anywhere]"
+            >
+              {normStatus === "deleted" ? (
+                <Trash2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+              ) : (
+                <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden="true" />
+              )}
+              <span>
+                {normStatus === "deleted"
+                  ? labels.errorMessageDeleted
+                  : labels.errorMessageHidden}
+              </span>
             </p>
           ) : (
             <>
@@ -447,13 +501,13 @@ export function MessageBubble({
             </>
           )}
 
-          {attachments.length > 0 ? (
+          {!deleted && attachments.length > 0 ? (
             <div className="mt-3 space-y-2">
               {attachments.map((attachment) => (
                 <AttachmentCard
                   key={attachment.id}
                   attachment={attachment}
-                  canDelete={canMutateMessage}
+                  canDelete={canManageMessageAttachments}
                   isOwn={isOwn}
                   labels={labels}
                   onDelete={() => onDeleteAttachment(attachment.id)}
@@ -462,22 +516,29 @@ export function MessageBubble({
             </div>
           ) : null}
           <div
-            className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${isOwn ? "text-white/80" : "text-slate-400"}`}
+            className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
+              deleted
+                ? "text-slate-500"
+                : isOwn
+                  ? "text-white/80"
+                  : "text-slate-400"
+            }`}
           >
-            {edited ? <span>{labels.edited}</span> : null}
+            {!deleted && edited ? <span>{labels.edited}</span> : null}
             <span className="italic mt-auto">{formatTime(message.createdAt, locale)}</span>
-            {isOwn ? (
+            {isOwn && !deleted ? (
               <MessageStatusIcon
                 deliveryStatus={message.deliveryStatus}
                 isRead={isRead}
                 isOwn={isOwn}
+                labels={labels}
               />
             ) : null}
           </div>
         </div>
 
         {/* Reaction badges at bottom-corner of bubble */}
-        {Object.keys(groupedReactions).length > 0 ? (
+        {!deleted && Object.keys(groupedReactions).length > 0 ? (
           <div className={`mt-1 flex flex-wrap items-center gap-0.5`}>
             {Object.entries(groupedReactions).map(([type, items]) => {
               const meta = REACTION_OPTIONS.find((r) => r.type === type);
@@ -529,7 +590,7 @@ export function MessageBubble({
     </article>
 
     {/* Mobile bottom sheet — shown on long press */}
-    {allowActions && showMobileMenu ? (
+    {canOpenMessageActions && showMobileMenu ? (
       <div
         className="fixed inset-0 z-50 flex flex-col justify-end md:hidden"
         onClick={() => setShowMobileMenu(false)}
@@ -574,14 +635,16 @@ export function MessageBubble({
           <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-300" />
           <div className="space-y-0.5 px-2">
             {/* Reply */}
-            <button
+            {canReplyMessages ? (
+              <button
               type="button"
               onClick={() => { setShowMobileMenu(false); onReply(message); }}
               className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-slate-700 active:bg-slate-100"
             >
               <span className="text-lg">↩️</span>
               {labels.reply}
-            </button>
+              </button>
+            ) : null}
             {/* Copy */}
             {message.body ? (
               <button
@@ -597,7 +660,7 @@ export function MessageBubble({
               </button>
             ) : null}
             {/* Edit (own only) */}
-            {canMutateMessage ? (
+            {canEditMessage ? (
               <button
                 type="button"
                 onClick={() => { setShowMobileMenu(false); onStartEdit(); }}
@@ -605,6 +668,19 @@ export function MessageBubble({
               >
                 <span className="text-lg">✏️</span>
                 {labels.editMessage}
+              </button>
+            ) : null}
+            {canManageMessageAttachments ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  fileInputRef.current?.click();
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-slate-700 active:bg-slate-100"
+              >
+                <span className="text-lg">📎</span>
+                {labels.attachFileToMessage}
               </button>
             ) : null}
             {/* Info (own only) */}
@@ -619,7 +695,7 @@ export function MessageBubble({
               </button>
             ) : null}
             {/* Report (others only) */}
-            {!isOwn ? (
+            {!isOwn && canReportMessages ? (
               <button
                 type="button"
                 onClick={() => { setShowMobileMenu(false); onReport(message.id); }}
@@ -630,7 +706,7 @@ export function MessageBubble({
               </button>
             ) : null}
             {/* Delete (own only) */}
-            {canMutateMessage ? (
+            {canDeleteMessage ? (
               <button
                 type="button"
                 onClick={() => { setShowMobileMenu(false); void handleDelete(); }}

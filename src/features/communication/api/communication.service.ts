@@ -44,6 +44,7 @@ import type {
   ConversationJoinRequest,
   ConversationParticipant,
   ConversationReadSummary,
+  ConversationReadResult,
   ConversationReadSummaryParams,
   CreateConversationInvitePayload,
   CreateJoinRequestPayload,
@@ -68,6 +69,7 @@ import type {
   ListMessagesParams,
   Message,
   MessageAttachment,
+  MessageInfo,
   MessageReaction,
   ReactionType,
   SendMessagePayload,
@@ -577,6 +579,12 @@ export function getMessage(
   return apiGet(`${COMMUNICATION_ENDPOINT}/messages/${messageId}`);
 }
 
+export function getMessageInfo(
+  messageId: string,
+): Promise<CommunicationResponse<MessageInfo>> {
+  return apiGet(`${COMMUNICATION_ENDPOINT}/messages/${messageId}/info`);
+}
+
 export function updateMessage(
   messageId: string,
   payload: UpdateMessagePayload,
@@ -600,7 +608,7 @@ export function markMessageRead(
 export function markConversationRead(
   conversationId: string,
   payload?: MarkConversationReadPayload,
-): Promise<CommunicationResponse<ConversationReadSummary>> {
+): Promise<CommunicationResponse<ConversationReadResult>> {
   return apiPost(
     `${COMMUNICATION_ENDPOINT}/conversations/${conversationId}/read`,
     payload
@@ -873,6 +881,7 @@ export const communicationService = {
   sendMessage,
   getMessages,
   getMessage,
+  getMessageInfo,
   updateMessage,
   deleteMessage,
   markMessageRead,

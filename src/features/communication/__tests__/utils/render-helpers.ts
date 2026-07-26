@@ -86,6 +86,7 @@ export function setupCommunicationMocks() {
       isConnected: currentSocket.connected,
       connectionError: null,
       resyncVersion: 0,
+      retryConnection: vi.fn(),
       joinConversation: vi.fn((conversationId: string) => {
         currentSocket.emit("conversation:join", { conversationId });
       }),

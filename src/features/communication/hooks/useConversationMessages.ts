@@ -16,6 +16,10 @@ import type {
   CommunicationRecord,
 } from "@/features/communication/types/communication.types";
 import type {
+  ConversationMessageReadCount,
+  ConversationReadSummary,
+} from "@/features/communication/types/conversation.types";
+import type {
   Message,
   MessageStatus,
   SendableMessageType,
@@ -40,10 +44,7 @@ export interface SendMediaMessageInput {
   replyToMessageId?: string;
 }
 
-export interface ReadSummaryState {
-  readCount?: number;
-  unreadCount?: number;
-}
+export type ReadSummaryState = ConversationReadSummary;
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -58,9 +59,12 @@ function messageStatus(value: unknown): MessageStatus {
 
 function unwrapItem<T>(response: unknown): T | null {
   if (!isRecord(response)) return (response ?? null) as T | null;
-  const item = [response.data, response.item, response.result, response.payload].find(
-    (candidate) => isRecord(candidate) && !Array.isArray(candidate),
-  );
+  const item = [
+    response.data,
+    response.item,
+    response.result,
+    response.payload,
+  ].find((candidate) => isRecord(candidate) && !Array.isArray(candidate));
   return (item ?? response) as T;
 }
 
@@ -77,11 +81,9 @@ function unwrapList<T>(response: unknown): T[] {
   const itemSource = sources.find((source) => Array.isArray(source.items));
   if (itemSource) return itemSource.items as T[];
 
-  const arraySource = [
-    response.data,
-    response.result,
-    response.payload,
-  ].find(Array.isArray);
+  const arraySource = [response.data, response.result, response.payload].find(
+    Array.isArray,
+  );
   return arraySource ? (arraySource as T[]) : [];
 }
 
@@ -143,8 +145,8 @@ async function uploadMessageAttachments(
 
 function messageFromPayload(payload: unknown): ConversationMessage | null {
   if (!isRecord(payload)) return null;
-  const source = [payload.message, payload.data, payload.payload].find(isRecord) ??
-    payload;
+  const source =
+    [payload.message, payload.data, payload.payload].find(isRecord) ?? payload;
   if (!isRecord(source)) return null;
 
   const id =
@@ -153,6 +155,15 @@ function messageFromPayload(payload: unknown): ConversationMessage | null {
     stringValue(payload.messageId);
   const clientMessageId = stringValue(source.clientMessageId);
   if (!id && !clientMessageId) return null;
+  const body =
+    stringValue(source.body) ??
+    stringValue(source.content) ??
+    stringValue(source.text);
+  const createdAt = stringValue(source.createdAt) ?? stringValue(source.sentAt);
+  const senderId =
+    stringValue(source.senderId) ??
+    stringValue(source.senderUserId) ??
+    stringValue(source.userId);
 
   return {
     ...(source as Message),
@@ -163,17 +174,16 @@ function messageFromPayload(payload: unknown): ConversationMessage | null {
       stringValue(payload.conversationId) ??
       stringValue(payload.conversation_id),
     clientMessageId,
-    body:
-      stringValue(source.body) ??
-      stringValue(source.content) ??
-      stringValue(source.text) ??
-      "",
+    ...(body !== undefined ? { body } : {}),
     status: messageStatus(source.status),
-    createdAt: stringValue(source.createdAt) ?? new Date().toISOString(),
+    ...(createdAt !== undefined ? { createdAt } : {}),
     updatedAt: stringValue(source.updatedAt),
-    senderId: stringValue(source.senderId) ?? stringValue(source.senderUserId) ?? stringValue(source.userId),
-    sender: isRecord(source.sender) ? (source.sender as Message["sender"]) : undefined,
-    readCount: typeof source.readCount === "number" ? source.readCount : undefined,
+    ...(senderId !== undefined ? { senderId } : {}),
+    sender: isRecord(source.sender)
+      ? (source.sender as Message["sender"])
+      : undefined,
+    readCount:
+      typeof source.readCount === "number" ? source.readCount : undefined,
     deliveryStatus: "sent",
   };
 }
@@ -255,9 +265,14 @@ function upsertMessage(
   );
 
   if (index >= 0) {
+    const definedIncoming = Object.fromEntries(
+      Object.entries(incoming).filter(
+        ([, fieldValue]) => fieldValue !== undefined,
+      ),
+    ) as Partial<ConversationMessage>;
     next[index] = {
       ...next[index],
-      ...incoming,
+      ...definedIncoming,
       deliveryStatus: incoming.deliveryStatus ?? next[index].deliveryStatus,
     };
   } else {
@@ -278,13 +293,90 @@ function createClientMessageId() {
   return `client-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function emptyReadSummary(conversationId: string): ReadSummaryState {
+  return {
+    conversationId,
+    items: [],
+    total: 0,
+    limit: 0,
+    page: 1,
+  };
+}
+
+function normalizeReadSummary(
+  summary: ConversationReadSummary,
+  conversationId: string,
+): ReadSummaryState {
+  const items = readCountEntries(summary.items);
+  return {
+    conversationId: stringValue(summary.conversationId) ?? conversationId,
+    items,
+    total: typeof summary.total === "number" ? summary.total : items.length,
+    limit: typeof summary.limit === "number" ? summary.limit : items.length,
+    page: typeof summary.page === "number" ? summary.page : 1,
+  };
+}
+
+function readCountEntries(payload: unknown): ConversationMessageReadCount[] {
+  if (!Array.isArray(payload)) return [];
+  return payload.flatMap((entry) => {
+    if (!isRecord(entry)) return [];
+    const messageId = stringValue(entry.messageId);
+    const readCount =
+      typeof entry.readCount === "number" ? entry.readCount : undefined;
+    return messageId && readCount !== undefined
+      ? [{ messageId, readCount }]
+      : [];
+  });
+}
+
+function applyReadCountEntry(
+  current: ConversationMessageReadCount[],
+  incoming: ConversationMessageReadCount,
+): ConversationMessageReadCount[] {
+  return [
+    ...current.filter((entry) => entry.messageId !== incoming.messageId),
+    incoming,
+  ];
+}
+
+function applyReadCounts(
+  messages: ConversationMessage[],
+  readCounts: ConversationMessageReadCount[],
+): ConversationMessage[] {
+  if (readCounts.length === 0) return messages;
+  const countByMessageId = new Map(
+    readCounts.map(({ messageId, readCount }) => [messageId, readCount]),
+  );
+  return messages.map((message) => {
+    const readCount = countByMessageId.get(message.id);
+    return readCount === undefined ? message : { ...message, readCount };
+  });
+}
+
+function applyReader(
+  message: ConversationMessage,
+  readerId: string,
+  readCount: number,
+): ConversationMessage {
+  const readByUserIds = new Set(message.readByUserIds ?? []);
+  readByUserIds.add(readerId);
+  return {
+    ...message,
+    readByUserIds: Array.from(readByUserIds),
+    readCount,
+  };
+}
+
 export function useConversationMessages(conversationId: string) {
   const { user } = useAuth();
   const mountedRef = useRef(false);
   const activeConversationIdRef = useRef(conversationId);
   const messagesRef = useRef<ConversationMessage[]>([]);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
-  const [readSummary, setReadSummary] = useState<ReadSummaryState>({});
+  const [readSummary, setReadSummary] = useState<ReadSummaryState>(() =>
+    emptyReadSummary(conversationId),
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [hasOlderMessages, setHasOlderMessages] = useState(true);
@@ -302,14 +394,18 @@ export function useConversationMessages(conversationId: string) {
     const requestConversationId = conversationId;
     setError(null);
     try {
-      const response = await getMessages(requestConversationId, { limit: PAGE_SIZE });
+      const response = await getMessages(requestConversationId, {
+        limit: PAGE_SIZE,
+      });
       const nextMessages = unwrapList<Message>(response).map((message) => {
         const record = message as Record<string, unknown>;
         return {
           ...message,
           senderId:
             message.senderId ??
-            (typeof record.senderUserId === "string" ? record.senderUserId : undefined),
+            (typeof record.senderUserId === "string"
+              ? record.senderUserId
+              : undefined),
           deliveryStatus: "sent" as const,
         };
       });
@@ -354,7 +450,9 @@ export function useConversationMessages(conversationId: string) {
           ...message,
           senderId:
             message.senderId ??
-            (typeof record.senderUserId === "string" ? record.senderUserId : undefined),
+            (typeof record.senderUserId === "string"
+              ? record.senderUserId
+              : undefined),
           deliveryStatus: "sent" as const,
         };
       });
@@ -385,26 +483,34 @@ export function useConversationMessages(conversationId: string) {
       const response = await getConversationReadSummary(requestConversationId, {
         limit: 100,
       });
-      const summary = unwrapItem<ReadSummaryState>(response);
+      const summary = unwrapItem<ConversationReadSummary>(response);
       if (
         mountedRef.current &&
         activeConversationIdRef.current === requestConversationId &&
         summary
       ) {
-        setReadSummary(summary);
+        const normalizedSummary = normalizeReadSummary(
+          summary,
+          requestConversationId,
+        );
+        setReadSummary(normalizedSummary);
+        setMessages((current) =>
+          applyReadCounts(current, normalizedSummary.items),
+        );
       }
     } catch {
       if (
         mountedRef.current &&
         activeConversationIdRef.current === requestConversationId
       ) {
-        setReadSummary({});
+        setReadSummary(emptyReadSummary(requestConversationId));
       }
     }
   }, [conversationId]);
 
   const refresh = useCallback(async () => {
-    await Promise.all([refreshMessages(), refreshReadSummary()]);
+    await refreshMessages();
+    await refreshReadSummary();
   }, [refreshMessages, refreshReadSummary]);
 
   useEffect(() => {
@@ -412,7 +518,9 @@ export function useConversationMessages(conversationId: string) {
     activeConversationIdRef.current = conversationId;
     void Promise.resolve().then(() => setIsLoading(true));
     void Promise.resolve().then(() => setMessages([]));
-    void Promise.resolve().then(() => setReadSummary({}));
+    void Promise.resolve().then(() =>
+      setReadSummary(emptyReadSummary(conversationId)),
+    );
     void Promise.resolve().then(() => setHasOlderMessages(true));
     void Promise.resolve().then(refresh);
     return () => {
@@ -421,7 +529,10 @@ export function useConversationMessages(conversationId: string) {
   }, [conversationId, refresh]);
 
   const send = useCallback(
-    async (body: string, options?: { replyToMessageId?: string }): Promise<string | undefined> => {
+    async (
+      body: string,
+      options?: { replyToMessageId?: string },
+    ): Promise<string | undefined> => {
       const trimmed = body.trim();
       if (!trimmed) return undefined;
 
@@ -447,13 +558,16 @@ export function useConversationMessages(conversationId: string) {
       };
 
       setMessages((current) => upsertMessage(current, pendingMessage));
+      setIsMutating(true);
 
       try {
         const payload: SendMessagePayload = {
           type: "text",
           body: trimmed,
           clientMessageId,
-          ...(options?.replyToMessageId ? { replyToMessageId: options.replyToMessageId } : {}),
+          ...(options?.replyToMessageId
+            ? { replyToMessageId: options.replyToMessageId }
+            : {}),
           metadata: createCommunicationMetadata("message_send", {
             composer: "conversation_thread",
           }),
@@ -480,6 +594,8 @@ export function useConversationMessages(conversationId: string) {
           ),
         );
         throw nextError;
+      } finally {
+        setIsMutating(false);
       }
     },
     [conversationId, user],
@@ -520,9 +636,13 @@ export function useConversationMessages(conversationId: string) {
       };
 
       setMessages((current) => upsertMessage(current, pendingMessage));
+      setIsMutating(true);
 
       try {
-        const attachments = await uploadMessageAttachments(files, trimmedCaption);
+        const attachments = await uploadMessageAttachments(
+          files,
+          trimmedCaption,
+        );
         const payload: SendMessagePayload = {
           type,
           body,
@@ -556,128 +676,164 @@ export function useConversationMessages(conversationId: string) {
           ),
         );
         throw nextError;
+      } finally {
+        setIsMutating(false);
       }
     },
     [conversationId, user],
   );
 
-  const edit = useCallback(async (messageId: string, body: string) => {
-    const trimmed = body.trim();
-    if (!trimmed) return;
-    setIsMutating(true);
-    setMessages((current) =>
-      current.map((message) =>
-        message.id === messageId
-          ? { ...message, body: trimmed, updatedAt: new Date().toISOString() }
-          : message,
-      ),
-    );
+  const edit = useCallback(
+    async (messageId: string, body: string) => {
+      const trimmed = body.trim();
+      if (!trimmed) return;
+      setIsMutating(true);
+      setMessages((current) =>
+        current.map((message) =>
+          message.id === messageId
+            ? { ...message, body: trimmed, updatedAt: new Date().toISOString() }
+            : message,
+        ),
+      );
 
-    try {
-      const response = await updateMessage(messageId, { body: trimmed });
-      const serverMessage = messageFromPayload(response);
-      if (serverMessage) {
-        setMessages((current) => upsertMessage(current, serverMessage));
+      try {
+        const response = await updateMessage(messageId, { body: trimmed });
+        const serverMessage = messageFromPayload(response);
+        if (serverMessage) {
+          setMessages((current) => upsertMessage(current, serverMessage));
+        }
+      } catch (nextError) {
+        setError(errorMessage(nextError));
+        await refreshMessages();
+        throw nextError;
+      } finally {
+        setIsMutating(false);
       }
-    } catch (nextError) {
-      setError(errorMessage(nextError));
-      await refreshMessages();
-    } finally {
-      setIsMutating(false);
-    }
-  }, [refreshMessages]);
+    },
+    [refreshMessages],
+  );
 
-  const remove = useCallback(async (messageId: string) => {
-    setIsMutating(true);
-    setMessages((current) =>
-      current.filter((message) => message.id !== messageId),
-    );
+  const remove = useCallback(
+    async (messageId: string) => {
+      setIsMutating(true);
+      setMessages((current) =>
+        current.map((message) =>
+          message.id === messageId
+            ? {
+                ...message,
+                body: undefined,
+                attachments: [],
+                status: "deleted",
+                deletedAt: new Date().toISOString(),
+              }
+            : message,
+        ),
+      );
 
-    try {
-      await deleteMessage(messageId);
-    } catch (nextError) {
-      setError(errorMessage(nextError));
-      await refreshMessages();
-    } finally {
-      setIsMutating(false);
-    }
-  }, [refreshMessages]);
+      try {
+        await deleteMessage(messageId);
+      } catch (nextError) {
+        setError(errorMessage(nextError));
+        await refreshMessages();
+        throw nextError;
+      } finally {
+        setIsMutating(false);
+      }
+    },
+    [refreshMessages],
+  );
 
   const markRead = useCallback(async (messageId: string) => {
     await markMessageRead(messageId).catch(() => undefined);
   }, []);
 
-  const upsertFromRealtime = useCallback((payload: unknown) => {
-    const message = messageFromPayload(payload);
-    if (!message || message.conversationId !== conversationId) return;
-    setMessages((current) => upsertMessage(current, message));
-  }, [conversationId]);
+  const upsertFromRealtime = useCallback(
+    (payload: unknown) => {
+      const message = messageFromPayload(payload);
+      if (!message || message.conversationId !== conversationId) return;
+      setMessages((current) => upsertMessage(current, message));
+    },
+    [conversationId],
+  );
 
-  const patchFromRealtime = useCallback((payload: unknown) => {
-    const message = messageFromPayload(payload);
-    if (!message || message.conversationId !== conversationId) return;
-    setMessages((current) => upsertMessage(current, message));
-  }, [conversationId]);
+  const patchFromRealtime = useCallback(
+    (payload: unknown) => {
+      const message = messageFromPayload(payload);
+      if (!message || message.conversationId !== conversationId) return;
+      setMessages((current) => upsertMessage(current, message));
+    },
+    [conversationId],
+  );
 
-  const deleteFromRealtime = useCallback((payload: unknown) => {
-    const message = messageFromPayload(payload);
-    if (!message || message.conversationId !== conversationId) return;
-    setMessages((current) =>
-      current.filter(
-        (item) =>
-          item.id !== message.id &&
-          item.clientMessageId !== message.clientMessageId,
-      ),
-    );
-  }, [conversationId]);
+  const deleteFromRealtime = useCallback(
+    (payload: unknown) => {
+      const message = messageFromPayload(payload);
+      if (!message || message.conversationId !== conversationId) return;
+      setMessages((current) => upsertMessage(current, message));
+    },
+    [conversationId],
+  );
 
-  const patchReadFromRealtime = useCallback((payload: unknown) => {
-    if (!isRecord(payload)) return;
-    const payloadConversationId = stringValue(payload.conversationId);
-    if (payloadConversationId && payloadConversationId !== conversationId) return;
+  const patchReadFromRealtime = useCallback(
+    (payload: unknown) => {
+      if (!isRecord(payload)) return;
+      const payloadConversationId = stringValue(payload.conversationId);
+      if (payloadConversationId && payloadConversationId !== conversationId)
+        return;
 
-    const messageId = stringValue(payload.messageId);
-    const userId = stringValue(payload.userId) ?? stringValue(payload.readerId);
-    if (!userId) return;
+      const messageId = stringValue(payload.messageId);
+      const userId =
+        stringValue(payload.userId) ?? stringValue(payload.readerId);
+      if (!userId) return;
+      const readCount =
+        typeof payload.readCount === "number" ? payload.readCount : undefined;
 
-    if (messageId) {
-      // Single message read
-      setMessages((current) =>
-        current.map((message) => {
-          if (message.id !== messageId) return message;
-          const readByUserIds = new Set(message.readByUserIds ?? []);
-          if (readByUserIds.has(userId)) return message;
-          readByUserIds.add(userId);
+      if (messageId && readCount !== undefined) {
+        setMessages((current) =>
+          current.map((message) => {
+            if (message.id !== messageId) return message;
+            return applyReader(message, userId, readCount);
+          }),
+        );
+        setReadSummary((current) => {
+          const items = applyReadCountEntry(current.items, {
+            messageId,
+            readCount,
+          });
           return {
-            ...message,
-            readByUserIds: Array.from(readByUserIds),
-            readCount: (message.readCount ?? 0) + 1,
+            ...current,
+            items,
+            total: Math.max(current.total, items.length),
           };
-        }),
-      );
-    } else {
-      // Conversation-level read (markConversationRead) — mark all messages as read by this user
-      setMessages((current) =>
-        current.map((message) => {
-          const readByUserIds = new Set(message.readByUserIds ?? []);
-          if (readByUserIds.has(userId)) return message;
-          readByUserIds.add(userId);
-          return {
-            ...message,
-            readByUserIds: Array.from(readByUserIds),
-            readCount: (message.readCount ?? 0) + 1,
-          };
-        }),
-      );
-    }
+        });
+        return;
+      }
 
-    // Update read summary locally
-    setReadSummary((current) => ({
-      ...current,
-      readCount: (current.readCount ?? 0) + 1,
-      unreadCount: Math.max(0, (current.unreadCount ?? 0) - 1),
-    }));
-  }, [conversationId]);
+      const messagesRead = readCountEntries(payload.messages);
+      if (messagesRead.length > 0) {
+        const readCountByMessageId = new Map(
+          messagesRead.map((entry) => [entry.messageId, entry.readCount]),
+        );
+        setMessages((current) =>
+          current.map((message) => {
+            const nextReadCount = readCountByMessageId.get(message.id);
+            return nextReadCount === undefined
+              ? message
+              : applyReader(message, userId, nextReadCount);
+          }),
+        );
+        setReadSummary((current) => {
+          const items = messagesRead.reduce(applyReadCountEntry, current.items);
+          return {
+            ...current,
+            items,
+            total: Math.max(current.total, items.length),
+          };
+        });
+      }
+    },
+    [conversationId],
+  );
 
   return {
     messages,

@@ -1,8 +1,8 @@
 import type {
+  StudentDocument,
   Student,
   StudentGuardian,
 } from "@/features/students-guardians/students/types";
-import type { StudentDocumentCenterItem } from "@/features/students-guardians/documents/services/documentsAdapter";
 import type {
   TransferApplication,
   WithdrawalApplication,
@@ -15,6 +15,10 @@ import {
 } from "@/features/students-guardians/students/utils/studentUtils";
 
 type ExportRecord = Record<string, unknown>;
+interface StudentDocumentCenterItem extends StudentDocument {
+  studentName: string;
+  grade: string;
+}
 type OverviewKpis = Array<{ label: string; value: string | number; subtitle?: string }>;
 type OverviewSeriesPoint = Record<string, string | number>;
 type StudentsGuardiansDashboardAnalytics = {
@@ -390,8 +394,10 @@ export function formatTransfersForExport(
         Classroom: transfer.classroom || "N/A",
         Type: localizeTransferType(transfer.type, locale),
         Reason: transfer.reason,
-        "Behavior Score": transfer.behaviorScore,
-        "Behavior Band": localizeBehaviorBand(transfer.behaviorBand, locale),
+        "Behavior Score": transfer.behaviorScore ?? "N/A",
+        "Behavior Band": transfer.behaviorBand
+          ? localizeBehaviorBand(transfer.behaviorBand, locale)
+          : "N/A",
         Status: localizeApplicationStatus(transfer.status, locale),
         "Request Date": toDisplayDate(transfer.requestDate, locale),
         "Effective Date": toDisplayDate(transfer.effectiveDate, locale),
@@ -441,13 +447,14 @@ export function formatWithdrawalsForExport(
         Section: withdrawal.section || "N/A",
         Classroom: withdrawal.classroom || "N/A",
         Reason: localizeWithdrawalReason(withdrawal.reason, locale),
-        "Behavior Average": withdrawal.behaviorAvg,
-        "Behavior Band": localizeBehaviorBand(withdrawal.behaviorBand, locale),
-        "Attendance %": withdrawal.attendancePercent,
-        "Financial Clearance": localizeFinancialClearance(
-          withdrawal.financialClearance,
-          locale,
-        ),
+        "Behavior Average": withdrawal.behaviorAvg ?? "N/A",
+        "Behavior Band": withdrawal.behaviorBand
+          ? localizeBehaviorBand(withdrawal.behaviorBand, locale)
+          : "N/A",
+        "Attendance %": withdrawal.attendancePercent ?? "N/A",
+        "Financial Clearance": withdrawal.financialClearance
+          ? localizeFinancialClearance(withdrawal.financialClearance, locale)
+          : "N/A",
         Status: localizeApplicationStatus(withdrawal.status, locale),
         "Request Date": toDisplayDate(withdrawal.requestDate, locale),
         "Effective Date": toDisplayDate(withdrawal.effectiveDate, locale),

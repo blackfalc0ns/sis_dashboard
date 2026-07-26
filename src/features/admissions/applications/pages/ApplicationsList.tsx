@@ -210,7 +210,9 @@ export default function ApplicationsList() {
 
     // 6. Average Processing Time
     const decidedApps = scopedApplications.filter(
-      (app) => app.status === "accepted" || app.status === "rejected",
+      (app) =>
+        (app.status === "accepted" || app.status === "rejected") &&
+        app.decision?.decisionDate,
     );
 
     let avgProcessingDisplay = t("not_available");
@@ -218,9 +220,7 @@ export default function ApplicationsList() {
     if (decidedApps.length > 0) {
       const totalProcessingTime = decidedApps.reduce((sum, app) => {
         const submitted = new Date(app.submittedDate);
-        const decided = app.decision?.decisionDate
-          ? new Date(app.decision.decisionDate)
-          : new Date(submitted.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const decided = new Date(app.decision!.decisionDate);
 
         const diffMs = decided.getTime() - submitted.getTime();
         const diffHours = diffMs / (1000 * 60 * 60);

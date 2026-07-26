@@ -12,7 +12,6 @@ import {
   Student,
   StudentEnrollment,
 } from "@/features/students-guardians/students/types";
-import { getEnrollmentHistory } from "@/features/students-guardians/students/services/enrollmentService";
 import {
   fetchCurrentEnrollment,
   fetchEnrollmentHistory,
@@ -52,7 +51,7 @@ export default function EnrollmentHistoryTab({
       } catch (loadError) {
         if (isCancelled) return;
         setEnrollment(null);
-        setEnrollmentHistory(getEnrollmentHistory(student.id));
+        setEnrollmentHistory([]);
         setError(
           loadError instanceof Error
             ? loadError.message

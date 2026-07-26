@@ -72,6 +72,7 @@ function createDefaultProps(overrides: Record<string, unknown> = {}) {
     onRemoveReaction: vi.fn().mockResolvedValue(undefined),
     onReply: vi.fn(),
     onReport: vi.fn(),
+    onRetry: vi.fn(),
     reactionsByMessageId: {} as Record<string, never[]>,
     typingUsers: [] as Array<{ userId: string; name?: string }>,
     userDisplayNames: {} as Record<string, string>,

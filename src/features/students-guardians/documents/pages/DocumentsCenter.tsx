@@ -14,8 +14,8 @@ export default function DocumentsCenter() {
         </h1>
         <p className="mx-auto mt-2 max-w-2xl text-sm text-gray-600">
           Global student document list and stats endpoints are not confirmed in
-          the backend yet. This page intentionally avoids mock global document
-          data, sample PDF URLs, and fake statistics until those contracts exist.
+          the backend yet. This page will remain unavailable until those
+          contracts exist.
         </p>
       </div>
     </div>

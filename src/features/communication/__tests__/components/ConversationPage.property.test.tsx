@@ -3,11 +3,10 @@
  *
  * **Validates: Requirements 7.2, 7.3**
  *
- * Property 19: For any conversation list, "unread" returns only unread and
- * "pinned" returns only pinned.
+ * Property 19: For any conversation list, "pinned" returns only pinned.
  *
- * This test generates random lists of conversations with varying unreadCount
- * and isPinned values, then verifies that each filter narrows the visible list.
+ * This test generates random conversation lists and verifies that the
+ * supported pinned filter narrows the visible list.
  */
 
 import { expect, vi, beforeEach, afterEach } from "vitest";
@@ -26,6 +25,12 @@ vi.mock("@/hooks/use-auth", () => ({
     user: { id: TEST_USER_ID },
     isAuthenticated: true,
     isLoading: false,
+  }),
+}));
+
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    hasPermission: () => true,
   }),
 }));
 
@@ -207,31 +212,6 @@ afterEach(() => {
 });
 
 // ─── Property-Based Tests ───────────────────────────────────────────────────
-
-fcTest.prop([conversationListArb], { numRuns: 50 })(
-  "Property 19a: 'unread' filter shows only conversations where unreadCount > 0",
-  (conversations) => {
-    mockConversationsState.conversations = conversations as ConversationListItemModel[];
-
-    const { unmount } = render(<ConversationPage />);
-
-    // Click the "Unread" filter button
-    clickFilterButton("Unread");
-
-    // Get visible titles
-    const visibleTitles = getVisibleConversationTitles();
-
-    // Expected: only conversations with unreadCount > 0
-    const expectedTitles = conversations
-      .filter((c) => (c.unreadCount ?? 0) > 0)
-      .map((c) => c.title);
-
-    // All visible titles should be from unread conversations
-    expect(visibleTitles.sort()).toEqual(expectedTitles.sort());
-
-    unmount();
-  },
-);
 
 fcTest.prop([conversationListArb], { numRuns: 50 })(
   "Property 19b: 'pinned' filter shows only conversations where isPinned === true",

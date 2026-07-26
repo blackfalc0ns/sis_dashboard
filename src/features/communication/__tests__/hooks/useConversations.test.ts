@@ -148,7 +148,23 @@ describe("useConversations", () => {
       expect(mockGetMessages).not.toHaveBeenCalled();
     });
 
-    it("derives one unread item from unreadCount null when the last message from another user has no reads", async () => {
+    it("does not join listed rooms before membership is known", async () => {
+      const conversation = createConversation({ id: "conv-room-1" });
+      mockGetConversations.mockResolvedValue({
+        data: { items: [conversation], total: 1 },
+      });
+
+      const useConversations = await importHook();
+      renderHook(() => useConversations());
+
+      await act(async () => {
+        await vi.runAllTimersAsync();
+      });
+
+      expect(mockJoinConversation).not.toHaveBeenCalled();
+    });
+
+    it("does not infer actor unread state from a global message read count", async () => {
       mockGetConversations.mockResolvedValue({
         data: {
           items: [
@@ -184,46 +200,7 @@ describe("useConversations", () => {
         await vi.runAllTimersAsync();
       });
 
-      expect(result.current.conversations[0]?.unreadCount).toBe(1);
-    });
-
-    it("does not derive unread from unreadCount null when the current user sent the last message", async () => {
-      mockGetConversations.mockResolvedValue({
-        data: {
-          items: [
-            {
-              id: "conv-own-last-message",
-              type: "direct",
-              status: "active",
-              title: "Conversation with own last message",
-              unreadCount: null,
-              lastMessageReadCount: 0,
-              lastMessage: {
-                id: "msg-own",
-                messageId: "msg-own",
-                conversationId: "conv-own-last-message",
-                senderUserId: TEST_USER_ID,
-                status: "sent",
-                body: "mine",
-                content: "mine",
-                readCount: 0,
-                createdAt: "2026-05-21T15:08:20.571Z",
-                updatedAt: "2026-05-21T15:08:20.571Z",
-              },
-            },
-          ],
-          total: 1,
-        },
-      });
-
-      const useConversations = await importHook();
-      const { result } = renderHook(() => useConversations());
-
-      await act(async () => {
-        await vi.runAllTimersAsync();
-      });
-
-      expect(result.current.conversations[0]?.unreadCount).toBe(0);
+      expect(result.current.conversations[0]?.unreadCount).toBeUndefined();
     });
 
     it("does not fetch each conversation's messages when lastMessage is missing from the conversations response", async () => {

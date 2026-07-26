@@ -19,8 +19,6 @@ export * from './dashboard/pages/AdmissionsDashboard';
 export * from './dashboard/pages/AdmissionsDashboardShell';
 export * from './dashboard/container/AdmissionsDashboardContainer';
 export * from './dashboard/services/admissionsAnalytics';
-export * from './dashboard/services/admissionsNotifications';
-export * from './dashboard/utils/admissionsStatsCalculator';
 
 // ============================================================================
 // APPLICATIONS
@@ -37,7 +35,7 @@ export * from './applications/utils/applicationsFilters';
 // ============================================================================
 export * from './leads/types';
 export * from './leads/pages/LeadsList';
-export * from './leads/services/mockLeadsApi';
+export * from './leads/services/leadsApiService';
 
 // ============================================================================
 // INTERVIEWS

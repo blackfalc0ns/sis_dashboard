@@ -41,14 +41,14 @@ export interface TransferApplication {
   targetClass?: string; // For internal transfers
   externalSchool?: string; // For external transfers
   reason: string;
-  behaviorScore: number;
-  behaviorBand: BehaviorBand;
+  behaviorScore?: number;
+  behaviorBand?: BehaviorBand;
   status: ApplicationStatus;
   requestDate: string;
   effectiveDate: string;
   notes?: string;
   attachments?: string[];
-  createdBy: string;
+  createdBy?: string;
   approvedBy?: string;
   rejectionReason?: string;
 }
@@ -63,16 +63,16 @@ export interface WithdrawalApplication {
   section?: string;
   classroom?: string;
   reason: WithdrawalReason;
-  behaviorAvg: number;
-  behaviorBand: BehaviorBand;
-  attendancePercent: number;
-  financialClearance: "pending" | "cleared" | "blocked";
+  behaviorAvg?: number;
+  behaviorBand?: BehaviorBand;
+  attendancePercent?: number;
+  financialClearance?: "pending" | "cleared" | "blocked";
   status: ApplicationStatus;
   requestDate: string;
   effectiveDate: string;
   notes?: string;
   attachments?: string[];
-  createdBy: string;
+  createdBy?: string;
   approvedBy?: string;
   rejectionReason?: string;
 }

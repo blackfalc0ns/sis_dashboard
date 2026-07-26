@@ -26,6 +26,8 @@ import {
 } from "@/features/communication/conversations_redesign/utils/formatters";
 
 export default function ConversationHeader({
+  canManageConversation = true,
+  canMute = true,
   conversation,
   isMuted,
   isLoading,
@@ -39,6 +41,8 @@ export default function ConversationHeader({
   onReopen,
   readOnly,
 }: {
+  canManageConversation?: boolean;
+  canMute?: boolean;
   conversation: Conversation | null;
   isMuted: boolean;
   isLoading: boolean;
@@ -64,9 +68,10 @@ export default function ConversationHeader({
     );
   const typeLabel = conversationTypeLabel(conversation?.type, labels);
   const status = conversation?.status;
-  const canArchive = status === "active";
-  const canClose = status === "active";
-  const canReopen = status === "archived" || status === "closed";
+  const canArchive = canManageConversation && status === "active";
+  const canClose = canManageConversation && status === "active";
+  const canReopen =
+    canManageConversation && (status === "archived" || status === "closed");
 
   return (
     <header className="flex h-[74px] shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm">
@@ -120,18 +125,22 @@ export default function ConversationHeader({
         >
           <RefreshCw className="h-5 w-5" />
         </button>
-        <HeaderActionsMenu
-          canArchive={canArchive}
-          canClose={canClose}
-          canReopen={canReopen}
-          isMuted={isMuted}
-          labels={labels}
-          onArchive={onArchive}
-          onClose={onClose}
-          onEdit={onEdit}
-          onMuteToggle={onMuteToggle}
-          onReopen={onReopen}
-        />
+        {canManageConversation || canMute ? (
+          <HeaderActionsMenu
+            canArchive={canArchive}
+            canClose={canClose}
+            canEdit={canManageConversation}
+            canMute={canMute}
+            canReopen={canReopen}
+            isMuted={isMuted}
+            labels={labels}
+            onArchive={onArchive}
+            onClose={onClose}
+            onEdit={onEdit}
+            onMuteToggle={onMuteToggle}
+            onReopen={onReopen}
+          />
+        ) : null}
         <button
           type="button"
           onClick={onBack}
@@ -148,6 +157,8 @@ export default function ConversationHeader({
 function HeaderActionsMenu({
   canArchive,
   canClose,
+  canEdit,
+  canMute,
   canReopen,
   isMuted,
   labels,
@@ -159,6 +170,8 @@ function HeaderActionsMenu({
 }: {
   canArchive: boolean;
   canClose: boolean;
+  canEdit: boolean;
+  canMute: boolean;
   canReopen: boolean;
   isMuted: boolean;
   labels: ConversationRedesignLabels;
@@ -216,22 +229,26 @@ function HeaderActionsMenu({
           role="menu"
           className="absolute end-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
         >
-          <MenuButton
-            icon={<Edit3 className="h-4 w-4" />}
-            label={labels.editConversation}
-            onClick={() => {
-              setOpen(false);
-              onEdit();
-            }}
-          />
-          <MenuButton
-            icon={isMuted ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
-            label={isMuted ? labels.unmuteConversation : labels.muteConversation}
-            onClick={() => {
-              setOpen(false);
-              onMuteToggle();
-            }}
-          />
+          {canEdit ? (
+            <MenuButton
+              icon={<Edit3 className="h-4 w-4" />}
+              label={labels.editConversation}
+              onClick={() => {
+                setOpen(false);
+                onEdit();
+              }}
+            />
+          ) : null}
+          {canMute ? (
+            <MenuButton
+              icon={isMuted ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+              label={isMuted ? labels.unmuteConversation : labels.muteConversation}
+              onClick={() => {
+                setOpen(false);
+                onMuteToggle();
+              }}
+            />
+          ) : null}
           {canReopen ? (
             <MenuButton
               icon={<RotateCcw className="h-4 w-4" />}

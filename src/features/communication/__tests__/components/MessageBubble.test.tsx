@@ -100,6 +100,63 @@ describe("MessageBubble Delete Confirmation", () => {
     expect(screen.queryByText("Original message content")).not.toBeInTheDocument();
   });
 
+  it("suppresses message content controls and receipts after deletion", () => {
+    const message = createMessage({
+      id: "msg-deleted-content",
+      body: "Sensitive content",
+      senderId: "user-1",
+      status: "deleted",
+      readCount: 2,
+    });
+
+    render(
+      <MessageBubble
+        {...mockProps}
+        attachments={[
+          {
+            id: "attachment-1",
+            messageId: message.id,
+            fileId: "file-1",
+            name: "sensitive.pdf",
+          },
+        ]}
+        message={message}
+      />,
+    );
+
+    const placeholder = screen.getByText(labels.errorMessageDeleted);
+    expect(placeholder.closest("div")).toHaveClass("border-dashed");
+    expect(screen.queryByText("sensitive.pdf")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(labels.readStatus)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: labels.deleteMessage }),
+    ).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["pending", 0, labels.sending],
+    ["failed", 0, labels.failed],
+    ["sent", 0, labels.sent],
+    ["sent", 1, labels.readStatus],
+  ] as const)(
+    "labels %s delivery with read count %i as %s",
+    (deliveryStatus, readCount, expectedLabel) => {
+      const message = {
+        ...createMessage({
+          id: `msg-${deliveryStatus}-${readCount}`,
+          senderId: "user-1",
+          status: "sent",
+          readCount,
+        }),
+        deliveryStatus,
+      };
+
+      render(<MessageBubble {...mockProps} message={message} />);
+
+      expect(screen.getByLabelText(expectedLabel)).toBeInTheDocument();
+    },
+  );
+
   it("renders localized placeholder when normalized message status is 'DELETED' (case insensitivity)", () => {
     const message = createMessage({
       id: "msg-deleted-upper",

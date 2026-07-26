@@ -15,10 +15,6 @@ vi.mock("@/lib/api", () => ({
   apiGet: vi.fn(),
 }));
 
-vi.mock("@/data/mockStudents", () => ({
-  mockStudents: [],
-}));
-
 vi.mock("@/features/academics/academic-structure-tree/services/structureService", () => ({
   fetchStructureTree: vi.fn().mockResolvedValue({ stages: [], grades: [], sections: [], classrooms: [] }),
 }));

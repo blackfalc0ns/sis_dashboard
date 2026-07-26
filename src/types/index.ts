@@ -11,17 +11,11 @@ export type {
   TimelineEventType,
   Student,
   StudentContact,
-  StudentMock,
   StudentGuardian,
   StudentGuardianLink,
-  StudentGuardianMock,
-  StudentGuardianLinkMock,
   StudentDocument,
-  StudentDocumentMock,
   StudentMedicalProfile,
-  StudentMedicalProfileMock,
   StudentTimelineEvent,
-  StudentTimelineEventMock,
 } from "@/features/students-guardians/students/types";
 
 // Re-export DocumentStatus from students with alias to avoid conflict

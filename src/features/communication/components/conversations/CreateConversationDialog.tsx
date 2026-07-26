@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Camera } from "lucide-react";
+import { Camera, Info } from "lucide-react";
 import { useLocale } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
@@ -52,6 +52,7 @@ export interface CreateConversationDialogLabels {
   group: string;
   classroom: string;
   direct: string;
+  directUnavailable: string;
   grade?: string;
   section?: string;
   stage?: string;
@@ -73,7 +74,6 @@ export interface CreateConversationDialogLabels {
 const CONVERSATION_TYPE_ORDER: ConversationType[] = [
   "group",
   "classroom",
-  "direct",
   "grade",
   "section",
   "stage",
@@ -82,7 +82,10 @@ const CONVERSATION_TYPE_ORDER: ConversationType[] = [
   "system",
 ];
 
-const CONVERSATION_TYPES = new Set<string>(CONVERSATION_TYPE_ORDER);
+const ALL_CONVERSATION_TYPES = new Set<string>([
+  ...CONVERSATION_TYPE_ORDER,
+  "direct",
+]);
 
 const SELECTORS_BY_TYPE: Record<ConversationType, ConversationSelectorField[]> = {
   group: [
@@ -148,7 +151,7 @@ export function shouldShowConversationSelector(
 }
 
 function isConversationType(value: unknown): value is ConversationType {
-  return typeof value === "string" && CONVERSATION_TYPES.has(value);
+  return typeof value === "string" && ALL_CONVERSATION_TYPES.has(value);
 }
 
 function resetHiddenScopeValues(
@@ -268,8 +271,11 @@ export default function CreateConversationDialog({
     SELECTORS_BY_TYPE[conversationType]?.length > 0;
 
   const typeOptions = useMemo(
-    () => getConversationTypeOptions(labels),
-    [labels],
+    () =>
+      conversation?.type === "direct"
+        ? [{ value: "direct", label: labels.direct }]
+        : getConversationTypeOptions(labels),
+    [conversation?.type, labels],
   );
 
   const locale = useLocale();
@@ -378,6 +384,7 @@ export default function CreateConversationDialog({
         />
         <Select
           label={labels.type}
+          disabled={isEditing}
           value={values.type ?? "group"}
           onChange={(value) => {
             setValues((current) =>
@@ -388,6 +395,12 @@ export default function CreateConversationDialog({
           }}
           options={typeOptions}
         />
+        {!isEditing ? (
+          <div className="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm text-sky-800">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <p>{labels.directUnavailable}</p>
+          </div>
+        ) : null}
         <TextArea
           label={labels.description}
           rows={3}

@@ -6,7 +6,7 @@ import { Button, Modal, Select } from "@/components/ui";
 import TeacherFormSections from "./TeacherFormSections";
 import { emptyCreateTeacherForm, createFormToRequest } from "@/features/teachers/utils/teacherFormMappers";
 import { validateTeacherForm } from "@/features/teachers/utils/teacherValidation";
-import { toTeacherUiError } from "@/features/teachers/utils/teacherErrors";
+import { toTeacherSubmissionFormErrors } from "@/features/teachers/utils/teacherErrors";
 import { checkUsernameAvailability } from "@/features/settings/login-identity/services/loginIdentityService";
 import type {
   CreateTeacherFormState,
@@ -53,8 +53,7 @@ export default function CreateTeacherDialog(props: CreateTeacherDialogProps) {
     try {
       await props.onSubmit(createFormToRequest(form));
     } catch (submissionError) {
-      const uiError = toTeacherUiError(submissionError);
-      setErrors({ ...uiError.fieldErrors, form: uiError.message });
+      setErrors(toTeacherSubmissionFormErrors(submissionError));
     }
   };
 

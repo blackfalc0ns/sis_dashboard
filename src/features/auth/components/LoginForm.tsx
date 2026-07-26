@@ -32,8 +32,6 @@ interface LoginFormProps {
   currentYear: number;
 }
 
-// Removed mockSubmitLogin
-
 export function LoginForm({ currentYear }: LoginFormProps) {
   const locale = useLocale();
   const isRTL = locale === "ar";

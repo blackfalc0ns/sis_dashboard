@@ -7,7 +7,7 @@ import TeacherFormSections from "./TeacherFormSections";
 import { buildTeacherPatch } from "@/features/teachers/utils/buildTeacherPatch";
 import { detailToEditForm, editFormToRequest } from "@/features/teachers/utils/teacherFormMappers";
 import { validateTeacherForm } from "@/features/teachers/utils/teacherValidation";
-import { toTeacherUiError } from "@/features/teachers/utils/teacherErrors";
+import { toTeacherSubmissionFormErrors } from "@/features/teachers/utils/teacherErrors";
 import type {
   EditTeacherFormState,
   PreferredDisplayLanguage,
@@ -53,8 +53,7 @@ export default function EditTeacherDialog(props: EditTeacherDialogProps) {
     try {
       await props.onSubmit(patch);
     } catch (submissionError) {
-      const uiError = toTeacherUiError(submissionError);
-      setErrors({ ...uiError.fieldErrors, form: uiError.message });
+      setErrors(toTeacherSubmissionFormErrors(submissionError));
     }
   };
 

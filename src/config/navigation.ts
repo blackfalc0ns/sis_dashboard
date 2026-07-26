@@ -35,13 +35,6 @@ import {
   Gauge,
   PanelsTopLeft,
 } from "lucide-react";
-import {
-  mockLeads,
-  mockApplications,
-  mockTests,
-  mockInterviews,
-  mockDecisions,
-} from "@/data/mockDataLinked";
 
 export interface SubgroupDefinition {
   key: string;
@@ -285,8 +278,6 @@ export const menuItems: MenuItem[] = [
         href_en: "/en/admissions/applications",
         href_ar: "/ar/admissions/applications",
         icon: FileText,
-        badge: () =>
-          mockApplications.filter((app) => app.status === "submitted").length,
       },
       {
         key: "admissions-leads",
@@ -296,7 +287,6 @@ export const menuItems: MenuItem[] = [
         href_en: "/en/admissions/leads",
         href_ar: "/ar/admissions/leads",
         icon: Users,
-        badge: () => mockLeads.filter((lead) => lead.status === "New").length,
       },
       {
         key: "admissions-tests",
@@ -306,8 +296,6 @@ export const menuItems: MenuItem[] = [
         href_en: "/en/admissions/tests",
         href_ar: "/ar/admissions/tests",
         icon: ClipboardCheck,
-        badge: () =>
-          mockTests.filter((test) => test.status === "scheduled").length,
       },
       {
         key: "admissions-interviews",
@@ -317,9 +305,6 @@ export const menuItems: MenuItem[] = [
         href_en: "/en/admissions/interviews",
         href_ar: "/ar/admissions/interviews",
         icon: MessageSquare,
-        badge: () =>
-          mockInterviews.filter((interview) => interview.status === "scheduled")
-            .length,
       },
       {
         key: "admissions-decisions",
@@ -329,9 +314,6 @@ export const menuItems: MenuItem[] = [
         href_en: "/en/admissions/decisions",
         href_ar: "/ar/admissions/decisions",
         icon: CheckCircle,
-        badge: () =>
-          mockDecisions.filter((decision) => decision.decision === "waitlist")
-            .length,
       },
       {
         key: "admissions-enrollment",

@@ -320,7 +320,7 @@ export default function SettingsUsersPage() {
       const fieldErrors = getValidationFieldErrors(error);
       if (
         isApiError(error) &&
-        ["validation.failed", "iam.user.email_taken", "iam.user.username_taken"].includes(
+        ["validation.failed", "iam.user.email_taken", "iam.user.username_taken", "iam.user.username_invalid"].includes(
           error.code,
         )
       ) {
@@ -328,7 +328,11 @@ export default function SettingsUsersPage() {
           fullName: fieldErrors.fullName,
           username:
             fieldErrors.username ||
-            (error.code === "iam.user.username_taken" ? error.message : undefined),
+            (error.code === "iam.user.username_invalid"
+              ? t("identity.username_invalid")
+              : error.code === "iam.user.username_taken"
+                ? error.message
+                : undefined),
           contactEmail:
             fieldErrors.contactEmail ||
             fieldErrors.email ||
@@ -339,7 +343,9 @@ export default function SettingsUsersPage() {
         setModalError(
           error.code === "validation.failed"
             ? tCommon("validation_failed")
-            : error.message,
+            : error.code === "iam.user.username_invalid"
+              ? null
+              : error.message,
         );
         return;
       }

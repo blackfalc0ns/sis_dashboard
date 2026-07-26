@@ -7,7 +7,7 @@ import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
-import { timezones } from "../../constants/defaults";
+import { timezones } from "../../constants/timezones";
 import SchoolLocationPickerModal from "../../components/SchoolLocationPickerModal";
 import type {
   ResolvedSchoolLocation,

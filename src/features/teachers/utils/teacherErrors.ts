@@ -76,3 +76,16 @@ export function toTeacherUiError(error: unknown): TeacherUiError {
       details?.reasonCode === "teacher_identity_inconsistent",
   };
 }
+
+export function toTeacherSubmissionFormErrors(error: unknown): Record<string, string> {
+  const uiError = toTeacherUiError(error);
+  const fieldErrors = { ...uiError.fieldErrors };
+
+  if (uiError.code === "iam.user.username_invalid") {
+    fieldErrors.username = "username_invalid";
+  }
+
+  return Object.keys(fieldErrors).length
+    ? fieldErrors
+    : { form: uiError.message };
+}

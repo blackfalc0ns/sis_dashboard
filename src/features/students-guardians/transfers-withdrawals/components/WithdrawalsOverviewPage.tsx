@@ -35,7 +35,7 @@ export default function WithdrawalsOverviewPage() {
 
   // Calculate KPIs
   const withdrawalsThisMonth = allWithdrawals.length;
-  const dropoutRate = 3.2; // TODO: Calculate from actual data
+  const dropoutRate = 0;
   const behaviorRelated = allWithdrawals.filter(
     (w) => w.reason === "behavior",
   ).length;
@@ -192,13 +192,6 @@ export default function WithdrawalsOverviewPage() {
           icon={UserMinus}
           iconColor="#ef4444"
           iconBgColor="#fee2e2"
-          chartData={[
-            { label: "W1", value: 12 },
-            { label: "W2", value: 15 },
-            { label: "W3", value: 18 },
-            { label: "W4", value: withdrawalsThisMonth },
-          ]}
-          chartColor="#ef4444"
         />
         <KPICardV2
           title={t("withdrawals.kpis.dropout_rate")}
@@ -211,13 +204,6 @@ export default function WithdrawalsOverviewPage() {
           icon={TrendingDown}
           iconColor={dropoutRate > dropoutThreshold ? "#ef4444" : "#10b981"}
           iconBgColor={dropoutRate > dropoutThreshold ? "#fee2e2" : "#d1fae5"}
-          chartData={[
-            { label: "M1", value: 2.8 },
-            { label: "M2", value: 3.1 },
-            { label: "M3", value: 2.9 },
-            { label: "M4", value: dropoutRate },
-          ]}
-          chartColor={dropoutRate > dropoutThreshold ? "#ef4444" : "#10b981"}
         />
         <KPICardV2
           title={t("withdrawals.kpis.behavior_related")}
@@ -226,13 +212,6 @@ export default function WithdrawalsOverviewPage() {
           icon={AlertTriangle}
           iconColor="#8b5cf6"
           iconBgColor="#ede9fe"
-          chartData={[
-            { label: "W1", value: 3 },
-            { label: "W2", value: 5 },
-            { label: "W3", value: 4 },
-            { label: "W4", value: behaviorRelated },
-          ]}
-          chartColor="#8b5cf6"
         />
       </div>
 

@@ -10,36 +10,12 @@ export interface StudentStats {
   atRisk: number;
   avgAttendance: number;
   avgGrade: number;
-  totalTrend: Array<{ label: string; value: number }>;
-  activeTrend: Array<{ label: string; value: number }>;
-  atRiskTrend: Array<{ label: string; value: number }>;
-  attendanceTrend: Array<{ label: string; value: number }>;
-  gradeTrend: Array<{ label: string; value: number }>;
-  withdrawnTrend: Array<{ label: string; value: number }>;
 }
 
 export interface RiskDistribution {
   attendance: number;
   grades: number;
   behavior: number;
-}
-
-function generateTrendData(currentValue: number): Array<{ label: string; value: number }> {
-  return [
-    { label: "M1", value: Math.max(0, currentValue - 30) },
-    { label: "M2", value: Math.max(0, currentValue - 20) },
-    { label: "M3", value: Math.max(0, currentValue - 10) },
-    { label: "M4", value: currentValue },
-  ];
-}
-
-function generatePercentageTrend(currentValue: number): Array<{ label: string; value: number }> {
-  return [
-    { label: "M1", value: Math.max(75, currentValue - 3) },
-    { label: "M2", value: Math.max(75, currentValue - 2) },
-    { label: "M3", value: Math.max(75, currentValue - 1) },
-    { label: "M4", value: currentValue },
-  ];
 }
 
 export function calculateStudentStats(
@@ -91,12 +67,6 @@ export function calculateStudentStats(
     atRisk,
     avgAttendance,
     avgGrade,
-    totalTrend: generateTrendData(total),
-    activeTrend: generateTrendData(active),
-    atRiskTrend: generateTrendData(atRisk),
-    attendanceTrend: generatePercentageTrend(avgAttendance),
-    gradeTrend: generatePercentageTrend(avgGrade),
-    withdrawnTrend: generateTrendData(withdrawn),
   };
 }
 

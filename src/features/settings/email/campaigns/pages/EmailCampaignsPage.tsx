@@ -121,7 +121,7 @@ export default function EmailCampaignsPage() {
   );
 
   useEffect(() => {
-    void Promise.resolve().then(() => hydrate());
+    void Promise.resolve().then(() => hydrate("refresh"));
   }, [hydrate]);
 
   useEffect(() => {
@@ -333,10 +333,11 @@ export default function EmailCampaignsPage() {
               />
             }
           >
-            {campaigns.length > 0 ? (
+            {campaigns.length > 0 || isRefreshing ? (
               <DataTable
                 columns={columns}
                 data={campaigns as unknown as Record<string, unknown>[]}
+                isLoading={isRefreshing}
                 showPagination
                 itemsPerPage={limit}
                 serverPagination={{

@@ -65,4 +65,3 @@ export interface StudentXpSummary {
 }
 
 // Backward compatibility alias
-export type StudentNoteMock = StudentNote;

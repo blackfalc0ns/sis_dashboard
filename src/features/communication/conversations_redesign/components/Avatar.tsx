@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiClient } from "@/lib/api";
+import {
+  getCachedAuthenticatedFile,
+  loadAuthenticatedFileUrl,
+} from "@/lib/files/authenticatedFileUrlCache";
 
 export default function Avatar({
   avatarUrl,
@@ -16,38 +19,38 @@ export default function Avatar({
   online?: boolean;
   size?: "sm" | "md" | "lg";
 }) {
-  const [resolvedUrl, setResolvedUrl] = useState<string | undefined>(avatarUrl);
+  const cachedAvatar = fileId ? getCachedAuthenticatedFile(fileId) : undefined;
+  const [loadedAvatar, setLoadedAvatar] = useState<{
+    fileId: string;
+    url: string;
+  } | null>(null);
+  const resolvedUrl =
+    avatarUrl ??
+    cachedAvatar?.url ??
+    (loadedAvatar && loadedAvatar.fileId === fileId
+      ? loadedAvatar.url
+      : undefined);
 
-  // Fetch avatar from fileId with auth
   useEffect(() => {
-    if (avatarUrl) {
-      void Promise.resolve().then(() => setResolvedUrl(avatarUrl));
-      return;
-    }
-    if (!fileId) {
-      void Promise.resolve().then(() => setResolvedUrl(undefined));
+    if (avatarUrl || !fileId) return;
+    if (cachedAvatar) {
+      void loadAuthenticatedFileUrl(fileId);
       return;
     }
 
-    let revoked = false;
-    void apiClient
-      .get(`/api/files/${fileId}/download`, {
-        baseURL: "",
-        responseType: "blob",
-      })
-      .then((response) => {
-        if (revoked) return;
-        const blob = new Blob([response.data as BlobPart]);
-        setResolvedUrl(URL.createObjectURL(blob));
+    let active = true;
+    void loadAuthenticatedFileUrl(fileId)
+      .then(({ url }) => {
+        if (active) setLoadedAvatar({ fileId, url });
       })
       .catch(() => {
-        if (!revoked) setResolvedUrl(undefined);
+        if (active) setLoadedAvatar(null);
       });
 
     return () => {
-      revoked = true;
+      active = false;
     };
-  }, [avatarUrl, fileId]);
+  }, [avatarUrl, cachedAvatar, fileId]);
 
   const sizes = {
     sm: "h-8 w-8 text-xs",
@@ -79,7 +82,6 @@ export default function Avatar({
     </div>
   );
 }
-
 
 function initials(name?: string | null) {
   const source = name?.trim() || "?";
