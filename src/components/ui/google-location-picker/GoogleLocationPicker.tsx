@@ -12,12 +12,11 @@ import {
   type GoogleGeocoder,
   type GoogleLatLngLiteral,
   type GoogleMapInstance,
-  type GoogleMarkerInstance,
-  type GooglePlaceConstructor,
+  type GoogleAdvancedMarkerInstance,
   type GooglePlacePrediction,
+  type GooglePlacesService,
 } from "./googleMapsApi";
 import {
-  googlePlaceToLocationValue,
   placeToLocationValue,
   validateCoordinateDraft,
   type CoordinateValidation,
@@ -79,10 +78,10 @@ export default function GoogleLocationPicker({
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
-  const markerRef = useRef<GoogleMarkerInstance | null>(null);
+  const markerRef = useRef<GoogleAdvancedMarkerInstance | null>(null);
   const circleRef = useRef<GoogleCircleInstance | null>(null);
   const autocompleteRef = useRef<GoogleAutocompleteService | null>(null);
-  const placeConstructorRef = useRef<GooglePlaceConstructor | null>(null);
+  const placesServiceRef = useRef<GooglePlacesService | null>(null);
   const geocoderRef = useRef<GoogleGeocoder | null>(null);
   const mountedRef = useRef(true);
   const requestIdRef = useRef(0);
@@ -113,6 +112,7 @@ export default function GoogleLocationPicker({
     apiKey ? null : "api_key_missing",
   );
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       requestIdRef.current += 1;
@@ -153,7 +153,7 @@ export default function GoogleLocationPicker({
 
 
   const updateMapPosition = useCallback((position: GoogleLatLngLiteral) => {
-    markerRef.current?.setPosition(position);
+    if (markerRef.current) markerRef.current.position = position;
     mapRef.current?.setCenter(position);
     circleRef.current?.setCenter(position);
   }, []);
@@ -225,16 +225,17 @@ export default function GoogleLocationPicker({
           mapTypeControl: false,
           fullscreenControl: true,
           streetViewControl: false,
+          mapId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID",
         });
-        const marker = new googleApi.maps.Marker({
+        const marker = new googleApi.maps.marker.AdvancedMarkerElement({
           map,
           position,
-          draggable: !disabled,
+          gmpDraggable: !disabled,
         });
         map.addListener("click", (event) => {
           if (disabled || !event.latLng) return;
           const next = { lat: event.latLng.lat(), lng: event.latLng.lng() };
-          marker.setPosition(next);
+          marker.position = next;
           resolvePosition(next);
         });
         marker.addListener("dragend", (event) => {
@@ -244,9 +245,8 @@ export default function GoogleLocationPicker({
 
         mapRef.current = map;
         markerRef.current = marker;
-        autocompleteRef.current =
-          new googleApi.maps.places.AutocompleteService();
-        placeConstructorRef.current = googleApi.maps.places.Place;
+        autocompleteRef.current = new googleApi.maps.places.AutocompleteService();
+        placesServiceRef.current = new googleApi.maps.places.PlacesService(map);
         geocoderRef.current = new googleApi.maps.Geocoder();
         if (radiusMeters !== undefined) {
           circleRef.current = new googleApi.maps.Circle({
@@ -270,7 +270,8 @@ export default function GoogleLocationPicker({
       circleRef.current = null;
       mapRef.current = null;
       markerRef.current = null;
-      placeConstructorRef.current = null;
+      autocompleteRef.current = null;
+      placesServiceRef.current = null;
     };
     // The map is initialized once for this API key and locale. Controlled values
     // are synchronized by the effects below.
@@ -302,9 +303,16 @@ export default function GoogleLocationPicker({
     const requestId = ++requestIdRef.current;
     setIsSearching(true);
     setErrorKey(null);
+    const timeoutId = window.setTimeout(() => {
+      if (!mountedRef.current || requestId !== requestIdRef.current) return;
+      setIsSearching(false);
+      setErrorKey("search_failed");
+      setPredictions([]);
+    }, 10_000);
     autocomplete.getPlacePredictions(
       { input, language: locale },
       (results, status) => {
+        window.clearTimeout(timeoutId);
         if (!mountedRef.current || requestId !== requestIdRef.current) return;
         setIsSearching(false);
         if (status === "ZERO_RESULTS") {
@@ -322,33 +330,32 @@ export default function GoogleLocationPicker({
   }, 300);
 
 
-  const selectPrediction = async (prediction: GooglePlacePrediction) => {
-    const Place = placeConstructorRef.current;
-    if (!Place) return;
+  const selectPrediction = (prediction: GooglePlacePrediction) => {
+    const placesService = placesServiceRef.current;
+    if (!placesService) return;
     const requestId = ++requestIdRef.current;
     setIsResolving(true);
     setErrorKey(null);
-    try {
-      const place = new Place({ id: prediction.place_id });
-      await place.fetchFields({
-        fields: ["displayName", "formattedAddress", "location"],
-      });
-      if (!mountedRef.current || requestId !== requestIdRef.current) return;
-
-      setIsResolving(false);
-      const location = googlePlaceToLocationValue(place);
-      if (!location) {
-        setErrorKey("resolve_failed");
-        return;
-      }
-      setQuery(location.formattedAddress);
-      setPredictions([]);
-      applyLocation(location);
-    } catch {
-      if (!mountedRef.current || requestId !== requestIdRef.current) return;
-      setIsResolving(false);
-      setErrorKey("resolve_failed");
-    }
+    placesService.getDetails(
+      {
+        placeId: prediction.place_id,
+        fields: ["name", "formatted_address", "geometry"],
+        language: locale,
+      },
+      (place, status) => {
+        if (!mountedRef.current || requestId !== requestIdRef.current) return;
+        setIsResolving(false);
+        const location =
+          status === "OK" && place ? placeToLocationValue(place) : null;
+        if (!location) {
+          setErrorKey("resolve_failed");
+          return;
+        }
+        setQuery(location.formattedAddress);
+        setPredictions([]);
+        applyLocation(location);
+      },
+    );
   };
 
   const updateDraft = (field: "latitude" | "longitude", input: string) => {
@@ -401,7 +408,7 @@ export default function GoogleLocationPicker({
                     key={prediction.place_id}
                     type="button"
                     className="flex w-full items-start gap-2 rounded-md px-2 py-2 text-start text-sm text-gray-700 hover:bg-gray-50"
-                    onClick={() => void selectPrediction(prediction)}
+                    onClick={() => selectPrediction(prediction)}
                     disabled={disabled}
                   >
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0" />

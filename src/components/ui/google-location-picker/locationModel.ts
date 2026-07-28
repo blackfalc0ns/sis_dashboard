@@ -1,4 +1,4 @@
-import type { GooglePlace, GooglePlaceResult } from "./googleMapsApi";
+import type { GooglePlaceResult } from "./googleMapsApi";
 
 export interface GoogleLocationValue {
   latitude: number;
@@ -71,21 +71,6 @@ export function placeToLocationValue(
     latitude: Number(location.lat().toFixed(6)),
     longitude: Number(location.lng().toFixed(6)),
     label: place.name || formattedAddress,
-    formattedAddress,
-  };
-}
-
-export function googlePlaceToLocationValue(
-  place: GooglePlace,
-): GoogleLocationValue | null {
-  const location = place.location;
-  if (!location) return null;
-
-  const formattedAddress = place.formattedAddress ?? "";
-  return {
-    latitude: Number(location.lat().toFixed(6)),
-    longitude: Number(location.lng().toFixed(6)),
-    label: place.displayName || formattedAddress,
     formattedAddress,
   };
 }

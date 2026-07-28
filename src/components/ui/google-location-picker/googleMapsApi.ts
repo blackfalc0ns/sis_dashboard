@@ -38,8 +38,8 @@ export interface GoogleMapMouseEvent {
   latLng?: { lat: () => number; lng: () => number };
 }
 
-export interface GoogleMarkerInstance {
-  setPosition: (position: GoogleLatLngLiteral) => void;
+export interface GoogleAdvancedMarkerInstance {
+  position: GoogleLatLngLiteral;
   addListener: (
     eventName: "dragend",
     callback: (event: GoogleMapMouseEvent) => void,
@@ -62,20 +62,18 @@ export interface GoogleAutocompleteService {
   ) => void;
 }
 
-export interface GooglePlace {
-  displayName?: string | null;
-  formattedAddress?: string | null;
-  location?: {
-    lat: () => number;
-    lng: () => number;
-  };
-  fetchFields: (options: {
-    fields: Array<"displayName" | "formattedAddress" | "location">;
-  }) => Promise<void>;
-}
-
-export interface GooglePlaceConstructor {
-  new (options: { id: string }): GooglePlace;
+export interface GooglePlacesService {
+  getDetails: (
+    request: {
+      placeId: string;
+      fields: Array<"name" | "formatted_address" | "geometry">;
+      language?: string;
+    },
+    callback: (
+      result: GooglePlaceResult | null,
+      status: GoogleMapsStatus,
+    ) => void,
+  ) => void;
 }
 
 export interface GoogleGeocoder {
@@ -98,13 +96,16 @@ export interface GoogleMapsApi {
         mapTypeControl?: boolean;
         fullscreenControl?: boolean;
         streetViewControl?: boolean;
+        mapId?: string;
       },
     ) => GoogleMapInstance;
-    Marker: new (options: {
-      map: GoogleMapInstance;
-      position: GoogleLatLngLiteral;
-      draggable: boolean;
-    }) => GoogleMarkerInstance;
+    marker: {
+      AdvancedMarkerElement: new (options: {
+        map: GoogleMapInstance;
+        position: GoogleLatLngLiteral;
+        gmpDraggable: boolean;
+      }) => GoogleAdvancedMarkerInstance;
+    };
     Circle: new (options: {
       map: GoogleMapInstance;
       center: GoogleLatLngLiteral;
@@ -117,7 +118,7 @@ export interface GoogleMapsApi {
     }) => GoogleCircleInstance;
     places: {
       AutocompleteService: new () => GoogleAutocompleteService;
-      Place: GooglePlaceConstructor;
+      PlacesService: new (map: GoogleMapInstance) => GooglePlacesService;
     };
     Geocoder: new () => GoogleGeocoder;
   };
@@ -126,6 +127,7 @@ export interface GoogleMapsApi {
 declare global {
   interface Window {
     __moazezGoogleMapsPromise?: Promise<GoogleMapsApi>;
+    __moazezGoogleMapsLoaded?: () => void;
     google?: unknown;
   }
 }
@@ -168,9 +170,8 @@ export function loadGoogleMapsApi(apiKey: string, language: string) {
       const script = document.createElement("script");
       script.id = GOOGLE_MAPS_SCRIPT_ID;
       script.async = true;
-      script.defer = true;
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&language=${encodeURIComponent(language)}`;
-      script.addEventListener("load", resolveLoadedApi, { once: true });
+      window.__moazezGoogleMapsLoaded = resolveLoadedApi;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&loading=async&callback=__moazezGoogleMapsLoaded&libraries=marker,places&language=${encodeURIComponent(language)}&v=weekly`;
       script.addEventListener("error", rejectLoad, { once: true });
       document.head.appendChild(script);
     },
