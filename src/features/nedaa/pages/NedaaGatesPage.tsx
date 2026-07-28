@@ -1,13 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import {
+  CheckCircle2,
+  CircleDot,
+  DoorOpen,
+  LayoutGrid,
+  Plus,
+  Wrench,
+  XCircle,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import FilterPanel from "@/components/ui/filter-panel/FilterPanel";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
+import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -21,6 +30,7 @@ import {
 } from "@/features/nedaa/services/dismissalApiService";
 import type {
   CreateDismissalGatePayload,
+  DismissalGatesSummary,
   DismissalGateStatus,
   NedaaGate,
 } from "@/features/nedaa/types/nedaa";
@@ -45,6 +55,15 @@ const gateStatuses: DismissalGateStatus[] = [
   "closed",
   "maintenance",
 ];
+
+const emptyGatesSummary: DismissalGatesSummary = {
+  totalCount: 0,
+  openCount: 0,
+  busyCount: 0,
+  closedCount: 0,
+  maintenanceCount: 0,
+  activeCount: 0,
+};
 
 function cloneGate(gate: NedaaGate): NedaaGate {
   return {
@@ -76,6 +95,8 @@ export default function NedaaGatesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(GATE_PAGE_SIZE);
   const [totalItems, setTotalItems] = useState(0);
+  const [gatesSummary, setGatesSummary] =
+    useState<DismissalGatesSummary>(emptyGatesSummary);
   const [refreshKey, setRefreshKey] = useState(0);
   const debouncedSearch = useDebounce(searchInput, 350);
   const hasActiveFilters =
@@ -109,6 +130,7 @@ export default function NedaaGatesPage() {
         if (!cancelled) {
           setGates(response.data.map(cloneGate));
           setTotalItems(response.summary.totalCount);
+          setGatesSummary(response.summary);
         }
       } catch (requestError) {
         if (!cancelled) {
@@ -164,7 +186,7 @@ export default function NedaaGatesPage() {
         label: t("table.actions"),
         sortable: false,
         render: (_value, row) => (
-          <div className="flex justify-end">
+          <div className="flex justify-start">
             <Button
               size="sm"
               variant="secondary"
@@ -265,6 +287,64 @@ export default function NedaaGatesPage() {
         >
           {t("settings.add_gate")}
         </Button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        {[
+          {
+            key: "total",
+            value: gatesSummary.totalCount,
+            icon: LayoutGrid,
+            iconColor: "#2563eb",
+            iconBgColor: "#dbeafe",
+          },
+          {
+            key: "open",
+            value: gatesSummary.openCount,
+            icon: DoorOpen,
+            iconColor: "#059669",
+            iconBgColor: "#d1fae5",
+          },
+          {
+            key: "busy",
+            value: gatesSummary.busyCount,
+            icon: CircleDot,
+            iconColor: "#d97706",
+            iconBgColor: "#fef3c7",
+          },
+          {
+            key: "closed",
+            value: gatesSummary.closedCount,
+            icon: XCircle,
+            iconColor: "#dc2626",
+            iconBgColor: "#fee2e2",
+          },
+          {
+            key: "maintenance",
+            value: gatesSummary.maintenanceCount,
+            icon: Wrench,
+            iconColor: "#7c3aed",
+            iconBgColor: "#ede9fe",
+          },
+          {
+            key: "active",
+            value: gatesSummary.activeCount,
+            icon: CheckCircle2,
+            iconColor: "#0f766e",
+            iconBgColor: "#ccfbf1",
+          },
+        ].map((entry) => (
+          <KPICardV2
+            key={entry.key}
+            title={t(`gates_page.summary.${entry.key}`)}
+            value={entry.value}
+            icon={entry.icon}
+            iconColor={entry.iconColor}
+            iconBgColor={entry.iconBgColor}
+            showChart={false}
+            className="bg-white"
+          />
+        ))}
       </div>
 
       <FilterPanel

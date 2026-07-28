@@ -11742,6 +11742,14 @@
     "gates_page": {
       "title": "البوابات",
       "subtitle": "نظرة عامة على البوابات والنشاطات.",
+      "summary": {
+        "total": "إجمالي البوابات",
+        "open": "البوابات المفتوحة",
+        "busy": "البوابات المشغولة",
+        "closed": "البوابات المغلقة",
+        "maintenance": "قيد الصيانة",
+        "active": "البوابات النشطة"
+      },
       "active_gates": "البوابات النشطة",
       "active_gates_subtitle": "البوابات التي تقبل الطلبات في الوقت الحالي.",
       "waiting_subtitle": "طلبات قيد الانتظار.",
@@ -11974,6 +11982,25 @@
         "waiting_zones_help": "تسميات مناطق الانتظار في الخلفية."
       },
       "enabled": "مفعل",
+      "enabled_description": "أوقفه لإيقاف طلبات النداء الجديدة مؤقتاً مع الاحتفاظ بإعدادات النداء.",
+      "configured": "تم إعداد النظام",
+      "not_configured": "الإعداد غير مكتمل",
+      "last_updated": "آخر تحديث: {value}",
+      "not_available": "غير متاح",
+      "location_source": "مصدر الموقع: {source}",
+      "location_sources": {
+        "settings": "إعدادات النداء",
+        "school_profile": "ملف المدرسة",
+        "default": "الموقع الافتراضي"
+      },
+      "policies_title": "سياسات الاستلام",
+      "policies_subtitle": "حدد قواعد التحقق والإلغاء لطلبات النداء.",
+      "require_pickup_code": "طلب رمز الاستلام",
+      "require_pickup_code_description": "يجب على الموظف التحقق من رمز الاستلام قبل تسليم الطالب.",
+      "allow_delegate_pickup": "السماح بالاستلام عبر مفوض",
+      "allow_delegate_pickup_description": "يسمح للمفوضين المعتمدين باستلام الطلاب نيابةً عن أولياء الأمور.",
+      "allow_parent_cancel": "السماح بإلغاء ولي الأمر",
+      "allow_parent_cancel_description": "يسمح لولي الأمر بإلغاء الطلب حتى تتم مناداة الطالب.",
       "timezone": "المنطقة الزمنية",
       "delay_threshold": "حد التأخير بالدقائق",
       "urgent_threshold": "حد الاستعجال بالدقائق",
@@ -12133,6 +12160,12 @@
       "starts_at": "يبدأ في",
       "ends_at": "ينتهي في",
       "lead_assignment": "تكليف مسؤول",
+      "summary": {
+        "total": "إجمالي التكليفات",
+        "active": "التكليفات النشطة",
+        "inactive": "التكليفات غير النشطة",
+        "lead": "تكليفات المسؤولين"
+      },
       "empty_title": "لا توجد تكليفات موظفين",
       "empty_description": "أنشئ تكليفا لربط موظفي الانصراف بالبوابات أو النطاقات الأكاديمية.",
       "delete_title": "حذف تكليف الموظف",

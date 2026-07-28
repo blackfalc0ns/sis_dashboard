@@ -63,6 +63,10 @@ export interface UpdateDismissalSettingsPayload {
   defaultGateId?: string | null;
 }
 
+export interface NedaaSettingsPatch extends UpdateDismissalSettingsPayload {
+  schoolZoneLabel?: string | null;
+}
+
 export interface NedaaGate {
   id: NedaaGateId;
   code: string;

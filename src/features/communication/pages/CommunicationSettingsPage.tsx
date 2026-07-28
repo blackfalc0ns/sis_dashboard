@@ -209,8 +209,6 @@ export default function CommunicationSettingsPage() {
         overview={adminOverview}
         labels={{
           conversations: t.overviewConversations,
-          announcements: t.overviewAnnouncements,
-          unreadNotifications: t.overviewUnreadNotifications,
           openReports: t.overviewOpenReports,
           activeRestrictions: t.overviewActiveRestrictions,
           activeBlocks: t.overviewActiveBlocks,

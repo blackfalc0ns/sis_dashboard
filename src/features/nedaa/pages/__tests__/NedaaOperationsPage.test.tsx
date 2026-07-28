@@ -463,7 +463,7 @@ describe("NedaaOperationsPage", () => {
     expect(within(dialog).getByText("operations_timeline.request_created")).toBeInTheDocument();
     expect(within(dialog).getByText("operations_timeline.status_changed")).toBeInTheDocument();
     expect(within(dialog).getByText("History loaded")).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "common.close" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "close" })).toBeInTheDocument();
   });
 
   it("shows an empty timeline state when history has no events", async () => {

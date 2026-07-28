@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { Crown, Plus, UserCheck, Users, UserX } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
@@ -9,6 +9,7 @@ import { DataTable, type Column } from "@/components/ui/data-table";
 import FilterPanel from "@/components/ui/filter-panel/FilterPanel";
 import Input from "@/components/ui/input/Input";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
+import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import TextArea from "@/components/ui/input/TextArea";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import Modal from "@/components/ui/modal/Modal";
@@ -33,6 +34,7 @@ import {
 import type {
   CreateDismissalStaffAssignmentPayload,
   DismissalStaffAssignment,
+  DismissalStaffAssignmentsSummary,
   NedaaGate,
   UpdateDismissalStaffAssignmentPayload,
 } from "@/features/nedaa/types/nedaa";
@@ -85,6 +87,13 @@ const emptyFormState: StaffAssignmentFormState = {
   notes: "",
   isLead: false,
   isActive: true,
+};
+
+const emptyAssignmentSummary: DismissalStaffAssignmentsSummary = {
+  totalCount: 0,
+  activeCount: 0,
+  inactiveCount: 0,
+  leadCount: 0,
 };
 
 function toNullableId(value: string) {
@@ -211,6 +220,8 @@ export default function NedaaStaffAssignmentsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(STAFF_ASSIGNMENTS_PAGE_SIZE);
   const [totalItems, setTotalItems] = useState(0);
+  const [assignmentSummary, setAssignmentSummary] =
+    useState<DismissalStaffAssignmentsSummary>(emptyAssignmentSummary);
   const [refreshKey, setRefreshKey] = useState(0);
   const debouncedSearch = useDebounce(searchInput, 350);
   const hasActiveFilters = Boolean(
@@ -249,9 +260,8 @@ export default function NedaaStaffAssignmentsPage() {
         return;
       }
 
-      const dismissalStaffRole = rolesResult.value.items.find(
-        isDismissalStaffRole,
-      );
+      const dismissalStaffRole =
+        rolesResult.value.items.find(isDismissalStaffRole);
       if (!dismissalStaffRole) {
         setStaffOptionsSource([]);
         return;
@@ -311,6 +321,7 @@ export default function NedaaStaffAssignmentsPage() {
         if (!cancelled) {
           setAssignments(response.data);
           setTotalItems(response.summary.totalCount);
+          setAssignmentSummary(response.summary);
         }
       } catch (requestError) {
         if (!cancelled) {
@@ -408,7 +419,7 @@ export default function NedaaStaffAssignmentsPage() {
         label: t("table.actions"),
         sortable: false,
         render: (_value, row) => (
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-start gap-2">
             <Button
               size="sm"
               variant="secondary"
@@ -745,6 +756,50 @@ export default function NedaaStaffAssignmentsPage() {
           </div>
         </div>
       ) : null}
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          {
+            key: "total",
+            value: assignmentSummary.totalCount,
+            icon: Users,
+            iconColor: "#2563eb",
+            iconBgColor: "#dbeafe",
+          },
+          {
+            key: "active",
+            value: assignmentSummary.activeCount,
+            icon: UserCheck,
+            iconColor: "#059669",
+            iconBgColor: "#d1fae5",
+          },
+          {
+            key: "inactive",
+            value: assignmentSummary.inactiveCount,
+            icon: UserX,
+            iconColor: "#dc2626",
+            iconBgColor: "#fee2e2",
+          },
+          {
+            key: "lead",
+            value: assignmentSummary.leadCount,
+            icon: Crown,
+            iconColor: "#d97706",
+            iconBgColor: "#fef3c7",
+          },
+        ].map((entry) => (
+          <KPICardV2
+            key={entry.key}
+            title={t(`staff_assignments.summary.${entry.key}`)}
+            value={entry.value}
+            icon={entry.icon}
+            iconColor={entry.iconColor}
+            iconBgColor={entry.iconBgColor}
+            showChart={false}
+            className="bg-white"
+          />
+        ))}
+      </div>
 
       <FilterPanel
         showFilters={showFilters}

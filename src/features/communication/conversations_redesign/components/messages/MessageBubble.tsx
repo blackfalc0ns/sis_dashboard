@@ -130,7 +130,8 @@ export function MessageBubble({
     {},
   );
   const edited = Boolean(
-    message.updatedAt && message.updatedAt !== message.createdAt,
+    message.editedAt ||
+      (message.updatedAt && message.updatedAt !== message.createdAt),
   );
   const normStatus = normalizeStatus(message.status);
   const deleted = normStatus === "deleted" || normStatus === "hidden";

@@ -1,12 +1,10 @@
 "use client";
 
-import { BellRing, MessageSquare, ShieldAlert, Users } from "lucide-react";
+import { MessageSquare, ShieldAlert, Users } from "lucide-react";
 import type { CommunicationAdminOverview } from "@/features/communication/types/communication.types";
 
 export interface CommunicationAdminOverviewCardsLabels {
   conversations: string;
-  announcements: string;
-  unreadNotifications: string;
   openReports: string;
   activeRestrictions: string;
   activeBlocks: string;
@@ -24,32 +22,22 @@ export default function CommunicationAdminOverviewCards({
   const cards = [
     {
       label: labels.conversations,
-      value: overview?.conversationsCount ?? 0,
+      value: overview?.conversations.total ?? 0,
       icon: MessageSquare,
     },
     {
-      label: labels.announcements,
-      value: overview?.announcementsCount ?? 0,
-      icon: BellRing,
-    },
-    {
-      label: labels.unreadNotifications,
-      value: overview?.unreadNotificationsCount ?? 0,
-      icon: BellRing,
-    },
-    {
       label: labels.openReports,
-      value: overview?.openReportsCount ?? 0,
+      value: overview?.safety.openReports ?? 0,
       icon: ShieldAlert,
     },
     {
       label: labels.activeRestrictions,
-      value: overview?.activeRestrictionsCount ?? 0,
+      value: overview?.safety.activeRestrictions ?? 0,
       icon: ShieldAlert,
     },
     {
       label: labels.activeBlocks,
-      value: overview?.activeBlocksCount ?? 0,
+      value: overview?.safety.activeBlocks ?? 0,
       icon: Users,
     },
   ];

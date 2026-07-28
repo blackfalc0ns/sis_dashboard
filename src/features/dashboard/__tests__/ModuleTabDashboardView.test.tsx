@@ -163,4 +163,24 @@ describe("ModuleTabDashboardView", () => {
     expect(screen.getByText("GPA Trend")).toBeInTheDocument();
     expect(screen.getByTestId("line-chart")).toBeInTheDocument();
   });
+
+  it("opens the module source route instead of its dashboard route", () => {
+    render(
+      <ModuleTabDashboardView
+        pageData={{
+          ...mockPageData,
+          module: {
+            ...mockPageData.module,
+            frontendRoute: "/dashboard/modules/academics",
+            sourceRoute: "/attendance/roll-call",
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /open module page/i })).toHaveAttribute(
+      "href",
+      "/en/attendance/roll-call",
+    );
+  });
 });

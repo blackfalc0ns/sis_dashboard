@@ -8,6 +8,10 @@ export interface ReportedMessagePreviewLabels {
   title: string;
   noMessage: string;
   deleted: string;
+  hidden: string;
+  auditReason: string;
+  auditTimestamp: string;
+  attachments: string;
   sender: string;
   conversation: string;
   createdAt: string;
@@ -35,6 +39,7 @@ function senderName(message: Message, fallback: string) {
     message.sender?.nameEn ||
     message.sender?.nameAr ||
     message.senderId ||
+    message.senderUserId ||
     fallback
   );
 }
@@ -44,6 +49,12 @@ export default function ReportedMessagePreview({
   message,
 }: ReportedMessagePreviewProps) {
   const isDeleted = message?.status === "deleted" || Boolean(message?.deletedAt);
+  const isHidden = !isDeleted && (message?.status === "hidden" || Boolean(message?.hiddenAt));
+  const isUnavailable = isDeleted || isHidden;
+  const moderationLabel = isDeleted ? labels.deleted : labels.hidden;
+  const moderationTimestamp = isDeleted ? message?.deletedAt : message?.hiddenAt;
+  const attachmentCount =
+    message?.attachmentsCount ?? message?.attachments?.length ?? 0;
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -56,18 +67,36 @@ export default function ReportedMessagePreview({
       ) : (
         <div className="space-y-4">
           <div className="rounded-lg bg-slate-50 p-4">
-            {isDeleted ? (
+            {isUnavailable ? (
               <div className="mb-2">
-                <CommunicationStatusChip label={labels.deleted} tone="error" />
+                <CommunicationStatusChip label={moderationLabel} tone="error" />
               </div>
             ) : null}
             <p
               className={`whitespace-pre-wrap text-sm leading-6 text-slate-800 ${
-                isDeleted ? "italic opacity-70" : ""
+                isUnavailable ? "italic opacity-70" : ""
               }`}
             >
-              {isDeleted ? labels.deleted : message.body || labels.noMessage}
+              {isUnavailable
+                ? moderationLabel
+                : message.body || message.content || labels.noMessage}
             </p>
+            {isUnavailable ? (
+              <dl className="mt-3 grid gap-3 border-t border-slate-200 pt-3 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs text-slate-500">{labels.auditReason}</dt>
+                  <dd className="mt-1 text-slate-800">
+                    {message.hiddenReason || labels.unknown}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-slate-500">{labels.auditTimestamp}</dt>
+                  <dd className="mt-1 text-slate-800">
+                    {formatDate(moderationTimestamp ?? undefined)}
+                  </dd>
+                </div>
+              </dl>
+            ) : null}
           </div>
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
@@ -88,6 +117,12 @@ export default function ReportedMessagePreview({
                 {formatDate(message.createdAt)}
               </dd>
             </div>
+            {attachmentCount > 0 ? (
+              <div>
+                <dt className="text-xs text-slate-500">{labels.attachments}</dt>
+                <dd className="font-medium text-slate-800">{attachmentCount}</dd>
+              </div>
+            ) : null}
           </dl>
         </div>
       )}

@@ -50,7 +50,7 @@ const labels = {
     inReview: "قيد المراجعة",
     resolved: "محلول",
     reason: "السبب",
-    reasonPlaceholder: "تصفية حسب السبب",
+    reasonPlaceholder: "التصفية حسب السبب",
     clear: "مسح",
     emptyTitle: "لا توجد بلاغات",
     emptyDescription: "لا توجد بلاغات رسائل لهذا المرشح. ستظهر البلاغات الجديدة هنا.",
@@ -66,9 +66,80 @@ const labels = {
 
 type LocaleKey = keyof typeof labels;
 
+const reportPageLabels = {
+  en: {
+    ...labels.en,
+    allStatuses: "All statuses",
+    pending: "Pending",
+    dismissed: "Dismissed",
+    allReasons: "All reasons",
+    spam: "Spam",
+    harassment: "Harassment",
+    bullying: "Bullying",
+    abusiveLanguage: "Abusive language",
+    inappropriateContent: "Inappropriate content",
+    safety: "Safety concern",
+    privacy: "Privacy concern",
+    other: "Other",
+    reportedUser: "Reported user",
+    message: "Message",
+    descriptionLabel: "Description",
+    previous: "Previous",
+    next: "Next",
+    page: "Page {page} of {totalPages}",
+  },
+  ar: {
+    title: "بلاغات الأمان",
+    description: "راجع بلاغات الرسائل وفرز الحالات المفتوحة وتابع نتائج الإشراف.",
+    refresh: "تحديث",
+    loading: "جارٍ تحميل البلاغات...",
+    errorTitle: "تعذّر تحميل البلاغات",
+    retry: "إعادة المحاولة",
+    status: "الحالة",
+    allStatuses: "كل الحالات",
+    open: "مفتوح",
+    pending: "قيد الانتظار",
+    inReview: "قيد المراجعة",
+    resolved: "تم الحل",
+    dismissed: "مرفوض",
+    reason: "السبب",
+    reasonPlaceholder: "التصفية حسب السبب",
+    allReasons: "كل الأسباب",
+    spam: "رسائل مزعجة",
+    harassment: "تحرش",
+    bullying: "تنمر",
+    abusiveLanguage: "لغة مسيئة",
+    inappropriateContent: "محتوى غير مناسب",
+    safety: "مشكلة تتعلق بالسلامة",
+    privacy: "مشكلة تتعلق بالخصوصية",
+    other: "أخرى",
+    clear: "مسح",
+    emptyTitle: "لا توجد بلاغات",
+    emptyDescription: "لا توجد بلاغات رسائل مطابقة للمرشحات الحالية.",
+    report: "البلاغ",
+    reporter: "المُبلّغ",
+    reportedUser: "المستخدم المُبلّغ عنه",
+    message: "الرسالة",
+    descriptionLabel: "الوصف",
+    createdAt: "تاريخ الإنشاء",
+    view: "عرض",
+    unknown: "غير معروف",
+    countLabel: "بلاغ",
+    countLabelPlural: "بلاغات",
+    previous: "السابق",
+    next: "التالي",
+    page: "الصفحة {page} من {totalPages}",
+  },
+} as const;
+
+type ReportPageLabels = {
+  [Key in keyof typeof reportPageLabels.en]: string;
+};
+
 export default function MessageReportsPage() {
   const locale = useLocale() as LocaleKey;
-  const t = labels[locale] ?? labels.en;
+  const t: ReportPageLabels =
+    locale === "ar" ? reportPageLabels.ar : reportPageLabels.en;
   const {
     error,
     filters,
@@ -76,10 +147,10 @@ export default function MessageReportsPage() {
     isRefreshing,
     refresh,
     reports,
+    pageSize,
     setFilters,
     total,
   } = useMessageReports();
-
   if (isLoading) {
     return <CommunicationLoadingState label={t.loading} />;
   }
@@ -108,11 +179,22 @@ export default function MessageReportsPage() {
         onChange={setFilters}
         labels={{
           status: t.status,
+          allStatuses: t.allStatuses,
           open: t.open,
+          pending: t.pending,
           inReview: t.inReview,
           resolved: t.resolved,
+          dismissed: t.dismissed,
           reason: t.reason,
-          reasonPlaceholder: t.reasonPlaceholder,
+          allReasons: t.allReasons,
+          spam: t.spam,
+          harassment: t.harassment,
+          bullying: t.bullying,
+          abusiveLanguage: t.abusiveLanguage,
+          inappropriateContent: t.inappropriateContent,
+          safety: t.safety,
+          privacy: t.privacy,
+          other: t.other,
           clear: t.clear,
         }}
       />
@@ -136,17 +218,36 @@ export default function MessageReportsPage() {
       <ReportsTable
         reports={reports}
         locale={locale}
+        isLoading={isRefreshing}
+        page={filters.page}
+        pageSize={pageSize}
+        total={total}
+        onPageChange={(page) => setFilters({ ...filters, page })}
+        onPageSizeChange={(limit) => setFilters({ ...filters, limit, page: 1 })}
         labels={{
           emptyTitle: t.emptyTitle,
           emptyDescription: t.emptyDescription,
           report: t.report,
           reporter: t.reporter,
+          reportedUser: t.reportedUser,
+          message: t.message,
           reason: t.reason,
+          spam: t.spam,
+          harassment: t.harassment,
+          bullying: t.bullying,
+          abusiveLanguage: t.abusiveLanguage,
+          inappropriateContent: t.inappropriateContent,
+          safety: t.safety,
+          privacy: t.privacy,
+          other: t.other,
+          description: t.descriptionLabel,
           status: t.status,
           createdAt: t.createdAt,
           open: t.open,
+          pending: t.pending,
           inReview: t.inReview,
           resolved: t.resolved,
+          dismissed: t.dismissed,
           view: t.view,
           unknown: t.unknown,
         }}

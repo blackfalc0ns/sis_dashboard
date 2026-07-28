@@ -756,6 +756,7 @@ function createHistoryParams(
 
 export default function NedaaOperationsPage() {
   const t = useTranslations("nedaa");
+  const tCommon = useTranslations("common");
   const locale = useLocale();
   const { showSuccess, showError } = useToast();
   const { hasPermission } = usePermissions();
@@ -1855,7 +1856,7 @@ export default function NedaaOperationsPage() {
           actionModal?.type === "detail" ||
           actionModal?.type === "recipients" ? (
             <Button variant="secondary" onClick={closeActionModal}>
-              {t("common.close")}
+              {tCommon("close")}
             </Button>
           ) : (
             renderActionFooter(actionModal, isSavingAction, t, saveAction)

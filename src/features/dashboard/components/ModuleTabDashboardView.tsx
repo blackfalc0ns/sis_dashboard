@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import type { DashboardModulePage } from "../types/dashboardApi.types";
 import ModuleWidgetCard from "./ModuleWidgetCard";
+import { resolveDashboardActionTarget } from "../utils/resolveDashboardActionTarget";
 import {
   ResponsiveContainer,
   BarChart,
@@ -183,9 +184,11 @@ export default function ModuleTabDashboardView({
               </p>
             </div>
           </div>
-          {moduleIdentity.frontendRoute && (
+          {moduleIdentity.sourceRoute && (
             <Link
-              href={localizedPath(moduleIdentity.frontendRoute)}
+              href={localizedPath(
+                resolveDashboardActionTarget(moduleIdentity.sourceRoute),
+              )}
               className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
             >
               {t("dashboard.open_module_page")}
@@ -226,7 +229,9 @@ export default function ModuleTabDashboardView({
                 </div>
                 {stat.action && (
                   <Link
-                    href={localizedPath(stat.action.target)}
+                    href={localizedPath(
+                      resolveDashboardActionTarget(stat.action.target),
+                    )}
                     className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:text-hover focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none rounded cursor-pointer duration-200"
                   >
                     {stat.action.label}
@@ -312,7 +317,9 @@ export default function ModuleTabDashboardView({
                     </div>
                     {risk.action && (
                       <Link
-                        href={localizedPath(risk.action.target)}
+                        href={localizedPath(
+                          resolveDashboardActionTarget(risk.action.target),
+                        )}
                         className="inline-flex items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none cursor-pointer duration-200"
                       >
                         {risk.action.label}
@@ -351,7 +358,9 @@ export default function ModuleTabDashboardView({
                   </div>
                   {action.action && (
                     <Link
-                      href={localizedPath(action.action.target)}
+                      href={localizedPath(
+                        resolveDashboardActionTarget(action.action.target),
+                      )}
                       className="inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:text-hover focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 focus:outline-none rounded cursor-pointer duration-200"
                     >
                       {action.action.label}

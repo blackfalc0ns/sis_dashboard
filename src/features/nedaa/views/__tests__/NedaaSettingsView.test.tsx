@@ -102,6 +102,7 @@ describe("NedaaSettingsView school location", () => {
     expect(onChange).toHaveBeenCalledWith({
       schoolLatitude: 24.7136,
       schoolLongitude: 46.6753,
+      schoolZoneLabel: "School",
     });
   });
 
@@ -111,5 +112,16 @@ describe("NedaaSettingsView school location", () => {
       "data-radius",
       "250",
     );
+  });
+
+  it("updates the pickup-code policy when its switch is turned off", async () => {
+    const user = userEvent.setup();
+    const onChange = renderView();
+
+    await user.click(
+      screen.getByRole("switch", { name: /settings\.require_pickup_code/ }),
+    );
+
+    expect(onChange).toHaveBeenCalledWith({ requirePickupCode: false });
   });
 });

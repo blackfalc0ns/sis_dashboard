@@ -147,12 +147,108 @@ export interface UpdateCommunicationPolicyPayload {
 }
 
 export interface CommunicationAdminOverview extends CommunicationRecord {
-  announcementsCount?: number;
-  conversationsCount?: number;
-  unreadNotificationsCount?: number;
-  openReportsCount?: number;
-  activeRestrictionsCount?: number;
-  activeBlocksCount?: number;
+  policy: CommunicationOverviewPolicy;
+  conversations: CommunicationOverviewConversationCounts;
+  participants: CommunicationOverviewParticipantCounts;
+  messages: CommunicationOverviewMessageCounts;
+  receipts: CommunicationOverviewReceiptCounts;
+  safety: CommunicationOverviewSafetyCounts;
+  recentActivity: CommunicationOverviewRecentActivity;
+}
+
+export interface CommunicationOverviewPolicy extends CommunicationRecord {
+  isConfigured: boolean;
+  isEnabled: boolean;
+  studentDirectMode: StudentDirectMode;
+  allowTeacherCreatedGroups: boolean;
+  allowStudentCreatedGroups: boolean;
+  allowAttachments: boolean;
+  allowReactions: boolean;
+  allowReadReceipts: boolean;
+  allowDeliveryReceipts: boolean;
+  allowOnlinePresence: boolean;
+}
+
+export interface CommunicationOverviewConversationCounts extends CommunicationRecord {
+  total: number;
+  active: number;
+  archived: number;
+  closed: number;
+  direct: number;
+  group: number;
+  classroom: number;
+  grade: number;
+  section: number;
+  stage: number;
+  schoolWide: number;
+  support: number;
+  system: number;
+}
+
+export interface CommunicationOverviewParticipantCounts extends CommunicationRecord {
+  total: number;
+  active: number;
+  invited: number;
+  left: number;
+  removed: number;
+  muted: number;
+  blocked: number;
+}
+
+export interface CommunicationOverviewMessageCounts extends CommunicationRecord {
+  total: number;
+  sent: number;
+  hidden: number;
+  deleted: number;
+  text: number;
+  image: number;
+  file: number;
+  audio: number;
+  video: number;
+  system: number;
+}
+
+export interface CommunicationOverviewReceiptCounts extends CommunicationRecord {
+  reads: number;
+  deliveries: number;
+  pendingDeliveries: number;
+  deliveredDeliveries: number;
+  failedDeliveries: number;
+}
+
+export interface CommunicationOverviewSafetyCounts extends CommunicationRecord {
+  openReports: number;
+  inReviewReports: number;
+  resolvedReports: number;
+  dismissedReports: number;
+  activeBlocks: number;
+  activeRestrictions: number;
+  moderationActions: number;
+}
+
+export interface CommunicationOverviewRecentConversation extends CommunicationRecord {
+  id: CommunicationId;
+  type: string;
+  status: string;
+  lastMessageAt: CommunicationDateTime | null;
+  createdAt: CommunicationDateTime;
+  updatedAt: CommunicationDateTime;
+}
+
+export interface CommunicationOverviewRecentMessage extends CommunicationRecord {
+  id: CommunicationId;
+  conversationId: CommunicationId;
+  senderUserId: CommunicationId | null;
+  kind: string;
+  status: string;
+  sentAt: CommunicationDateTime;
+  createdAt: CommunicationDateTime;
+  updatedAt: CommunicationDateTime;
+}
+
+export interface CommunicationOverviewRecentActivity extends CommunicationRecord {
+  conversations: CommunicationOverviewRecentConversation[];
+  messages: CommunicationOverviewRecentMessage[];
 }
 
 export interface CommunicationFile extends CommunicationRecord {

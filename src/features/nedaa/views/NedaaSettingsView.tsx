@@ -2,18 +2,19 @@
 
 import { Download, Inbox, Plus } from "lucide-react";
 import { useMemo } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import EmptyState from "@/components/ui/empty-state/EmptyState";
 import { GoogleLocationPicker } from "@/components/ui/google-location-picker";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
+import { timezones } from "@/features/settings/constants/timezones";
 import NedaaGateFormModal from "@/features/nedaa/components/NedaaGateFormModal";
 import type {
   CreateDismissalGatePayload,
   NedaaGate,
+  NedaaSettingsPatch,
   NedaaSettings,
-  UpdateDismissalSettingsPayload,
 } from "@/features/nedaa/types/nedaa";
 import {
   getNedaaDefaultGateOptions,
@@ -31,7 +32,7 @@ interface NedaaSettingsViewProps {
   isGateModalOpen: boolean;
   gateModalMode: "create" | "edit";
   editingGate?: NedaaGate | null;
-  onChange: (updates: UpdateDismissalSettingsPayload) => void;
+  onChange: (updates: NedaaSettingsPatch) => void;
   onReset: () => void;
   onSave: () => void;
   onOpenExport: () => void;
@@ -66,6 +67,50 @@ function GateMetaBadge({
   );
 }
 
+function SettingsToggle({
+  checked,
+  description,
+  disabled,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  description: string;
+  disabled: boolean;
+  label: string;
+  onChange: () => void;
+}) {
+  return (
+    <button
+      aria-checked={checked}
+      className="flex min-h-20 items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-start transition-colors duration-200 hover:border-primary/40 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+      disabled={disabled}
+      onClick={onChange}
+      role="switch"
+      type="button"
+    >
+      <span
+        aria-hidden
+        className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200 ${
+          checked ? "bg-primary" : "bg-gray-300"
+        }`}
+      >
+        <span
+          className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+            checked ? "translate-x-5 rtl:-translate-x-5" : "translate-x-0"
+          }`}
+        />
+      </span>
+      <span>
+        <span className="block text-sm font-medium text-gray-900">{label}</span>
+        <span className="mt-1 block text-xs leading-5 text-gray-600">
+          {description}
+        </span>
+      </span>
+    </button>
+  );
+}
+
 export default function NedaaSettingsView({
   settings,
   initialSettings,
@@ -87,6 +132,7 @@ export default function NedaaSettingsView({
   onGateUpdated,
   onToggleGateActive,
 }: NedaaSettingsViewProps) {
+  const locale = useLocale();
   const t = useTranslations("nedaa");
   const isDirty =
     JSON.stringify(settings.settings) !==
@@ -101,6 +147,12 @@ export default function NedaaSettingsView({
     [settings.gates],
   );
   const defaultGateId = settings.settings.defaultGate?.id || "";
+  const lastUpdated = settings.settings.updatedAt
+    ? new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(settings.settings.updatedAt))
+    : t("settings.not_available");
 
   return (
     <div className="space-y-6">
@@ -156,25 +208,38 @@ export default function NedaaSettingsView({
           <p className="mt-1 text-sm text-gray-500">
             {t("settings.rules_subtitle")}
           </p>
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-600">
+            <span className="inline-flex items-center gap-2">
+              <span
+                aria-hidden
+                className={`h-2 w-2 rounded-full ${
+                  settings.settings.configured ? "bg-emerald-500" : "bg-amber-500"
+                }`}
+              />
+              {settings.settings.configured
+                ? t("settings.configured")
+                : t("settings.not_configured")}
+            </span>
+            <span>{t("settings.last_updated", { value: lastUpdated })}</span>
+          </div>
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <label className="flex items-start gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              checked={settings.settings.enabled}
-              disabled={!canEdit}
-              onChange={(event) => onChange({ enabled: event.target.checked })}
-              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-            />
-            <span className="font-medium text-gray-900">
-              {t("settings.enabled")}
-            </span>
-          </label>
-          <Input
+          <SettingsToggle
+            checked={settings.settings.enabled}
+            description={t("settings.enabled_description")}
+            disabled={!canEdit}
+            label={t("settings.enabled")}
+            onChange={() => onChange({ enabled: !settings.settings.enabled })}
+          />
+          <Select
             label={t("settings.timezone")}
             value={settings.settings.timezone}
             disabled={!canEdit}
-            onChange={(event) => onChange({ timezone: event.target.value })}
+            onChange={(timezone) => onChange({ timezone })}
+            options={timezones.map((timezone) => ({
+              value: timezone,
+              label: timezone,
+            }))}
           />
           <Input
             type="number"
@@ -215,6 +280,54 @@ export default function NedaaSettingsView({
             onChange={(event) =>
               onChange({
                 expiryThresholdMinutes: Number(event.target.value || 0),
+              })
+            }
+          />
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="mb-5 border-b border-gray-100 pb-4">
+          <h2 className="text-lg font-semibold text-gray-900">
+            {t("settings.policies_title")}
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            {t("settings.policies_subtitle")}
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <SettingsToggle
+            checked={settings.settings.policies.requirePickupCode}
+            description={t("settings.require_pickup_code_description")}
+            disabled={!canEdit}
+            label={t("settings.require_pickup_code")}
+            onChange={() =>
+              onChange({
+                requirePickupCode: !settings.settings.policies.requirePickupCode,
+              })
+            }
+          />
+          <SettingsToggle
+            checked={settings.settings.policies.allowDelegatePickup}
+            description={t("settings.allow_delegate_pickup_description")}
+            disabled={!canEdit}
+            label={t("settings.allow_delegate_pickup")}
+            onChange={() =>
+              onChange({
+                allowDelegatePickup:
+                  !settings.settings.policies.allowDelegatePickup,
+              })
+            }
+          />
+          <SettingsToggle
+            checked={settings.settings.policies.allowParentCancelBeforeCalled}
+            description={t("settings.allow_parent_cancel_description")}
+            disabled={!canEdit}
+            label={t("settings.allow_parent_cancel")}
+            onChange={() =>
+              onChange({
+                allowParentCancelBeforeCalled:
+                  !settings.settings.policies.allowParentCancelBeforeCalled,
               })
             }
           />
@@ -270,9 +383,17 @@ export default function NedaaSettingsView({
               onChange({
                 schoolLatitude: location?.latitude ?? null,
                 schoolLongitude: location?.longitude ?? null,
+                schoolZoneLabel: location?.label ?? null,
               })
             }
           />
+          <p className="mt-2 text-xs text-gray-500">
+            {t("settings.location_source", {
+              source: t(
+                `settings.location_sources.${settings.settings.schoolZone.source}`,
+              ),
+            })}
+          </p>
         </div>
       </section>
 

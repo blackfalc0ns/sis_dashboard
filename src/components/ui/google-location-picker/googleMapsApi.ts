@@ -62,14 +62,20 @@ export interface GoogleAutocompleteService {
   ) => void;
 }
 
-export interface GooglePlacesService {
-  getDetails: (
-    request: { placeId: string; fields: string[]; language?: string },
-    callback: (
-      place: GooglePlaceResult | null,
-      status: GoogleMapsStatus,
-    ) => void,
-  ) => void;
+export interface GooglePlace {
+  displayName?: string | null;
+  formattedAddress?: string | null;
+  location?: {
+    lat: () => number;
+    lng: () => number;
+  };
+  fetchFields: (options: {
+    fields: Array<"displayName" | "formattedAddress" | "location">;
+  }) => Promise<void>;
+}
+
+export interface GooglePlaceConstructor {
+  new (options: { id: string }): GooglePlace;
 }
 
 export interface GoogleGeocoder {
@@ -111,7 +117,7 @@ export interface GoogleMapsApi {
     }) => GoogleCircleInstance;
     places: {
       AutocompleteService: new () => GoogleAutocompleteService;
-      PlacesService: new (element: HTMLDivElement) => GooglePlacesService;
+      Place: GooglePlaceConstructor;
     };
     Geocoder: new () => GoogleGeocoder;
   };

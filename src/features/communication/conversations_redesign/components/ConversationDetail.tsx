@@ -52,6 +52,7 @@ import ReviewJoinRequestDialog, {
   type ReviewJoinRequestMode,
 } from "@/features/communication/components/conversations/ReviewJoinRequestDialog";
 import { getConversationPermissionFlags } from "@/features/communication/utils/conversation-permissions";
+import { createCommunicationMetadata } from "@/features/communication/utils/communication-metadata";
 import {
   communicationErrorMessage,
   normalizeRole,
@@ -71,6 +72,7 @@ import ConversationHeader from "@/features/communication/conversations_redesign/
 import ConversationTabs from "@/features/communication/conversations_redesign/components/ConversationTabs";
 import EditConversationDialog from "@/features/communication/conversations_redesign/components/EditConversationDialog";
 import MessageInfoDialog from "@/features/communication/conversations_redesign/components/messages/MessageInfoDialog";
+import ReportMessageDialog from "@/features/communication/conversations_redesign/components/messages/ReportMessageDialog";
 import {
   MessageComposer,
   MessagesPanel,
@@ -93,6 +95,7 @@ import type {
   MessageInfo,
   SendableMessageType,
 } from "@/features/communication/types/message.types";
+import type { CreateMessageReportPayload } from "@/features/communication/types/safety.types";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 
 interface MessageInfoDialogState {
@@ -205,6 +208,8 @@ export default function ConversationDetail({
   } | null>(null);
   const [messageInfoDialog, setMessageInfoDialog] =
     useState<MessageInfoDialogState>(CLOSED_MESSAGE_INFO_DIALOG);
+  const [reportMessageId, setReportMessageId] = useState<string | null>(null);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const messageInfoRequestRef = useRef(0);
 
   const participantsState = useConversationParticipants(conversationId, {
@@ -518,6 +523,30 @@ export default function ConversationDetail({
   const retryMessageInfo = () => {
     if (messageInfoDialog.messageId) {
       void openMessageInfo(messageInfoDialog.messageId);
+    }
+  };
+
+  const submitMessageReport = async (payload: CreateMessageReportPayload) => {
+    if (!reportMessageId) return;
+
+    setIsSubmittingReport(true);
+    try {
+      await createMessageReport(reportMessageId, {
+        ...payload,
+        metadata: createCommunicationMetadata("report_create", {
+          reportedFrom: "message_actions_menu",
+          clientPlatform: "web",
+        }),
+      });
+      setReportMessageId(null);
+      onToast({ tone: "success", message: labels.reportSent });
+    } catch (error) {
+      onToast({
+        tone: "error",
+        message: communicationErrorMessage(error, labels.unableToReport),
+      });
+    } finally {
+      setIsSubmittingReport(false);
     }
   };
 
@@ -870,22 +899,7 @@ export default function ConversationDetail({
               });
             }}
             onInfo={(messageId) => void openMessageInfo(messageId)}
-            onReport={async (messageId) => {
-              try {
-                await createMessageReport(messageId, {
-                  reason: "inappropriate_content",
-                });
-                onToast({ tone: "success", message: labels.reportSent });
-              } catch (error) {
-                onToast({
-                  tone: "error",
-                  message: communicationErrorMessage(
-                    error,
-                    labels.unableToReport,
-                  ),
-                });
-              }
-            }}
+            onReport={setReportMessageId}
             onRetry={() => void messagesState.refresh()}
             reactionsByMessageId={reactionsState.reactionsByMessageId}
             typingUsers={typingState.typingUsers}
@@ -1057,6 +1071,15 @@ export default function ConversationDetail({
           />
         )
       ) : null}
+
+      <ReportMessageDialog
+        key={reportMessageId ?? "closed-report-dialog"}
+        isOpen={Boolean(reportMessageId)}
+        isSubmitting={isSubmittingReport}
+        locale={locale === "ar" ? "ar" : "en"}
+        onClose={() => setReportMessageId(null)}
+        onSubmit={submitMessageReport}
+      />
 
       {isAddParticipantOpen ? (
         <AddParticipantDialog

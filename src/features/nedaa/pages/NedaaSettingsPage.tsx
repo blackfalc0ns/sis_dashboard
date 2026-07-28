@@ -24,6 +24,7 @@ import {
 import type {
   CreateDismissalGatePayload,
   NedaaGate,
+  NedaaSettingsPatch,
   NedaaSettings,
   UpdateDismissalSettingsPayload,
 } from "@/features/nedaa/types/nedaa";
@@ -65,6 +66,7 @@ function cloneSettingsValue(settings: NedaaSettings): NedaaSettings {
 function applySettingsPatch(
   current: NedaaSettings,
   patch: UpdateDismissalSettingsPayload,
+  schoolZoneLabel?: string | null,
 ): NedaaSettings {
   const defaultGate =
     patch.defaultGateId !== undefined
@@ -81,6 +83,10 @@ function applySettingsPatch(
         patch.allowedRadiusMeters ?? current.settings.allowedRadiusMeters,
       schoolZone: {
         ...current.settings.schoolZone,
+        label:
+          schoolZoneLabel !== undefined
+            ? schoolZoneLabel
+            : current.settings.schoolZone.label,
         latitude:
           patch.schoolLatitude !== undefined
             ? patch.schoolLatitude
@@ -203,10 +209,11 @@ export default function NedaaSettingsPage() {
     };
   }, [canViewSettings, t]);
 
-  const updateSettings = (updates: UpdateDismissalSettingsPayload) => {
-    setPendingSettingsPatch((current) => ({ ...current, ...updates }));
+  const updateSettings = (updates: NedaaSettingsPatch) => {
+    const { schoolZoneLabel, ...apiUpdates } = updates;
+    setPendingSettingsPatch((current) => ({ ...current, ...apiUpdates }));
     setSettings((current) =>
-      current ? applySettingsPatch(current, updates) : current,
+      current ? applySettingsPatch(current, apiUpdates, schoolZoneLabel) : current,
     );
   };
 

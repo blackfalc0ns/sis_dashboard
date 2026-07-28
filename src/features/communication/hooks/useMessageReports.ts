@@ -19,11 +19,13 @@ import type {
   ReportReason,
 } from "@/features/communication/types/safety.types";
 
-export type MessageReportStatusFilter = "open" | "in_review" | "resolved";
+export type MessageReportStatusFilter = MessageReportStatus | "";
 
 export interface MessageReportFiltersState {
   status: MessageReportStatusFilter;
-  reason: string;
+  reason: ReportReason | "";
+  page: number;
+  limit: number;
 }
 
 export interface CreateReportResult {
@@ -32,8 +34,10 @@ export interface CreateReportResult {
 }
 
 const DEFAULT_FILTERS: MessageReportFiltersState = {
-  status: "open",
+  status: "",
   reason: "",
+  page: 1,
+  limit: 25,
 };
 
 const isRecord = (value: unknown): value is CommunicationRecord =>
@@ -128,11 +132,12 @@ export function useMessageReports() {
 
     try {
       const response = await getMessageReports({
-        status: filters.status as MessageReportStatus,
-        ...(filters.reason.trim()
-          ? { reason: filters.reason.trim() as ReportReason }
+        ...(filters.status ? { status: filters.status } : {}),
+        ...(filters.reason
+          ? { reason: filters.reason }
           : {}),
-        limit: 50,
+        limit: filters.limit,
+        page: filters.page,
       });
       const list = unwrapList<MessageReport>(response);
       const normalized = sortReports(list.items);
@@ -151,7 +156,7 @@ export function useMessageReports() {
         setIsRefreshing(false);
       }
     }
-  }, [filters.reason, filters.status]);
+  }, [filters.limit, filters.page, filters.reason, filters.status]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -236,7 +241,7 @@ export function useMessageReports() {
   );
 
   const hasFilters = useMemo(
-    () => filters.status !== "open" || filters.reason.trim() !== "",
+    () => Boolean(filters.status || filters.reason),
     [filters.reason, filters.status],
   );
 
@@ -244,6 +249,7 @@ export function useMessageReports() {
     reports,
     total,
     filters,
+    pageSize: filters.limit,
     setFilters,
     isLoading,
     isRefreshing,

@@ -8,6 +8,14 @@ export interface ReportDetailsPanelLabels {
   title: string;
   status: string;
   reason: string;
+  spam: string;
+  harassment: string;
+  bullying: string;
+  abusiveLanguage: string;
+  inappropriateContent: string;
+  safety: string;
+  privacy: string;
+  other: string;
   description: string;
   reporter: string;
   messageId: string;
@@ -45,6 +53,32 @@ function statusLabel(status: string | undefined, labels: ReportDetailsPanelLabel
   if (status === "resolved") return labels.resolved;
   if (status === "in_review") return labels.inReview;
   return labels.open;
+}
+
+function reasonLabel(
+  reason: string | null | undefined,
+  labels: ReportDetailsPanelLabels,
+) {
+  switch (reason) {
+    case "spam":
+      return labels.spam;
+    case "harassment":
+      return labels.harassment;
+    case "bullying":
+      return labels.bullying;
+    case "abusive_language":
+      return labels.abusiveLanguage;
+    case "inappropriate_content":
+      return labels.inappropriateContent;
+    case "safety":
+      return labels.safety;
+    case "privacy":
+      return labels.privacy;
+    case "other":
+      return labels.other;
+    default:
+      return labels.unknown;
+  }
 }
 
 function reporterName(report: MessageReport, fallback: string) {
@@ -94,13 +128,13 @@ export default function ReportDetailsPanel({
         <div>
           <dt className="text-xs text-slate-500">{labels.reason}</dt>
           <dd className="font-medium text-slate-800">
-            {report.reason || labels.unknown}
+            {reasonLabel(report.reasonCode ?? report.reason, labels)}
           </dd>
         </div>
         <div className="sm:col-span-2">
           <dt className="text-xs text-slate-500">{labels.description}</dt>
           <dd className="whitespace-pre-wrap text-slate-800">
-            {report.description || report.comment || report.details || labels.unknown}
+            {report.reasonText || report.description || report.comment || report.details || labels.unknown}
           </dd>
         </div>
         {report.resolutionNote ? (

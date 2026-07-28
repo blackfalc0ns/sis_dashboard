@@ -11741,6 +11741,14 @@
     "gates_page": {
       "title": "Nedaa Gates",
       "subtitle": "Track queue pressure and readiness for each active pickup gate.",
+      "summary": {
+        "total": "Total gates",
+        "open": "Open gates",
+        "busy": "Busy gates",
+        "closed": "Closed gates",
+        "maintenance": "In maintenance",
+        "active": "Active gates"
+      },
       "active_gates": "Active Gates",
       "active_gates_subtitle": "Gate checkpoints currently available for pickup handling.",
       "waiting_subtitle": "Requests still waiting for acknowledgement or processing.",
@@ -11910,6 +11918,25 @@
       "rules_title": "Operational Rules",
       "rules_subtitle": "Controls that shape request validation and queue behavior.",
       "enabled": "Enabled",
+      "enabled_description": "Turn this off to pause new dismissal requests while keeping your Nedaa settings saved.",
+      "configured": "Configuration complete",
+      "not_configured": "Configuration incomplete",
+      "last_updated": "Last updated: {value}",
+      "not_available": "Not available",
+      "location_source": "Location source: {source}",
+      "location_sources": {
+        "settings": "Nedaa settings",
+        "school_profile": "school profile",
+        "default": "default location"
+      },
+      "policies_title": "Pickup Policies",
+      "policies_subtitle": "Set the verification and cancellation rules for dismissal requests.",
+      "require_pickup_code": "Require pickup code",
+      "require_pickup_code_description": "Staff must verify a pickup code before handing over a student.",
+      "allow_delegate_pickup": "Allow delegate pickup",
+      "allow_delegate_pickup_description": "Allow approved delegates to collect students on behalf of guardians.",
+      "allow_parent_cancel": "Allow parent cancellation",
+      "allow_parent_cancel_description": "Allow parents to cancel their request until the student is called.",
       "timezone": "Timezone",
       "allowed_radius": "Allowed Radius (meters)",
       "delay_threshold": "Delay threshold (minutes)",
@@ -12033,6 +12060,12 @@
       "starts_at": "Starts at",
       "ends_at": "Ends at",
       "lead_assignment": "Lead assignment",
+      "summary": {
+        "total": "Total assignments",
+        "active": "Active assignments",
+        "inactive": "Inactive assignments",
+        "lead": "Lead assignments"
+      },
       "empty_title": "No staff assignments",
       "empty_description": "Create an assignment to connect dismissal staff with gates or academic scopes.",
       "delete_title": "Delete staff assignment",

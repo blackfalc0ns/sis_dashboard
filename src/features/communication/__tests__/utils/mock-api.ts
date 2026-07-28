@@ -38,10 +38,24 @@ export function createMockApiService() {
     // ─── Admin ────────────────────────────────────────────────────────────────
     getAdminOverview: vi.fn().mockResolvedValue({
       data: {
-        totalConversations: 0,
-        totalMessages: 0,
-        totalUsers: 0,
-        activeConversations: 0,
+        policy: {
+          isConfigured: false,
+          isEnabled: true,
+          studentDirectMode: "disabled",
+          allowTeacherCreatedGroups: true,
+          allowStudentCreatedGroups: false,
+          allowAttachments: true,
+          allowReactions: true,
+          allowReadReceipts: true,
+          allowDeliveryReceipts: true,
+          allowOnlinePresence: true,
+        },
+        conversations: { total: 0, active: 0, archived: 0, closed: 0, direct: 0, group: 0, classroom: 0, grade: 0, section: 0, stage: 0, schoolWide: 0, support: 0, system: 0 },
+        participants: { total: 0, active: 0, invited: 0, left: 0, removed: 0, muted: 0, blocked: 0 },
+        messages: { total: 0, sent: 0, hidden: 0, deleted: 0, text: 0, image: 0, file: 0, audio: 0, video: 0, system: 0 },
+        receipts: { reads: 0, deliveries: 0, pendingDeliveries: 0, deliveredDeliveries: 0, failedDeliveries: 0 },
+        safety: { openReports: 0, inReviewReports: 0, resolvedReports: 0, dismissedReports: 0, activeBlocks: 0, activeRestrictions: 0, moderationActions: 0 },
+        recentActivity: { conversations: [], messages: [] },
       },
     }),
 

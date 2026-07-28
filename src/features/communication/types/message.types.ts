@@ -24,17 +24,29 @@ export interface Message extends CommunicationRecord {
   id: CommunicationId;
   conversationId?: CommunicationId;
   senderId?: CommunicationId;
+  senderUserId?: CommunicationId;
   sender?: CommunicationActor;
   body?: string;
+  content?: string;
   type?: MessageType;
   kind?: MessageKind;
   status?: MessageStatus;
   attachments?: MessageAttachment[];
+  attachmentsCount?: number;
   reactionsCount?: number;
   replyToMessageId?: CommunicationId;
+  clientMessageId?: CommunicationId;
+  readCount?: number;
+  sentAt?: CommunicationDateTime;
+  editedAt?: CommunicationDateTime | null;
+  hiddenAt?: CommunicationDateTime | null;
+  hiddenById?: CommunicationId | null;
+  hiddenReason?: string | null;
   createdAt?: CommunicationDateTime;
   updatedAt?: CommunicationDateTime;
   deletedAt?: CommunicationDateTime | null;
+  deletedById?: CommunicationId | null;
+  metadata?: CommunicationRecord | null;
 }
 
 export interface MessageReader {

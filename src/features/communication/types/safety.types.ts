@@ -52,19 +52,37 @@ export interface CreateMessageReportPayload {
 
 export interface MessageReport extends CommunicationRecord {
   id: CommunicationId;
-  messageId?: CommunicationId;
-  reporterId?: CommunicationId;
+  messageId: CommunicationId;
+  conversationId: CommunicationId;
+  reporterId: CommunicationId;
+  reporterUserId?: CommunicationId;
+  reportedUserId?: CommunicationId | null;
   reporter?: CommunicationActor;
-  reason?: ReportReason;
+  reason?: ReportReason | null;
+  reasonCode?: ReportReason | null;
   description?: string | null;
+  reasonText?: string | null;
   details?: string;
   comment?: string | null;
-  status?: MessageReportStatus;
+  status: MessageReportStatus;
   note?: string | null;
+  reviewedById?: CommunicationId | null;
+  reviewedAt?: CommunicationDateTime | null;
+  resolvedAt?: CommunicationDateTime | null;
   resolutionNote?: string;
+  message?: {
+    id: CommunicationId;
+    conversationId: CommunicationId;
+    senderUserId: CommunicationId | null;
+    type: string;
+    status: string;
+    sentAt: CommunicationDateTime;
+    hiddenAt: CommunicationDateTime | null;
+    deletedAt: CommunicationDateTime | null;
+  };
   metadata?: CommunicationRecord | null;
-  createdAt?: CommunicationDateTime;
-  updatedAt?: CommunicationDateTime;
+  createdAt: CommunicationDateTime;
+  updatedAt: CommunicationDateTime;
 }
 
 export type ListMessageReportsParams = {
