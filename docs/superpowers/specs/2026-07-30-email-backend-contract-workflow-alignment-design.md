@@ -5,6 +5,8 @@
 Align every Settings email frontend contract and workflow with the Moazez
 backend email module at commit
 `2f87a155cf27f2186cfd7746026562ef18cb4f71`.
+This commit remained the backend default-branch head when the specification was
+reverified on 2026-07-30.
 
 The implementation must fix the audited response-shape mismatches, prevent
 delivery creation from using an audience different from the last successful
@@ -66,6 +68,8 @@ Service-layer mappers translate API DTOs into stable UI models:
   sample collection.
 - The cancellation service maps the backend's full batch response rather than
   declaring a nonexistent `cancelledCount` response contract.
+- Batch cancellation is available for `DRAFT`, `QUEUED`, and `PROCESSING`,
+  matching the backend use case.
 
 Mapping logic is tested independently with representative backend payloads.
 
@@ -163,15 +167,18 @@ preview.
 
 Campaign list and detail responses pass through the same delivery batch mapper
 as general delivery reads. `subjectSnapshot` becomes the UI `subject`, and
-derived fields such as `cancellable` and `cancelledCount` use the same rules on
-both surfaces.
+the UI derives `cancellable` from the backend-supported `DRAFT`, `QUEUED`, and
+`PROCESSING` statuses on both surfaces.
 
 Delivery recipient mapping continues to translate `toEmail`, `displayName`,
 `skippedReason`, and timestamps into the current table model.
 
 Cancellation consumes and maps the full `DeliveryBatchSummaryDto`. The detail
 page uses that response or refreshes authoritative data; it does not depend on a
-nonexistent backend `cancelledCount` field.
+nonexistent backend `cancelledCount` field. The summary UI shows cancellation
+status and `cancelledAt`, but it does not calculate an aggregate cancelled
+recipient count because the backend summary does not expose one. Individual
+cancelled recipients remain visible through the recipient list status.
 
 ## Backend Error Handling
 
@@ -204,6 +211,7 @@ The classifier must explicitly cover:
 - `settings.email.delivery_connection_inactive`
 - `settings.email.delivery_template_missing`
 - `settings.email.delivery_no_recipients`
+- `settings.email.delivery_recipient_invalid`
 - `settings.email.delivery_batch_not_found`
 - `settings.email.delivery_batch_not_cancelable`
 - `settings.email.delivery_too_many_recipients`
@@ -214,7 +222,11 @@ The classifier must explicitly cover:
 Shared handling must also cover:
 
 - `validation.failed`, including field-level errors.
-- HTTP 401 and 403 permission/session failures.
+- `auth.token.expired`, `auth.token.invalid`, `auth.session.revoked`,
+  `auth.account.disabled`, and `auth.scope.missing`.
+- `rate_limit.exceeded`, `not_found`, `internal_error`, and
+  `service_unavailable`.
+- Other HTTP 401 and 403 permission/session failures.
 - HTTP 404, 409, and 422 errors not already identified by code.
 - HTTP 429 throttling.
 - Network failures, request-setup failures, and HTTP 5xx responses.
@@ -264,7 +276,9 @@ Implementation follows test-driven development with focused tests for:
 - Audience-sensitive changes disabling create until re-preview.
 - Late preview responses not authorizing a newer payload.
 - Campaign list and detail mapping from `subjectSnapshot`.
-- Cancellation mapping the full backend batch response.
+- Cancellation mapping the full backend batch response, allowing cancellation
+  in `DRAFT`, `QUEUED`, and `PROCESSING`, and never fabricating
+  `cancelledCount`.
 - Every known backend email error code mapping to the intended localized
   category, details, and recovery action.
 - Unknown, validation, permission, throttling, network, and server error
@@ -292,6 +306,8 @@ Verification runs:
 - Campaign subjects render in list and detail views.
 - Recipient email and skip reason render correctly in credential previews.
 - Cancellation uses the actual backend response shape.
+- Cancellation availability matches the backend's three cancellable statuses,
+  and the UI does not present an unsupported aggregate cancelled count.
 - Every known email error code has safe localized handling and a useful
   recovery path where one exists.
 - Unknown errors never expose raw backend messages and retain `traceId` for
