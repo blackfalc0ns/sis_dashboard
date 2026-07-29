@@ -18,6 +18,7 @@ import type {
 } from "@/features/nedaa/types/nedaa";
 import { createNedaaGateIdFromName } from "@/features/nedaa/utils/nedaaPresentation";
 import { getNedaaLocationPickerLabels } from "@/features/nedaa/utils/nedaaLocationPicker";
+import { getNedaaApiErrorMessage } from "@/features/nedaa/utils/nedaaApiErrors";
 import { updateDismissalGate } from "@/features/nedaa/services/dismissalApiService";
 import { useToast } from "@/components/ui/toast/Toast";
 
@@ -145,8 +146,10 @@ export default function NedaaGateFormModal({
         });
         onGateUpdated?.(savedGate);
         showSuccess(t("messages.settings_saved") || "Settings saved successfully");
-      } catch {
-        showError(t("messages.settings_save_failed") || "Failed to save settings");
+      } catch (error) {
+        showError(
+          getNedaaApiErrorMessage(error, t, "messages.settings_save_failed"),
+        );
         setWaitingZones(waitingZones);
       } finally {
         setIsUpdatingZones(false);
@@ -166,8 +169,10 @@ export default function NedaaGateFormModal({
         });
         onGateUpdated?.(savedGate);
         showSuccess(t("messages.settings_saved") || "Settings saved successfully");
-      } catch {
-        showError(t("messages.settings_save_failed") || "Failed to save settings");
+      } catch (error) {
+        showError(
+          getNedaaApiErrorMessage(error, t, "messages.settings_save_failed"),
+        );
         setWaitingZones(waitingZones);
       } finally {
         setIsUpdatingZones(false);

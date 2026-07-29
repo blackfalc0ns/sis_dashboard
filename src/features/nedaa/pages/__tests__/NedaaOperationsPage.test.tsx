@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "@/lib/api-error";
 import NedaaOperationsPage from "../NedaaOperationsPage";
 
 const serviceMocks = vi.hoisted(() => ({
@@ -18,6 +19,11 @@ const serviceMocks = vi.hoisted(() => ({
   fetchAllStudents: vi.fn(),
 }));
 
+const toastMocks = vi.hoisted(() => ({
+  showError: vi.fn(),
+  showSuccess: vi.fn(),
+}));
+
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
   useTranslations: () => (key: string) => key,
@@ -28,7 +34,7 @@ vi.mock("@/hooks/usePermissions", () => ({
 }));
 
 vi.mock("@/components/ui/toast/Toast", () => ({
-  useToast: () => ({ showSuccess: vi.fn(), showError: vi.fn() }),
+  useToast: () => toastMocks,
 }));
 
 vi.mock("@/components/ui/kpi-card/KPICardV2", () => ({
@@ -379,6 +385,9 @@ describe("NedaaOperationsPage", () => {
         name: "operations_actions.escalate",
       }),
     );
+    expect(
+      screen.getByText("operations_guidance.escalation_continues"),
+    ).toBeInTheDocument();
     await user.click(
       screen.getByRole("button", { name: "operations_reasons.parent_waiting" }),
     );
@@ -394,6 +403,81 @@ describe("NedaaOperationsPage", () => {
         { reason: "parent_waiting", note: null },
       ),
     );
+    expect(toastMocks.showSuccess).toHaveBeenCalledWith(
+      "messages.escalation_saved",
+    );
+  });
+
+  it("shows an error when an escalation is already recorded", async () => {
+    const user = userEvent.setup();
+    serviceMocks.escalateDismissalRequest.mockResolvedValue({
+      escalation: {
+        requestId: "request-1",
+        changed: false,
+        escalated: true,
+        reason: "parent_waiting",
+      },
+      request: { id: "request-1", status: "ready" },
+    });
+    render(<NedaaOperationsPage />);
+
+    const row = (await screen.findByText("Omar Ali")).closest("tr");
+    await user.click(
+      within(row as HTMLTableRowElement).getByRole("button", {
+        name: "operations_actions.escalate",
+      }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "operations_actions.save_escalation" }),
+    );
+
+    await waitFor(() =>
+      expect(toastMocks.showError).toHaveBeenCalledWith(
+        "messages.escalation_already_recorded",
+      ),
+    );
+    expect(toastMocks.showSuccess).not.toHaveBeenCalledWith(
+      "messages.escalation_saved",
+    );
+  });
+
+  it("recovers from a stale delivery confirmation with actionable guidance", async () => {
+    const user = userEvent.setup();
+    serviceMocks.deliverDismissalRequest.mockRejectedValue(
+      new ApiError(
+        "Dismissal request is not ready for delivery.",
+        409,
+        "dismissal.delivery.not_ready",
+      ),
+    );
+    render(<NedaaOperationsPage />);
+
+    const row = (await screen.findByText("Omar Ali")).closest("tr");
+    expect(row).not.toBeNull();
+    await user.click(
+      within(row as HTMLTableRowElement).getByRole("button", {
+        name: "operations_actions.deliver",
+      }),
+    );
+    await user.type(
+      screen.getByLabelText("operations_fields.pickup_code"),
+      "1234",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "operations_actions.save_delivery" }),
+    );
+    await user.click(
+      screen.getByRole("button", {
+        name: "operations_actions.confirm_delivery",
+      }),
+    );
+
+    await waitFor(() =>
+      expect(toastMocks.showError).toHaveBeenCalledWith(
+        "messages.delivery_not_ready",
+      ),
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
   it("renders fetched request details in the detail modal", async () => {
@@ -466,11 +550,45 @@ describe("NedaaOperationsPage", () => {
     expect(await screen.findByText(/Hassan Ali/)).toBeInTheDocument();
   });
 
+  it("explains that pickup recipients are available only when ready", async () => {
+    const user = userEvent.setup();
+    serviceMocks.listActiveDismissalRequests.mockResolvedValue({
+      data: [{ ...activeRequest, status: "at_gate" }],
+      summary: {
+        totalCount: 1,
+        requestedCount: 0,
+        queuedCount: 0,
+        calledCount: 0,
+        movingCount: 0,
+        atGateCount: 1,
+        readyCount: 0,
+        delayedCount: 0,
+        urgentCount: 1,
+      },
+      pagination: { page: 1, limit: 10, totalPages: 1 },
+    });
+    render(<NedaaOperationsPage />);
+
+    const row = (await screen.findByText("Omar Ali")).closest("tr");
+    expect(row).not.toBeNull();
+    await user.click(
+      within(row as HTMLTableRowElement).getByRole("button", {
+        name: "operations_actions.recipients",
+      }),
+    );
+
+    expect(toastMocks.showError).toHaveBeenCalledWith(
+      "messages.recipients_available_when_ready",
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("renders fetched history details in the history modal", async () => {
     const user = userEvent.setup();
     serviceMocks.fetchDismissalRequestHistoryItem.mockResolvedValue({
       request: {
         ...historyItem,
+        wait: { ...historyItem.wait, urgent: true },
         timeline: [
           {
             type: "request_created",
@@ -502,8 +620,17 @@ describe("NedaaOperationsPage", () => {
     );
 
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getAllByText("operations_status.handed_over")).toHaveLength(2);
+    expect(
+      within(dialog).getByText("operations_timeline.status_changed_from_to"),
+    ).toBeInTheDocument();
     expect(within(dialog).getByText("operations_history.wait_duration")).toBeInTheDocument();
+    expect(within(dialog).getByText("operations_history.lifecycle")).toBeInTheDocument();
+    expect(within(dialog).getByText("operations_history.called_at")).toBeInTheDocument();
+    expect(within(dialog).getByText("operations_history.ready_at")).toBeInTheDocument();
+    expect(within(dialog).getByText("operations_history.handed_over_at")).toBeInTheDocument();
+    expect(
+      within(dialog).getAllByText("operations_signals.urgent"),
+    ).toHaveLength(2);
     expect(within(dialog).getByText("operations_timeline.request_created")).toBeInTheDocument();
     expect(within(dialog).getByText("operations_timeline.status_changed")).toBeInTheDocument();
     expect(within(dialog).getByText("History loaded")).toBeInTheDocument();
@@ -531,6 +658,69 @@ describe("NedaaOperationsPage", () => {
     expect(
       within(dialog).getByText("operations_timeline.no_events"),
     ).toBeInTheDocument();
+  });
+
+  it("presents escalation details without treating them as a status transition", async () => {
+    const user = userEvent.setup();
+    serviceMocks.fetchDismissalRequestHistoryItem.mockResolvedValue({
+      request: {
+        ...historyItem,
+        status: "requested",
+        isActive: true,
+        isTerminal: false,
+        escalation: {
+          escalated: true,
+          escalatedAt: "2026-07-07T11:10:00.000Z",
+          reason: "manual_follow_up",
+          note: "Follow up with gate staff",
+        },
+        timeline: [
+          {
+            type: "request_created",
+            statusFrom: null,
+            statusTo: "requested",
+            createdAt: "2026-07-07T11:00:00.000Z",
+            note: null,
+          },
+          {
+            type: "request_escalated",
+            statusFrom: "requested",
+            statusTo: "requested",
+            createdAt: "2026-07-07T11:10:00.000Z",
+            note: "Follow up with gate staff",
+          },
+        ],
+      },
+    });
+    render(<NedaaOperationsPage />);
+
+    await user.click(
+      await screen.findByRole("button", { name: "operations_tabs.history" }),
+    );
+    const row = (await screen.findByText("Laila Mostafa")).closest("tr");
+    await user.click(
+      within(row as HTMLTableRowElement).getByRole("button", {
+        name: "operations_actions.view_history",
+      }),
+    );
+
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByText("operations_history.escalation_reason"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("operations_reasons.manual_follow_up"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("operations_timeline.request_escalated"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("operations_timeline.escalation_recorded"),
+    ).toBeInTheDocument();
+    expect(within(dialog).getAllByText("Follow up with gate staff")).toHaveLength(2);
+    expect(
+      within(dialog).queryByText("operations_timeline.status_changed_from_to"),
+    ).not.toBeInTheDocument();
   });
 
   it("loads waiting students and confirms arrival", async () => {

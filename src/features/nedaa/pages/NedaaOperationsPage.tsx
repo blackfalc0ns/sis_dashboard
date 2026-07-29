@@ -16,6 +16,7 @@ import {
   MapPin,
   RefreshCw,
   ShieldCheck,
+  UserCheck,
   UserRound,
   Users,
 } from "lucide-react";
@@ -32,6 +33,7 @@ import Modal from "@/components/ui/modal/Modal";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePermissions } from "@/hooks/usePermissions";
+import { isApiError } from "@/lib/api-error";
 import NedaaAccessNotice from "@/features/nedaa/components/NedaaAccessNotice";
 import { useNedaaAcademicStructure } from "@/features/nedaa/hooks/useNedaaAcademicStructure";
 import {
@@ -71,6 +73,7 @@ import {
   getNedaaAcademicOptions,
   type NedaaAcademicSelection,
 } from "@/features/nedaa/utils/nedaaAcademicOptions";
+import { getNedaaApiErrorMessage } from "@/features/nedaa/utils/nedaaApiErrors";
 import { fetchAllStudents } from "@/features/students-guardians/students/services/studentsService";
 import type { Student } from "@/features/students-guardians/students/types";
 
@@ -146,6 +149,8 @@ interface HistoryDetailContentProps {
   t: ReturnType<typeof useTranslations>;
 }
 
+type SignalTone = "normal" | "delayed" | "urgent" | "escalated";
+
 function formatHistoryDateTime(value: string | null, locale: string) {
   if (!value) return "-";
 
@@ -165,6 +170,37 @@ function requestStatusTone(status: string) {
   }
 
   return "border-blue-200 bg-blue-50 text-blue-700";
+}
+
+function getSignalTone({
+  delayed,
+  escalated,
+  urgent,
+}: {
+  delayed: boolean;
+  escalated: boolean;
+  urgent: boolean;
+}): SignalTone {
+  if (escalated) return "escalated";
+  if (urgent) return "urgent";
+  return delayed ? "delayed" : "normal";
+}
+
+function SignalBadge({ label, tone }: { label: string; tone: SignalTone }) {
+  const styles = {
+    normal: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    delayed: "border-amber-200 bg-amber-50 text-amber-800",
+    urgent: "border-red-200 bg-red-50 text-red-800",
+    escalated: "border-rose-200 bg-rose-50 text-rose-800",
+  }[tone];
+  const Icon = tone === "normal" ? ShieldCheck : tone === "delayed" ? Clock3 : AlertTriangle;
+
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold ${styles}`}>
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      {label}
+    </span>
+  );
 }
 
 interface RequestContextContentProps {
@@ -212,7 +248,7 @@ function RequestContextContent({
         <div className="grid grid-cols-1 gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:grid-cols-2">
           <HistoryIdentityItem
             icon={UserRound}
-            label={t("operations_history.student")}
+            label={t("operations_history.grade_section")}
             value={`${detail.child.grade || "-"} · ${detail.child.section || "-"}`}
           />
           <HistoryIdentityItem
@@ -276,8 +312,9 @@ function RequestContextContent({
           >
             <p className="font-semibold">{signalLabel}</p>
             <p className="mt-1 text-xs opacity-80">
-              {t("operations_history.wait_minutes", {
-                minutes: detail.signals.urgent
+              {t("operations_history.signal_threshold", {
+                waitMinutes: detail.waitMinutes,
+                thresholdMinutes: detail.signals.urgent
                   ? detail.signals.urgentThresholdMinutes
                   : detail.signals.delayThresholdMinutes,
               })}
@@ -323,13 +360,30 @@ function RequestTimeline({
         <ol className="relative space-y-0 border-s-2 border-gray-200 ps-5">
           {detail.map((event, index) => {
             const isFinalEvent = index === detail.length - 1;
+            const isEscalation = event.type === "request_escalated";
             const eventLabel =
               event.type === "request_created"
                 ? t("operations_timeline.request_created")
+                : isEscalation
+                  ? t("operations_timeline.request_escalated")
                 : t("operations_timeline.status_changed");
-            const statusChange = event.statusTo
-              ? t(`operations_status.${event.statusTo}`)
-              : "-";
+            const statusChange =
+              event.type === "request_created"
+                ? t("operations_timeline.initial_status", {
+                    status: event.statusTo
+                      ? t(`operations_status.${event.statusTo}`)
+                      : "-",
+                  })
+                : isEscalation
+                  ? t("operations_timeline.escalation_recorded")
+                : t("operations_timeline.status_changed_from_to", {
+                    from: event.statusFrom
+                      ? t(`operations_status.${event.statusFrom}`)
+                      : "-",
+                    to: event.statusTo
+                      ? t(`operations_status.${event.statusTo}`)
+                      : "-",
+                  });
 
             return (
               <li
@@ -337,10 +391,14 @@ function RequestTimeline({
                 className="relative pb-5 last:pb-0"
               >
                 <span
-                  className={`absolute -start-[1.55rem] top-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white ${isFinalEvent ? "bg-emerald-500" : "bg-primary"}`}
+                  className={`absolute -start-[1.55rem] top-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white ${isEscalation ? "bg-amber-500" : isFinalEvent ? "bg-emerald-500" : "bg-primary"}`}
                   aria-hidden="true"
                 >
-                  <CheckCircle2 className="h-3 w-3 text-white" />
+                  {isEscalation ? (
+                    <AlertTriangle className="h-3 w-3 text-white" />
+                  ) : (
+                    <CheckCircle2 className="h-3 w-3 text-white" />
+                  )}
                 </span>
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <p className="text-sm font-semibold text-gray-900">
@@ -355,7 +413,10 @@ function RequestTimeline({
                   <div
                     className={`mt-2 rounded-lg border px-3 py-2 text-sm ${isFinalEvent ? "border-amber-200 bg-amber-50 text-amber-900" : "border-gray-200 bg-gray-50 text-gray-700"}`}
                   >
-                    {event.note}
+                    <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
+                      {t("operations_timeline.note")}
+                    </p>
+                    <p className="mt-1">{event.note}</p>
                   </div>
                 ) : null}
               </li>
@@ -373,6 +434,17 @@ function HistoryDetailContent({
   t,
 }: HistoryDetailContentProps) {
   const statusLabel = t(`operations_status.${detail.status}`);
+  const waitSignal = detail.wait.urgent
+    ? t("operations_signals.urgent")
+    : detail.wait.delayed
+      ? t("operations_signals.delayed")
+      : t("operations_signals.normal");
+  const lifecycleMilestones = [
+    { label: t("operations_history.requested_at"), at: detail.requestedAt },
+    { label: t("operations_history.called_at"), at: detail.calledAt },
+    { label: t("operations_history.ready_at"), at: detail.readyAt },
+    { label: t("operations_history.handed_over_at"), at: detail.handedOverAt },
+  ].filter((milestone): milestone is { label: string; at: string } => Boolean(milestone.at));
 
   return (
     <div className="space-y-5 py-3">
@@ -402,7 +474,7 @@ function HistoryDetailContent({
         <div className="grid grid-cols-1 gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:grid-cols-2">
           <HistoryIdentityItem
             icon={UserRound}
-            label={t("operations_history.student")}
+            label={t("operations_history.grade_section")}
             value={`${detail.child.grade || "-"} · ${detail.child.section || "-"}`}
           />
           <HistoryIdentityItem
@@ -430,9 +502,9 @@ function HistoryDetailContent({
             icon={Clock3}
           />
           <HistoryMetric
-            label={t("operations_history.requested_at")}
-            value={formatHistoryDateTime(detail.requestedAt, locale)}
-            icon={History}
+            label={t("operations_fields.signals")}
+            value={waitSignal}
+            icon={detail.wait.urgent ? AlertTriangle : ShieldCheck}
           />
           <HistoryMetric
             label={t("operations_history.updated_at")}
@@ -449,7 +521,119 @@ function HistoryDetailContent({
             icon={detail.escalation.escalated ? AlertTriangle : ShieldCheck}
           />
         </div>
+
+        {detail.wait.delayed || detail.wait.urgent ? (
+          <div
+            className={`rounded-xl border px-4 py-3 text-sm ${detail.wait.urgent ? "border-red-200 bg-red-50 text-red-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}
+            role="status"
+          >
+            <p className="font-semibold">{waitSignal}</p>
+            <p className="mt-1 text-xs opacity-80">
+              {t("operations_history.signal_threshold", {
+                waitMinutes: detail.wait.minutes,
+                thresholdMinutes: detail.wait.urgent
+                  ? (detail.wait.urgentThresholdMinutes ?? "-")
+                  : (detail.wait.thresholdMinutes ?? "-"),
+              })}
+            </p>
+          </div>
+        ) : null}
       </section>
+
+      <section
+        aria-labelledby="nedaa-history-lifecycle-heading"
+        className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+      >
+        <h3
+          id="nedaa-history-lifecycle-heading"
+          className="text-sm font-bold text-gray-900"
+        >
+          {t("operations_history.lifecycle")}
+        </h3>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {lifecycleMilestones.map((milestone, index) => (
+            <div
+              key={milestone.label}
+              className="relative rounded-xl border border-gray-200 bg-white p-3 shadow-sm"
+            >
+              <span
+                className={`mb-2 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white ${index === lifecycleMilestones.length - 1 && detail.status === "handed_over" ? "bg-emerald-600" : "bg-primary"}`}
+                aria-hidden="true"
+              >
+                {index + 1}
+              </span>
+              <p className="text-xs font-semibold text-gray-500">
+                {milestone.label}
+              </p>
+              <time className="mt-1 block text-sm font-bold text-gray-900">
+                {formatHistoryDateTime(milestone.at, locale)}
+              </time>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {detail.escalation.escalated ? (
+        <section
+          aria-labelledby="nedaa-history-escalation-heading"
+          className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950"
+          role="status"
+        >
+          <div className="flex items-start gap-3">
+            <div className="rounded-full bg-amber-100 p-2">
+              <AlertTriangle
+                className="h-5 w-5 text-amber-700"
+                aria-hidden="true"
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3
+                id="nedaa-history-escalation-heading"
+                className="text-sm font-bold"
+              >
+                {t("operations_history.escalated")}
+              </h3>
+              <p className="mt-1 text-sm text-amber-900">
+                {t("operations_history.escalation_status_unchanged", {
+                  status: statusLabel,
+                })}
+              </p>
+              <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                {detail.escalation.reason ? (
+                  <div>
+                    <dt className="text-xs font-semibold text-amber-800">
+                      {t("operations_history.escalation_reason")}
+                    </dt>
+                    <dd className="mt-0.5 font-semibold">
+                      {t(`operations_reasons.${detail.escalation.reason}`)}
+                    </dd>
+                  </div>
+                ) : null}
+                {detail.escalation.escalatedAt ? (
+                  <div>
+                    <dt className="text-xs font-semibold text-amber-800">
+                      {t("operations_history.escalated_at")}
+                    </dt>
+                    <dd className="mt-0.5 font-semibold">
+                      {formatHistoryDateTime(detail.escalation.escalatedAt, locale)}
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
+              {detail.escalation.note ? (
+                <div className="mt-3 border-t border-amber-200 pt-3 text-sm">
+                  <p className="text-xs font-semibold text-amber-800">
+                    {t("operations_timeline.note")}
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap">
+                    {detail.escalation.note}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <RequestTimeline detail={detail.timeline} locale={locale} t={t} />
     </div>
@@ -598,6 +782,10 @@ const escalationReasons = [
   "other",
 ] as const;
 
+function isDeliveryNoLongerReadyError(error: unknown): boolean {
+  return isApiError(error) && error.code === "dismissal.delivery.not_ready";
+}
+
 function formatStudentOptionLabel(student: Student, locale: string): string {
   const name =
     locale === "ar"
@@ -650,7 +838,10 @@ function formatDateTime(value: string | null | undefined) {
 }
 
 function gateLabel(gate: { name: string; code: string } | null) {
-  return gate ? `${gate.name} (${gate.code})` : "-";
+  if (!gate) return "-";
+  const normalizedName = gate.name.replace(/[\s_-]/g, "");
+  const normalizedCode = gate.code.replace(/[\s_-]/g, "");
+  return normalizedName === normalizedCode ? gate.name : `${gate.name} (${gate.code})`;
 }
 
 function toSnakeCase(value: string) {
@@ -1165,6 +1356,10 @@ export default function NedaaOperationsPage() {
 
   const openRecipients = useCallback((request?: ActiveDismissalRequest) => {
     if (!request) return;
+    if (request.status !== "ready") {
+      showError(t("messages.recipients_available_when_ready"));
+      return;
+    }
     setRequestDetail(null);
     setPickupRecipients(null);
     setHistoryDetail(null);
@@ -1177,9 +1372,18 @@ export default function NedaaOperationsPage() {
     });
     void listDismissalPickupRecipients(request.id)
       .then((response) => setPickupRecipients(response))
-      .catch(() => setReadOnlyModalError(t("operations.detail_failed")))
+      .catch((error) => {
+        if (isDeliveryNoLongerReadyError(error)) {
+          setReadOnlyModalError(t("messages.delivery_not_ready"));
+          setRefreshKey((current) => current + 1);
+          return;
+        }
+        setReadOnlyModalError(
+          getNedaaApiErrorMessage(error, t, "operations.detail_failed"),
+        );
+      })
       .finally(() => setReadOnlyModalLoading(false));
-  }, [t]);
+  }, [showError, t]);
 
   const openDetail = useCallback((requestId?: string) => {
     if (!requestId) return;
@@ -1195,7 +1399,11 @@ export default function NedaaOperationsPage() {
     });
     void fetchDismissalRequest(requestId)
       .then((response) => setRequestDetail(response.request))
-      .catch(() => setReadOnlyModalError(t("operations.detail_failed")))
+      .catch((error) =>
+        setReadOnlyModalError(
+          getNedaaApiErrorMessage(error, t, "operations.detail_failed"),
+        ),
+      )
       .finally(() => setReadOnlyModalLoading(false));
   }, [t]);
 
@@ -1213,7 +1421,11 @@ export default function NedaaOperationsPage() {
     });
     void fetchDismissalRequestHistoryItem(requestId)
       .then((response) => setHistoryDetail(response.request))
-      .catch(() => setReadOnlyModalError(t("operations.detail_failed")))
+      .catch((error) =>
+        setReadOnlyModalError(
+          getNedaaApiErrorMessage(error, t, "operations.detail_failed"),
+        ),
+      )
       .finally(() => setReadOnlyModalLoading(false));
   }, [t]);
 
@@ -1232,20 +1444,14 @@ export default function NedaaOperationsPage() {
         key: "signals",
         label: t("operations_fields.signals"),
         render: (_value, row) => (
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
-              row.activeRequest?.signals.urgent
-                ? "bg-red-100 text-red-800"
-                : row.activeRequest?.signals.delayed
-                  ? "bg-amber-100 text-amber-800"
-                  : "bg-emerald-100 text-emerald-800"
-            }`}
-          >
-            {row.activeRequest?.signals.urgent ? (
-              <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
-            ) : null}
-            {String(row.signals)}
-          </span>
+          <SignalBadge
+            label={row.signals}
+            tone={getSignalTone({
+              urgent: row.activeRequest?.signals.urgent ?? false,
+              delayed: row.activeRequest?.signals.delayed ?? false,
+              escalated: false,
+            })}
+          />
         ),
       },
       { key: "requestedAt", label: t("operations_fields.requested_at") },
@@ -1364,7 +1570,20 @@ export default function NedaaOperationsPage() {
       { key: "arrivalState", label: t("operations_fields.arrival_state") },
       { key: "status", label: t("table.status") },
       { key: "wait", label: t("operations_fields.wait") },
-      { key: "signals", label: t("operations_fields.signals") },
+      {
+        key: "signals",
+        label: t("operations_fields.signals"),
+        render: (_value, row) => (
+          <SignalBadge
+            label={row.signals}
+            tone={getSignalTone({
+              urgent: row.waitingStudent?.signals.urgent ?? false,
+              delayed: row.waitingStudent?.signals.delayed ?? false,
+              escalated: false,
+            })}
+          />
+        ),
+      },
       { key: "updatedAt", label: t("operations_fields.updated_at") },
       {
         key: "actions",
@@ -1399,7 +1618,20 @@ export default function NedaaOperationsPage() {
       { key: "gate", label: t("table.gate") },
       { key: "status", label: t("table.status") },
       { key: "wait", label: t("operations_fields.wait") },
-      { key: "signals", label: t("operations_fields.signals") },
+      {
+        key: "signals",
+        label: t("operations_fields.signals"),
+        render: (_value, row) => (
+          <SignalBadge
+            label={row.signals}
+            tone={getSignalTone({
+              urgent: row.historyItem?.wait.urgent ?? false,
+              delayed: row.historyItem?.wait.delayed ?? false,
+              escalated: row.historyItem?.escalation.escalated ?? false,
+            })}
+          />
+        ),
+      },
       { key: "requestedAt", label: t("operations_fields.requested_at") },
       { key: "updatedAt", label: t("operations_fields.updated_at") },
       {
@@ -1519,7 +1751,11 @@ export default function NedaaOperationsPage() {
         setPickupRecipients(response);
         setPickupRecipientToken(response.recipients[0]?.pickupRecipientToken ?? "");
       })
-      .catch(() => setReadOnlyModalError(t("operations.detail_failed")))
+      .catch((error) =>
+        setReadOnlyModalError(
+          getNedaaApiErrorMessage(error, t, "operations.detail_failed"),
+        ),
+      )
       .finally(() => setReadOnlyModalLoading(false));
   };
 
@@ -1577,16 +1813,33 @@ export default function NedaaOperationsPage() {
         });
         showSuccess(t("messages.request_updated"));
       } else if (actionModal.type === "escalation") {
-        await escalateDismissalRequest(actionModal.requestId, {
+        const response = await escalateDismissalRequest(actionModal.requestId, {
           reason: escalationReason,
           note: actionNote.trim() || null,
         });
-        showSuccess(t("messages.request_updated"));
+        if (!response.escalation.changed) {
+          showError(t("messages.escalation_already_recorded"));
+          setRefreshKey((current) => current + 1);
+          closeActionModal();
+          return;
+        }
+        showSuccess(t("messages.escalation_saved"));
       }
       setRefreshKey((current) => current + 1);
       closeActionModal();
-    } catch {
-      showError(t("messages.request_update_failed"));
+    } catch (error) {
+      if (
+        actionModal.type === "delivery_confirm" &&
+        isDeliveryNoLongerReadyError(error)
+      ) {
+        showError(t("messages.delivery_not_ready"));
+        setRefreshKey((current) => current + 1);
+        closeActionModal();
+        return;
+      }
+      showError(
+        getNedaaApiErrorMessage(error, t, "messages.request_update_failed"),
+      );
     } finally {
       setIsSavingAction(false);
     }
@@ -2129,6 +2382,16 @@ export default function NedaaOperationsPage() {
           </div>
         ) : actionModal?.type === "escalation" ? (
           <div className="space-y-4 py-2">
+            <div
+              className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950"
+              role="status"
+            >
+              <Activity
+                className="mt-0.5 h-5 w-5 shrink-0 text-blue-700"
+                aria-hidden="true"
+              />
+              <p>{t("operations_guidance.escalation_continues")}</p>
+            </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {escalationReasons.map((reason) => (
                 <button
@@ -2175,19 +2438,77 @@ export default function NedaaOperationsPage() {
             loadingLabel={t("operations.detail_loading")}
           >
             {pickupRecipients ? (
-              <div className="space-y-3 py-2 text-sm text-gray-700">
-                <p>{pickupRecipients.request.child.displayName}</p>
-                <p>
-                  {pickupRecipients.policy.pickupCodeRequired
-                    ? t("operations_fields.pickup_code")
-                    : t("operations.detail_loading")}
-                </p>
-                {pickupRecipients.recipients.map((recipient) => (
-                  <p key={recipient.pickupRecipientToken}>
-                    {recipient.displayName}
-                    {recipient.relation ? ` (${recipient.relation})` : ""}
-                  </p>
-                ))}
+              <div className="space-y-4 py-2 text-sm text-gray-700">
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-950">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                    <div>
+                      <p className="font-semibold">
+                        {t("operations_recipients.ready_for_handover")}
+                      </p>
+                      <p className="mt-1 text-xs text-emerald-800">
+                        {pickupRecipients.request.child.displayName} · {gateLabel(pickupRecipients.request.gate)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                    <p className="text-xs font-semibold text-gray-500">
+                      {t("operations_recipients.pickup_code")}
+                    </p>
+                    <p className="mt-1 font-semibold text-gray-900">
+                      {pickupRecipients.policy.pickupCodeRequired
+                        ? t("operations_recipients.pickup_code_required")
+                        : t("operations_recipients.pickup_code_not_required")}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                    <p className="text-xs font-semibold text-gray-500">
+                      {t("operations_recipients.delegate_pickup")}
+                    </p>
+                    <p className="mt-1 font-semibold text-gray-900">
+                      {pickupRecipients.policy.delegatePickupAllowed
+                        ? t("operations_recipients.delegate_allowed")
+                        : t("operations_recipients.delegate_not_allowed")}
+                    </p>
+                  </div>
+                </div>
+
+                <section aria-labelledby="nedaa-authorized-recipients-heading">
+                  <h3
+                    id="nedaa-authorized-recipients-heading"
+                    className="text-sm font-bold text-gray-900"
+                  >
+                    {t("operations_recipients.authorized_recipients")}
+                  </h3>
+                  <div className="mt-2 space-y-2">
+                    {pickupRecipients.recipients.map((recipient) => (
+                      <div
+                        key={recipient.pickupRecipientToken}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white p-3"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <UserCheck className="h-5 w-5 shrink-0 text-emerald-600" />
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-gray-900">
+                              {recipient.displayName}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {recipient.relation || t("operations_recipients.authorized_recipient")}
+                            </p>
+                          </div>
+                        </div>
+                        {recipient.isRequestingGuardian ? (
+                          <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
+                            {t("operations_recipients.requesting_guardian")}
+                          </span>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </section>
               </div>
             ) : null}
           </ReadOnlyModalState>

@@ -21,6 +21,7 @@ import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePermissions } from "@/hooks/usePermissions";
+import { getNedaaApiErrorMessage } from "@/features/nedaa/utils/nedaaApiErrors";
 import NedaaAccessNotice from "@/features/nedaa/components/NedaaAccessNotice";
 import NedaaGateFormModal from "@/features/nedaa/components/NedaaGateFormModal";
 import {
@@ -249,8 +250,10 @@ export default function NedaaGatesPage() {
       closeGateModal();
       setRefreshKey((current) => current + 1);
       showSuccess(t("messages.settings_saved"));
-    } catch {
-      showError(t("messages.settings_save_failed"));
+    } catch (error) {
+      showError(
+        getNedaaApiErrorMessage(error, t, "messages.settings_save_failed"),
+      );
     }
   };
 

@@ -16,6 +16,7 @@ import Modal from "@/components/ui/modal/Modal";
 import { useToast } from "@/components/ui/toast/Toast";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePermissions } from "@/hooks/usePermissions";
+import { getNedaaApiErrorMessage } from "@/features/nedaa/utils/nedaaApiErrors";
 import { fetchSettingsRoles } from "@/features/settings/services/settingsRolesService";
 import { fetchSettingsUsers } from "@/features/settings/services/settingsUsersService";
 import type {
@@ -708,8 +709,14 @@ export default function NedaaStaffAssignmentsPage() {
           : t("messages.staff_assignment_created"),
       );
       closeForm();
-    } catch {
-      showError(t("messages.staff_assignment_save_failed"));
+    } catch (error) {
+      showError(
+        getNedaaApiErrorMessage(
+          error,
+          t,
+          "messages.staff_assignment_save_failed",
+        ),
+      );
     } finally {
       setIsSaving(false);
     }

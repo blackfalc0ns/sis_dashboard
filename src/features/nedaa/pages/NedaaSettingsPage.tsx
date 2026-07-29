@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
 import { usePermissions } from "@/hooks/usePermissions";
+import { getNedaaApiErrorMessage } from "@/features/nedaa/utils/nedaaApiErrors";
 import NedaaAccessNotice from "@/features/nedaa/components/NedaaAccessNotice";
 import NedaaGlobalExportModal from "@/features/nedaa/shared/components/export/NedaaGlobalExportModal";
 import {
@@ -233,8 +234,8 @@ export default function NedaaSettingsPage() {
       setInitialSettings(cloneSettingsValue(saved));
       setPendingSettingsPatch({});
       showSuccess(t("messages.settings_saved"));
-    } catch {
-      showError(t("messages.settings_save_failed"));
+    } catch (error) {
+      showError(getNedaaApiErrorMessage(error, t, "messages.settings_save_failed"));
     } finally {
       setIsSaving(false);
     }
@@ -278,8 +279,8 @@ export default function NedaaSettingsPage() {
       setEditingGate(null);
       setGateModalMode("create");
       showSuccess(t("messages.settings_saved"));
-    } catch {
-      showError(t("messages.settings_save_failed"));
+    } catch (error) {
+      showError(getNedaaApiErrorMessage(error, t, "messages.settings_save_failed"));
     }
   };
 
@@ -332,8 +333,8 @@ export default function NedaaSettingsPage() {
           : current,
       );
       showSuccess(t("messages.settings_saved"));
-    } catch {
-      showError(t("messages.settings_save_failed"));
+    } catch (error) {
+      showError(getNedaaApiErrorMessage(error, t, "messages.settings_save_failed"));
     }
   };
 
