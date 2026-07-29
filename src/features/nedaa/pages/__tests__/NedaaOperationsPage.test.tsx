@@ -237,6 +237,25 @@ function setupServiceMocks() {
     },
     pagination: { page: 1, limit: 10, totalPages: 1 },
   });
+  serviceMocks.listDismissalPickupRecipients.mockResolvedValue({
+    request: {
+      id: activeRequest.id,
+      status: "ready",
+      child: activeRequest.child,
+      gate: activeRequest.gate,
+    },
+    policy: { delegatePickupAllowed: true, pickupCodeRequired: true },
+    recipients: [
+      {
+        pickupRecipientToken: "recipient-token-1",
+        displayName: "Mona Ali",
+        relation: "Mother",
+        isRequestingGuardian: true,
+        canPickup: true,
+        maskedPhone: null,
+      },
+    ],
+  });
   serviceMocks.updateDismissalRequestStatus.mockResolvedValue({
     request: { ...activeRequest, status: "called" },
   });
@@ -260,6 +279,21 @@ describe("NedaaOperationsPage", () => {
 
   it("loads active dismissal requests and updates request status", async () => {
     const user = userEvent.setup();
+    serviceMocks.listActiveDismissalRequests.mockResolvedValue({
+      data: [{ ...activeRequest, status: "requested" }],
+      summary: {
+        totalCount: 1,
+        requestedCount: 1,
+        queuedCount: 0,
+        calledCount: 0,
+        movingCount: 0,
+        atGateCount: 0,
+        readyCount: 0,
+        delayedCount: 0,
+        urgentCount: 1,
+      },
+      pagination: { page: 1, limit: 10, totalPages: 1 },
+    });
     render(<NedaaOperationsPage />);
 
     expect(await screen.findByText("Omar Ali")).toBeInTheDocument();
@@ -276,7 +310,7 @@ describe("NedaaOperationsPage", () => {
     );
     await user.click(
       screen.getByRole("button", {
-        name: "operations_status.called",
+        name: "operations_status.queued",
       }),
     );
     await user.click(
@@ -286,7 +320,7 @@ describe("NedaaOperationsPage", () => {
     await waitFor(() =>
       expect(serviceMocks.updateDismissalRequestStatus).toHaveBeenCalledWith(
         "request-1",
-        { status: "called", note: null },
+        { status: "queued", note: null },
       ),
     );
   });
@@ -322,11 +356,21 @@ describe("NedaaOperationsPage", () => {
     await user.click(
       screen.getByRole("button", { name: "operations_actions.save_delivery" }),
     );
+    expect(serviceMocks.deliverDismissalRequest).not.toHaveBeenCalled();
+    await user.click(
+      screen.getByRole("button", {
+        name: "operations_actions.confirm_delivery",
+      }),
+    );
 
     await waitFor(() =>
       expect(serviceMocks.deliverDismissalRequest).toHaveBeenCalledWith(
         "request-1",
-        { pickupCode: "1234", pickupRecipientToken: undefined, note: null },
+        {
+          pickupCode: "1234",
+          pickupRecipientToken: "recipient-token-1",
+          note: null,
+        },
       ),
     );
 

@@ -9037,6 +9037,8 @@
         "selected_location": "Selected location",
         "empty_state": "Search for a place or click on the map to choose the school location.",
         "resolving": "Resolving address details...",
+        "current_location": "Use current location",
+        "locating": "Getting current location...",
         "manual_coordinates": "Manual coordinates",
         "latitude": "Latitude",
         "longitude": "Longitude",
@@ -9048,6 +9050,10 @@
           "resolve_failed": "Failed to resolve the selected map position.",
           "api_key_missing": "Google Maps API key is missing. Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to use the map picker.",
           "maps_load_failed": "Failed to load Google Maps. Check the API key, billing, and enabled Maps JavaScript/Places APIs.",
+          "geolocation_not_supported": "Your browser does not support location access.",
+          "geolocation_permission_denied": "Location permission was denied. Allow access in your browser and try again.",
+          "geolocation_unavailable": "Your current location is unavailable. Try again shortly.",
+          "geolocation_timeout": "Getting your current location took too long. Try again.",
           "coordinate_pair_required": "Enter both latitude and longitude, or clear both fields.",
           "latitude_invalid": "Latitude must be a valid number.",
           "latitude_out_of_range": "Latitude must be between -90 and 90.",
@@ -11777,7 +11783,11 @@
       "empty_title": "No dismissal records found",
       "empty_description": "Adjust filters or refresh the workspace to load the latest dismissal activity.",
       "detail_loading": "Loading request details...",
-      "detail_failed": "Failed to load request details."
+      "detail_failed": "Failed to load request details.",
+      "refreshing": "Refreshing operational data…",
+      "last_refreshed": "Last refreshed: {time}",
+      "delivery_confirmation": "Confirm handover details before completing delivery.",
+      "pickup_code_not_required": "Not required"
     },
     "operations_history": {
       "summary": "Request summary",
@@ -11820,7 +11830,14 @@
       "escalate": "Escalate",
       "save_escalation": "Save escalation",
       "confirm_arrival": "Confirm arrival",
-      "save_arrival": "Save arrival"
+      "save_arrival": "Save arrival",
+      "more": "More",
+      "confirm_delivery": "Confirm delivery",
+      "back": "Back"
+    },
+    "operations_guidance": {
+      "ready_for_handover": "Ready for handover",
+      "advance_to": "Next: {status}"
     },
     "operations_filters": {
       "search_placeholder": "Search student name or gate",
@@ -11961,12 +11978,18 @@
         "loading_maps": "Loading Google Maps...",
         "searching": "Searching locations...",
         "resolving": "Resolving address...",
+        "current_location": "Use current location",
+        "locating": "Getting current location...",
         "manual_coordinates": "Manual coordinates",
         "latitude": "Latitude",
         "longitude": "Longitude",
         "errors": {
           "api_key_missing": "Google Maps is unavailable because the API key is missing. You can still enter coordinates manually.",
           "maps_load_failed": "Google Maps failed to load. You can still enter coordinates manually.",
+          "geolocation_not_supported": "Your browser does not support location access.",
+          "geolocation_permission_denied": "Location permission was denied. Allow access in your browser and try again.",
+          "geolocation_unavailable": "Your current location is unavailable. Try again shortly.",
+          "geolocation_timeout": "Getting your current location took too long. Try again.",
           "search_failed": "Location search failed. Try again or enter coordinates manually.",
           "resolve_failed": "The selected position could not be resolved to an address.",
           "coordinate_pair_required": "Enter both latitude and longitude, or clear both fields.",

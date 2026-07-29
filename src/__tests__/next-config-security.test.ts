@@ -35,7 +35,7 @@ describe("next config security headers", () => {
     );
     expect(headers.get("X-Frame-Options")).toBe("DENY");
     expect(headers.get("Permissions-Policy")).toBe(
-      "camera=(), microphone=(self), geolocation=()",
+      "camera=(), microphone=(self), geolocation=(self)",
     );
     expect(headers.get("Content-Security-Policy")).toBe(
       [

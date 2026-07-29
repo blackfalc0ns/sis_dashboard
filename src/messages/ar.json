@@ -9038,6 +9038,8 @@
         "selected_location": "الموقع المحدد",
         "empty_state": "ابحث عن مكان أو انقر على الخريطة لاختيار موقع المدرسة.",
         "resolving": "جاري جلب تفاصيل العنوان...",
+        "current_location": "استخدام موقعي الحالي",
+        "locating": "جار تحديد موقعك الحالي...",
         "manual_coordinates": "إحداثيات يدوية",
         "latitude": "خط العرض",
         "longitude": "خط الطول",
@@ -9049,6 +9051,10 @@
           "resolve_failed": "فشل تحديد تفاصيل الموقع المختار.",
           "api_key_missing": "مفتاح Google Maps API غير موجود. اضبط NEXT_PUBLIC_GOOGLE_MAPS_API_KEY لاستخدام محدد الخريطة.",
           "maps_load_failed": "تعذر تحميل خرائط Google. تحقق من المفتاح والفوترة وتفعيل Maps JavaScript وPlaces APIs.",
+          "geolocation_not_supported": "متصفحك لا يدعم الوصول إلى الموقع.",
+          "geolocation_permission_denied": "تم رفض إذن الموقع. اسمح بالوصول من المتصفح ثم حاول مرة أخرى.",
+          "geolocation_unavailable": "موقعك الحالي غير متاح. حاول مرة أخرى بعد قليل.",
+          "geolocation_timeout": "استغرق تحديد موقعك الحالي وقتا طويلا. حاول مرة أخرى.",
           "coordinate_pair_required": "يرجى إدخال كل من خط العرض وخط الطول، أو مسح كلا الحقلين.",
           "latitude_invalid": "يجب أن يكون خط العرض رقماً صالحاً.",
           "latitude_out_of_range": "يجب أن يكون خط العرض بين -90 و 90 درجة.",
@@ -11778,7 +11784,11 @@
       "empty_title": "لا توجد سجلات انصراف",
       "empty_description": "عدّل الفلاتر أو حدّث مساحة العمل لتحميل أحدث نشاط للانصراف.",
       "detail_loading": "جاري تحميل تفاصيل الطلب...",
-      "detail_failed": "فشل تحميل تفاصيل الطلب."
+      "detail_failed": "فشل تحميل تفاصيل الطلب.",
+      "refreshing": "جارٍ تحديث بيانات العمليات…",
+      "last_refreshed": "آخر تحديث: {time}",
+      "delivery_confirmation": "راجع تفاصيل التسليم قبل إتمامه.",
+      "pickup_code_not_required": "غير مطلوب"
     },
     "operations_history": {
       "summary": "ملخص الطلب",
@@ -11821,7 +11831,14 @@
       "escalate": "تصعيد",
       "save_escalation": "حفظ التصعيد",
       "confirm_arrival": "تأكيد الوصول",
-      "save_arrival": "حفظ الوصول"
+      "save_arrival": "حفظ الوصول",
+      "more": "المزيد",
+      "confirm_delivery": "تأكيد التسليم",
+      "back": "رجوع"
+    },
+    "operations_guidance": {
+      "ready_for_handover": "جاهز للتسليم",
+      "advance_to": "التالي: {status}"
     },
     "operations_filters": {
       "search_placeholder": "ابحث باسم الطالب أو البوابة",
@@ -12028,12 +12045,18 @@
         "loading_maps": "جار تحميل خرائط Google...",
         "searching": "جار البحث عن المواقع...",
         "resolving": "جار تحديد العنوان...",
+        "current_location": "استخدام موقعي الحالي",
+        "locating": "جار تحديد موقعك الحالي...",
         "manual_coordinates": "إحداثيات يدوية",
         "latitude": "خط العرض",
         "longitude": "خط الطول",
         "errors": {
           "api_key_missing": "خرائط Google غير متاحة لأن مفتاح API مفقود. ما زال بإمكانك إدخال الإحداثيات يدويا.",
           "maps_load_failed": "تعذر تحميل خرائط Google. ما زال بإمكانك إدخال الإحداثيات يدويا.",
+          "geolocation_not_supported": "متصفحك لا يدعم الوصول إلى الموقع.",
+          "geolocation_permission_denied": "تم رفض إذن الموقع. اسمح بالوصول من المتصفح ثم حاول مرة أخرى.",
+          "geolocation_unavailable": "موقعك الحالي غير متاح. حاول مرة أخرى بعد قليل.",
+          "geolocation_timeout": "استغرق تحديد موقعك الحالي وقتا طويلا. حاول مرة أخرى.",
           "search_failed": "فشل البحث عن الموقع. حاول مرة أخرى أو أدخل الإحداثيات يدويا.",
           "resolve_failed": "تعذر تحويل الموضع المحدد إلى عنوان.",
           "coordinate_pair_required": "أدخل خط العرض وخط الطول معا، أو امسح الحقلين معا.",

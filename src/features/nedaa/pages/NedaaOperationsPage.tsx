@@ -122,12 +122,14 @@ interface ActionModalState {
     | "status"
     | "arrival"
     | "delivery"
+    | "delivery_confirm"
     | "escalation"
     | "recipients"
     | "detail"
     | "history";
   requestId: string;
   title: string;
+  requestStatus?: DismissalRequestStatus;
   waitingStudent?: DismissalWaitingStudent;
 }
 
@@ -576,13 +578,17 @@ const historyStatuses: DismissalRequestHistoryStatus[] = [
   "cancelled",
   "expired",
 ];
-const nextStatusOptions: Exclude<DismissalRequestStatus, "requested">[] = [
-  "queued",
-  "called",
-  "moving",
-  "at_gate",
-  "ready",
-];
+const nextStatusByCurrentStatus: Record<
+  DismissalRequestStatus,
+  Exclude<DismissalRequestStatus, "requested">[]
+> = {
+  requested: ["queued", "called"],
+  queued: ["called"],
+  called: ["moving", "at_gate"],
+  moving: ["at_gate"],
+  at_gate: ["ready"],
+  ready: [],
+};
 const escalationReasons = [
   "student_not_arrived",
   "gate_congestion",
@@ -791,6 +797,7 @@ export default function NedaaOperationsPage() {
     history: { ...emptyFilters, sort: "created_at_desc" },
   });
   const [refreshKey, setRefreshKey] = useState(0);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [actionModal, setActionModal] = useState<ActionModalState | null>(null);
   const [requestDetail, setRequestDetail] =
     useState<ActiveDismissalRequestDetail | null>(null);
@@ -943,6 +950,7 @@ export default function NedaaOperationsPage() {
           if (!cancelled) {
             setActiveRequests(response.data);
             setActiveSummary(response.summary);
+            setLastRefreshedAt(new Date());
           }
         } else if (activeTab === "waiting") {
           const response =
@@ -950,6 +958,7 @@ export default function NedaaOperationsPage() {
           if (!cancelled) {
             setWaitingStudents(response.data);
             setWaitingSummary(response.summary);
+            setLastRefreshedAt(new Date());
           }
         } else if (canViewHistory) {
           const response =
@@ -957,6 +966,7 @@ export default function NedaaOperationsPage() {
           if (!cancelled) {
             setHistoryItems(response.data);
             setHistorySummary(response.summary);
+            setLastRefreshedAt(new Date());
           }
         }
       } catch (requestError) {
@@ -1218,7 +1228,26 @@ export default function NedaaOperationsPage() {
       { key: "gate", label: t("table.gate") },
       { key: "status", label: t("table.status") },
       { key: "wait", label: t("operations_fields.wait") },
-      { key: "signals", label: t("operations_fields.signals") },
+      {
+        key: "signals",
+        label: t("operations_fields.signals"),
+        render: (_value, row) => (
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
+              row.activeRequest?.signals.urgent
+                ? "bg-red-100 text-red-800"
+                : row.activeRequest?.signals.delayed
+                  ? "bg-amber-100 text-amber-800"
+                  : "bg-emerald-100 text-emerald-800"
+            }`}
+          >
+            {row.activeRequest?.signals.urgent ? (
+              <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+            ) : null}
+            {String(row.signals)}
+          </span>
+        ),
+      },
       { key: "requestedAt", label: t("operations_fields.requested_at") },
       {
         key: "actions",
@@ -1236,34 +1265,87 @@ export default function NedaaOperationsPage() {
             <Button
               size="sm"
               variant="secondary"
+              className="hidden sm:inline-flex"
               onClick={() => openRecipients(row.activeRequest)}
             >
               {t("operations_actions.recipients")}
             </Button>
+            {row.activeRequest &&
+            nextStatusByCurrentStatus[row.activeRequest.status].length > 0 ? (
+              <Button
+                size="sm"
+                className="hidden sm:inline-flex"
+                disabled={!canManage}
+                onClick={() => openStatusModal(row.activeRequest)}
+              >
+                {t("operations_actions.advance_status")}
+              </Button>
+            ) : null}
+            {row.activeRequest?.status === "ready" ? (
+              <Button
+                size="sm"
+                variant="success"
+                disabled={!canManage}
+                onClick={() => openDeliveryModal(row.activeRequest)}
+              >
+                {t("operations_actions.deliver")}
+              </Button>
+            ) : null}
             <Button
-              size="sm"
-              variant="secondary"
-              disabled={!canManage}
-              onClick={() => openStatusModal(row.activeRequest)}
-            >
-              {t("operations_actions.advance_status")}
-            </Button>
-            <Button
-              size="sm"
-              variant="success"
-              disabled={!canManage}
-              onClick={() => openDeliveryModal(row.activeRequest)}
-            >
-              {t("operations_actions.deliver")}
-            </Button>
-            <Button
-              size="sm"
-              variant="danger"
+                size="sm"
+                variant="danger"
+                className="hidden sm:inline-flex"
               disabled={!canManage}
               onClick={() => openEscalationModal(row.activeRequest)}
             >
               {t("operations_actions.escalate")}
             </Button>
+            <details className="relative sm:hidden">
+              <summary className="cursor-pointer rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700">
+                {t("operations_actions.more")}
+              </summary>
+              <div className="absolute end-0 z-20 mt-1 flex min-w-36 flex-col gap-1 rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-label={`${t("operations_actions.recipients")} ${t("operations_actions.more")}`}
+                  onClick={() => openRecipients(row.activeRequest)}
+                >
+                  {t("operations_actions.recipients")}
+                </Button>
+                {row.activeRequest && nextStatusByCurrentStatus[row.activeRequest.status].length > 0 ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={!canManage}
+                    aria-label={`${t("operations_actions.advance_status")} ${t("operations_actions.more")}`}
+                    onClick={() => openStatusModal(row.activeRequest)}
+                  >
+                    {t("operations_actions.advance_status")}
+                  </Button>
+                ) : null}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={!canManage}
+                  aria-label={`${t("operations_actions.escalate")} ${t("operations_actions.more")}`}
+                  onClick={() => openEscalationModal(row.activeRequest)}
+                >
+                  {t("operations_actions.escalate")}
+                </Button>
+              </div>
+            </details>
+            {row.activeRequest?.status === "ready" ? (
+              <p className="w-full text-end text-xs font-medium text-emerald-700">
+                {t("operations_guidance.ready_for_handover")}
+              </p>
+            ) : row.activeRequest ? (
+              <p className="w-full text-end text-xs text-gray-500">
+                {t("operations_guidance.advance_to", {
+                  status: t(`operations_status.${nextStatusByCurrentStatus[row.activeRequest.status][0]}`),
+                })}
+              </p>
+            ) : null}
           </div>
         ),
       },
@@ -1290,14 +1372,16 @@ export default function NedaaOperationsPage() {
         sortable: false,
         render: (_value, row) => (
           <div className="flex justify-end gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={!canManage}
-              onClick={() => openArrivalModal(row.waitingStudent)}
-            >
-              {t("operations_actions.confirm_arrival")}
-            </Button>
+            {row.waitingStudent?.status === "called" ||
+            row.waitingStudent?.status === "moving" ? (
+              <Button
+                size="sm"
+                disabled={!canManage}
+                onClick={() => openArrivalModal(row.waitingStudent)}
+              >
+                {t("operations_actions.confirm_arrival")}
+              </Button>
+            ) : null}
           </div>
         ),
       },
@@ -1393,12 +1477,15 @@ export default function NedaaOperationsPage() {
 
   const openStatusModal = (request?: ActiveDismissalRequest) => {
     if (!request) return;
-    setSelectedStatus(request.status === "requested" ? "queued" : "called");
+    const availableStatuses = nextStatusByCurrentStatus[request.status];
+    if (availableStatuses.length === 0) return;
+    setSelectedStatus(availableStatuses[0]);
     setActionNote("");
     setActionModal({
       type: "status",
       requestId: request.id,
       title: request.child.displayName,
+      requestStatus: request.status,
     });
   };
 
@@ -1414,15 +1501,26 @@ export default function NedaaOperationsPage() {
   };
 
   const openDeliveryModal = (request?: ActiveDismissalRequest) => {
-    if (!request) return;
+    if (!request || request.status !== "ready") return;
     setPickupCode("");
     setPickupRecipientToken("");
     setActionNote("");
+    setPickupRecipients(null);
+    setReadOnlyModalError(null);
+    setReadOnlyModalLoading(true);
     setActionModal({
       type: "delivery",
       requestId: request.id,
       title: request.child.displayName,
+      requestStatus: request.status,
     });
+    void listDismissalPickupRecipients(request.id)
+      .then((response) => {
+        setPickupRecipients(response);
+        setPickupRecipientToken(response.recipients[0]?.pickupRecipientToken ?? "");
+      })
+      .catch(() => setReadOnlyModalError(t("operations.detail_failed")))
+      .finally(() => setReadOnlyModalLoading(false));
   };
 
   const openEscalationModal = (request?: ActiveDismissalRequest) => {
@@ -1465,6 +1563,13 @@ export default function NedaaOperationsPage() {
         });
         showSuccess(t("messages.request_updated"));
       } else if (actionModal.type === "delivery") {
+        if (!pickupRecipientToken) {
+          showError(t("messages.request_update_failed"));
+          return;
+        }
+        setActionModal({ ...actionModal, type: "delivery_confirm" });
+        return;
+      } else if (actionModal.type === "delivery_confirm") {
         await deliverDismissalRequest(actionModal.requestId, {
           pickupCode: pickupCode.trim() || undefined,
           pickupRecipientToken: pickupRecipientToken.trim() || undefined,
@@ -1529,11 +1634,21 @@ export default function NedaaOperationsPage() {
           <p className="mt-1 text-sm text-gray-500">
             {t("operations.subtitle")}
           </p>
+          <p className="mt-2 text-xs text-gray-500" role="status">
+            {isLoading
+              ? t("operations.refreshing")
+              : lastRefreshedAt
+                ? t("operations.last_refreshed", {
+                    time: formatDateTime(lastRefreshedAt.toISOString()),
+                  })
+                : "-"}
+          </p>
         </div>
         <Button
           variant="secondary"
           leftIcon={<RefreshCw className="h-4 w-4" />}
           onClick={() => setRefreshKey((current) => current + 1)}
+          disabled={isLoading}
         >
           {t("operations_actions.refresh")}
         </Button>
@@ -1858,15 +1973,63 @@ export default function NedaaOperationsPage() {
             <Button variant="secondary" onClick={closeActionModal}>
               {tCommon("close")}
             </Button>
+          ) : actionModal?.type === "delivery_confirm" ? (
+            <>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  setActionModal((current) =>
+                    current ? { ...current, type: "delivery" } : null,
+                  )
+                }
+              >
+                {t("operations_actions.back")}
+              </Button>
+              {renderActionFooter(
+                actionModal,
+                isSavingAction,
+                false,
+                t,
+                saveAction,
+              )}
+            </>
           ) : (
-            renderActionFooter(actionModal, isSavingAction, t, saveAction)
+            renderActionFooter(
+              actionModal,
+              isSavingAction,
+              actionModal?.type === "delivery" &&
+                (readOnlyModalLoading ||
+                  Boolean(readOnlyModalError) ||
+                  !pickupRecipientToken),
+              t,
+              saveAction,
+            )
           )
         }
       >
         {actionModal?.type === "status" ? (
           <div className="space-y-4 py-2">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-gray-500">
+              {(["requested", "queued", "called", "moving", "at_gate", "ready"] as DismissalRequestStatus[]).map(
+                (status) => (
+                  <span
+                    key={status}
+                    className={`rounded-full border px-2 py-1 ${
+                      status === actionModal.requestStatus
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-gray-200 bg-gray-50"
+                    }`}
+                  >
+                    {t(`operations_status.${status}`)}
+                  </span>
+                ),
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              {nextStatusOptions.map((status) => (
+              {(actionModal.requestStatus
+                ? nextStatusByCurrentStatus[actionModal.requestStatus]
+                : []
+              ).map((status) => (
                 <button
                   key={status}
                   type="button"
@@ -1904,21 +2067,65 @@ export default function NedaaOperationsPage() {
           </div>
         ) : actionModal?.type === "delivery" ? (
           <div className="space-y-4 py-2">
-            <Input
-              label={t("operations_fields.pickup_code")}
-              value={pickupCode}
-              onChange={(event) => setPickupCode(event.target.value)}
-            />
-            <Input
-              label={t("operations_fields.pickup_recipient_token")}
-              value={pickupRecipientToken}
-              onChange={(event) => setPickupRecipientToken(event.target.value)}
-            />
+            {readOnlyModalError ? (
+              <p className="text-sm text-red-600" role="alert">
+                {readOnlyModalError}
+              </p>
+            ) : null}
+            {readOnlyModalLoading ? (
+              <p className="text-sm text-gray-600">{t("operations.detail_loading")}</p>
+            ) : (
+              <Select
+                label={t("operations_actions.recipients")}
+                value={pickupRecipientToken}
+                onChange={setPickupRecipientToken}
+                options={(pickupRecipients?.recipients ?? []).map((recipient) => ({
+                  value: recipient.pickupRecipientToken,
+                  label: recipient.relation
+                    ? `${recipient.displayName} (${recipient.relation})`
+                    : recipient.displayName,
+                }))}
+                noOptionsText={t("filters.no_options")}
+                noResultsText={t("filters.no_results")}
+              />
+            )}
+            {pickupRecipients?.policy.pickupCodeRequired ? (
+              <Input
+                label={t("operations_fields.pickup_code")}
+                value={pickupCode}
+                onChange={(event) => setPickupCode(event.target.value)}
+              />
+            ) : null}
             <TextArea
               label={t("operations_fields.note")}
               value={actionNote}
               onChange={(event) => setActionNote(event.target.value)}
             />
+          </div>
+        ) : actionModal?.type === "delivery_confirm" ? (
+          <div className="space-y-4 py-2">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+              <p className="font-semibold">{t("operations.delivery_confirmation")}</p>
+              <p className="mt-1 text-amber-900">{actionModal.title}</p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:grid-cols-2">
+              <HistoryIdentityItem
+                label={t("operations_actions.recipients")}
+                value={
+                  pickupRecipients?.recipients.find(
+                    (recipient) => recipient.pickupRecipientToken === pickupRecipientToken,
+                  )?.displayName ?? "-"
+                }
+              />
+              <HistoryIdentityItem
+                label={t("operations_fields.pickup_code")}
+                value={
+                  pickupRecipients?.policy.pickupCodeRequired
+                    ? pickupCode || "-"
+                    : t("operations.pickup_code_not_required")
+                }
+              />
+            </div>
           </div>
         ) : actionModal?.type === "escalation" ? (
           <div className="space-y-4 py-2">
@@ -2147,6 +2354,7 @@ function summaryEntries(
 function renderActionFooter(
   actionModal: ActionModalState | null,
   isSavingAction: boolean,
+  disabled: boolean,
   t: ReturnType<typeof useTranslations>,
   saveAction: () => Promise<void>,
 ) {
@@ -2163,11 +2371,16 @@ function renderActionFooter(
     status: "operations_actions.save_status",
     arrival: "operations_actions.save_arrival",
     delivery: "operations_actions.save_delivery",
+    delivery_confirm: "operations_actions.confirm_delivery",
     escalation: "operations_actions.save_escalation",
   } as const;
 
   return (
-    <Button onClick={() => void saveAction()} loading={isSavingAction}>
+    <Button
+      onClick={() => void saveAction()}
+      loading={isSavingAction}
+      disabled={disabled}
+    >
       {t(labelByType[actionModal.type])}
     </Button>
   );

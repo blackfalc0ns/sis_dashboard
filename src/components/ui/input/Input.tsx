@@ -142,7 +142,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             <div
               className={`absolute top-1/2 -translate-y-1/2 ${
                 isRTL ? "left-3" : "right-3"
-              } ${error ? "text-red-500" : "text-gray-400"} pointer-events-none`}
+              } ${error ? "text-red-500 pointer-events-none" : "text-gray-400"}`}
             >
               {error ? <AlertCircle className="w-5 h-5" /> : rightIcon}
             </div>

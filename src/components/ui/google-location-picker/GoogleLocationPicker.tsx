@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, MapPin, Search } from "lucide-react";
+import { Crosshair, Loader2, MapPin, Search } from "lucide-react";
 import { useLocale } from "next-intl";
 import { useDebouncedCallback } from "use-debounce";
 import Input from "@/components/ui/input/Input";
@@ -34,12 +34,18 @@ export interface GoogleLocationPickerLabels {
   loadingMaps: string;
   searching: string;
   resolving: string;
+  currentLocation: string;
+  locating: string;
   manualCoordinates: string;
   latitude: string;
   longitude: string;
   errors: Record<
     | "api_key_missing"
     | "maps_load_failed"
+    | "geolocation_not_supported"
+    | "geolocation_permission_denied"
+    | "geolocation_unavailable"
+    | "geolocation_timeout"
     | "search_failed"
     | "resolve_failed"
     | "coordinate_pair_required"
@@ -64,6 +70,15 @@ const DEFAULT_CENTER = { lat: 24.7136, lng: 46.6753 };
 
 function toPosition(value: GoogleLocationValue | null): GoogleLatLngLiteral {
   return value ? { lat: value.latitude, lng: value.longitude } : DEFAULT_CENTER;
+}
+
+function geolocationErrorKey(error: GeolocationPositionError) {
+  if (error.code === error.PERMISSION_DENIED) {
+    return "geolocation_permission_denied" as const;
+  }
+  return error.code === error.TIMEOUT
+    ? ("geolocation_timeout" as const)
+    : ("geolocation_unavailable" as const);
 }
 
 export default function GoogleLocationPicker({
@@ -108,6 +123,7 @@ export default function GoogleLocationPicker({
   const [isMapsLoading, setIsMapsLoading] = useState(Boolean(apiKey));
   const [isSearching, setIsSearching] = useState(false);
   const [isResolving, setIsResolving] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [errorKey, setErrorKey] = useState<keyof typeof labels.errors | null>(
     apiKey ? null : "api_key_missing",
   );
@@ -208,6 +224,54 @@ export default function GoogleLocationPicker({
     },
     [applyLocation, locale],
   );
+
+  const applyCurrentPosition = useCallback(
+    (geolocation: GeolocationPosition) => {
+      if (!mountedRef.current) return;
+      setIsLocating(false);
+      const position = {
+        lat: geolocation.coords.latitude,
+        lng: geolocation.coords.longitude,
+      };
+      updateMapPosition(position);
+      mapRef.current?.setZoom(16);
+      if (geocoderRef.current) {
+        resolvePosition(position);
+        return;
+      }
+      applyLocation({
+        latitude: position.lat,
+        longitude: position.lng,
+        label: "",
+        formattedAddress: "",
+      });
+    },
+    [applyLocation, resolvePosition, updateMapPosition],
+  );
+
+  const reportGeolocationError = useCallback(
+    (error: GeolocationPositionError) => {
+      if (!mountedRef.current) return;
+      setIsLocating(false);
+      setErrorKey(geolocationErrorKey(error));
+    },
+    [],
+  );
+
+  const requestCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setErrorKey("geolocation_not_supported");
+      return;
+    }
+
+    setIsLocating(true);
+    setErrorKey(null);
+    navigator.geolocation.getCurrentPosition(
+      applyCurrentPosition,
+      reportGeolocationError,
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+    );
+  };
 
   useEffect(() => {
     if (!apiKey || !mapContainerRef.current) return;
@@ -392,6 +456,19 @@ export default function GoogleLocationPicker({
             leftIcon={<Search className="h-4 w-4" />}
             disabled={disabled || !apiKey || isMapsLoading}
           />
+          <button
+            type="button"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={requestCurrentLocation}
+            disabled={disabled || isLocating}
+          >
+            {isLocating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Crosshair className="h-4 w-4" />
+            )}
+            {isLocating ? labels.locating : labels.currentLocation}
+          </button>
           <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
             <div className="border-b border-gray-100 px-3 py-2 text-sm font-semibold text-gray-700">
               {labels.results}
