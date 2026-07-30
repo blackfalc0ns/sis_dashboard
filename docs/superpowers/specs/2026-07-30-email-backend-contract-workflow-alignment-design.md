@@ -27,6 +27,14 @@ This design covers:
   email surfaces.
 - Focused unit and component tests for the corrected contracts and workflows.
 
+Together these are the backend's complete 21-route email surface: five
+connection routes, five template routes, two credential-delivery routes, four
+general-delivery routes, and five campaign routes. Existing route paths and
+their granular `*.view`/`*.manage` permission split remain unchanged because
+they already match the backend controllers. The endpoint contract suite will
+exercise and assert the method/path pair for all 21 routes, not only a
+representative subset.
+
 Existing uncommitted credential-delivery work for selected-user initialization
 and structured Settings workflow errors must be preserved and integrated.
 
@@ -50,8 +58,10 @@ backend names, nullability, metadata, and full response shapes such as:
 - `configured`, nullable connection fields, `lastTestedAt`, and `verifiedAt`.
 - `subjectSnapshot`, lifecycle timestamps, and `deliveryMode` on batches.
 - `toEmail` and `reason` on recipient-preview samples.
-- The full delivery batch returned by cancellation.
+- The full delivery batch returned by credential creation, campaign creation,
+  and cancellation.
 - Template `id`, `customized`, `createdAt`, and preview metadata.
+- Campaign preview `key`, nullable `text`, and optional `footerHtml` input.
 
 Components must not consume API DTOs directly when the UI needs different
 names or derived values.
@@ -86,6 +96,13 @@ unconfigured state.
 Updating, activating, and disabling replace the current connection with the
 mapped full response.
 
+Connection action availability follows the backend state machine. Test is
+enabled only for a persisted configuration, Activate only for `VERIFIED`, and
+Disable only for a configured connection that is not already `DISABLED`.
+Connection mutations are mutually disabled while any one is pending. The
+actions remain visible to authorized users so the workflow is discoverable
+without allowing requests the backend will reject.
+
 A successful connection test also replaces the current connection with the
 mapped full response. This immediately reflects `VERIFIED`, `lastTestedAt`,
 `verifiedAt`, and cleared failure state.
@@ -115,6 +132,11 @@ Canonicalization must:
 
 The fingerprint is a deterministic serialization of the canonical preview
 payload. It is stored only after a successful preview.
+
+The recipient-preview `limit` controls only the eligible/skipped sample size.
+It is not a send limit and is never copied to `maxRecipients`. When the UI does
+not expose a send cap, credential and campaign creation omit `maxRecipients` and
+retain the backend defaults of 250 and 500 respectively.
 
 ### Credential deliveries
 
@@ -148,7 +170,7 @@ behavior, login-email fallback, and preview limit.
 
 Campaign content preview remains independent from recipient preview because it
 does not authorize an audience. Campaign creation still validates subject,
-body, and forbidden credential variables at the client boundary.
+body, footer, and forbidden credential variables at the client boundary.
 
 Create is enabled only when the current canonical recipient payload matches the
 last successful recipient-preview fingerprint and the user holds the manage
@@ -170,8 +192,9 @@ as general delivery reads. `subjectSnapshot` becomes the UI `subject`, and
 the UI derives `cancellable` from the backend-supported `DRAFT`, `QUEUED`, and
 `PROCESSING` statuses on both surfaces.
 
-Delivery recipient mapping continues to translate `toEmail`, `displayName`,
-`skippedReason`, and timestamps into the current table model.
+Delivery recipient mapping translates `toEmail`, `displayName`, `attempts`,
+`lastAttemptAt`, `sentAt`, `failureReason`, `skippedReason`, `createdAt`, and
+`updatedAt` into the table model. It does not fabricate a `skippedAt` timestamp.
 
 Cancellation consumes and maps the full `DeliveryBatchSummaryDto`. The detail
 page uses that response or refreshes authoritative data; it does not depend on a
@@ -189,7 +212,8 @@ only with categories and structured details needed by current backend errors.
 The normalized model carries these details when supplied by the backend:
 
 - `traceId`.
-- Field validation errors.
+- Safe field names extracted from `details.field` or `details.fields`; raw
+  validation strings are not displayed.
 - A safe failure `reason`.
 - Recipient `count` and `limit`.
 - Delivery batch `status`.
@@ -271,11 +295,16 @@ Implementation follows test-driven development with focused tests for:
 - Template DTO metadata and preview response completeness.
 - Credential preview mapping from `toEmail` and `reason`.
 - Regeneration preview setting `includeUsersWithPassword: true`.
+- Credential and campaign create responses mapping the full delivery batch.
+- Preview sample limits never becoming create `maxRecipients` values.
 - Credential and campaign canonical payload normalization.
 - Matching preview fingerprints enabling create.
 - Audience-sensitive changes disabling create until re-preview.
 - Late preview responses not authorizing a newer payload.
 - Campaign list and detail mapping from `subjectSnapshot`.
+- Campaign content preview retaining `key`, nullable `text`, and `footerHtml`.
+- Delivery-recipient attempts, reasons, and real timestamps mapping without a
+  fabricated `skippedAt`.
 - Cancellation mapping the full backend batch response, allowing cancellation
   in `DRAFT`, `QUEUED`, and `PROCESSING`, and never fabricating
   `cancelledCount`.

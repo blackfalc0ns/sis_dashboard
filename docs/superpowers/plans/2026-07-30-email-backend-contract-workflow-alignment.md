@@ -20,6 +20,54 @@
 - Creation requires an exact successful recipient preview for the current canonical payload.
 - Use the already-installed Vitest binary because the workspace pnpm wrapper currently aborts on ignored native build scripts.
 - Stage and commit only files owned by the current task.
+- Treat every `git add` list below as maximum scope. If a listed file was
+  already dirty when implementation began, stage only the newly implemented
+  hunks; if safe hunk separation cannot be proven, leave that file unstaged and
+  report it instead of committing the user's pre-existing changes.
+
+## Verified Backend Source Matrix
+
+The backend default branch was rechecked before this plan revision and still
+points at commit `2f87a155cf27f2186cfd7746026562ef18cb4f71`.
+
+| Contract or behavior | Backend source of truth |
+| --- | --- |
+| All 21 routes and their view/manage permissions | `src/modules/settings/email/controller/email-connection.controller.ts`, `email-template.controller.ts`, and the three controllers under `delivery/controller/` |
+| Connection request/response/test DTOs | `src/modules/settings/email/dto/email-connection.dto.ts` |
+| SMTP-only runtime validation | `src/modules/settings/email/application/update-email-connection.use-case.ts` |
+| Successful and persisted-failure test state | `src/modules/settings/email/application/test-email-connection.use-case.ts` |
+| Template request/response/preview DTOs | `src/modules/settings/email/dto/email-template.dto.ts` |
+| Recipient preview, campaign, batch, recipient, and pagination DTOs | `src/modules/settings/email/delivery/dto/email-delivery.dto.ts` |
+| Response field mapping and sanitized failure reasons | `src/modules/settings/email/delivery/presenters/email-delivery.presenter.ts` |
+| Credential preview/create selection semantics | `src/modules/settings/email/delivery/application/preview-credential-delivery-recipients.use-case.ts` and `create-credential-delivery.use-case.ts` |
+| Campaign preview/create selection semantics | `src/modules/settings/email/delivery/application/preview-campaign-recipients.use-case.ts` and `create-email-campaign.use-case.ts` |
+| Cancellable batch statuses | `src/modules/settings/email/delivery/application/cancel-email-delivery.use-case.ts` |
+| Email error codes and structured details | `src/modules/settings/email/domain/email.exceptions.ts` and `ERROR_CATALOG.md` |
+| Error envelope and validation detail placement | `src/common/exceptions/global-exception.filter.ts` |
+
+Contract rules confirmed by this matrix:
+
+- The route families remain connection (5), templates (5), credential
+  deliveries (2), general deliveries (4), and campaigns (5). Existing frontend
+  paths use the backend's exact `preview-recipients`, `preview`,
+  `reset-default`, and `:batchId/cancel` segments.
+- Read and preview operations retain their backend `*.view` permissions;
+  mutations retain their matching `*.manage` permissions. The existing
+  `emailPermissionsContract.test.ts` remains the regression gate.
+- Expand `sprint11EndpointContracts.test.ts` across Tasks 1–7 until it invokes
+  every one of the 21 exported email service operations and asserts the exact
+  HTTP method and path. Do not leave route coverage at the current
+  representative subset.
+- Credential and campaign create endpoints return the complete
+  `DeliveryBatchSummaryDto`, optionally including `deliveryMode: "queued"`.
+- Recipient preview `limit` controls only the eligible/skipped sample size.
+  It must not be copied to `maxRecipients`; omitted create limits retain the
+  backend defaults of 250 credentials and 500 campaigns.
+- Recipient preview responses always contain `skippedReasons` and `sample`;
+  delivery/campaign list responses always contain `pagination`.
+- Class-validator failures arrive as `details.fields: string[]`, while domain
+  validation may use `details.field`; the current backend envelope does not
+  emit a top-level `errors` map.
 
 ---
 
@@ -36,6 +84,7 @@
 - `src/features/settings/email/connection/services/__tests__/emailConnectionService.test.ts` — connection DTO mapping tests.
 - `src/features/settings/email/deliveries/services/__tests__/emailDeliveriesService.test.ts` — batch, recipient, and cancellation contract tests.
 - `src/features/settings/email/templates/services/__tests__/emailTemplatesService.test.ts` — template response completeness tests.
+- `src/features/settings/email/credential-deliveries/services/__tests__/credentialDeliveryService.test.ts` — credential preview and create-response mapping tests.
 - `src/features/settings/email/credential-deliveries/utils/__tests__/credentialDeliveryPayloads.test.ts` — credential canonical payload tests.
 - `src/features/settings/email/campaigns/utils/__tests__/campaignPayloads.test.ts` — campaign canonical payload tests.
 - Page tests under each email feature for async state and error behavior.
@@ -63,9 +112,12 @@
 - Modify: `src/features/settings/__tests__/sprint11EndpointContracts.test.ts`
 
 **Interfaces:**
-- Produces: `EmailConnectionResponseDto`, `EmailConnection`, `mapEmailConnection(dto)`.
+- Produces: exact `UpdateEmailConnectionRequest`, `EmailConnectionResponseDto`, `EmailConnection`, and `mapEmailConnection(dto)`.
 - Produces: `TestEmailConnectionResponseDto` extending the full connection DTO.
-- Produces: exact template metadata fields `id`, `customized`, `createdAt`, `updatedAt`, `key`, and preview `preheader`.
+- Produces: exact `UpdateEmailTemplateRequest` and `PreviewEmailTemplateRequest`.
+- Produces: exact `EmailTemplateResponseDto`,
+  `EmailTemplateListResponseDto`, `EmailTemplatePreviewResponseDto`, and
+  `mapEmailTemplate(dto)`.
 - Consumes: existing `apiGet`, `apiPost`, and `apiPut`.
 
 - [ ] **Step 1: Write failing connection mapper tests**
@@ -180,6 +232,19 @@ export interface TestEmailConnectionResponse extends EmailConnection {
   message: string;
 }
 
+export interface UpdateEmailConnectionRequest {
+  providerType?: EmailConnectionProviderType;
+  fromName?: string;
+  fromEmail?: string;
+  replyToEmail?: string | null;
+  host?: string;
+  port?: number;
+  secure?: boolean;
+  username?: string;
+  password?: string;
+  apiKey?: string;
+}
+
 export function mapEmailConnection(
   dto: EmailConnectionResponseDto,
 ): EmailConnection {
@@ -262,7 +327,7 @@ Expected: FAIL because omitted metadata is absent from the declared frontend con
 - [ ] **Step 6: Add exact template response fields**
 
 ```ts
-export interface EmailTemplate {
+export interface EmailTemplateResponseDto {
   id: string | null;
   key: EmailTemplateKey;
   customized: boolean;
@@ -282,7 +347,11 @@ export interface EmailTemplate {
   updatedAt: string | null;
 }
 
-export interface PreviewEmailTemplateResponse {
+export interface EmailTemplateListResponseDto {
+  items: EmailTemplateResponseDto[];
+}
+
+export interface EmailTemplatePreviewResponseDto {
   key: EmailTemplateKey;
   subject: string;
   preheader: string | null;
@@ -291,7 +360,57 @@ export interface PreviewEmailTemplateResponse {
   unknownVariables: string[];
   missingVariables: string[];
 }
+
+export type EmailTemplate = EmailTemplateResponseDto;
+export type PreviewEmailTemplateResponse =
+  EmailTemplatePreviewResponseDto;
+
+export function mapEmailTemplate(
+  dto: EmailTemplateResponseDto,
+): EmailTemplate {
+  return {
+    ...dto,
+    socialLinks: dto.socialLinks ? { ...dto.socialLinks } : null,
+    allowedVariables: [...dto.allowedVariables],
+  };
+}
+
+export interface EmailTemplateSocialLinks {
+  website?: string;
+  facebook?: string;
+  instagram?: string;
+  x?: string;
+}
+
+export interface UpdateEmailTemplateRequest {
+  subject?: string;
+  preheader?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  bodyHtml?: string;
+  bodyText?: string | null;
+  footerHtml?: string | null;
+  supportEmail?: string | null;
+  supportPhone?: string | null;
+  socialLinks?: EmailTemplateSocialLinks | null;
+  isActive?: boolean;
+}
+
+export interface PreviewEmailTemplateRequest
+  extends UpdateEmailTemplateRequest {
+  previewData?: Record<string, unknown>;
+}
 ```
+
+Keep the editor's required-field validation in its form model; do not make the
+backend boundary request artificially required. Add request-shape tests that
+prove a partial connection update and a partial template update are accepted by
+the service types without serializing absent fields as `null`.
+
+Map list/get/update/reset responses through `mapEmailTemplate`; map the preview
+response through an explicit pass-through helper that clones
+`missingVariables` and `unknownVariables`. This keeps all HTTP responses behind
+tested service boundaries even when the UI names match the backend.
 
 - [ ] **Step 7: Correct the legacy endpoint contract assertion**
 
@@ -340,16 +459,28 @@ git commit -m "fix: align email connection and template contracts"
 - Modify: `src/features/settings/email/deliveries/services/emailDeliveriesService.ts`
 - Create: `src/features/settings/email/deliveries/services/__tests__/emailDeliveriesService.test.ts`
 - Modify: `src/features/settings/email/deliveries/components/DeliveryBatchTable.tsx`
+- Modify: `src/features/settings/email/deliveries/components/DeliveryRecipientTable.tsx`
+- Create: `src/features/settings/email/deliveries/components/__tests__/DeliveryRecipientTable.test.tsx`
 - Modify: `src/features/settings/email/deliveries/pages/EmailDeliveriesPage.tsx`
 - Modify: `src/features/settings/email/deliveries/pages/EmailDeliveryDetailPage.tsx`
 - Modify: `src/features/settings/email/campaigns/types.ts`
 - Modify: `src/features/settings/email/campaigns/services/emailCampaignsService.ts`
 - Create: `src/features/settings/email/campaigns/services/__tests__/emailCampaignsService.test.ts`
+- Modify: `src/features/settings/email/campaigns/components/CampaignComposer.tsx`
+- Modify: `src/features/settings/email/credential-deliveries/types.ts`
+- Modify: `src/features/settings/email/credential-deliveries/services/credentialDeliveryService.ts`
+- Create: `src/features/settings/email/credential-deliveries/services/__tests__/credentialDeliveryService.test.ts`
+- Modify: `src/features/settings/email/credential-deliveries/components/CredentialDeliveryConfirmStep.tsx`
+- Modify: `src/features/settings/email/credential-deliveries/components/CredentialDeliveryWizard.tsx`
+- Modify: `src/messages/en.json`
+- Modify: `src/messages/ar.json`
 
 **Interfaces:**
+- Produces: exact `EmailDeliveryBatchDto`, `EmailDeliveryRecipientDto`, and required pagination envelopes.
 - Produces: `mapDeliveryBatch(dto): EmailDeliveryBatch`.
+- Produces: `mapDeliveryRecipient(dto): EmailDeliveryRecipient`.
 - Produces: `cancelEmailDeliveryBatch(batchId): Promise<EmailDeliveryBatch>`.
-- Produces: mapped `fetchEmailCampaigns` and `fetchEmailCampaign`.
+- Produces: mapped delivery-batch results for credential create, campaign create, campaign list, and campaign detail.
 - Removes: unsupported UI property `cancelledCount`.
 
 - [ ] **Step 1: Write failing delivery mapper tests**
@@ -409,6 +540,51 @@ it("maps the full cancellation response", async () => {
     cancellable: false,
   });
 });
+
+it("maps every delivery-recipient field without fabricating skippedAt", () => {
+  const recipient = mapDeliveryRecipient({
+    id: "recipient-1",
+    userId: null,
+    toEmail: "guardian@example.com",
+    displayName: "Guardian",
+    status: "SKIPPED",
+    attempts: 0,
+    lastAttemptAt: null,
+    sentAt: null,
+    failureReason: null,
+    skippedReason: "duplicate_email",
+    createdAt: "2026-07-30T09:00:00.000Z",
+    updatedAt: "2026-07-30T09:01:00.000Z",
+  });
+
+  expect(recipient).toMatchObject({
+    recipientEmail: "guardian@example.com",
+    attempts: 0,
+    skippedReason: "duplicate_email",
+  });
+  expect(recipient).not.toHaveProperty("skippedAt");
+});
+
+it("requires pagination on delivery list and recipient envelopes", async () => {
+  apiMocks.apiGet
+    .mockResolvedValueOnce({
+      items: [batchDto()],
+      pagination: { page: 1, limit: 20, total: 1 },
+    })
+    .mockResolvedValueOnce({
+      items: [],
+      pagination: { page: 1, limit: 50, total: 0 },
+    });
+
+  await expect(fetchEmailDeliveries()).resolves.toMatchObject({
+    pagination: { page: 1, limit: 20, total: 1 },
+  });
+  await expect(
+    fetchEmailDeliveryRecipients("batch-1"),
+  ).resolves.toMatchObject({
+    pagination: { page: 1, limit: 50, total: 0 },
+  });
+});
 ```
 
 - [ ] **Step 2: Run delivery tests and confirm failure**
@@ -424,6 +600,61 @@ Expected: FAIL because `PROCESSING` is not cancellable and cancellation expects 
 - [ ] **Step 3: Correct delivery types and mapper**
 
 ```ts
+export interface EmailDeliveryBatchDto {
+  batchId: string;
+  status: EmailDeliveryStatus;
+  kind: EmailDeliveryKind;
+  templateKey: EmailTemplateKey | null;
+  subjectSnapshot: string | null;
+  totalRecipients: number;
+  queuedCount: number;
+  sentCount: number;
+  failedCount: number;
+  skippedCount: number;
+  startedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  failureReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deliveryMode?: "queued";
+}
+
+export interface EmailDeliveryRecipientDto {
+  id: string;
+  userId: string | null;
+  toEmail: string;
+  displayName: string | null;
+  status: EmailRecipientStatus;
+  attempts: number;
+  lastAttemptAt: string | null;
+  sentAt: string | null;
+  failureReason: string | null;
+  skippedReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmailDeliveriesListResponseDto {
+  items: EmailDeliveryBatchDto[];
+  pagination: SettingsPaginationApiDto;
+}
+
+export interface EmailDeliveryRecipientsResponseDto {
+  items: EmailDeliveryRecipientDto[];
+  pagination: SettingsPaginationApiDto;
+}
+
+export interface EmailDeliveriesListResponse {
+  items: EmailDeliveryBatch[];
+  pagination: SettingsPaginationApiDto;
+}
+
+export interface EmailDeliveryRecipientsResponse {
+  items: EmailDeliveryRecipient[];
+  pagination: SettingsPaginationApiDto;
+}
+
 export interface EmailDeliveryBatch {
   batchId: string;
   kind: EmailDeliveryKind;
@@ -441,7 +672,23 @@ export interface EmailDeliveryBatch {
   failureReason: string | null;
   createdAt: string;
   updatedAt: string;
+  deliveryMode?: "queued";
   cancellable: boolean;
+}
+
+export interface EmailDeliveryRecipient {
+  id: string;
+  userId: string | null;
+  recipientEmail: string;
+  fullName: string | null;
+  status: EmailRecipientStatus;
+  attempts: number;
+  lastAttemptAt: string | null;
+  sentAt: string | null;
+  failureReason: string | null;
+  skippedReason: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const CANCELLABLE_BATCH_STATUSES = new Set<EmailDeliveryStatus>([
@@ -468,12 +715,78 @@ export function mapDeliveryBatch(dto: EmailDeliveryBatchDto): EmailDeliveryBatch
     failureReason: dto.failureReason,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
+    deliveryMode: dto.deliveryMode,
     cancellable: CANCELLABLE_BATCH_STATUSES.has(dto.status),
+  };
+}
+
+export function mapDeliveryRecipient(
+  dto: EmailDeliveryRecipientDto,
+): EmailDeliveryRecipient {
+  return {
+    id: dto.id,
+    userId: dto.userId,
+    recipientEmail: dto.toEmail,
+    fullName: dto.displayName,
+    status: dto.status,
+    attempts: dto.attempts,
+    lastAttemptAt: dto.lastAttemptAt,
+    sentAt: dto.sentAt,
+    failureReason: dto.failureReason,
+    skippedReason: dto.skippedReason,
+    createdAt: dto.createdAt,
+    updatedAt: dto.updatedAt,
   };
 }
 ```
 
-Map the cancellation response through this function. Remove every `cancelledCount` label, column, and metric from delivery components/pages.
+Map list/detail/cancellation and both create responses through these functions.
+Remove every `cancelledCount` and fabricated `skippedAt` label, column, metric,
+and type. Keep `failureReason` and `skippedReason` separate; the backend already
+sanitizes both before presentation.
+
+Update the detail summary to show the real `startedAt`, `completedAt`,
+`cancelledAt`, `failureReason`, and `updatedAt` values when present. Update the
+recipient table to show `attempts`, `lastAttemptAt`, `sentAt`, `failureReason`,
+`skippedReason`, and `updatedAt`; do not infer timestamps that the backend does
+not return.
+
+Add corresponding English/Arabic keys under
+`settings.email.deliveries.recipients`:
+
+```json
+// en.json
+"attempts": "Attempts",
+"last_attempt_at": "Last attempt",
+"skipped_reason": "Skipped reason",
+"updated_at": "Updated at"
+
+// ar.json
+"attempts": "المحاولات",
+"last_attempt_at": "آخر محاولة",
+"skipped_reason": "سبب التخطي",
+"updated_at": "وقت التحديث"
+```
+
+Add summary labels:
+
+```json
+// en.json
+"started_at": "Started at",
+"completed_at": "Completed at",
+"cancelled_at": "Cancelled at"
+
+// ar.json
+"started_at": "وقت البدء",
+"completed_at": "وقت الاكتمال",
+"cancelled_at": "وقت الإلغاء"
+```
+
+The comments above are plan annotations and must not be copied into JSON.
+
+Add a focused table test that renders `attempts`, `lastAttemptAt`,
+`skippedReason`, and `updatedAt`, and asserts the removed `skippedAt` label is
+absent.
 
 - [ ] **Step 4: Write failing campaign mapping tests**
 
@@ -528,6 +841,69 @@ it("maps campaign detail through the shared batch mapper", async () => {
     cancellable: true,
   });
 });
+
+it("maps the complete campaign create response", async () => {
+  apiMocks.apiPost.mockResolvedValue(
+    campaignBatchDto({ deliveryMode: "queued" }),
+  );
+
+  await expect(
+    createEmailCampaign({
+      recipientScope: { scope: "all_school_users" },
+      templateKey: "GENERAL_MESSAGE",
+      subject: "Subject",
+      bodyHtml: "<p>Hello</p>",
+    }),
+  ).resolves.toMatchObject({
+    kind: "GENERAL_CAMPAIGN",
+    subject: "Subject",
+    deliveryMode: "queued",
+    cancellable: true,
+  });
+});
+```
+
+In `credentialDeliveryService.test.ts`:
+
+```ts
+function credentialBatchDto(): EmailDeliveryBatchDto {
+  return {
+    batchId: "batch-1",
+    status: "QUEUED",
+    kind: "CREDENTIAL_DELIVERY",
+    templateKey: "ACCOUNT_CREDENTIALS",
+    subjectSnapshot: "Account credential delivery",
+    totalRecipients: 1,
+    queuedCount: 1,
+    sentCount: 0,
+    failedCount: 0,
+    skippedCount: 0,
+    startedAt: null,
+    completedAt: null,
+    cancelledAt: null,
+    failureReason: null,
+    createdAt: "2026-07-30T09:00:00.000Z",
+    updatedAt: "2026-07-30T09:00:00.000Z",
+    deliveryMode: "queued",
+  };
+}
+
+it("maps the complete credential create response", async () => {
+  apiMocks.apiPost.mockResolvedValue(credentialBatchDto());
+
+  await expect(
+    createCredentialDelivery({
+      scope: "selected",
+      userIds: ["00000000-0000-4000-8000-000000000001"],
+      credentialMode: "LOGIN_INFO_ONLY",
+    }),
+  ).resolves.toMatchObject({
+    kind: "CREDENTIAL_DELIVERY",
+    templateKey: "ACCOUNT_CREDENTIALS",
+    deliveryMode: "queued",
+    cancellable: true,
+  });
+});
 ```
 
 - [ ] **Step 5: Run campaign service tests and confirm failure**
@@ -566,14 +942,44 @@ export async function fetchEmailCampaign(
   );
   return { ...mapDeliveryBatch(dto), kind: "GENERAL_CAMPAIGN" };
 }
+
+export async function createEmailCampaign(
+  payload: CreateEmailCampaignRequest,
+): Promise<EmailCampaignBatch> {
+  const dto = await apiPost<EmailDeliveryBatchDto>(
+    "/settings/email/campaigns",
+    payload,
+  );
+  return { ...mapDeliveryBatch(dto), kind: "GENERAL_CAMPAIGN" };
+}
+
+export async function createCredentialDelivery(
+  payload: CreateCredentialDeliveryRequest,
+): Promise<EmailDeliveryBatch> {
+  const dto = await apiPost<EmailDeliveryBatchDto>(
+    "/settings/email/credential-deliveries",
+    payload,
+  );
+  return mapDeliveryBatch(dto);
+}
 ```
+
+Make `EmailCampaignsListResponse.pagination` required as well. In delivery and
+campaign pages, consume `pagination.page`, `pagination.limit`, and
+`pagination.total` directly instead of falling back to item counts.
+
+Remove the partial `CreateEmailCampaignResponse`,
+`CreateCredentialDeliveryResponse`, and `CancelEmailDeliveryResponse` shapes.
+Use `EmailCampaignBatch` or `EmailDeliveryBatch` consistently in page and
+component props. Remove the UI-only `title` alias from delivery batches and use
+the mapped `subject` consistently.
 
 - [ ] **Step 7: Run delivery and campaign tests**
 
 Run:
 
 ```powershell
-.\node_modules\.bin\vitest.cmd run src/features/settings/email/deliveries/services/__tests__/emailDeliveriesService.test.ts src/features/settings/email/campaigns/services/__tests__/emailCampaignsService.test.ts src/features/settings/__tests__/sprint11EndpointContracts.test.ts
+.\node_modules\.bin\vitest.cmd run src/features/settings/email/deliveries/services/__tests__/emailDeliveriesService.test.ts src/features/settings/email/deliveries/components/__tests__/DeliveryRecipientTable.test.tsx src/features/settings/email/campaigns/services/__tests__/emailCampaignsService.test.ts src/features/settings/email/credential-deliveries/services/__tests__/credentialDeliveryService.test.ts src/features/settings/__tests__/sprint11EndpointContracts.test.ts
 ```
 
 Expected: PASS.
@@ -581,7 +987,7 @@ Expected: PASS.
 - [ ] **Step 8: Commit Task 2**
 
 ```powershell
-git add -- src/features/settings/email/deliveries/types.ts src/features/settings/email/deliveries/services/emailDeliveriesService.ts src/features/settings/email/deliveries/services/__tests__/emailDeliveriesService.test.ts src/features/settings/email/deliveries/components/DeliveryBatchTable.tsx src/features/settings/email/deliveries/pages/EmailDeliveriesPage.tsx src/features/settings/email/deliveries/pages/EmailDeliveryDetailPage.tsx src/features/settings/email/campaigns/types.ts src/features/settings/email/campaigns/services/emailCampaignsService.ts src/features/settings/email/campaigns/services/__tests__/emailCampaignsService.test.ts src/features/settings/__tests__/sprint11EndpointContracts.test.ts
+git add -- src/features/settings/email/deliveries/types.ts src/features/settings/email/deliveries/services/emailDeliveriesService.ts src/features/settings/email/deliveries/services/__tests__/emailDeliveriesService.test.ts src/features/settings/email/deliveries/components/DeliveryBatchTable.tsx src/features/settings/email/deliveries/components/DeliveryRecipientTable.tsx src/features/settings/email/deliveries/components/__tests__/DeliveryRecipientTable.test.tsx src/features/settings/email/deliveries/pages/EmailDeliveriesPage.tsx src/features/settings/email/deliveries/pages/EmailDeliveryDetailPage.tsx src/features/settings/email/campaigns/types.ts src/features/settings/email/campaigns/services/emailCampaignsService.ts src/features/settings/email/campaigns/services/__tests__/emailCampaignsService.test.ts src/features/settings/email/campaigns/components/CampaignComposer.tsx src/features/settings/email/credential-deliveries/types.ts src/features/settings/email/credential-deliveries/services/credentialDeliveryService.ts src/features/settings/email/credential-deliveries/services/__tests__/credentialDeliveryService.test.ts src/features/settings/email/credential-deliveries/components/CredentialDeliveryConfirmStep.tsx src/features/settings/email/credential-deliveries/components/CredentialDeliveryWizard.tsx src/features/settings/__tests__/sprint11EndpointContracts.test.ts src/messages/en.json src/messages/ar.json
 git commit -m "fix: map email delivery and campaign batches"
 ```
 
@@ -704,6 +1110,17 @@ export interface EmailRecipientPreviewItemDto {
   reason: string | null;
 }
 
+export interface EmailRecipientPreviewResponseDto {
+  totalMatched: number;
+  eligible: number;
+  skipped: number;
+  skippedReasons: Record<string, number>;
+  sample: {
+    eligible: EmailRecipientPreviewItemDto[];
+    skipped: EmailRecipientPreviewItemDto[];
+  };
+}
+
 export interface EmailRecipientPreview {
   userId: string | null;
   fullName: string | null;
@@ -735,7 +1152,11 @@ function mapPreviewItem(
 }
 ```
 
-Do not retain duplicate feature-specific backend DTOs.
+Do not retain duplicate feature-specific backend DTOs, nullable/optional sample
+fallbacks, or fabricated preview pagination. The backend always returns both
+sample arrays and `skippedReasons`, including empty values. Make
+`totalMatched`, `eligibleCount`, `skippedCount`, and `skippedReasons` required
+in both feature UI response types.
 
 - [ ] **Step 4: Adapt credential and campaign services/components**
 
@@ -792,9 +1213,9 @@ git commit -m "fix: normalize email recipient previews"
 
 **Interfaces:**
 - Produces: expanded `SettingsWorkflowErrorKind`.
-- Produces: `SettingsWorkflowError` with safe `code`, `traceId`, `fieldErrors`, `reasonCode`, `recipientCount`, `recipientLimit`, `batchStatus`, and `variables`.
+- Produces: `SettingsWorkflowError` with safe `code`, `traceId`, `invalidFields`, `reasonCode`, `recipientCount`, `recipientLimit`, `batchStatus`, and `variables`.
 - Produces: `classifySettingsWorkflowError(error)`.
-- Consumes: `ApiError.code`, `ApiError.errors`, `ApiError.details`, `ApiError.traceId`, and `ApiError.status`.
+- Consumes: `ApiError.code`, `ApiError.details`, `ApiError.traceId`, and `ApiError.status`.
 
 - [ ] **Step 1: Write exhaustive failing classifier tests**
 
@@ -846,14 +1267,14 @@ it.each([
   ).toMatchObject({ kind: "retryable", code });
 });
 
-it("preserves validation field keys and trace ID without exposing raw text", () => {
+it("extracts validation field keys from details without exposing raw text", () => {
   const result = classifySettingsWorkflowError(
     new ApiError(
       "raw validation message",
-      422,
+      400,
       "validation.failed",
-      { subject: ["raw subject message"] },
       undefined,
+      { fields: ["subject must be shorter than or equal to 200 characters"] },
       "trace-validation",
     ),
   );
@@ -861,10 +1282,27 @@ it("preserves validation field keys and trace ID without exposing raw text", () 
   expect(result).toMatchObject({
     kind: "validation",
     code: "validation.failed",
-    fieldErrors: { subject: ["raw subject message"] },
+    invalidFields: ["subject"],
     traceId: "trace-validation",
   });
   expect(result).not.toHaveProperty("message");
+});
+
+it("extracts a singular domain-validation field", () => {
+  const result = classifySettingsWorkflowError(
+    new ApiError(
+      "raw",
+      400,
+      "validation.failed",
+      undefined,
+      { field: "dryRun" },
+    ),
+  );
+
+  expect(result).toMatchObject({
+    kind: "validation",
+    invalidFields: ["dryRun"],
+  });
 });
 
 it.each([
@@ -919,15 +1357,24 @@ Expected: FAIL for the newly explicit error categories and details.
 - [ ] **Step 3: Implement safe detail extraction and exhaustive mapping**
 
 ```ts
+type SettingsEmailBatchStatus =
+  | "DRAFT"
+  | "QUEUED"
+  | "PROCESSING"
+  | "SUCCEEDED"
+  | "PARTIAL_FAILED"
+  | "FAILED"
+  | "CANCELLED";
+
 export interface SettingsWorkflowError {
   kind: SettingsWorkflowErrorKind;
   code?: string;
   traceId?: string;
-  fieldErrors?: Record<string, string[]>;
+  invalidFields?: string[];
   reasonCode?: string;
   recipientCount?: number;
   recipientLimit?: number;
-  batchStatus?: string;
+  batchStatus?: SettingsEmailBatchStatus;
   variables?: string[];
 }
 
@@ -937,14 +1384,54 @@ function detailRecord(details: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
+function numericDetail(details: unknown, key: string): number | undefined {
+  const value = detailRecord(details)?.[key];
+  return typeof value === "number" &&
+    Number.isSafeInteger(value) &&
+    value >= 0
+    ? value
+    : undefined;
+}
+
 function stringArrayDetail(
   details: unknown,
   key: string,
 ): string[] | undefined {
   const value = detailRecord(details)?.[key];
-  return Array.isArray(value) && value.every((entry) => typeof entry === "string")
+  if (!Array.isArray(value)) return undefined;
+  const safeValues = value
+    .filter(
+      (entry): entry is string =>
+        typeof entry === "string" &&
+        /^[A-Za-z][A-Za-z0-9_.-]{0,99}$/.test(entry),
+    )
+    .slice(0, 20);
+  return safeValues.length > 0 ? safeValues : undefined;
+}
+
+function identifierDetail(
+  details: unknown,
+  key: string,
+): string | undefined {
+  const value = detailRecord(details)?.[key];
+  return typeof value === "string" &&
+    /^[A-Za-z][A-Za-z0-9_.-]{0,99}$/.test(value)
     ? value
     : undefined;
+}
+
+function validationFieldNames(details: unknown): string[] | undefined {
+  const record = detailRecord(details);
+  const candidates = [
+    ...(typeof record?.field === "string" ? [record.field] : []),
+    ...(Array.isArray(record?.fields) ? record.fields : []),
+  ];
+  const names = candidates.flatMap((candidate) => {
+    if (typeof candidate !== "string") return [];
+    const match = candidate.match(/^[A-Za-z][A-Za-z0-9_.]{0,99}/);
+    return match ? [match[0]] : [];
+  });
+  return names.length > 0 ? Array.from(new Set(names)) : undefined;
 }
 
 const EMAIL_ERROR_KIND_BY_CODE: Record<string, SettingsWorkflowErrorKind> = {
@@ -983,14 +1470,18 @@ const RETRYABLE_CODES = new Set([
 
 Use these code maps before status fallbacks. For
 `settings.email.delivery_too_many_recipients`, copy numeric `count` and `limit`;
-for `settings.email.delivery_batch_not_cancelable`, copy string `status`; for
-template/campaign errors copy only validated string arrays from `fields`,
-`unknownVariables`, or `variables`; and for connection-test/send failures copy
-only the bounded `reason` code. Never copy `error.message` into the normalized
-model.
+for `settings.email.delivery_batch_not_cancelable`, copy `status` only when it
+is one of the seven `SettingsEmailBatchStatus` values; for
+template errors extract bounded `invalidFields` from `fields` and copy validated
+variable names from `unknownVariables`; for forbidden campaign variables copy
+validated names from `variables`; and for connection-test/send failures copy
+only a bounded identifier-like `reasonCode`. Never copy `error.message` into the
+normalized model.
 
-Map `validation.failed` and unmapped HTTP 422 responses to `validation`, copying
-`error.errors` only into the normalized model. Map `not_found` and unmapped HTTP
+Map `validation.failed` and unmapped HTTP 400/422 responses to `validation`,
+extracting only bounded field names from `details.field` and `details.fields`
+with `validationFieldNames`. Never retain or render the raw validation strings.
+Map `not_found` and unmapped HTTP
 404 responses to `not-found`; unmapped HTTP 409 to `conflict`; auth codes and
 HTTP 401/403 to `permission`; throttling, status 0, network/setup failures, and
 HTTP 5xx to `retryable`; and everything else to `generic`. Add `validation`,
@@ -1166,8 +1657,8 @@ details:
 ) : null}
 ```
 
-Keep recipient count/limit interpolation. Do not render `error.message` or the
-backend strings inside `fieldErrors`.
+Keep recipient count/limit interpolation. Do not render `error.message` or raw
+backend validation strings.
 
 - [ ] **Step 7: Replace raw email page errors with structured errors**
 
@@ -1189,7 +1680,10 @@ try {
 ) : null}
 ```
 
-Keep success toasts. Remove `showError(error.message)` and string page errors from email pages. On connection and template forms, copy normalized `fieldErrors` into their existing field-error state for matching field names; leave unknown fields in the structured alert.
+Keep success toasts. Remove `showError(error.message)` and string page errors
+from email pages. On connection and template forms, compare normalized
+`invalidFields` with recognized form field names; leave unrecognized fields to
+the structured generic validation alert.
 
 For each recognized form field, use the presence of a backend field-error key to
 set the existing localized generic invalid-field message. Never display the
@@ -1274,7 +1768,7 @@ it("offers only the SMTP provider", () => {
 
 ```tsx
 function connection(
-  status: EmailConnectionStatus,
+  status: EmailConnectionStatus | null,
   overrides: Partial<EmailConnection> = {},
 ): EmailConnection {
   return {
@@ -1360,6 +1854,48 @@ it("refreshes backend-recorded FAILED state after a rejected test", async () => 
   expect(await screen.findByText("FAILED")).toBeVisible();
   expect(screen.getByRole("alert")).toBeVisible();
 });
+
+it("gates connection actions to backend-valid states", async () => {
+  serviceMocks.fetchEmailConnection.mockResolvedValue(draftConnection());
+
+  render(<EmailConnectionPage />);
+
+  expect(
+    await screen.findByRole("button", { name: "Test" }),
+  ).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Activate" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Disable" })).toBeEnabled();
+});
+
+it("allows activation only for a verified connection", async () => {
+  serviceMocks.fetchEmailConnection.mockResolvedValue(
+    connection("VERIFIED"),
+  );
+
+  render(<EmailConnectionPage />);
+
+  expect(
+    await screen.findByRole("button", { name: "Activate" }),
+  ).toBeEnabled();
+});
+
+it("disables test and lifecycle actions before a connection exists", async () => {
+  serviceMocks.fetchEmailConnection.mockResolvedValue(
+    connection(null, {
+      configured: false,
+      providerType: null,
+      status: null,
+    }),
+  );
+
+  render(<EmailConnectionPage />);
+
+  expect(
+    await screen.findByRole("button", { name: "Test" }),
+  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Activate" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Disable" })).toBeDisabled();
+});
 ```
 
 - [ ] **Step 3: Run connection UI tests and confirm failure**
@@ -1370,7 +1906,8 @@ Run:
 .\node_modules\.bin\vitest.cmd run src/features/settings/email/connection/components/__tests__/EmailConnectionForm.test.tsx src/features/settings/email/connection/pages/__tests__/EmailConnectionPage.test.tsx
 ```
 
-Expected: FAIL for unsupported provider options and stale test state.
+Expected: FAIL for unsupported provider options, stale test state, and
+backend-invalid action availability.
 
 - [ ] **Step 4: Implement SMTP-only and authoritative state replacement**
 
@@ -1402,6 +1939,28 @@ On failure:
 
 Render `refreshError`, when present, in a second `SettingsWorkflowErrorAlert`.
 Do not replace the original actionable test error with a generic refresh failure.
+
+Derive action availability from the backend state machine. Testing requires an
+existing configuration, activation requires `VERIFIED`, and disabling requires
+an existing connection that is not already `DISABLED`. Prevent overlapping
+mutations:
+
+```ts
+const mutationPending =
+  isSaving || isTesting || isActivating || isDisabling;
+const configured = connection?.configured === true;
+const canTest = configured && !mutationPending;
+const canActivate =
+  configured && connection?.status === "VERIFIED" && !mutationPending;
+const canDisable =
+  configured && connection?.status !== "DISABLED" && !mutationPending;
+```
+
+Apply these booleans through each button's `disabled` prop. The backend rejects
+activation outside `VERIFIED` with
+`settings.email.connection_not_verified`, and test/disable require a persisted
+connection. Keep the buttons visible for authorized users so their disabled
+state explains the workflow.
 
 - [ ] **Step 5: Make the status card null-safe**
 
@@ -1529,6 +2088,8 @@ it("uses the same regeneration selection for preview and create", () => {
     requireContactEmail: preview.requireContactEmail,
     allowLoginEmailFallback: preview.allowLoginEmailFallback,
   });
+  expect(created).not.toHaveProperty("limit");
+  expect(created).not.toHaveProperty("maxRecipients");
 });
 ```
 
@@ -1614,7 +2175,6 @@ export function buildCredentialCreatePayload(
     ...buildCredentialRecipientSelection(values),
     templateKey: values.templateKey,
     credentialMode: values.credentialMode,
-    maxRecipients: 100,
   };
 }
 
@@ -1670,7 +2230,7 @@ vi.mock(
       ) => Promise<CredentialDeliveryPreviewResponse | null>;
       onCreate: (
         values: CredentialDeliveryWizardValues,
-      ) => Promise<CreateCredentialDeliveryResponse | null>;
+      ) => Promise<EmailDeliveryBatch | null>;
       onPreviewInvalidated: () => void;
     }) => (
       <div>
@@ -1873,15 +2433,77 @@ git commit -m "fix: require current credential recipient preview"
 - Modify: `src/features/settings/email/campaigns/components/__tests__/CampaignComposer.test.tsx`
 - Modify: `src/features/settings/email/campaigns/pages/EmailCampaignsPage.tsx`
 - Create: `src/features/settings/email/campaigns/pages/__tests__/EmailCampaignsPage.test.tsx`
+- Modify: `src/features/settings/__tests__/sprint11EndpointContracts.test.ts`
+- Modify: `src/messages/en.json`
+- Modify: `src/messages/ar.json`
 
 **Interfaces:**
+- Produces: exact campaign content-preview request/response DTOs, including `footerHtml` and response `key`.
+- Produces: `mapEmailCampaignPreview(dto)`.
 - Produces: `buildCampaignRecipientPreviewPayload(values)`.
 - Produces: `campaignRecipientPreviewFingerprint(values)`.
 - Produces: `buildPreviewCampaignPayload(values)`.
 - Produces: `buildCreateCampaignPayload(values)`.
 - Consumes: `normalizeStringSet` and `fingerprintCanonicalPayload` from Task 6.
 
-- [ ] **Step 1: Write failing campaign payload tests**
+- [ ] **Step 1: Lock the exact campaign content contracts**
+
+In `campaigns/types.ts`, separate backend DTO optionality from the stricter
+composer form:
+
+```ts
+export interface EmailCampaignPreviewRequest {
+  templateKey?: EmailTemplateKey;
+  subject?: string;
+  title?: string;
+  bodyHtml: string;
+  bodyText?: string | null;
+  footerHtml?: string | null;
+  previewData?: Record<string, unknown>;
+}
+
+export interface EmailCampaignPreviewResponseDto {
+  key: EmailTemplateKey;
+  subject: string;
+  html: string;
+  text: string | null;
+  missingVariables: string[];
+  unknownVariables: string[];
+}
+
+export type EmailCampaignPreviewResponse =
+  EmailCampaignPreviewResponseDto;
+
+export function mapEmailCampaignPreview(
+  dto: EmailCampaignPreviewResponseDto,
+): EmailCampaignPreviewResponse {
+  return {
+    ...dto,
+    missingVariables: [...dto.missingVariables],
+    unknownVariables: [...dto.unknownVariables],
+  };
+}
+
+export interface CreateEmailCampaignRequest
+  extends EmailCampaignPreviewRequest {
+  recipientScope: EmailRecipientScopeRequest;
+  customEmails?: string[];
+  includeDisabledUsers?: boolean;
+  requireContactEmail?: boolean;
+  allowLoginEmailFallback?: boolean;
+  maxRecipients?: number;
+}
+```
+
+Keep `CampaignComposerValues.subject` and `bodyHtml` required by client
+validation, add `footerHtml: string`, and keep `templateKey` fixed to
+`"GENERAL_MESSAGE"` in the UI even though the backend DTO enum is broader. The
+backend rejects other campaign template keys at runtime.
+
+Have `previewEmailCampaign` map its response through
+`mapEmailCampaignPreview` instead of returning the transport object directly.
+
+- [ ] **Step 2: Write failing campaign payload tests**
 
 ```ts
 function composerValues(
@@ -1897,6 +2519,7 @@ function composerValues(
     title: "",
     bodyHtml: "<p>Hello</p>",
     bodyText: "Hello",
+    footerHtml: "",
     ...overrides,
   };
 }
@@ -1934,9 +2557,49 @@ it("changes fingerprint when any recipient-sensitive field changes", () => {
     campaignRecipientPreviewFingerprint(changed),
   );
 });
+
+it("does not turn the preview sample limit into the campaign send cap", () => {
+  const payload = buildCreateCampaignPayload(composerValues());
+  expect(payload).not.toHaveProperty("limit");
+  expect(payload).not.toHaveProperty("maxRecipients");
+});
+
+it("preserves the campaign footer in the content-preview payload", () => {
+  const values = composerValues({ footerHtml: "<footer>School</footer>" });
+  expect(buildPreviewCampaignPayload(values)).toMatchObject({
+    footerHtml: "<footer>School</footer>",
+  });
+});
 ```
 
-- [ ] **Step 2: Run payload tests and confirm failure**
+In `emailCampaignsService.test.ts`:
+
+```ts
+it("keeps the exact campaign preview response", async () => {
+  apiMocks.apiPost.mockResolvedValue({
+    key: "GENERAL_MESSAGE",
+    subject: "Subject",
+    html: "<p>Hello</p><footer>School</footer>",
+    text: "Hello",
+    missingVariables: [],
+    unknownVariables: [],
+  });
+
+  await expect(
+    previewEmailCampaign({
+      templateKey: "GENERAL_MESSAGE",
+      subject: "Subject",
+      bodyHtml: "<p>Hello</p>",
+      footerHtml: "<footer>School</footer>",
+    }),
+  ).resolves.toMatchObject({
+    key: "GENERAL_MESSAGE",
+    text: "Hello",
+  });
+});
+```
+
+- [ ] **Step 3: Run payload tests and confirm failure**
 
 Run:
 
@@ -1946,7 +2609,7 @@ Run:
 
 Expected: FAIL because payload logic still lives in the component and has no fingerprint.
 
-- [ ] **Step 3: Implement focused campaign payload module**
+- [ ] **Step 4: Implement focused campaign payload module**
 
 ```ts
 function normalizedOrUndefined(
@@ -2019,9 +2682,10 @@ export function buildPreviewCampaignPayload(
   return {
     templateKey: values.templateKey,
     subject: values.subject.trim(),
-    title: values.title.trim() || null,
+    title: values.title.trim() || undefined,
     bodyHtml: values.bodyHtml,
     bodyText: values.bodyText.trim() || null,
+    footerHtml: values.footerHtml.trim() || null,
     previewData: {},
   };
 }
@@ -2036,21 +2700,35 @@ export function buildCreateCampaignPayload(
     includeDisabledUsers: recipients.includeDisabledUsers,
     requireContactEmail: recipients.requireContactEmail,
     allowLoginEmailFallback: recipients.allowLoginEmailFallback,
-    maxRecipients: recipients.limit,
     templateKey: values.templateKey,
     subject: values.subject.trim(),
-    title: values.title.trim() || null,
+    title: values.title.trim() || undefined,
     bodyHtml: values.bodyHtml,
     bodyText: values.bodyText.trim() || null,
+    footerHtml: values.footerHtml.trim() || null,
   };
 }
 ```
 
-Move `findCredentialVariables` into this module unchanged and continue invoking
-it from the composer's preview/create validation. Remove the old exported
-payload builders from `CampaignComposer.tsx`.
+Move `findCredentialVariables` into this module, extend its scanned fields with
+`values.footerHtml`, and continue invoking it from the composer's preview/create
+validation. Remove the old exported payload builders from
+`CampaignComposer.tsx`.
 
-- [ ] **Step 4: Write failing composer/page integrity tests**
+Add a Footer HTML textarea to the composer using
+`settings.email.campaigns.fields.footer_html`. Add:
+
+```json
+// en.json
+"footer_html": "Footer HTML"
+
+// ar.json
+"footer_html": "تذييل HTML"
+```
+
+The comments are plan annotations and must not be copied into JSON.
+
+- [ ] **Step 5: Write failing composer/page integrity tests**
 
 ```tsx
 const campaignValues: CampaignComposerValues = {
@@ -2063,6 +2741,7 @@ const campaignValues: CampaignComposerValues = {
   title: "",
   bodyHtml: "<p>Hello</p>",
   bodyText: "Hello",
+  footerHtml: "",
 };
 
 function eligibleCampaignPreview(): EmailCampaignPreviewRecipientsResponse {
@@ -2093,7 +2772,7 @@ vi.mock(
       ) => Promise<EmailCampaignPreviewRecipientsResponse | null>;
       onCreate: (
         values: CampaignComposerValues,
-      ) => Promise<CreateEmailCampaignResponse | null>;
+      ) => Promise<EmailCampaignBatch | null>;
       onRecipientPreviewInvalidated: () => void;
     }) => (
       <div>
@@ -2214,7 +2893,7 @@ async function addCustomEmailThroughAudienceStep(email: string) {
 }
 ```
 
-- [ ] **Step 5: Implement campaign preview state and race guard**
+- [ ] **Step 6: Implement campaign preview state and race guard**
 
 Use the same captured-fingerprint pattern as credentials:
 
@@ -2257,20 +2936,20 @@ const createDisabled =
 Use `createDisabled` on the create button while keeping campaign content
 validation in `handleCreate`.
 
-- [ ] **Step 6: Run campaign tests**
+- [ ] **Step 7: Run campaign tests**
 
 Run:
 
 ```powershell
-.\node_modules\.bin\vitest.cmd run src/features/settings/email/campaigns
+.\node_modules\.bin\vitest.cmd run src/features/settings/email/campaigns src/features/settings/__tests__/sprint11EndpointContracts.test.ts
 ```
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit Task 7**
+- [ ] **Step 8: Commit Task 7**
 
 ```powershell
-git add -- src/features/settings/email/campaigns/utils/campaignPayloads.ts src/features/settings/email/campaigns/utils/__tests__/campaignPayloads.test.ts src/features/settings/email/campaigns/components/CampaignComposer.tsx src/features/settings/email/campaigns/components/CampaignAudienceStep.tsx src/features/settings/email/campaigns/components/__tests__/CampaignComposer.test.tsx src/features/settings/email/campaigns/pages/EmailCampaignsPage.tsx src/features/settings/email/campaigns/pages/__tests__/EmailCampaignsPage.test.tsx
+git add -- src/features/settings/email/campaigns/utils/campaignPayloads.ts src/features/settings/email/campaigns/utils/__tests__/campaignPayloads.test.ts src/features/settings/email/campaigns/components/CampaignComposer.tsx src/features/settings/email/campaigns/components/CampaignAudienceStep.tsx src/features/settings/email/campaigns/components/__tests__/CampaignComposer.test.tsx src/features/settings/email/campaigns/pages/EmailCampaignsPage.tsx src/features/settings/email/campaigns/pages/__tests__/EmailCampaignsPage.test.tsx src/features/settings/email/campaigns/types.ts src/features/settings/email/campaigns/services/emailCampaignsService.ts src/features/settings/email/campaigns/services/__tests__/emailCampaignsService.test.ts src/features/settings/__tests__/sprint11EndpointContracts.test.ts src/messages/en.json src/messages/ar.json
 git diff --cached --check
 git commit -m "fix: require current campaign recipient preview"
 ```
@@ -2283,6 +2962,7 @@ git commit -m "fix: require current campaign recipient preview"
 - Modify only when a verification failure exposes a missing requirement.
 - Review: `docs/superpowers/specs/2026-07-30-email-backend-contract-workflow-alignment-design.md`
 - Review: every changed source and test file from Tasks 1–7.
+- Modify: `src/features/settings/__tests__/sprint11EndpointContracts.test.ts`
 
 **Interfaces:**
 - Consumes all prior task outputs.
@@ -2290,10 +2970,15 @@ git commit -m "fix: require current campaign recipient preview"
 
 - [ ] **Step 1: Run all focused email and shared workflow tests**
 
+Before the run, confirm `sprint11EndpointContracts.test.ts` has explicit
+method/path coverage for all 21 backend email routes listed in the verified
+source matrix. Add any missing operation to the contract test, using a valid
+UUID fixture for `:batchId` paths.
+
 Run:
 
 ```powershell
-.\node_modules\.bin\vitest.cmd run src/features/settings/email src/features/settings/shared src/features/settings/__tests__/sprint11EndpointContracts.test.ts src/features/settings/__tests__/emailPermissionsContract.test.ts
+.\node_modules\.bin\vitest.cmd run src/features/settings/email src/features/settings/shared src/features/settings/__tests__/sprint11EndpointContracts.test.ts src/features/settings/__tests__/emailPermissionsContract.test.ts e2e/sprint11-frontend-endpoints.spec.ts
 ```
 
 Expected: PASS.
@@ -2333,10 +3018,18 @@ Expected: `translations ok`.
 Run:
 
 ```powershell
-rg -n "lastTestAt|lastTestStatus|cancelledCount|providerType: \"SENDGRID\"|error\\.message" src/features/settings/email
+rg -n "lastTestAt|lastTestStatus|cancelledCount|skippedAt|CreateCredentialDeliveryResponse|CreateEmailCampaignResponse|CancelEmailDeliveryResponse|providerType: \"SENDGRID\"|error\\.message" src/features/settings/email
 ```
 
 Expected: no production matches. Test descriptions may mention removed names only when asserting absence.
+
+Run:
+
+```powershell
+rg -n "maxRecipients\\s*:" src/features/settings/email/credential-deliveries/utils/credentialDeliveryPayloads.ts src/features/settings/email/campaigns/utils/campaignPayloads.ts
+```
+
+Expected: no matches; the backend's 250/500 create defaults remain authoritative.
 
 Run:
 
@@ -2364,12 +3057,13 @@ Use `test-guard` on all changed test files and `clean-code-guard` on all changed
 
 - [ ] **Step 8: Final verification rerun**
 
-Repeat Steps 1–4 after guard fixes.
+Repeat Steps 1–5 after guard fixes.
 
 Expected: all focused tests pass, typecheck is clean or only has explicitly documented unrelated failures, lint is clean, and translations parse.
 
-- [ ] **Step 9: Commit guard fixes with their owning files if needed**
+- [ ] **Step 9: Commit verification or guard fixes with their owning files if needed**
 
-If a guard requires a change, rerun the owning task's focused tests and commit
-only the exact production and test files changed by that guard. Do not create an
-empty verification commit and do not stage unrelated worktree files.
+If the route inventory check or a guard requires a change, rerun the owning
+task's focused tests and commit only the exact production and test files changed
+by that correction. Do not create an empty verification commit and do not stage
+unrelated worktree files.
