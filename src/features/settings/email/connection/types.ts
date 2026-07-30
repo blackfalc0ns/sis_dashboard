@@ -4,6 +4,7 @@ export type EmailConnectionProviderType =
   | "MAILGUN"
   | "SES"
   | "CUSTOM";
+
 export type EmailConnectionStatus =
   | "DRAFT"
   | "VERIFIED"
@@ -11,47 +12,50 @@ export type EmailConnectionStatus =
   | "DISABLED"
   | "FAILED";
 
-export interface EmailConnection {
-  id?: string;
-  providerType: EmailConnectionProviderType;
-  status: EmailConnectionStatus;
-  fromName: string;
-  fromEmail: string;
-  replyToEmail?: string | null;
-  host?: string | null;
-  port?: number | null;
-  secure?: boolean | null;
-  username?: string | null;
+export interface EmailConnectionResponseDto {
+  configured: boolean;
+  providerType: EmailConnectionProviderType | null;
+  fromName: string | null;
+  fromEmail: string | null;
+  replyToEmail: string | null;
+  host: string | null;
+  port: number | null;
+  secure: boolean | null;
+  username: string | null;
   hasPassword: boolean;
   hasApiKey: boolean;
-  lastTestAt?: string | null;
-  lastTestStatus?: EmailConnectionStatus | null;
-  failureReason?: string | null;
-  updatedAt?: string | null;
+  status: EmailConnectionStatus | null;
+  lastTestedAt: string | null;
+  verifiedAt: string | null;
+  failureReason: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
-export type EmailConnectionResponse = EmailConnection;
+export type EmailConnection = EmailConnectionResponseDto;
 
 export interface UpdateEmailConnectionRequest {
-  providerType: EmailConnectionProviderType;
-  fromName: string;
-  fromEmail: string;
+  providerType?: EmailConnectionProviderType;
+  fromName?: string;
+  fromEmail?: string;
   replyToEmail?: string | null;
-  host?: string | null;
-  port?: number | null;
-  secure?: boolean | null;
-  username?: string | null;
+  host?: string;
+  port?: number;
+  secure?: boolean;
+  username?: string;
   password?: string;
   apiKey?: string;
 }
 
 export interface TestEmailConnectionRequest {
-  toEmail?: string;
+  toEmail: string;
 }
 
-export interface TestEmailConnectionResponse {
-  message?: string;
-  success?: boolean;
-  lastTestedAt?: string | null;
-  lastTestStatus?: EmailConnectionStatus | null;
+export interface TestEmailConnectionResponseDto
+  extends EmailConnectionResponseDto {
+  testRecipient: string;
+  deliveryMode: "configuration_validation";
+  message: string;
 }
+
+export type TestEmailConnectionResponse = TestEmailConnectionResponseDto;

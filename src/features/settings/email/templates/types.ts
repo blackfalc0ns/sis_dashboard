@@ -4,56 +4,67 @@ export type EmailTemplateKey =
   | "GENERAL_MESSAGE";
 
 export interface EmailTemplateSocialLinks {
-  website?: string | null;
-  facebook?: string | null;
-  instagram?: string | null;
-  x?: string | null;
+  website?: string;
+  facebook?: string;
+  instagram?: string;
+  x?: string;
 }
 
-export interface EmailTemplate {
+export interface EmailTemplateResponseDto {
+  id: string | null;
   key: EmailTemplateKey;
+  customized: boolean;
   subject: string;
-  preheader?: string | null;
-  title?: string | null;
-  subtitle?: string | null;
+  preheader: string | null;
+  title: string | null;
+  subtitle: string | null;
   bodyHtml: string;
-  bodyText?: string | null;
-  footerHtml?: string | null;
-  supportEmail?: string | null;
-  supportPhone?: string | null;
-  socialLinks?: EmailTemplateSocialLinks | null;
+  bodyText: string | null;
+  footerHtml: string | null;
+  supportEmail: string | null;
+  supportPhone: string | null;
+  socialLinks: EmailTemplateSocialLinks | null;
   isActive: boolean;
   allowedVariables: string[];
-  updatedAt?: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
-export interface EmailTemplatesListResponse {
-  items: EmailTemplate[];
+export interface EmailTemplateListResponseDto {
+  items: EmailTemplateResponseDto[];
 }
+
+export type EmailTemplate = EmailTemplateResponseDto;
+export type EmailTemplatesListResponse = EmailTemplateListResponseDto;
 
 export interface UpdateEmailTemplateRequest {
-  subject: string;
+  subject?: string;
   preheader?: string | null;
   title?: string | null;
   subtitle?: string | null;
-  bodyHtml: string;
+  bodyHtml?: string;
   bodyText?: string | null;
   footerHtml?: string | null;
   supportEmail?: string | null;
   supportPhone?: string | null;
   socialLinks?: EmailTemplateSocialLinks | null;
-  isActive: boolean;
+  isActive?: boolean;
 }
 
 export interface PreviewEmailTemplateRequest
-  extends Partial<UpdateEmailTemplateRequest> {
+  extends UpdateEmailTemplateRequest {
   previewData?: Record<string, unknown>;
 }
 
-export interface PreviewEmailTemplateResponse {
+export interface EmailTemplatePreviewResponseDto {
+  key: EmailTemplateKey;
   subject: string;
+  preheader: string | null;
   html: string;
-  text?: string | null;
+  text: string | null;
   unknownVariables: string[];
   missingVariables: string[];
 }
+
+export type PreviewEmailTemplateResponse =
+  EmailTemplatePreviewResponseDto;
