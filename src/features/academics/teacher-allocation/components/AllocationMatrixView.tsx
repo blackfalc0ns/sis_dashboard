@@ -49,6 +49,7 @@ interface AllocationMatrixViewProps {
   subjects: Subject[];
   subjectAllocations: SubjectAllocation[];
   teachers: Teacher[];
+  teacherRoleId: string;
   teacherAllocations: TeacherAllocation[];
   isReadOnly: boolean;
   onRefresh: () => Promise<void>;
@@ -134,6 +135,7 @@ export default function AllocationMatrixView({
   subjects,
   subjectAllocations,
   teachers,
+  teacherRoleId,
   teacherAllocations,
   isReadOnly,
   onRefresh,
@@ -844,6 +846,7 @@ export default function AllocationMatrixView({
       >
         <TeacherSelect
           teachers={teachers}
+          teacherRoleId={teacherRoleId}
           value={teacherId}
           onChange={(newTeacherId) => setAllocation(row.section.id, column.subject.id, newTeacherId, row.classroom.id)}
           disabled={isReadOnly}

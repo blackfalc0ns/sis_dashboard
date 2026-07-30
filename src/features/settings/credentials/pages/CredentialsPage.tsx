@@ -9,11 +9,10 @@ import { FilterPanel } from "@/components/ui";
 import { useToast } from "@/components/ui/toast/Toast";
 import SettingsAccessGuard from "@/features/settings/components/SettingsAccessGuard";
 import SettingsPageHeader from "@/features/settings/components/SettingsPageHeader";
+import SettingsWorkflowErrorAlert from "@/features/settings/shared/components/SettingsWorkflowErrorAlert";
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
 import {
-  fetchSettingsRoles,
-} from "@/features/settings/services/settingsRolesService";
-import {
+  fetchCredentialRoles,
   fetchCredentialStatuses,
   generateBulkCredentials,
   generateUserCredential,
@@ -29,17 +28,21 @@ import SetPasswordModal from "@/features/settings/credentials/components/SetPass
 import TemporaryPasswordRevealModal, {
   type RevealedCredential,
 } from "@/features/settings/credentials/components/TemporaryPasswordRevealModal";
-import { isApiError } from "@/lib/api-error";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useTranslations } from "next-intl";
 import type {
   BulkCredentialPreviewRequest,
   BulkCredentialPreviewResponse,
   CredentialStatusRecord,
+  CredentialRoleOption,
   FetchCredentialStatusParams,
 } from "@/features/settings/credentials/types";
-import type { RoleDefinition } from "@/features/settings/types";
 import { getPasswordPolicyApiFailures } from "@/utils/validation/passwordPolicy";
+import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
+import {
+  classifySettingsWorkflowError,
+  type SettingsWorkflowError,
+} from "@/features/settings/shared/utils/settingsWorkflowErrors";
 
 type GenerateModalMode = "generate" | "regenerate";
 
@@ -55,11 +58,19 @@ export default function CredentialsPage() {
   const { showSuccess, showError } = useToast();
   const canManage = hasPermission("settings.users.manage");
   const [records, setRecords] = useState<CredentialStatusRecord[]>([]);
-  const [roles, setRoles] = useState<RoleDefinition[]>([]);
+  const [roles, setRoles] = useState<CredentialRoleOption[]>([]);
   const [isRolesLoading, setIsRolesLoading] = useState(false);
   const [hasLoadedRoles, setHasLoadedRoles] = useState(false);
   const [rolesLoadFailed, setRolesLoadFailed] = useState(false);
-  const [search, setSearch] = useState("");
+  const {
+    values: { search },
+    setValue: setQueryValue,
+    reset: resetQuery,
+  } = useUrlQueryState({
+    defaults: { search: "" },
+    debouncedKeys: ["search"],
+    modeByKey: { search: "replace" },
+  });
   const [roleFilter, setRoleFilter] = useState("all");
   const [hasPasswordFilter, setHasPasswordFilter] = useState("all");
   const [mustChangePasswordFilter, setMustChangePasswordFilter] =
@@ -79,6 +90,8 @@ export default function CredentialsPage() {
   const [isSingleSubmitting, setIsSingleSubmitting] = useState(false);
   const [isSetPasswordOpen, setIsSetPasswordOpen] = useState(false);
   const [setPasswordError, setSetPasswordError] = useState<string | null>(null);
+  const [workflowError, setWorkflowError] =
+    useState<SettingsWorkflowError | null>(null);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [bulkPreview, setBulkPreview] =
     useState<BulkCredentialPreviewResponse | null>(null);
@@ -134,10 +147,11 @@ export default function CredentialsPage() {
   const roleOptions = useMemo<SelectOption[]>(
     () => [
       { value: "all", label: tCommon("all") },
-      ...roles.filter((role) => role.key).map((role) => ({
-        value: role.key as string,
+      ...roles.map((role) => ({
+        value: role.key ?? role.id,
         label: role.name,
-        searchText: `${role.name} ${role.key}`,
+        searchText: `${role.name} ${role.key ?? ""}`,
+        disabled: !role.key,
       })),
       ...(roleStateOption ? [roleStateOption] : []),
     ],
@@ -148,8 +162,7 @@ export default function CredentialsPage() {
     setIsRolesLoading(true);
     setRolesLoadFailed(false);
     try {
-      const response = await fetchSettingsRoles({ limit: 100 });
-      setRoles(response.items);
+      setRoles(await fetchCredentialRoles());
       setHasLoadedRoles(true);
     } catch {
       setRolesLoadFailed(true);
@@ -202,10 +215,8 @@ export default function CredentialsPage() {
         setPage(statusResult.pagination?.page || page);
         setLimit(statusResult.pagination?.limit || limit);
       } catch (error) {
-        const message = isApiError(error)
-          ? error.message
-          : t("messages.load_failed");
-        setPageError(message);
+        setPageError(t("messages.load_failed"));
+        setWorkflowError(classifySettingsWorkflowError(error));
         showError(t("messages.load_failed"));
       } finally {
         setIsLoading(false);
@@ -240,6 +251,7 @@ export default function CredentialsPage() {
       return;
     }
     setIsSingleSubmitting(true);
+    setWorkflowError(null);
     try {
       const credential =
         generateMode === "generate"
@@ -251,7 +263,9 @@ export default function CredentialsPage() {
       await hydrate("refresh");
       showSuccess(t("messages.generated"));
     } catch (error) {
-      showError(isApiError(error) ? error.message : tCommon("save_failed"));
+      setGenerateMode(null);
+      setSelectedUser(null);
+      setWorkflowError(classifySettingsWorkflowError(error));
     } finally {
       setIsSingleSubmitting(false);
     }
@@ -266,6 +280,7 @@ export default function CredentialsPage() {
     }
     setIsSingleSubmitting(true);
     setSetPasswordError(null);
+    setWorkflowError(null);
     try {
       await setUserCredentialPassword(selectedUser.userId, {
         password,
@@ -277,13 +292,15 @@ export default function CredentialsPage() {
       showSuccess(t("messages.password_set"));
     } catch (error) {
       const policyFailures = getPasswordPolicyApiFailures(error);
-      const message =
-        policyFailures.length > 0
-          ? policyFailures.map((reason) => tPasswordPolicy(reason)).join(" ")
-          : isApiError(error)
-            ? error.message
-            : tCommon("save_failed");
-      setSetPasswordError(message);
+      if (policyFailures.length > 0) {
+        setSetPasswordError(
+          policyFailures.map((reason) => tPasswordPolicy(reason)).join(" "),
+        );
+      } else {
+        setIsSetPasswordOpen(false);
+        setSelectedUser(null);
+        setWorkflowError(classifySettingsWorkflowError(error));
+      }
     } finally {
       setIsSingleSubmitting(false);
     }
@@ -292,6 +309,7 @@ export default function CredentialsPage() {
   const handleBulkPreview = async (payload: BulkCredentialPreviewRequest) => {
     setIsBulkPreviewing(true);
     setBulkError(null);
+    setWorkflowError(null);
     try {
       const response = await previewBulkCredentials(payload);
       setBulkPreview(response);
@@ -299,7 +317,8 @@ export default function CredentialsPage() {
     } catch (error) {
       setBulkPreview(null);
       setBulkPreviewPayloadKey(null);
-      setBulkError(isApiError(error) ? error.message : t("messages.preview_failed"));
+      setBulkError(t("messages.preview_failed"));
+      setWorkflowError(classifySettingsWorkflowError(error));
     } finally {
       setIsBulkPreviewing(false);
     }
@@ -308,6 +327,7 @@ export default function CredentialsPage() {
   const handleBulkGenerate = async (payload: BulkCredentialPreviewRequest) => {
     setIsBulkGenerating(true);
     setBulkError(null);
+    setWorkflowError(null);
     try {
       const response = await generateBulkCredentials(payload);
       setRevealedCredentials(response.credentials.map(enrichCredential));
@@ -317,14 +337,15 @@ export default function CredentialsPage() {
       await hydrate("refresh");
       showSuccess(t("messages.bulk_generated"));
     } catch (error) {
-      setBulkError(isApiError(error) ? error.message : tCommon("save_failed"));
+      setBulkError(tCommon("save_failed"));
+      setWorkflowError(classifySettingsWorkflowError(error));
     } finally {
       setIsBulkGenerating(false);
     }
   };
 
   const resetFilters = () => {
-    setSearch("");
+    resetQuery(undefined, "replace");
     setRoleFilter("all");
     setHasPasswordFilter("all");
     setMustChangePasswordFilter("all");
@@ -364,6 +385,11 @@ export default function CredentialsPage() {
             </div>
           }
         />
+        {workflowError ? (
+          <div className="mb-4">
+            <SettingsWorkflowErrorAlert error={workflowError} />
+          </div>
+        ) : null}
 
         <SettingsSectionCard
           title={t("table.title")}
@@ -389,7 +415,7 @@ export default function CredentialsPage() {
                     <Input
                       value={search}
                       onChange={(event) => {
-                        setSearch(event.target.value);
+                        setQueryValue("search", event.target.value, "replace");
                         setPage(1);
                       }}
                       placeholder={t("filters.search")}

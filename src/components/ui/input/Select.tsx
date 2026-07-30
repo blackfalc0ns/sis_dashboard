@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type ReactNode,
   useState,
   useRef,
   useEffect,
@@ -39,6 +40,9 @@ export interface SelectProps {
   searchPlaceholder?: string;
   noOptionsText?: string;
   noResultsText?: string;
+  searchMode?: "client" | "server";
+  onSearchChange?: (query: string) => void;
+  menuFooter?: ReactNode;
   onOpen?: () => void;
   onEndReached?: () => void;
 }
@@ -66,6 +70,9 @@ export default function Select({
   searchPlaceholder = "Search...",
   noOptionsText = "No options available",
   noResultsText = "No matching results",
+  searchMode = "client",
+  onSearchChange,
+  menuFooter,
   onOpen,
   onEndReached,
 }: SelectProps) {
@@ -88,6 +95,14 @@ export default function Select({
   const locale = useLocale();
   const isRTL = locale === "ar";
   const canUseDOM = typeof document !== "undefined";
+
+  const updateSearchQuery = useCallback(
+    (query: string) => {
+      setSearchQuery(query);
+      onSearchChange?.(query);
+    },
+    [onSearchChange],
+  );
 
   const updateMenuPosition = useCallback(() => {
     const trigger = dropdownRef.current;
@@ -126,7 +141,7 @@ export default function Select({
         !menuRef.current?.contains(event.target as Node)
       ) {
         setIsOpen(false);
-        setSearchQuery("");
+        updateSearchQuery("");
       }
     };
 
@@ -137,7 +152,7 @@ export default function Select({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isOpen, updateSearchQuery]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -161,7 +176,7 @@ export default function Select({
     if (option.disabled) return;
 
     setIsOpen(false);
-    setSearchQuery("");
+    updateSearchQuery("");
 
     if (onChange) {
       onChange(option.value);
@@ -170,7 +185,11 @@ export default function Select({
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const filteredOptions = useMemo(() => {
-    if (!searchable || !normalizedSearchQuery) {
+    if (
+      searchMode === "server" ||
+      !searchable ||
+      !normalizedSearchQuery
+    ) {
       return options;
     }
 
@@ -179,7 +198,7 @@ export default function Select({
         `${option.label} ${option.searchText || ""}`.toLowerCase();
       return haystack.includes(normalizedSearchQuery);
     });
-  }, [normalizedSearchQuery, options, searchable]);
+  }, [normalizedSearchQuery, options, searchable, searchMode]);
 
   const selectedOption = options.find((opt) => opt.value === selectedValue);
   const displayLabel = selectedOption?.label || placeholder;
@@ -211,7 +230,7 @@ export default function Select({
               ref={searchInputRef}
               type="text"
               value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
+              onChange={(event) => updateSearchQuery(event.target.value)}
               onClick={(event) => event.stopPropagation()}
               placeholder={searchPlaceholder}
               className={`w-full rounded-md border border-gray-200 bg-white py-2 text-sm text-gray-900 outline-none transition-colors focus:border-primary ${
@@ -265,6 +284,11 @@ export default function Select({
           ))
         )}
       </ul>
+      {menuFooter ? (
+        <div className="shrink-0 border-t border-gray-200 bg-white">
+          {menuFooter}
+        </div>
+      ) : null}
     </div>
   ) : null;
 
@@ -327,11 +351,14 @@ export default function Select({
           aria-expanded={isOpen}
           onClick={() => {
             if (disabled) return;
-            if (!isOpen) {
-              updateMenuPosition();
-              onOpen?.();
+            if (isOpen) {
+              setIsOpen(false);
+              updateSearchQuery("");
+              return;
             }
-            setIsOpen(!isOpen);
+            updateMenuPosition();
+            onOpen?.();
+            setIsOpen(true);
           }}
           disabled={disabled}
           className={`

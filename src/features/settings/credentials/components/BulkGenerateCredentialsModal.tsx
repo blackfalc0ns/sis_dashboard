@@ -8,13 +8,13 @@ import type {
   BulkCredentialPreviewRequest,
   BulkCredentialPreviewResponse,
   CredentialBulkScope,
+  CredentialRoleOption,
 } from "@/features/settings/credentials/types";
 import { getBulkCredentialPreviewPayloadKey } from "@/features/settings/credentials/services/credentialsService";
-import type { RoleDefinition } from "@/features/settings/types";
 
 interface BulkGenerateCredentialsModalProps {
   isOpen: boolean;
-  roles: RoleDefinition[];
+  roles: CredentialRoleOption[];
   fixedRoleKey?: string;
   preview: BulkCredentialPreviewResponse | null;
   previewPayloadKey: string | null;
@@ -158,9 +158,11 @@ export default function BulkGenerateCredentialsModal({
             disabled={scope !== "role"}
             options={[
               { value: "", label: labels.all },
-              ...roles
-                .filter((role) => role.key)
-                .map((role) => ({ value: role.key as string, label: role.name })),
+              ...roles.map((role) => ({
+                value: role.key ?? role.id,
+                label: role.name,
+                disabled: !role.key,
+              })),
             ]}
           />
         </div> : null}

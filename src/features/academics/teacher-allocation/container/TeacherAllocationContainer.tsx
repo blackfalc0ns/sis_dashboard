@@ -19,7 +19,7 @@ import {
   type SubjectAllocation,
 } from "@/features/academics/subjects/services/subjectsService";
 import {
-  fetchTeachers,
+  fetchTeacherDirectory,
   fetchTeacherAllocations,
   type Teacher,
   type TeacherAllocation,
@@ -58,6 +58,7 @@ export default function TeacherAllocationContainer() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectAllocations, setSubjectAllocations] = useState<SubjectAllocation[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [teacherRoleId, setTeacherRoleId] = useState("");
   const [teacherAllocations, setTeacherAllocations] = useState<TeacherAllocation[]>([]);
   const [isLoading, setIsLoading] = useState(canView);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -96,13 +97,13 @@ export default function TeacherAllocationContainer() {
         structureData,
         subjectsData,
         subjectAllocsData,
-        teachersData,
+        teacherDirectory,
         teacherAllocsData,
       ] = await Promise.all([
         fetchStructureTree(academicYearId, termId),
         fetchSubjects(),
         fetchSubjectAllocations(termId),
-        fetchTeachers(),
+        fetchTeacherDirectory(),
         fetchTeacherAllocations(termId),
       ]);
 
@@ -111,7 +112,8 @@ export default function TeacherAllocationContainer() {
       setClassrooms(structureData.classrooms);
       setSubjects(subjectsData);
       setSubjectAllocations(subjectAllocsData);
-      setTeachers(teachersData);
+      setTeachers(teacherDirectory.teachers);
+      setTeacherRoleId(teacherDirectory.roleId);
       setTeacherAllocations(teacherAllocsData);
       setValidationSummary(null);
       setTeacherLoads(null);
@@ -229,6 +231,7 @@ export default function TeacherAllocationContainer() {
       subjects={subjects}
       subjectAllocations={subjectAllocations}
       teachers={teachers}
+      teacherRoleId={teacherRoleId}
       teacherAllocations={teacherAllocations}
       isLoading={isLoading}
       apiError={apiError}

@@ -2,23 +2,18 @@
 
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Calendar } from "lucide-react";
 import Modal from "@/components/ui/modal/Modal";
 import { Button } from "@/components/ui";
 import {
   Input,
-  Select,
   TextArea,
-  type SelectOption,
 } from "@/components/ui/input";
 import { fetchSettingsRoles } from "@/features/settings/services/settingsRolesService";
-import { fetchSettingsUsers } from "@/features/settings/services/settingsUsersService";
-import type {
-  RoleDefinition,
-  SettingsUserRecord,
-} from "@/features/settings/types";
+import type { RoleDefinition } from "@/features/settings/types";
+import PaginatedUserSelect from "@/features/settings/users/components/PaginatedUserSelect";
 
 export interface ScheduleInterviewFormData {
   date: string;
@@ -35,9 +30,6 @@ interface ScheduleInterviewModalProps {
 }
 
 const FORM_ID = "schedule-interview-form";
-
-const formatUserOptionLabel = (user: SettingsUserRecord) =>
-  user.email ? `${user.fullName} (${user.email})` : user.fullName;
 
 function isTeacherRole(role: RoleDefinition) {
   const roleKey = (role.key || "").toLowerCase();
@@ -61,7 +53,7 @@ export default function ScheduleInterviewModal({
   studentName,
 }: ScheduleInterviewModalProps) {
   const t = useTranslations("admissions.schedule_interview");
-  const [teacherUsers, setTeacherUsers] = useState<SettingsUserRecord[]>([]);
+  const [teacherRoleId, setTeacherRoleId] = useState("");
   const [isLoadingTeachers, setIsLoadingTeachers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [teachersError, setTeachersError] = useState<string | null>(null);
@@ -70,22 +62,6 @@ export default function ScheduleInterviewModal({
     createInitialFormData(),
   );
 
-  const activeTeacherUsers = useMemo(
-    () =>
-      teacherUsers.filter(
-        (user) => (user.status || "").toLowerCase() === "active",
-      ),
-    [teacherUsers],
-  );
-  const teacherOptions = useMemo<SelectOption[]>(
-    () =>
-      activeTeacherUsers.map((teacherUser) => ({
-        value: teacherUser.id,
-        label: formatUserOptionLabel(teacherUser),
-        searchText: `${teacherUser.fullName} ${teacherUser.email || ""}`,
-      })),
-    [activeTeacherUsers],
-  );
   useEffect(() => {
     if (!isOpen) return;
 
@@ -104,6 +80,7 @@ export default function ScheduleInterviewModal({
     void Promise.resolve().then(async () => {
       setIsLoadingTeachers(true);
       setTeachersError(null);
+      setTeacherRoleId("");
 
       try {
         const rolesResult = await fetchSettingsRoles();
@@ -112,17 +89,13 @@ export default function ScheduleInterviewModal({
           throw new Error("teacher_role_not_found");
         }
 
-        const usersResult = await fetchSettingsUsers({
-          roleId: teacherRole.id,
-          status: "active",
-        });
         if (!cancelled) {
-          setTeacherUsers(usersResult.items);
+          setTeacherRoleId(teacherRole.id);
         }
       } catch (error) {
         console.error("Failed to load interviewers:", error);
         if (!cancelled) {
-          setTeacherUsers([]);
+          setTeacherRoleId("");
           setTeachersError(t("teachers_load_failed"));
         }
       } finally {
@@ -163,13 +136,7 @@ export default function ScheduleInterviewModal({
   };
 
   const handleInterviewerChange = (interviewerUserId: string) => {
-    const teacherUser = activeTeacherUsers.find(
-      (item) => item.id === interviewerUserId,
-    );
-
-    updateFormData({
-      interviewerUserId: teacherUser?.id || "",
-    });
+    updateFormData({ interviewerUserId });
     setValidationError(null);
   };
 
@@ -227,23 +194,16 @@ export default function ScheduleInterviewModal({
               required
             />
 
-            <Select
+            <PaginatedUserSelect
               label={t("interviewer")}
               value={formData.interviewerUserId}
               onChange={handleInterviewerChange}
-              options={teacherOptions}
-              placeholder={
-                isLoadingTeachers
-                  ? t("loading_teachers")
-                  : activeTeacherUsers.length === 0
-                    ? t("no_active_teachers")
-                    : t("select_interviewer")
-              }
+              roleId={teacherRoleId}
+              status="active"
+              placeholder={t("select_interviewer")}
               required
-              disabled={isLoadingTeachers || activeTeacherUsers.length === 0}
-              searchable
+              disabled={isLoadingTeachers || !teacherRoleId}
               error={validationError || teachersError || undefined}
-              noOptionsText={t("no_active_teachers")}
             />
           </div>
         </div>

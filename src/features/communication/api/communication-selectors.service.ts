@@ -4,7 +4,6 @@ import {
   fetchAcademicYears,
   fetchTerms,
 } from "@/features/academics/services/academicStructureApiService";
-import { fetchSettingsUsers } from "@/features/settings/services/settingsUsersService";
 import {
   getAnnouncements,
   getConversations,
@@ -80,15 +79,6 @@ function filterOptions(
       `${option.label} ${option.description ?? ""}`.toLowerCase().includes(normalized),
     )
     .slice(0, 30);
-}
-
-export async function searchUsers(query = ""): Promise<CommunicationSelectorOption[]> {
-  const result = await fetchSettingsUsers({ search: query, limit: 20, page: 1 });
-  return result.items.map((user) => ({
-    id: user.id,
-    label: user.fullName || user.username || user.email || user.id,
-    description: user.username ?? user.email,
-  }));
 }
 
 export async function searchAcademicYears(

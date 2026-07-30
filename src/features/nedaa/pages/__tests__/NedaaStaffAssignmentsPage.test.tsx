@@ -65,6 +65,7 @@ vi.mock("@/features/nedaa/hooks/useNedaaAcademicStructure", () => ({
 
 describe("NedaaStaffAssignmentsPage", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     serviceMocks.fetchSettingsRoles.mockResolvedValue({
       items: [
         {
@@ -89,6 +90,7 @@ describe("NedaaStaffAssignmentsPage", () => {
           status: "active",
         },
       ],
+      pagination: { page: 1, limit: 20, total: 1 },
     });
     serviceMocks.listDismissalGates.mockResolvedValue({
       data: [
@@ -109,14 +111,27 @@ describe("NedaaStaffAssignmentsPage", () => {
   });
 
   it("loads staff dropdown users from the Dismissal Staff role only", async () => {
+    const user = userEvent.setup();
     render(<NedaaStaffAssignmentsPage />);
 
     await waitFor(() =>
+      expect(
+        screen.queryByText("staff_assignments.loading"),
+      ).not.toBeInTheDocument(),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "filters.show_filters" }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "filters.staff_user" }),
+    );
+    await waitFor(() =>
       expect(serviceMocks.fetchSettingsUsers).toHaveBeenCalledWith({
         page: 1,
-        limit: 100,
+        limit: 20,
         roleId: "role-dismissal-staff",
         status: "active",
+        search: undefined,
       }),
     );
   });
@@ -153,9 +168,9 @@ describe("NedaaStaffAssignmentsPage", () => {
         name: "staff_assignments.staff_user_id",
       }),
     );
-    await user.type(screen.getByPlaceholderText("filters.staff_user"), "Ahmed");
+    await user.type(screen.getByPlaceholderText("search_placeholder"), "Ahmed");
     expect(
-      screen.getByRole("button", { name: "Ahmed Staff (ahmed.staff)" }),
+      await screen.findByRole("button", { name: "Ahmed Staff - ahmed.staff" }),
     ).toBeVisible();
 
     await user.click(document.body);

@@ -18,6 +18,12 @@ export interface CredentialStatusRecord {
   credentialVersion?: number | null;
 }
 
+export interface CredentialRoleOption {
+  id: string;
+  key?: string;
+  name: string;
+}
+
 export interface CredentialUserSummaryDto {
   userId: string;
   fullName: string;

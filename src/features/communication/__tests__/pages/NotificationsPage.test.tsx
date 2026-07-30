@@ -16,6 +16,7 @@ vi.mock("@/hooks/use-auth", () => ({
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
+  useTranslations: () => (key: string) => key,
 }));
 
 vi.mock("next/navigation", () => ({

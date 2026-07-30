@@ -2,19 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import {
   Download,
-  KeyRound,
-  Mail,
+  Loader2,
   MailPlus,
-  Pencil,
   RefreshCcw,
-  UserCheck,
+  Search,
   UserPlus,
-  UserX,
   X,
 } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { DataTable, FilterPanel } from "@/components/ui";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
@@ -24,6 +23,9 @@ import SettingsPageHeader from "@/features/settings/components/SettingsPageHeade
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
 import SettingsStatusBadge from "@/features/settings/components/SettingsStatusBadge";
 import UserEditorModal from "@/features/settings/components/UserEditorModal";
+import UserProvisioningModal from "@/features/settings/users/components/UserProvisioningModal";
+import SettingsUserActions from "@/features/settings/users/components/SettingsUserActions";
+import SettingsWorkflowErrorAlert from "@/features/settings/shared/components/SettingsWorkflowErrorAlert";
 import SettingsGlobalExportModal from "@/features/settings/shared/components/export/SettingsGlobalExportModal";
 import {
   exportSettingsData,
@@ -31,15 +33,13 @@ import {
   type ExportColumn,
   type SettingsExportFormat,
 } from "@/features/settings/shared/utils/settingsExport";
-import { fetchSettingsRoles } from "@/features/settings/services/settingsRolesService";
+import { fetchAllSettingsRoles } from "@/features/settings/services/settingsRolesService";
 import {
   createSettingsUser,
   fetchSettingsUsers,
   type FetchSettingsUsersParams,
   inviteSettingsUser,
-  resendSettingsUserInvite,
   setSettingsUserStatus,
-  triggerSettingsUserPasswordReset,
   updateSettingsUser,
 } from "@/features/settings/services/settingsUsersService";
 import { isApiError } from "@/lib/api-error";
@@ -51,6 +51,13 @@ import type {
 } from "@/features/settings/types";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useDebounce } from "@/hooks/useDebounce";
+import {
+  classifySettingsWorkflowError,
+  type SettingsWorkflowError,
+} from "@/features/settings/shared/utils/settingsWorkflowErrors";
+
+const USERS_SEARCH_DEBOUNCE_MS = 300;
 
 type UserEditorField =
   | "fullName"
@@ -61,13 +68,22 @@ type UserEditorField =
 
 export default function SettingsUsersPage() {
   const locale = useLocale();
+  const router = useRouter();
   const t = useTranslations("settings.users");
   const tExport = useTranslations("settings.export");
   const tCommon = useTranslations("common");
   const { hasPermission } = usePermissions();
-  const { showSuccess, showError, showInfo } = useToast();
+  const canManageUsers = hasPermission("settings.users.manage");
+  const canDeliverCredentials = hasPermission(
+    "settings.email.credential_deliveries.manage",
+  );
+  const canViewTeachers = hasPermission("teachers.records.view");
+  const { showSuccess, showError } = useToast();
   const [users, setUsers] = useState<SettingsUserRecord[]>([]);
   const [roles, setRoles] = useState<RoleDefinition[]>([]);
+  const [isRolesLoading, setIsRolesLoading] = useState(true);
+  const [rolesLoadFailed, setRolesLoadFailed] = useState(false);
+  const [rolesReloadVersion, setRolesReloadVersion] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [modalMode, setModalMode] = useState<
     "create" | "invite" | "edit" | null
@@ -75,6 +91,8 @@ export default function SettingsUsersPage() {
   const [selectedUser, setSelectedUser] = useState<SettingsUserRecord | null>(
     null,
   );
+  const [provisioningUser, setProvisioningUser] =
+    useState<SettingsUserRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -85,6 +103,15 @@ export default function SettingsUsersPage() {
     Partial<Record<UserEditorField, string>>
   >({});
   const [modalError, setModalError] = useState<string | null>(null);
+  const [modalWorkflowError, setModalWorkflowError] =
+    useState<SettingsWorkflowError | null>(null);
+  const [pageWorkflowError, setPageWorkflowError] =
+    useState<SettingsWorkflowError | null>(null);
+  const [listWorkflowError, setListWorkflowError] =
+    useState<SettingsWorkflowError | null>(null);
+  const [listReloadVersion, setListReloadVersion] = useState(0);
+  const [statusUser, setStatusUser] = useState<SettingsUserRecord | null>(null);
+  const [isStatusSaving, setIsStatusSaving] = useState(false);
   const { values, setValue, replaceValues, reset } = useUrlQueryState<{
     search: string;
     role: string;
@@ -113,15 +140,45 @@ export default function SettingsUsersPage() {
   });
 
   const search = values.search;
+  const debouncedSearch = useDebounce(
+    search.trim(),
+    USERS_SEARCH_DEBOUNCE_MS,
+  );
   const roleFilter = values.role;
   const statusFilter = values.status;
   const hasHydratedListRef = useRef(false);
 
   useEffect(() => {
-    void Promise.resolve().then(() => setPage(1));
-  }, [search, roleFilter, statusFilter]);
+    let cancelled = false;
+    void Promise.resolve().then(async () => {
+      setIsRolesLoading(true);
+      setRolesLoadFailed(false);
+      try {
+        const nextRoles = await fetchAllSettingsRoles();
+        if (!cancelled) {
+          setRoles(nextRoles);
+        }
+      } catch {
+        if (!cancelled) {
+          setRolesLoadFailed(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsRolesLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [rolesReloadVersion]);
 
   useEffect(() => {
+    if (search.trim() !== debouncedSearch) {
+      return;
+    }
+
     let cancelled = false;
     void Promise.resolve().then(async () => {
       const isInitialLoad = !hasHydratedListRef.current;
@@ -130,18 +187,16 @@ export default function SettingsUsersPage() {
       } else {
         setIsFetching(true);
       }
+      setListWorkflowError(null);
       try {
         const usersParams: FetchSettingsUsersParams = {
-          search,
+          search: debouncedSearch,
           page,
           limit,
           roleId: roleFilter,
           status: statusFilter as SettingsUserRecord["status"] | "all",
         };
-        const [usersResult, nextRoles] = await Promise.all([
-          fetchSettingsUsers(usersParams),
-          fetchSettingsRoles(),
-        ]);
+        const usersResult = await fetchSettingsUsers(usersParams);
         if (cancelled) {
           return;
         }
@@ -149,11 +204,10 @@ export default function SettingsUsersPage() {
         setTotalUsers(usersResult.pagination.total);
         setPage(usersResult.pagination.page);
         setLimit(usersResult.pagination.limit);
-        setRoles(nextRoles.items);
         hasHydratedListRef.current = true;
-      } catch {
+      } catch (error) {
         if (!cancelled) {
-          showError(t("messages.load_failed"));
+          setListWorkflowError(classifySettingsWorkflowError(error));
         }
       } finally {
         if (!cancelled) {
@@ -166,21 +220,43 @@ export default function SettingsUsersPage() {
     return () => {
       cancelled = true;
     };
-  }, [limit, page, roleFilter, search, showError, statusFilter, t]);
+  }, [
+    debouncedSearch,
+    limit,
+    listReloadVersion,
+    page,
+    roleFilter,
+    search,
+    statusFilter,
+  ]);
 
-  const rolesMap = useMemo(
-    () => new Map(roles.map((role) => [role.id, role.name])),
+  const rolesById = useMemo(
+    () => new Map(roles.map((role) => [role.id, role])),
     [roles],
   );
 
   useEffect(() => {
-    if (roleFilter !== "all" && !roles.some((role) => role.id === roleFilter)) {
+    if (
+      !isRolesLoading &&
+      !rolesLoadFailed &&
+      roleFilter !== "all" &&
+      !roles.some((role) => role.id === roleFilter)
+    ) {
       replaceValues({ role: null });
     }
-  }, [replaceValues, roleFilter, roles]);
+  }, [
+    isRolesLoading,
+    replaceValues,
+    roleFilter,
+    roles,
+    rolesLoadFailed,
+  ]);
 
   const hasActiveFilters =
     search.trim() !== "" || roleFilter !== "all" || statusFilter !== "all";
+  const hasAssignableRoles = roles.some((role) => role.key !== "teacher");
+  const userEditorUnavailable =
+    isRolesLoading || rolesLoadFailed || !hasAssignableRoles;
 
   const handleExport = (format: SettingsExportFormat) => {
     const metadata = {
@@ -197,14 +273,9 @@ export default function SettingsUsersPage() {
       { key: "role", label: t("table.role") },
       { key: "status", label: t("table.status") },
       { key: "lastActiveAt", label: t("table.last_active") },
-      { key: "credentialStatus", label: t("table.credential_status") },
       {
         key: "invitedAt",
         label: locale === "ar" ? "تاريخ الدعوة" : "Invited at",
-      },
-      {
-        key: "lastInviteSentAt",
-        label: locale === "ar" ? "آخر إعادة إرسال" : "Last invite sent",
       },
     ];
     const rows = users.map((user) => ({
@@ -213,17 +284,13 @@ export default function SettingsUsersPage() {
       username: user.username || "",
       email: user.email,
       contactEmail: user.contactEmail || "",
-      role: rolesMap.get(user.roleId) || user.roleId,
+      role: rolesById.get(user.roleId)?.name || user.roleName || user.roleId,
       status: t(`statuses.${user.status}`),
       lastActiveAt: user.lastActiveAt
         ? new Date(user.lastActiveAt).toLocaleString()
         : t("not_available"),
-      credentialStatus: getCredentialStatusLabel(user),
       invitedAt: user.invitedAt
         ? new Date(user.invitedAt).toLocaleString()
-        : "",
-      lastInviteSentAt: user.lastInviteSentAt
-        ? new Date(user.lastInviteSentAt).toLocaleString()
         : "",
     }));
 
@@ -247,8 +314,8 @@ export default function SettingsUsersPage() {
         users: users.map((user) => ({
           ...user,
           loginEmail: user.email,
-          roleName: rolesMap.get(user.roleId) || user.roleId,
-          credentialStatus: getCredentialStatusLabel(user),
+          roleName:
+            rolesById.get(user.roleId)?.name || user.roleName || user.roleId,
         })),
       },
     });
@@ -260,11 +327,12 @@ export default function SettingsUsersPage() {
     }
   }, [hasActiveFilters, showFilters]);
 
-  const refresh = async () => {
+  const refresh = async (): Promise<boolean> => {
     setIsFetching(true);
+    setListWorkflowError(null);
     try {
       const usersParams: FetchSettingsUsersParams = {
-        search,
+        search: debouncedSearch,
         page,
         limit,
         roleId: roleFilter,
@@ -275,35 +343,32 @@ export default function SettingsUsersPage() {
       setTotalUsers(result.pagination.total);
       setPage(result.pagination.page);
       setLimit(result.pagination.limit);
+      return true;
+    } catch (error) {
+      setListWorkflowError(classifySettingsWorkflowError(error));
+      return false;
     } finally {
       setIsFetching(false);
     }
   };
 
-  const getCredentialStatusLabel = (user: SettingsUserRecord) => {
-    if (user.mustChangePassword) {
-      return t("credential_status.must_change_password");
-    }
-    if (user.hasPassword || user.passwordProvisionedAt) {
-      return t("credential_status.provisioned");
-    }
-    return t("credential_status.not_provisioned");
-  };
-
   const handleModalSubmit = async (payload: SettingsUserPayloadDto) => {
     try {
+      let userToProvision: SettingsUserRecord | null = null;
       if (modalMode === "invite") {
-        await inviteSettingsUser({
+        userToProvision = await inviteSettingsUser({
           fullName: payload.fullName,
-          username: payload.username,
+          ...(payload.username ? { username: payload.username } : {}),
+          ...(payload.email ? { email: payload.email } : {}),
           contactEmail: payload.contactEmail,
           roleId: payload.roleId,
         });
         showSuccess(t("messages.invited"));
       } else if (modalMode === "create") {
-        await createSettingsUser({
+        userToProvision = await createSettingsUser({
           fullName: payload.fullName,
-          username: payload.username,
+          ...(payload.username ? { username: payload.username } : {}),
+          ...(payload.email ? { email: payload.email } : {}),
           contactEmail: payload.contactEmail,
           roleId: payload.roleId,
         });
@@ -315,33 +380,55 @@ export default function SettingsUsersPage() {
         });
         showSuccess(t("messages.updated"));
       }
-      await refresh();
       setModalMode(null);
       setSelectedUser(null);
       setModalFieldErrors({});
       setModalError(null);
+      setModalWorkflowError(null);
+      setProvisioningUser(userToProvision);
+      if (!(await refresh())) {
+        showError(t("messages.refresh_failed_after_save"));
+      }
     } catch (error) {
       const fieldErrors = getValidationFieldErrors(error);
       if (
         isApiError(error) &&
-        ["validation.failed", "iam.user.email_taken", "iam.user.username_taken", "iam.user.username_invalid"].includes(
+        [
+          "validation.failed",
+          "iam.user.email_taken",
+          "iam.user.username_taken",
+          "iam.user.username_invalid",
+          "iam.user.login_email_taken",
+          "iam.user.contact_email_invalid",
+        ].includes(
           error.code,
         )
       ) {
+        setModalWorkflowError(null);
         setModalFieldErrors({
           fullName: fieldErrors.fullName,
           username:
             fieldErrors.username ||
             (error.code === "iam.user.username_invalid"
               ? t("identity.username_invalid")
+              : error.code === "iam.user.login_email_taken"
+                ? t("identity.username_unavailable")
               : error.code === "iam.user.username_taken"
                 ? error.message
                 : undefined),
           contactEmail:
             fieldErrors.contactEmail ||
+            (error.code === "iam.user.contact_email_invalid"
+              ? t("identity.contact_email_invalid")
+              : undefined) ||
+            (payload.username && error.code === "iam.user.email_taken"
+              ? error.message
+              : undefined),
+          email:
             fieldErrors.email ||
-            (error.code === "iam.user.email_taken" ? error.message : undefined),
-          email: fieldErrors.email,
+            (!payload.username && error.code === "iam.user.email_taken"
+              ? error.message
+              : undefined),
           roleId: fieldErrors.roleId,
         });
         setModalError(
@@ -355,30 +442,18 @@ export default function SettingsUsersPage() {
       }
       setModalFieldErrors({});
       setModalError(null);
-      showError(tCommon("save_failed"));
+      setModalWorkflowError(classifySettingsWorkflowError(error));
     }
   };
 
-  const handleResendInvite = async (userId: string) => {
-    try {
-      await resendSettingsUserInvite(userId);
-      await refresh();
-      showSuccess(t("messages.invite_resent"));
-    } catch {
-      showError(tCommon("save_failed"));
+  const handleStatusChange = async () => {
+    if (!statusUser) {
+      return;
     }
-  };
 
-  const handlePasswordReset = async (userId: string) => {
-    try {
-      await triggerSettingsUserPasswordReset(userId);
-      showInfo(t("messages.password_reset_sent"));
-    } catch {
-      showError(tCommon("save_failed"));
-    }
-  };
-
-  const handleToggleStatus = async (user: SettingsUserRecord) => {
+    const user = statusUser;
+    setPageWorkflowError(null);
+    setIsStatusSaving(true);
     try {
       await setSettingsUserStatus(
         user.id,
@@ -390,9 +465,28 @@ export default function SettingsUsersPage() {
           ? t("messages.activated")
           : t("messages.deactivated"),
       );
-    } catch {
-      showError(tCommon("save_failed"));
+    } catch (error) {
+      setPageWorkflowError(classifySettingsWorkflowError(error));
+    } finally {
+      setIsStatusSaving(false);
+      setStatusUser(null);
     }
+  };
+
+  const openCredentials = (user: SettingsUserRecord) => {
+    router.push(
+      `/${locale}/settings/credentials?search=${encodeURIComponent(user.email)}`,
+    );
+  };
+
+  const openCredentialDelivery = (user: SettingsUserRecord) => {
+    router.push(
+      `/${locale}/settings/email/credential-deliveries?userId=${encodeURIComponent(user.id)}&userSearch=${encodeURIComponent(user.email)}`,
+    );
+  };
+
+  const openTeacherDirectory = (user: SettingsUserRecord) => {
+    router.push(`/${locale}/teachers?search=${encodeURIComponent(user.email)}`);
   };
 
   const columns = [
@@ -400,6 +494,7 @@ export default function SettingsUsersPage() {
       key: "fullName",
       label: t("table.name"),
       searchable: true,
+      sortable: false,
       render: (value: unknown, row: Record<string, unknown>) => {
         const user = row as unknown as SettingsUserRecord;
         return (
@@ -416,12 +511,14 @@ export default function SettingsUsersPage() {
       key: "username",
       label: t("table.username"),
       searchable: true,
+      sortable: false,
       render: (value: unknown) => String(value || t("not_available")),
     },
     {
       key: "email",
       label: t("table.login_email"),
       searchable: true,
+      sortable: false,
       render: (value: unknown) => (
         <span className="break-all text-gray-700">
           {String(value || t("not_available"))}
@@ -432,6 +529,7 @@ export default function SettingsUsersPage() {
       key: "contactEmail",
       label: t("table.contact_email"),
       searchable: true,
+      sortable: false,
       render: (value: unknown) => (
         <span className="break-all text-gray-700">
           {String(value || t("not_available"))}
@@ -441,11 +539,20 @@ export default function SettingsUsersPage() {
     {
       key: "roleId",
       label: t("table.role"),
-      render: (value: unknown) => rolesMap.get(String(value)) || String(value),
+      sortable: false,
+      render: (value: unknown, row: Record<string, unknown>) => {
+        const user = row as unknown as SettingsUserRecord;
+        return (
+          rolesById.get(String(value))?.name ||
+          user.roleName ||
+          String(value)
+        );
+      },
     },
     {
       key: "status",
       label: t("table.status"),
+      sortable: false,
       render: (value: unknown) => (
         <SettingsStatusBadge status={value as SettingsUserRecord["status"]} />
       ),
@@ -453,15 +560,9 @@ export default function SettingsUsersPage() {
     {
       key: "lastActiveAt",
       label: t("table.last_active"),
+      sortable: false,
       render: (value: unknown) =>
         value ? new Date(String(value)).toLocaleString() : t("not_available"),
-    },
-    {
-      key: "hasPassword",
-      label: t("table.credential_status"),
-      sortable: false,
-      render: (_value: unknown, row: Record<string, unknown>) =>
-        getCredentialStatusLabel(row as unknown as SettingsUserRecord),
     },
     {
       key: "id",
@@ -469,79 +570,34 @@ export default function SettingsUsersPage() {
       sortable: false,
       render: (_value: unknown, row: Record<string, unknown>) => {
         const user = row as unknown as SettingsUserRecord;
+        const role = rolesById.get(user.roleId);
+        const isTeacher = role?.key === "teacher";
         return (
-          <div className="flex gap-2">
-            {hasPermission("settings.users.manage") ? (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 rounded-lg border border-gray-200 p-0"
-                  title={tCommon("edit")}
-                  aria-label={tCommon("edit")}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setSelectedUser(user);
-                    setModalMode("edit");
-                  }}
-                >
-                  <Pencil className="h-4 w-4 text-info" />
-                </Button>
-                {user.status === "invited" ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 w-9 rounded-lg border border-gray-200 p-0"
-                    title={t("resend_invite")}
-                    aria-label={t("resend_invite")}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void handleResendInvite(user.id);
-                    }}
-                  >
-                    <Mail className="h-4 w-4 text-red-400" />
-                  </Button>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 w-9 rounded-lg border border-gray-200 p-0"
-                    title={t("reset_password")}
-                    aria-label={t("reset_password")}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void handlePasswordReset(user.id);
-                    }}
-                  >
-                    <KeyRound className="h-4 w-4 text-warning" />
-                  </Button>
-                )}
-                <Button
-                  variant={user.status === "inactive" ? "primary" : "ghost"}
-                  size="sm"
-                  className={`h-9 w-9 rounded-lg p-0 ${
-                    user.status === "inactive" ? "" : "border border-gray-200"
-                  }`}
-                  title={
-                    user.status === "inactive" ? t("activate") : t("deactivate")
-                  }
-                  aria-label={
-                    user.status === "inactive" ? t("activate") : t("deactivate")
-                  }
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    void handleToggleStatus(user);
-                  }}
-                >
-                  {user.status === "inactive" ? (
-                    <UserCheck className="h-4 w-4" />
-                  ) : (
-                    <UserX className="h-4 w-4" />
-                  )}
-                </Button>
-              </>
-            ) : null}
-          </div>
+          <SettingsUserActions
+            user={user}
+            isTeacher={isTeacher}
+            canManageUsers={canManageUsers && Boolean(role)}
+            canDeliverCredentials={canDeliverCredentials}
+            canViewTeachers={canViewTeachers}
+            labels={{
+              edit: tCommon("edit"),
+              activate: t("activate"),
+              deactivate: t("deactivate"),
+              openMenu: t("open_actions", { name: user.fullName }),
+              manageCredentials: t("manage_credentials"),
+              viewCredentials: t("view_credentials"),
+              deliverCredentials: t("deliver_credentials"),
+              manageTeacher: t("manage_in_teachers"),
+            }}
+            onEdit={() => {
+              setSelectedUser(user);
+              setModalMode("edit");
+            }}
+            onToggleStatus={() => setStatusUser(user)}
+            onManageCredentials={() => openCredentials(user)}
+            onDeliverCredentials={() => openCredentialDelivery(user)}
+            onManageTeacher={() => openTeacherDirectory(user)}
+          />
         );
       },
     },
@@ -554,7 +610,7 @@ export default function SettingsUsersPage() {
           title={t("title")}
           subtitle={t("subtitle")}
           actions={
-            hasPermission("settings.users.manage") ? (
+            canManageUsers ? (
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="secondary"
@@ -566,8 +622,13 @@ export default function SettingsUsersPage() {
                 <Button
                   variant="secondary"
                   leftIcon={<MailPlus className="h-4 w-4" />}
+                  disabled={userEditorUnavailable}
+                  title={
+                    userEditorUnavailable ? t("roles.required") : undefined
+                  }
                   onClick={() => {
                     setSelectedUser(null);
+                    setModalWorkflowError(null);
                     setModalMode("invite");
                   }}
                 >
@@ -576,8 +637,13 @@ export default function SettingsUsersPage() {
                 <Button
                   variant="primary"
                   leftIcon={<UserPlus className="h-4 w-4" />}
+                  disabled={userEditorUnavailable}
+                  title={
+                    userEditorUnavailable ? t("roles.required") : undefined
+                  }
                   onClick={() => {
                     setSelectedUser(null);
+                    setModalWorkflowError(null);
                     setModalMode("create");
                   }}
                 >
@@ -587,6 +653,42 @@ export default function SettingsUsersPage() {
             ) : null
           }
         />
+        {pageWorkflowError ? (
+          <div className="mb-4">
+            <SettingsWorkflowErrorAlert error={pageWorkflowError} />
+          </div>
+        ) : null}
+        {rolesLoadFailed || (!isRolesLoading && !hasAssignableRoles) ? (
+          <div
+            role="alert"
+            className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          >
+            <span>
+              {rolesLoadFailed ? t("roles.load_failed") : t("roles.empty")}
+            </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setRolesReloadVersion((currentVersion) => currentVersion + 1)
+              }
+            >
+              {t("roles.retry")}
+            </Button>
+          </div>
+        ) : isRolesLoading ? (
+          <p
+            role="status"
+            aria-live="polite"
+            className="mb-4 flex items-center gap-2 text-sm text-gray-600"
+          >
+            <Loader2
+              className="h-4 w-4 animate-spin motion-reduce:animate-none"
+              aria-hidden="true"
+            />
+            {t("roles.loading")}
+          </p>
+        ) : null}
 
         <SettingsSectionCard
           title={t("directory_title")}
@@ -616,9 +718,20 @@ export default function SettingsUsersPage() {
                   <div className="min-w-40 flex-1">
                     <Input
                       value={search}
-                      onChange={(event) =>
-                        setValue("search", event.target.value, "replace")
+                      aria-label={t("search")}
+                      leftIcon={<Search className="h-4 w-4" />}
+                      rightIcon={
+                        isFetching ? (
+                          <Loader2
+                            className="h-4 w-4 animate-spin motion-reduce:animate-none"
+                            aria-hidden="true"
+                          />
+                        ) : undefined
                       }
+                      onChange={(event) => {
+                        setPage(1);
+                        setValue("search", event.target.value, "replace")
+                      }}
                       placeholder={t("search")}
                     />
                   </div>
@@ -626,7 +739,10 @@ export default function SettingsUsersPage() {
                     <Button
                       variant="outline"
                       leftIcon={<X className="h-4 w-4" />}
-                      onClick={() => reset(undefined, "replace")}
+                      onClick={() => {
+                        setPage(1);
+                        reset(undefined, "replace");
+                      }}
                     >
                       {t("clear_filters")}
                     </Button>
@@ -638,7 +754,11 @@ export default function SettingsUsersPage() {
                   <Select
                     label={t("filters.role")}
                     value={roleFilter}
-                    onChange={(value) => setValue("role", value, "push")}
+                    disabled={isRolesLoading || rolesLoadFailed}
+                    onChange={(value) => {
+                      setPage(1);
+                      setValue("role", value, "push");
+                    }}
                     options={[
                       { value: "all", label: tCommon("all") },
                       ...roles.map((role) => ({
@@ -650,7 +770,10 @@ export default function SettingsUsersPage() {
                   <Select
                     label={t("filters.status")}
                     value={statusFilter}
-                    onChange={(value) => setValue("status", value, "push")}
+                    onChange={(value) => {
+                      setPage(1);
+                      setValue("status", value, "push");
+                    }}
                     options={[
                       { value: "all", label: tCommon("all") },
                       { value: "active", label: t("statuses.active") },
@@ -663,33 +786,65 @@ export default function SettingsUsersPage() {
             />
           </div>
 
-          <DataTable
-            columns={columns}
-            data={users as unknown as Record<string, unknown>[]}
-            isLoading={isLoading || isFetching}
-            skeletonRows={limit}
-            showPagination
-            itemsPerPage={limit}
-            searchQuery={search}
-            serverPagination={{
-              enabled: true,
-              currentPage: page,
-              pageSize: limit,
-              totalItems: totalUsers,
-              onPageChange: (nextPage) => setPage(nextPage),
-              onPageSizeChange: (nextSize) => {
-                setLimit(nextSize);
-                setPage(1);
-              },
-            }}
-            onRowClick={(row) => {
-              if (!hasPermission("settings.users.manage")) {
-                return;
+          <p
+            role="status"
+            aria-live="polite"
+            className="mb-3 min-h-5 text-sm text-gray-600"
+          >
+            {search.trim() !== debouncedSearch
+              ? t("messages.search_waiting")
+              : isFetching
+                ? t("messages.loading")
+                : t("messages.result_count", { count: totalUsers })}
+          </p>
+
+          {listWorkflowError ? (
+            <div className="mb-4 space-y-3">
+              <SettingsWorkflowErrorAlert error={listWorkflowError} />
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() =>
+                  setListReloadVersion(
+                    (currentVersion) => currentVersion + 1,
+                  )
+                }
+              >
+                {t("messages.retry")}
+              </Button>
+            </div>
+          ) : null}
+
+          {!listWorkflowError || users.length > 0 ? (
+            <DataTable
+              columns={columns}
+              data={users as unknown as Record<string, unknown>[]}
+              isLoading={isLoading}
+              skeletonRows={limit}
+              showPagination
+              itemsPerPage={limit}
+              searchQuery={search}
+              emptyTitle={
+                hasActiveFilters ? t("empty.filtered_title") : t("empty.title")
               }
-              setSelectedUser(row as unknown as SettingsUserRecord);
-              setModalMode("edit");
-            }}
-          />
+              emptyDescription={
+                hasActiveFilters
+                  ? t("empty.filtered_description")
+                  : t("empty.description")
+              }
+              serverPagination={{
+                enabled: true,
+                currentPage: page,
+                pageSize: limit,
+                totalItems: totalUsers,
+                onPageChange: (nextPage) => setPage(nextPage),
+                onPageSizeChange: (nextSize) => {
+                  setLimit(nextSize);
+                  setPage(1);
+                },
+              }}
+            />
+          ) : null}
         </SettingsSectionCard>
 
         <UserEditorModal
@@ -699,19 +854,30 @@ export default function SettingsUsersPage() {
           roles={roles}
           errors={modalFieldErrors}
           formError={modalError}
-          onFieldChange={(field) =>
+          workflowError={modalWorkflowError}
+          onFieldChange={(field) => {
+            setModalWorkflowError(null);
             setModalFieldErrors((current) => ({
               ...current,
               [field]: undefined,
-            }))
-          }
+            }));
+          }}
           onClose={() => {
             setModalMode(null);
             setSelectedUser(null);
             setModalFieldErrors({});
             setModalError(null);
+            setModalWorkflowError(null);
           }}
           onSubmit={handleModalSubmit}
+        />
+        <UserProvisioningModal
+          isOpen={Boolean(provisioningUser)}
+          user={provisioningUser}
+          canGenerate={canManageUsers}
+          canDeliver={canDeliverCredentials}
+          onDeliver={openCredentialDelivery}
+          onClose={() => setProvisioningUser(null)}
         />
         <SettingsGlobalExportModal
           isOpen={isExportModalOpen}
@@ -719,6 +885,37 @@ export default function SettingsUsersPage() {
           onExport={handleExport}
           datasetCount={users.length}
           emptyStateMessage={tExport("errors.noData")}
+        />
+        <ConfirmDialog
+          isOpen={Boolean(statusUser)}
+          onClose={() => {
+            if (!isStatusSaving) {
+              setStatusUser(null);
+            }
+          }}
+          onConfirm={() => void handleStatusChange()}
+          title={
+            statusUser?.status === "inactive"
+              ? t("status_change.activate_title")
+              : t("status_change.deactivate_title")
+          }
+          description={
+            statusUser?.status === "inactive"
+              ? t("status_change.activate_description", {
+                  name: statusUser?.fullName || "",
+                })
+              : t("status_change.deactivate_description", {
+                  name: statusUser?.fullName || "",
+                })
+          }
+          confirmLabel={
+            statusUser?.status === "inactive"
+              ? t("activate")
+              : t("deactivate")
+          }
+          cancelLabel={tCommon("cancel")}
+          loading={isStatusSaving}
+          severity={statusUser?.status === "inactive" ? "info" : "danger"}
         />
       </main>
     </SettingsAccessGuard>

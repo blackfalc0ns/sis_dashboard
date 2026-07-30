@@ -19,6 +19,7 @@ export interface CommunicationEntitySelectProps {
   search: (query: string) => Promise<CommunicationSelectorOption[]>;
   onChange: (value: string) => void;
   onOptionChange?: (option: CommunicationSelectorOption | null) => void;
+  onOptionsChange?: (options: CommunicationSelectorOption[]) => void;
 }
 
 function toSelectOption(option: CommunicationSelectorOption): SelectOption {
@@ -41,6 +42,7 @@ export default function CommunicationEntitySelect({
   label,
   onChange,
   onOptionChange,
+  onOptionsChange,
   placeholder,
   search,
   value,
@@ -61,6 +63,7 @@ export default function CommunicationEntitySelect({
         .then((items) => {
           if (!cancelled) {
             setOptions(items);
+            onOptionsChange?.(items);
             setHasSearched(true);
           }
         })
@@ -80,7 +83,7 @@ export default function CommunicationEntitySelect({
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [disabled, search]);
+  }, [disabled, onOptionsChange, search]);
 
   const selectOptions = useMemo(() => {
     const nextOptions = options.map(toSelectOption);

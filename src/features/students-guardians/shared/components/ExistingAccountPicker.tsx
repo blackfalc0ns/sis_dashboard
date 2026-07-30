@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { Loader2, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { fetchSettingsUsers } from "@/features/settings/services/settingsUsersService";
 import type { SettingsUserRecord } from "@/features/settings/types";
+import { usePaginatedUsers } from "@/features/settings/users/hooks/usePaginatedUsers";
+import { isApiError } from "@/lib/api-error";
 
 interface ExistingAccountPickerProps {
   selectedUser: SettingsUserRecord | null;
@@ -18,38 +19,17 @@ export default function ExistingAccountPicker({
   onClear,
 }: ExistingAccountPickerProps) {
   const t = useTranslations("students_guardians.account_linking");
+  const userSelectT = useTranslations("user_select");
   const inputId = useId();
   const [query, setQuery] = useState("");
-  const [users, setUsers] = useState<SettingsUserRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadFailed, setLoadFailed] = useState(false);
-
-  useEffect(() => {
-    if (query.trim().length < 2) {
-      return;
-    }
-
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      setLoading(true);
-      setLoadFailed(false);
-      void fetchSettingsUsers({ search: query, limit: 10, status: "active" })
-        .then((response) => {
-          if (!cancelled) setUsers(response.items);
-        })
-        .catch(() => {
-          if (!cancelled) setLoadFailed(true);
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false);
-        });
-    }, 250);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [query]);
+  const usersState = usePaginatedUsers({
+    enabled: true,
+    query,
+    status: "active",
+  });
+  const permissionDenied =
+    isApiError(usersState.initialError) &&
+    usersState.initialError.status === 403;
 
   if (selectedUser) {
     return (
@@ -90,20 +70,44 @@ export default function ExistingAccountPicker({
           placeholder={t("search_placeholder")}
           className="w-full rounded-lg border border-gray-200 bg-white py-2.5 ps-9 pe-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
-        {loading && (
+        {usersState.isInitialLoading && (
           <Loader2 className="absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-primary" />
         )}
       </div>
-      {query.trim().length >= 2 && !loading && (
-        <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-          {loadFailed ? (
-            <p role="alert" className="p-3 text-sm text-red-700">
-              {t("search_failed")}
+      <div
+        className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-sm"
+        onScroll={(event) => {
+          const list = event.currentTarget;
+          if (list.scrollHeight - list.scrollTop - list.clientHeight <= 40) {
+            usersState.loadMore();
+          }
+        }}
+      >
+          {usersState.initialError ? (
+            <div role="alert" className="space-y-2 p-3 text-sm text-red-700">
+              <p>
+                {permissionDenied
+                  ? userSelectT("permission_denied")
+                  : t("search_failed")}
+              </p>
+              {!permissionDenied ? (
+                <button
+                  type="button"
+                  onClick={usersState.retryInitial}
+                  className="cursor-pointer font-semibold text-primary hover:underline"
+                >
+                  {userSelectT("retry")}
+                </button>
+              ) : null}
+            </div>
+          ) : usersState.isInitialLoading ? (
+            <p role="status" className="p-3 text-sm text-gray-600">
+              {userSelectT("loading")}
             </p>
-          ) : users.length === 0 ? (
+          ) : usersState.users.length === 0 ? (
             <p className="p-3 text-sm text-gray-600">{t("no_results")}</p>
           ) : (
-            users.map((user) => (
+            usersState.users.map((user) => (
               <button
                 key={user.id}
                 type="button"
@@ -120,8 +124,23 @@ export default function ExistingAccountPicker({
               </button>
             ))
           )}
-        </div>
-      )}
+          {usersState.isLoadingMore ? (
+            <p role="status" className="p-3 text-center text-sm text-gray-600">
+              {userSelectT("loading_more")}
+            </p>
+          ) : usersState.loadMoreError ? (
+            <div role="alert" className="flex items-center justify-between gap-2 p-3 text-sm text-red-700">
+              <span>{userSelectT("load_more_failed")}</span>
+              <button
+                type="button"
+                onClick={usersState.retryLoadMore}
+                className="cursor-pointer font-semibold text-primary hover:underline"
+              >
+                {userSelectT("retry")}
+              </button>
+            </div>
+          ) : null}
+      </div>
     </div>
   );
 }

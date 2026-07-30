@@ -9,9 +9,9 @@ import {
   ListSubheader,
   SelectChangeEvent 
 } from "@mui/material";
-import { Teacher } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
-import { normalizeSearchText, buildSearchText } from "@/utils/text/normalizeSearch";
+import type { Teacher } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { useMemo, useState, useRef, useEffect } from "react";
+import { usePaginatedUsers } from "@/features/settings/users/hooks/usePaginatedUsers";
 
 /**
  * Teacher selection dropdown with bilingual search support
@@ -30,6 +30,7 @@ import { useMemo, useState, useRef, useEffect } from "react";
 
 interface TeacherSelectProps {
   teachers: Teacher[];
+  teacherRoleId: string;
   value: string | null;
   onChange: (teacherId: string | null) => void;
   disabled?: boolean;
@@ -38,13 +39,9 @@ interface TeacherSelectProps {
   size?: "small" | "medium";
 }
 
-// Extended teacher option with searchable text
-interface TeacherOption extends Teacher {
-  searchText: string;
-}
-
 export default function TeacherSelect({
   teachers,
+  teacherRoleId,
   value,
   onChange,
   disabled = false,
@@ -54,6 +51,7 @@ export default function TeacherSelect({
 }: TeacherSelectProps) {
   const t = useTranslations("academics.teacherAllocation.matrix");
   const tCommon = useTranslations("common");
+  const userSelectT = useTranslations("user_select");
   const locale = useLocale();
   
   const [searchQuery, setSearchQuery] = useState("");
@@ -66,34 +64,29 @@ export default function TeacherSelect({
       : (teacher.nameEn || teacher.nameAr);
   };
 
-  // Build teacher options with searchable text
-  const teacherOptions: TeacherOption[] = useMemo(() => {
-    return teachers.map((teacher) => {
-      const label = locale === "ar"
-        ? (teacher.nameAr || teacher.nameEn)
-        : (teacher.nameEn || teacher.nameAr);
-      
-      return {
-        ...teacher,
-        searchText: buildSearchText(
-          teacher.nameAr,
-          teacher.nameEn,
-          label
-        ),
-      };
-    });
-  }, [teachers, locale]);
-
-  // Filter options based on search query
-  const filteredOptions = useMemo(() => {
-    if (!searchQuery.trim()) return teacherOptions;
-    
-    const normalizedQuery = normalizeSearchText(searchQuery);
-    return teacherOptions.filter((option) => {
-      const normalizedOption = normalizeSearchText(option.searchText);
-      return normalizedOption.includes(normalizedQuery);
-    });
-  }, [teacherOptions, searchQuery]);
+  const usersState = usePaginatedUsers({
+    enabled: isOpen && Boolean(teacherRoleId) && !disabled,
+    query: searchQuery,
+    roleId: teacherRoleId,
+    status: "active",
+  });
+  const teacherOptions = useMemo(
+    () =>
+      usersState.users.map((user) => {
+        const referenceTeacher = teachers.find((teacher) => teacher.id === user.id);
+        return (
+          referenceTeacher ?? {
+            id: user.id,
+            nameAr: user.fullName,
+            nameEn: user.fullName,
+            email: user.email,
+            subjects: [],
+            isActive: true,
+          }
+        );
+      }),
+    [teachers, usersState.users],
+  );
 
   const getTeacherLoad = (teacherId: string): number => {
     return teacherLoads?.get(teacherId) || 0;
@@ -141,7 +134,9 @@ export default function TeacherSelect({
             </span>
           );
         }
-        const teacher = teacherOptions.find((t) => t.id === selected);
+        const teacher =
+          teacherOptions.find((candidate) => candidate.id === selected) ??
+          teachers.find((candidate) => candidate.id === selected);
         return teacher ? getTeacherLabel(teacher) : "";
       }}
       MenuProps={{
@@ -155,6 +150,12 @@ export default function TeacherSelect({
           },
         },
         MenuListProps: {
+          onScroll: (event) => {
+            const list = event.currentTarget;
+            if (list.scrollHeight - list.scrollTop - list.clientHeight <= 40) {
+              usersState.loadMore();
+            }
+          },
           sx: {
             paddingTop: 0,
           },
@@ -211,8 +212,8 @@ export default function TeacherSelect({
       </ListSubheader>
 
       {/* Teacher options */}
-      {filteredOptions.length > 0 ? (
-        filteredOptions.map((option) => {
+      {teacherOptions.length > 0 ? (
+        teacherOptions.map((option) => {
           const load = getTeacherLoad(option.id);
           const maxLoad = option.maxWeeklyLoad;
           const isOverloaded = maxLoad && load > maxLoad;
@@ -249,10 +250,36 @@ export default function TeacherSelect({
       ) : (
         <MenuItem disabled>
           <span style={{ color: "var(--color-gray-400, #9ca3af)" }}>
-            {tCommon("noResults")}
+            {usersState.isInitialLoading
+              ? userSelectT("loading")
+              : usersState.initialError
+                ? userSelectT("load_failed")
+                : tCommon("noResults")}
           </span>
         </MenuItem>
       )}
+      {usersState.isLoadingMore ? (
+        <MenuItem disabled>{userSelectT("loading_more")}</MenuItem>
+      ) : null}
+      {usersState.initialError ? (
+        <MenuItem
+          onClick={(event) => {
+            event.stopPropagation();
+            usersState.retryInitial();
+          }}
+        >
+          {userSelectT("retry")}
+        </MenuItem>
+      ) : usersState.loadMoreError ? (
+        <MenuItem
+          onClick={(event) => {
+            event.stopPropagation();
+            usersState.retryLoadMore();
+          }}
+        >
+          {userSelectT("load_more_failed")} · {userSelectT("retry")}
+        </MenuItem>
+      ) : null}
     </Select>
   );
 }

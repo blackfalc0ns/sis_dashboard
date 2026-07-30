@@ -18,11 +18,8 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { usePermissions } from "@/hooks/usePermissions";
 import { getNedaaApiErrorMessage } from "@/features/nedaa/utils/nedaaApiErrors";
 import { fetchSettingsRoles } from "@/features/settings/services/settingsRolesService";
-import { fetchSettingsUsers } from "@/features/settings/services/settingsUsersService";
-import type {
-  RoleDefinition,
-  SettingsUserRecord,
-} from "@/features/settings/types";
+import type { RoleDefinition } from "@/features/settings/types";
+import PaginatedUserSelect from "@/features/settings/users/components/PaginatedUserSelect";
 import NedaaAccessNotice from "@/features/nedaa/components/NedaaAccessNotice";
 import { useNedaaAcademicStructure } from "@/features/nedaa/hooks/useNedaaAcademicStructure";
 import {
@@ -162,11 +159,6 @@ function prependSelectedOption(
   ];
 }
 
-function formatStaffOptionLabel(staff: SettingsUserRecord): string {
-  const username = staff.username?.trim();
-  return username ? `${staff.fullName} (${username})` : staff.fullName;
-}
-
 function isDismissalStaffRole(role: RoleDefinition) {
   return (
     role.name.trim().toLowerCase() ===
@@ -205,9 +197,7 @@ export default function NedaaStaffAssignmentsPage() {
     useState<DismissalStaffAssignment | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [gateOptionsSource, setGateOptionsSource] = useState<NedaaGate[]>([]);
-  const [staffOptionsSource, setStaffOptionsSource] = useState<
-    SettingsUserRecord[]
-  >([]);
+  const [staffRoleId, setStaffRoleId] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [staffUserIdFilter, setStaffUserIdFilter] = useState("");
@@ -257,32 +247,17 @@ export default function NedaaStaffAssignmentsPage() {
       }
 
       if (rolesResult.status !== "fulfilled") {
-        setStaffOptionsSource([]);
+        setStaffRoleId("");
         return;
       }
 
       const dismissalStaffRole =
         rolesResult.value.items.find(isDismissalStaffRole);
       if (!dismissalStaffRole) {
-        setStaffOptionsSource([]);
+        setStaffRoleId("");
         return;
       }
-
-      try {
-        const usersResult = await fetchSettingsUsers({
-          page: 1,
-          limit: 100,
-          roleId: dismissalStaffRole.id,
-          status: "active",
-        });
-        if (!cancelled) {
-          setStaffOptionsSource(usersResult.items);
-        }
-      } catch {
-        if (!cancelled) {
-          setStaffOptionsSource([]);
-        }
-      }
+      setStaffRoleId(dismissalStaffRole.id);
     });
 
     return () => {
@@ -443,17 +418,6 @@ export default function NedaaStaffAssignmentsPage() {
     ],
     [canManage, openEditForm, t, tCommon],
   );
-  const staffOptions = useMemo<SelectOption[]>(
-    () => [
-      { value: "", label: tCommon("all") },
-      ...staffOptionsSource.map((staff) => ({
-        value: staff.id,
-        label: formatStaffOptionLabel(staff),
-        searchText: `${staff.id} ${staff.username || ""} ${staff.email || ""}`,
-      })),
-    ],
-    [staffOptionsSource, tCommon],
-  );
   const gateOptions = useMemo<SelectOption[]>(
     () => [
       { value: "", label: t("filters.all_gates") },
@@ -464,23 +428,6 @@ export default function NedaaStaffAssignmentsPage() {
       })),
     ],
     [gateOptionsSource, t],
-  );
-  const staffFormOptions = useMemo<SelectOption[]>(
-    () => [
-      {
-        value: "",
-        label:
-          formMode === "edit"
-            ? t("staff_assignments.staff_user_unchanged")
-            : t("staff_assignments.staff_user_required"),
-      },
-      ...staffOptionsSource.map((staff) => ({
-        value: staff.id,
-        label: formatStaffOptionLabel(staff),
-        searchText: `${staff.id} ${staff.username || ""} ${staff.email || ""}`,
-      })),
-    ],
-    [formMode, staffOptionsSource, t],
   );
   const filterAcademicSelection = useMemo<NedaaAcademicSelection>(
     () => ({
@@ -826,18 +773,17 @@ export default function NedaaStaffAssignmentsPage() {
         }
         filtersSlot={
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <Select
+            <PaginatedUserSelect
               label={t("filters.staff_user")}
               value={staffUserIdFilter}
               onChange={(value) => {
                 setStaffUserIdFilter(value);
                 setPage(1);
               }}
-              options={staffOptions}
-              searchable
-              searchPlaceholder={t("filters.staff_user")}
-              noOptionsText={t("filters.no_options")}
-              noResultsText={t("filters.no_results")}
+              roleId={staffRoleId}
+              status="active"
+              placeholder={tCommon("all")}
+              disabled={!staffRoleId}
             />
             <Select
               label={t("table.gate")}
@@ -970,21 +916,23 @@ export default function NedaaStaffAssignmentsPage() {
         }
       >
         <div className="grid grid-cols-1 gap-4 py-2 md:grid-cols-2">
-          <Select
+          <PaginatedUserSelect
             label={t("staff_assignments.staff_user_id")}
             value={form.staffUserId}
-            disabled={formMode === "edit"}
+            disabled={formMode === "edit" || !staffRoleId}
             onChange={(value) =>
               setForm((current) => ({
                 ...current,
                 staffUserId: value,
               }))
             }
-            options={staffFormOptions}
-            searchable
-            searchPlaceholder={t("filters.staff_user")}
-            noOptionsText={t("filters.no_options")}
-            noResultsText={t("filters.no_results")}
+            roleId={staffRoleId}
+            status="active"
+            placeholder={
+              formMode === "edit"
+                ? t("staff_assignments.staff_user_unchanged")
+                : t("staff_assignments.staff_user_required")
+            }
           />
           <Select
             label={t("staff_assignments.gate_id")}

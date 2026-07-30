@@ -26,7 +26,10 @@ import type {
   CreateTeacherAllocationRequest,
   TeacherAllocationValidationResponse,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationApi.types";
-import { fetchTeacherAllocationTeachers } from "@/features/academics/teacher-allocation/services/teacherAllocationTeachersApiService";
+import {
+  fetchTeacherAllocationTeacherDirectory,
+  fetchTeacherAllocationTeachers,
+} from "@/features/academics/teacher-allocation/services/teacherAllocationTeachersApiService";
 import {
   mapAllocationDtoToUi,
   mapTeacherLoadDtoToUi,
@@ -254,6 +257,10 @@ function replacementTeacherAssignments({
 
 export async function fetchTeachers(): Promise<Teacher[]> {
   return fetchTeacherAllocationTeachers();
+}
+
+export async function fetchTeacherDirectory() {
+  return fetchTeacherAllocationTeacherDirectory();
 }
 
 export async function fetchTeacherAllocations(

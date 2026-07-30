@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import Select from "../Select";
@@ -140,4 +140,65 @@ describe("Select", () => {
     );
   });
 
+  it("reports server search without filtering supplied options", async () => {
+    const user = userEvent.setup();
+    const onSearchChange = vi.fn();
+
+    render(
+      <Select
+        value=""
+        onChange={vi.fn()}
+        searchable
+        searchMode="server"
+        onSearchChange={onSearchChange}
+        searchPlaceholder="Search users"
+        options={[
+          { value: "one", label: "First user" },
+          { value: "two", label: "Second user" },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Select an option" }));
+    await user.type(screen.getByPlaceholderText("Search users"), "missing");
+
+    expect(onSearchChange).toHaveBeenLastCalledWith("missing");
+    expect(screen.getByText("First user")).toBeInTheDocument();
+    expect(screen.getByText("Second user")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Select an option" }),
+    );
+    expect(onSearchChange).toHaveBeenLastCalledWith("");
+    expect(screen.queryByPlaceholderText("Search users")).not.toBeInTheDocument();
+  });
+
+  it("renders a menu footer and reports reaching the list end", async () => {
+    const user = userEvent.setup();
+    const onEndReached = vi.fn();
+
+    render(
+      <Select
+        value=""
+        onChange={vi.fn()}
+        onEndReached={onEndReached}
+        menuFooter={<p>Loading more users</p>}
+        options={[{ value: "one", label: "First user" }]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Select an option" }));
+    const option = screen.getByRole("button", { name: "First user" });
+    const list = option.closest("ul");
+
+    expect(screen.getByText("Loading more users")).toBeInTheDocument();
+    expect(list).not.toBeNull();
+    Object.defineProperties(list as HTMLUListElement, {
+      scrollHeight: { configurable: true, value: 100 },
+      scrollTop: { configurable: true, value: 60 },
+      clientHeight: { configurable: true, value: 40 },
+    });
+    fireEvent.scroll(list as HTMLUListElement);
+    expect(onEndReached).toHaveBeenCalledTimes(1);
+  });
 });

@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback } from "react";
-import { searchUsers } from "@/features/communication/api/communication-selectors.service";
-import CommunicationEntitySelect, { type CommunicationEntitySelectProps } from "./CommunicationEntitySelect";
+import PaginatedUserSelect, {
+  type PaginatedUserSelectProps,
+} from "@/features/settings/users/components/PaginatedUserSelect";
 
-type Props = Omit<CommunicationEntitySelectProps, "search">;
+export type UserSearchSelectProps = PaginatedUserSelectProps;
 
-export default function UserSearchSelect(props: Props) {
-  const search = useCallback((query: string) => searchUsers(query), []);
-  return <CommunicationEntitySelect {...props} search={search} />;
+export default function UserSearchSelect(props: UserSearchSelectProps) {
+  return <PaginatedUserSelect {...props} />;
 }

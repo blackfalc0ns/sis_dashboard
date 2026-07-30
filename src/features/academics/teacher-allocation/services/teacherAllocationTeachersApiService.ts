@@ -26,18 +26,54 @@ function mapUserToTeacher(user: SettingsUserRecord): Teacher {
   };
 }
 
-export async function fetchTeacherAllocationTeachers(): Promise<Teacher[]> {
+export interface TeacherAllocationTeacherDirectory {
+  roleId: string;
+  teachers: Teacher[];
+}
+
+export async function fetchTeacherAllocationTeacherDirectory(): Promise<TeacherAllocationTeacherDirectory> {
   const rolesResult = await fetchSettingsRoles({ limit: 100 });
   const teacherRole = rolesResult.items.find(isTeacherRole);
 
   if (!teacherRole) {
-    return [];
+    return { roleId: "", teachers: [] };
   }
 
-  const usersResult = await fetchSettingsUsers({
-    roleId: teacherRole.id,
-    status: "active",
-  });
+  const users: SettingsUserRecord[] = [];
+  const limit = 100;
+  let page = 1;
+  let total = Number.POSITIVE_INFINITY;
 
-  return usersResult.items.map(mapUserToTeacher);
+  while (users.length < total) {
+    const usersResult = await fetchSettingsUsers({
+      page,
+      limit,
+      roleId: teacherRole.id,
+      status: "active",
+    });
+    users.push(...usersResult.items);
+    total = usersResult.pagination.total;
+
+    if (
+      usersResult.items.length === 0 ||
+      usersResult.pagination.page < page ||
+      page * limit >= total
+    ) {
+      break;
+    }
+    page += 1;
+  }
+
+  return {
+    roleId: teacherRole.id,
+    teachers: Array.from(
+      new Map(users.map((user) => [user.id, user])).values(),
+      mapUserToTeacher,
+    ),
+  };
+}
+
+export async function fetchTeacherAllocationTeachers(): Promise<Teacher[]> {
+  const directory = await fetchTeacherAllocationTeacherDirectory();
+  return directory.teachers;
 }

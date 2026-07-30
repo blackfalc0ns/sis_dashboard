@@ -7,8 +7,8 @@ import {
   fetchSubjects,
 } from "@/features/academics/subjects/services/subjectsService";
 import {
+  fetchTeacherDirectory,
   fetchTeacherAllocations,
-  fetchTeachers,
 } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -45,8 +45,8 @@ vi.mock("@/features/academics/subjects/services/subjectsService", () => ({
 }));
 
 vi.mock("@/features/academics/teacher-allocation/services/teacherAllocationService", () => ({
+  fetchTeacherDirectory: vi.fn(),
   fetchTeacherAllocations: vi.fn(),
-  fetchTeachers: vi.fn(),
 }));
 
 vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({
@@ -79,8 +79,8 @@ vi.mock("@/components/ui/toast/Toast", () => ({
 const mockedFetchStructureTree = vi.mocked(fetchStructureTree);
 const mockedFetchSubjectAllocations = vi.mocked(fetchSubjectAllocations);
 const mockedFetchSubjects = vi.mocked(fetchSubjects);
+const mockedFetchTeacherDirectory = vi.mocked(fetchTeacherDirectory);
 const mockedFetchTeacherAllocations = vi.mocked(fetchTeacherAllocations);
-const mockedFetchTeachers = vi.mocked(fetchTeachers);
 const mockedUseAcademicYearTermLayoutContext = vi.mocked(useAcademicYearTermLayoutContext);
 const mockedUsePermissions = vi.mocked(usePermissions);
 
@@ -162,14 +162,17 @@ function mockTeacherAllocationBackend() {
       weeklyHours: 5,
     },
   ]);
-  mockedFetchTeachers.mockResolvedValue([
-    {
-      id: "teacher-user-1",
-      nameAr: "Teacher One AR",
-      nameEn: "Teacher One",
-      isActive: true,
-    },
-  ]);
+  mockedFetchTeacherDirectory.mockResolvedValue({
+    roleId: "teacher-role-1",
+    teachers: [
+      {
+        id: "teacher-user-1",
+        nameAr: "Teacher One AR",
+        nameEn: "Teacher One",
+        isActive: true,
+      },
+    ],
+  });
   mockedFetchTeacherAllocations.mockResolvedValue([]);
 }
 

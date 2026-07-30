@@ -6,6 +6,7 @@ import type {
   SettingsUserRecord,
   SettingsUsersListApiDto,
   SettingsUserStatusPayloadDto,
+  SettingsUserStatusResponseDto,
   SettingsUserUpdatePayloadDto,
 } from "@/features/settings/types";
 
@@ -19,11 +20,6 @@ function mapUser(payload: SettingsUserApiDto): SettingsUserRecord {
     roleId: payload.roleId,
     roleName: payload.roleName ?? undefined,
     status: payload.status,
-    hasPassword: payload.hasPassword ?? undefined,
-    mustChangePassword: payload.mustChangePassword ?? undefined,
-    passwordProvisionedAt: payload.passwordProvisionedAt ?? undefined,
-    passwordChangedAt: payload.passwordChangedAt ?? undefined,
-    credentialVersion: payload.credentialVersion ?? undefined,
     lastActiveAt: payload.lastActiveAt ?? undefined,
     invitedAt: payload.invitedAt ?? undefined,
     lastInviteSentAt: payload.lastInviteSentAt ?? undefined,
@@ -91,11 +87,6 @@ export async function fetchSettingsUsers(
   };
 }
 
-export async function fetchSettingsUser(userId: string): Promise<SettingsUserRecord> {
-  const response = await apiGet<SettingsUserApiDto>(`/settings/users/${userId}`);
-  return mapUser(response);
-}
-
 export async function inviteSettingsUser(
   payload: SettingsUserPayloadDto,
 ): Promise<SettingsUserRecord> {
@@ -126,22 +117,11 @@ export async function updateSettingsUser(
 
 export async function setSettingsUserStatus(
   userId: string,
-  status: SettingsUserRecord["status"],
-): Promise<SettingsUserRecord> {
+  status: SettingsUserStatusPayloadDto["status"],
+): Promise<SettingsUserStatusResponseDto> {
   const payload: SettingsUserStatusPayloadDto = { status };
-  const response = await apiPatch<SettingsUserApiDto>(
+  return apiPatch<SettingsUserStatusResponseDto>(
     `/settings/users/${userId}/status`,
     payload,
   );
-  return mapUser(response);
-}
-
-export async function resendSettingsUserInvite(userId: string): Promise<void> {
-  await apiPost<unknown>(`/settings/users/${userId}/resend-invite`, {});
-}
-
-export async function triggerSettingsUserPasswordReset(
-  userId: string,
-): Promise<void> {
-  await apiPost<unknown>(`/settings/users/${userId}/reset-password`, {});
 }

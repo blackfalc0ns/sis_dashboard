@@ -276,11 +276,6 @@ export interface SettingsUserRecord {
   roleId: string;
   roleName?: string;
   status: UserAdminStatus;
-  hasPassword?: boolean;
-  mustChangePassword?: boolean;
-  passwordProvisionedAt?: string;
-  passwordChangedAt?: string;
-  credentialVersion?: number;
   lastActiveAt?: string;
   invitedAt?: string;
   lastInviteSentAt?: string;
@@ -296,11 +291,6 @@ export interface SettingsUserApiDto {
   roleId: string;
   roleName?: string | null;
   status: UserAdminStatus;
-  hasPassword?: boolean | null;
-  mustChangePassword?: boolean | null;
-  passwordProvisionedAt?: string | null;
-  passwordChangedAt?: string | null;
-  credentialVersion?: number | null;
   lastActiveAt?: string | null;
   invitedAt?: string | null;
   lastInviteSentAt?: string | null;
@@ -326,12 +316,17 @@ export interface SettingsUserPayloadDto {
 }
 
 export interface SettingsUserUpdatePayloadDto {
-  fullName: string;
-  roleId: string;
+  fullName?: string;
+  roleId?: string;
 }
 
 export interface SettingsUserStatusPayloadDto {
-  status: UserAdminStatus;
+  status: Exclude<UserAdminStatus, "invited">;
+}
+
+export interface SettingsUserStatusResponseDto {
+  id: string;
+  status: Exclude<UserAdminStatus, "invited">;
 }
 
 export interface SettingsSessionUser {

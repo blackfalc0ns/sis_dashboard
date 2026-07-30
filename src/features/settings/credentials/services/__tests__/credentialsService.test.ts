@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { apiPost } from "@/lib/api";
+import { apiGet, apiPost } from "@/lib/api";
 import {
+  fetchCredentialRoles,
   generateUserCredential,
   getBulkCredentialPreviewPayloadKey,
   mapBulkCredentialPreviewResponse,
@@ -106,5 +107,60 @@ describe("single-user credential contract", () => {
     await call("user-1");
 
     expect(apiPost).toHaveBeenCalledWith(`/settings/users/user-1/credentials/${operation}`);
+  });
+});
+
+describe("credential role options", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("includes roles without credential users and preserves known backend role keys", async () => {
+    vi.mocked(apiGet).mockImplementation((path: string) => {
+      if (path === "/settings/roles?page=1&limit=100") {
+        return Promise.resolve({
+          items: [
+            { id: "role-1", name: "School Admin", permissions: [] },
+            { id: "role-2", name: "Teacher", permissions: [] },
+            { id: "role-3", name: "Empty Custom Role", permissions: [] },
+          ],
+          pagination: { page: 1, limit: 100, total: 3 },
+        });
+      }
+      if (path === "/settings/users/credentials/status?page=1&limit=100") {
+        return Promise.resolve({
+          items: [
+            { ...user, userId: "user-1" },
+            { ...user, userId: "user-2" },
+          ],
+          pagination: { page: 1, limit: 2, total: 3 },
+        });
+      }
+      if (path === "/settings/users/credentials/status?page=2&limit=100") {
+        return Promise.resolve({
+          items: [
+            {
+              ...user,
+              userId: "user-3",
+              roleId: "role-2",
+              roleKey: "teacher",
+              roleName: "Teacher",
+            },
+          ],
+          pagination: { page: 2, limit: 2, total: 3 },
+        });
+      }
+      return Promise.reject(new Error(`Unexpected GET ${path}`));
+    });
+
+    await expect(fetchCredentialRoles()).resolves.toEqual([
+      { id: "role-1", key: "school_admin", name: "School Admin" },
+      { id: "role-2", key: "teacher", name: "Teacher" },
+      { id: "role-3", key: undefined, name: "Empty Custom Role" },
+    ]);
+    expect(apiGet).toHaveBeenCalledWith(
+      "/settings/users/credentials/status?page=1&limit=100",
+    );
+    expect(apiGet).toHaveBeenCalledWith(
+      "/settings/users/credentials/status?page=2&limit=100",
+    );
   });
 });

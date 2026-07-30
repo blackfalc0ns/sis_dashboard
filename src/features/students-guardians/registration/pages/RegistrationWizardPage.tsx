@@ -13,7 +13,7 @@ import {
 import { useTranslations } from "next-intl";
 import { isApiError } from "@/lib/api-error";
 import { fetchGuardians } from "@/features/students-guardians/guardians/services/guardiansApiService";
-import { fetchSettingsUsers } from "@/features/settings/services/settingsUsersService";
+import PaginatedUserSelect from "@/features/settings/users/components/PaginatedUserSelect";
 import {
   fetchAcademicYears,
   fetchStructureTree,
@@ -35,7 +35,6 @@ import {
   type RegistrationStep,
 } from "@/features/students-guardians/registration/utils/registrationValidation";
 import type { StudentGuardian } from "@/features/students-guardians/students/types";
-import type { SettingsUserRecord } from "@/features/settings/types";
 import RegistrationResultPanel from "@/features/students-guardians/registration/components/RegistrationResultPanel";
 
 const stepsKeys = [
@@ -889,19 +888,6 @@ function AccountCard({
   usernameError?: string;
 }) {
   const t = useTranslations("students_guardians.registration");
-  const [query, setQuery] = useState("");
-  const [items, setItems] = useState<SettingsUserRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  useEffect(() => {
-    if (account.mode !== "link" || query.trim().length < 2) return;
-    const timer = setTimeout(() => {
-      setLoading(true);
-      void fetchSettingsUsers({ search: query, limit: 10, status: "active" })
-        .then((result) => setItems(result.items))
-        .finally(() => setLoading(false));
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [query, account.mode]);
   return (
     <section className="rounded-xl border p-4">
       <h3 className="mb-3 font-semibold text-gray-900">{title}</h3>
@@ -975,23 +961,27 @@ function AccountCard({
                 </button>
               </div>
             ) : (
-              <SearchSelect
+              <PaginatedUserSelect
                 label={t("accounts_step.fields.search_users")}
-                query={query}
-                setQuery={setQuery}
-                items={items}
-                loading={loading}
-                getId={(item) => item.id}
-                getLabel={(item) =>
-                  `${item.fullName} · ${item.username || item.email} · ${item.roleName || "Role unavailable"}`
-                }
-                onSelect={(item) => {
+                value={account.userId}
+                status="active"
+                loadOnMount
+                onChange={(userId) => {
+                  update({
+                    ...account,
+                    userId: userId || undefined,
+                    userLabel: userId ? account.userLabel : undefined,
+                  });
+                }}
+                onOptionChange={(item) => {
+                  if (!item) return;
                   update({
                     ...account,
                     userId: item.id,
-                    userLabel: `${item.fullName} (${item.roleName || item.email})`,
+                    userLabel: item.description
+                      ? `${item.label} (${item.description})`
+                      : item.label,
                   });
-                  setQuery("");
                 }}
               />
             )}

@@ -1429,6 +1429,35 @@ export default function NedaaOperationsPage() {
       .finally(() => setReadOnlyModalLoading(false));
   }, [t]);
 
+  const openDeliveryModal = useCallback((request?: ActiveDismissalRequest) => {
+    if (!request || request.status !== "ready") return;
+    setPickupCode("");
+    setPickupRecipientToken("");
+    setActionNote("");
+    setPickupRecipients(null);
+    setReadOnlyModalError(null);
+    setReadOnlyModalLoading(true);
+    setActionModal({
+      type: "delivery",
+      requestId: request.id,
+      title: request.child.displayName,
+      requestStatus: request.status,
+    });
+    void listDismissalPickupRecipients(request.id)
+      .then((response) => {
+        setPickupRecipients(response);
+        setPickupRecipientToken(
+          response.recipients[0]?.pickupRecipientToken ?? "",
+        );
+      })
+      .catch((error) =>
+        setReadOnlyModalError(
+          getNedaaApiErrorMessage(error, t, "operations.detail_failed"),
+        ),
+      )
+      .finally(() => setReadOnlyModalLoading(false));
+  }, [t]);
+
   const activeColumns = useMemo<Column<OperationTableRow>[]>(
     () => [
       {
@@ -1556,7 +1585,7 @@ export default function NedaaOperationsPage() {
         ),
       },
     ],
-    [canManage, openDetail, openRecipients, t],
+    [canManage, openDeliveryModal, openDetail, openRecipients, t],
   );
 
   const waitingColumns = useMemo<Column<OperationTableRow>[]>(
@@ -1730,33 +1759,6 @@ export default function NedaaOperationsPage() {
       title: student.child.displayName,
       waitingStudent: student,
     });
-  };
-
-  const openDeliveryModal = (request?: ActiveDismissalRequest) => {
-    if (!request || request.status !== "ready") return;
-    setPickupCode("");
-    setPickupRecipientToken("");
-    setActionNote("");
-    setPickupRecipients(null);
-    setReadOnlyModalError(null);
-    setReadOnlyModalLoading(true);
-    setActionModal({
-      type: "delivery",
-      requestId: request.id,
-      title: request.child.displayName,
-      requestStatus: request.status,
-    });
-    void listDismissalPickupRecipients(request.id)
-      .then((response) => {
-        setPickupRecipients(response);
-        setPickupRecipientToken(response.recipients[0]?.pickupRecipientToken ?? "");
-      })
-      .catch((error) =>
-        setReadOnlyModalError(
-          getNedaaApiErrorMessage(error, t, "operations.detail_failed"),
-        ),
-      )
-      .finally(() => setReadOnlyModalLoading(false));
   };
 
   const openEscalationModal = (request?: ActiveDismissalRequest) => {

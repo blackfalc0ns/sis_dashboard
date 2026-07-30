@@ -49,6 +49,7 @@ interface TeacherAllocationViewProps {
   subjects: Subject[];
   subjectAllocations: SubjectAllocation[];
   teachers: Teacher[];
+  teacherRoleId: string;
   teacherAllocations: TeacherAllocation[];
   isLoading: boolean;
   apiError: string | null;
@@ -77,6 +78,7 @@ export default function TeacherAllocationView({
   subjects,
   subjectAllocations,
   teachers,
+  teacherRoleId,
   teacherAllocations,
   isLoading,
   apiError,
@@ -271,6 +273,7 @@ export default function TeacherAllocationView({
                   subjects={subjects}
                   subjectAllocations={subjectAllocations}
                   teachers={teachers}
+                  teacherRoleId={teacherRoleId}
                   teacherAllocations={teacherAllocations}
                   isReadOnly={isReadOnly}
                   onRefresh={onRefresh}

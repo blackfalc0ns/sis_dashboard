@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from "@/lib/api";
+import { fetchAllSettingsRoles } from "@/features/settings/services/settingsRolesService";
 import type {
   BulkCredentialPreviewRequest,
   BulkCredentialPreviewResponse,
@@ -6,13 +7,16 @@ import type {
   BulkGenerateCredentialsRequest,
   BulkGenerateCredentialsResponse,
   BulkGenerateCredentialsResponseDto,
+  CredentialRoleOption,
   CredentialStatusListResponse,
+  CredentialStatusRecord,
   CredentialUserSummaryDto,
   FetchCredentialStatusParams,
   GeneratedCredentialResponseDto,
   OneTimeCredentialResponse,
   SetCredentialPasswordRequest,
 } from "@/features/settings/credentials/types";
+import type { RoleDefinition } from "@/features/settings/types";
 
 function mapCredentialPreviewUser(user: CredentialUserSummaryDto) {
   return {
@@ -111,6 +115,57 @@ export async function fetchCredentialStatuses(
   return apiGet<CredentialStatusListResponse>(
     `/settings/users/credentials/status${toCredentialStatusQuery(params)}`,
   );
+}
+
+function credentialRolesFromRecords(
+  records: CredentialStatusRecord[],
+): CredentialRoleOption[] {
+  const rolesByKey = new Map<string, CredentialRoleOption>();
+  for (const record of records) {
+    if (!rolesByKey.has(record.roleKey)) {
+      rolesByKey.set(record.roleKey, {
+        id: record.roleId,
+        key: record.roleKey,
+        name: record.roleName,
+      });
+    }
+  }
+
+  return Array.from(rolesByKey.values());
+}
+
+function mergeCredentialRoleKeys(
+  roles: RoleDefinition[],
+  credentialRoles: CredentialRoleOption[],
+): CredentialRoleOption[] {
+  const credentialRolesById = new Map(
+    credentialRoles.map((role) => [role.id, role]),
+  );
+  return roles.map((role) => ({
+    id: role.id,
+    key: role.key ?? credentialRolesById.get(role.id)?.key,
+    name: role.name,
+  }));
+}
+
+export async function fetchCredentialRoles(): Promise<CredentialRoleOption[]> {
+  const [roles, firstPage] = await Promise.all([
+    fetchAllSettingsRoles(),
+    fetchCredentialStatuses({ page: 1, limit: 100 }),
+  ]);
+  const pageCount = firstPage.pagination
+    ? Math.ceil(firstPage.pagination.total / firstPage.pagination.limit)
+    : 1;
+  const remainingPages = await Promise.all(
+    Array.from({ length: Math.max(pageCount - 1, 0) }, (_, index) =>
+      fetchCredentialStatuses({ page: index + 2, limit: 100 }),
+    ),
+  );
+  const credentialRoles = credentialRolesFromRecords([
+    ...firstPage.items,
+    ...remainingPages.flatMap((page) => page.items),
+  ]);
+  return mergeCredentialRoleKeys(roles, credentialRoles);
 }
 
 export async function previewBulkCredentials(

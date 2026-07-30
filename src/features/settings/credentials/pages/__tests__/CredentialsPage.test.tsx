@@ -5,16 +5,13 @@ import { ToastProvider } from "@/components/ui/toast/Toast";
 import CredentialsPage from "@/features/settings/credentials/pages/CredentialsPage";
 
 const loadedRole = {
-  id: "role-teacher",
-  key: "teacher",
-  name: "Educators",
-  description: "Teaching staff",
-  isSystem: true,
-  memberCount: 8,
-  permissions: [],
+  roleId: "role-teacher",
+  roleKey: "teacher",
+  roleName: "Educators",
 };
 
 let fetchRolesResponse: () => Promise<unknown>;
+let fetchSettingsRolesResponse: () => Promise<unknown>;
 
 const apiMocks = vi.hoisted(() => ({
   apiGet: vi.fn(),
@@ -46,17 +43,24 @@ describe("CredentialsPage filters", () => {
         items: [],
         pagination: { page: 1, limit: 100, total: 0 },
       });
+    fetchSettingsRolesResponse = () =>
+      Promise.resolve({
+        items: [],
+        pagination: { page: 1, limit: 100, total: 0 },
+      });
     apiMocks.apiPost.mockReset();
     apiMocks.apiGet.mockReset().mockImplementation((path: string) => {
       if (path.startsWith("/settings/users/credentials/status")) {
+        if (path.includes("limit=100")) {
+          return fetchRolesResponse();
+        }
         return Promise.resolve({
           items: [],
           pagination: { page: 1, limit: 10, total: 0 },
         });
       }
-
       if (path.startsWith("/settings/roles")) {
-        return fetchRolesResponse();
+        return fetchSettingsRolesResponse();
       }
 
       return Promise.reject(new Error(`Unexpected GET ${path}`));
@@ -83,10 +87,13 @@ describe("CredentialsPage filters", () => {
   it("keeps the page visible while credentials load in the table", async () => {
     apiMocks.apiGet.mockImplementation((path: string) => {
       if (path.startsWith("/settings/users/credentials/status")) {
+        if (path.includes("limit=100")) {
+          return fetchRolesResponse();
+        }
         return new Promise(() => undefined);
       }
       if (path.startsWith("/settings/roles")) {
-        return fetchRolesResponse();
+        return fetchSettingsRolesResponse();
       }
       return Promise.reject(new Error(`Unexpected GET ${path}`));
     });
@@ -123,6 +130,11 @@ describe("CredentialsPage filters", () => {
         pagination: { page: 1, limit: 100, total: 1 },
       });
     fetchRolesResponse = roleRequest;
+    fetchSettingsRolesResponse = () =>
+      Promise.resolve({
+        items: [{ id: loadedRole.roleId, name: loadedRole.roleName }],
+        pagination: { page: 1, limit: 100, total: 1 },
+      });
     const user = await renderOpenFilters();
 
     expect(screen.getByText("empty.title")).toBeInTheDocument();
@@ -153,5 +165,34 @@ describe("CredentialsPage filters", () => {
 
     expect(await screen.findByText("filters.roles_empty")).toBeInTheDocument();
     expect(screen.getByText("empty.title")).toBeInTheDocument();
+  });
+
+  it("shows every settings role and filters known roles with the backend role key", async () => {
+    fetchRolesResponse = () =>
+      Promise.resolve({
+        items: [loadedRole],
+        pagination: { page: 1, limit: 100, total: 1 },
+      });
+    fetchSettingsRolesResponse = () =>
+      Promise.resolve({
+        items: [
+          { id: loadedRole.roleId, name: loadedRole.roleName },
+          { id: "role-empty", name: "Empty Custom Role" },
+        ],
+        pagination: { page: 1, limit: 100, total: 2 },
+      });
+    const user = await renderOpenFilters();
+
+    await user.click(roleFilterTrigger());
+    expect(
+      await screen.findByRole("button", { name: "Empty Custom Role" }),
+    ).toBeDisabled();
+    await user.click(await screen.findByText("Educators"));
+
+    await waitFor(() =>
+      expect(apiMocks.apiGet).toHaveBeenCalledWith(
+        expect.stringContaining("roleKey=teacher"),
+      ),
+    );
   });
 });

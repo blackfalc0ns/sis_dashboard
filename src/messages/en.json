@@ -9184,18 +9184,51 @@
       "invite_user": "Invite user",
       "create_user": "Create user",
       "edit_user": "Edit user",
-      "send_invite": "Send invite",
-      "resend_invite": "Resend invite",
-      "reset_password": "Reset password",
+      "send_invite": "Create invited user",
+      "manage_credentials": "Manage credentials",
+      "view_credentials": "View credentials",
+      "deliver_credentials": "Deliver credentials",
+      "manage_in_teachers": "Manage in Teachers",
       "activate": "Activate",
       "deactivate": "Deactivate",
+      "open_actions": "Open actions for {name}",
       "refresh": "Refresh",
       "filter_button": "Filters",
       "clear_filters": "Clear filters",
       "not_available": "Not available",
       "filters": {
         "role": "Role",
-        "status": "Status"
+        "status": "Status",
+        "select_role": "Select a role"
+      },
+      "descriptions": {
+        "create": "Create the user record, then choose how to provision account access.",
+        "invite": "Create an invited account. Credential delivery is a separate step.",
+        "edit": "Update the user's name or operational role."
+      },
+      "roles": {
+        "loading": "Loading available roles...",
+        "load_failed": "Roles could not be loaded. The user directory remains available.",
+        "retry": "Retry roles",
+        "empty": "No assignable operational roles are available.",
+        "required": "Available roles must load before creating or inviting a user."
+      },
+      "empty": {
+        "title": "No users yet",
+        "description": "Create or invite a user to add them to this directory.",
+        "filtered_title": "No matching users",
+        "filtered_description": "Try changing or clearing the search and filters."
+      },
+      "discard": {
+        "title": "Discard unsaved changes?",
+        "description": "Your changes to this user have not been saved.",
+        "confirm": "Discard changes"
+      },
+      "status_change": {
+        "activate_title": "Activate this user?",
+        "activate_description": "{name} will be able to use their account again.",
+        "deactivate_title": "Deactivate this user?",
+        "deactivate_description": "{name} will no longer be able to use their account."
       },
       "statuses": {
         "active": "Active",
@@ -9211,13 +9244,7 @@
         "role": "Role",
         "status": "Status",
         "last_active": "Last active",
-        "credential_status": "Credential status",
         "actions": "Actions"
-      },
-      "credential_status": {
-        "provisioned": "Provisioned",
-        "must_change_password": "Must change password",
-        "not_provisioned": "Not provisioned"
       },
       "identity": {
         "generated_login_email": "Generated login email",
@@ -9230,17 +9257,48 @@
         "username_required": "Enter a username first.",
         "preview_failed": "Failed to preview the generated login email.",
         "availability_failed": "Failed to check username availability.",
-        "contact_email_read_only": "Contact email cannot be edited from this dialog."
+        "previewing": "Previewing login email",
+        "settings_loading": "Loading login identity settings...",
+        "settings_load_failed": "Login identity settings could not be loaded. Retry before creating the user.",
+        "retry_settings": "Retry",
+        "legacy_email_note": "Login identity is not active. Enter the email this user will use to sign in.",
+        "contact_email_read_only": "Contact email cannot be edited from this dialog.",
+        "login_email_invalid": "Enter a valid login email address.",
+        "contact_email_invalid": "Enter a valid contact email address."
       },
       "messages": {
         "load_failed": "Failed to load users.",
+        "retry": "Retry loading users",
+        "loading": "Updating user results...",
+        "search_waiting": "Waiting for you to finish typing...",
+        "result_count": "{count, plural, =0 {No users} =1 {1 user} other {# users}}",
         "created": "User created successfully.",
         "updated": "User updated successfully.",
-        "invited": "User invite sent successfully.",
-        "invite_resent": "Invite resent successfully.",
-        "password_reset_sent": "Password reset placeholder action completed.",
+        "invited": "Invited user record created. Credentials have not been delivered yet.",
+        "refresh_failed_after_save": "The user was saved, but the directory could not be refreshed.",
         "activated": "User activated successfully.",
         "deactivated": "User deactivated successfully."
+      },
+      "provisioning": {
+        "title": "Provision credentials",
+        "description": "{name} was saved. Choose how to prepare account access.",
+        "generate": "Generate temporary password",
+        "generating": "Generating...",
+        "deliver": "Deliver credentials by email",
+        "finish_later": "Finish later",
+        "generation_failed": "Credential generation failed. You can retry or finish later.",
+        "separate_outcomes": "The user record is already saved. Credential generation and email delivery are separate actions.",
+        "reveal": {
+          "title": "Temporary password",
+          "warning": "This password is shown once. Store or deliver it securely before closing.",
+          "no_password": "No temporary password was returned.",
+          "copy": "Copy",
+          "copied": "Copied",
+          "user": "User",
+          "password": "Password",
+          "show": "Show",
+          "hide": "Hide"
+        }
       }
     },
     "loginIdentity": {
@@ -13466,5 +13524,18 @@
     "teacher": "Teacher App",
     "parent": "Parent App",
     "dismissal_staff": "Dismissal Staff App"
+  },
+  "user_select": {
+    "select": "Select a user",
+    "search_placeholder": "Search users...",
+    "loading": "Loading users...",
+    "loading_more": "Loading more users...",
+    "loading_selected": "Loading selected user...",
+    "no_users": "No users found",
+    "load_failed": "Unable to load users.",
+    "load_more_failed": "Unable to load more users.",
+    "permission_denied": "You do not have permission to view users.",
+    "remove": "Remove",
+    "retry": "Retry"
   }
 }
