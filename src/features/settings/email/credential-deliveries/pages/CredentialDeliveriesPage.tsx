@@ -41,8 +41,6 @@ export default function CredentialDeliveriesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedUserId = searchParams.get("userId")?.trim() || undefined;
-  const selectedUserSearch =
-    searchParams.get("userSearch")?.trim() || undefined;
   const canManage = hasPermission(
     "settings.email.credential_deliveries.manage",
   );
@@ -187,7 +185,6 @@ export default function CredentialDeliveriesPage() {
         <CredentialDeliveryWizard
           key={`${selectedUserId ?? "default"}-${wizardRevision}`}
           initialUserId={selectedUserId}
-          initialUserSearch={selectedUserSearch}
           canManage={canManage}
           roles={roles}
           isLoadingRoles={isRefreshingRoles}

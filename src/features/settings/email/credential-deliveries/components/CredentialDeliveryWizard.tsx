@@ -39,7 +39,6 @@ export interface CredentialDeliveryWizardValues {
 
 interface CredentialDeliveryWizardProps {
   initialUserId?: string;
-  initialUserSearch?: string;
   canManage: boolean;
   roles: RoleDefinition[];
   isLoadingRoles: boolean;
@@ -86,7 +85,6 @@ function initialValuesForUser(userId?: string): CredentialDeliveryWizardValues {
 
 export default function CredentialDeliveryWizard({
   initialUserId,
-  initialUserSearch,
   canManage,
   roles,
   isLoadingRoles,
@@ -226,7 +224,6 @@ export default function CredentialDeliveryWizard({
           isLoadingRoles={isLoadingRoles}
           rolesError={rolesError}
           onRetryRoles={onRetryRoles}
-          initialUserSearch={initialUserSearch}
           onChange={updateValues}
         />
       ) : null}

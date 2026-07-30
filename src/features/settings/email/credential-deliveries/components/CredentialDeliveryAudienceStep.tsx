@@ -22,7 +22,6 @@ interface CredentialDeliveryAudienceStepProps {
   isLoadingRoles?: boolean;
   rolesError?: boolean;
   onRetryRoles?: () => void;
-  initialUserSearch?: string;
   onChange: (values: Partial<CredentialDeliveryWizardValues>) => void;
 }
 
@@ -72,7 +71,6 @@ export default function CredentialDeliveryAudienceStep({
   isLoadingRoles = false,
   rolesError = false,
   onRetryRoles,
-  initialUserSearch,
   onChange,
 }: CredentialDeliveryAudienceStepProps) {
   const t = useTranslations("settings.email.credentialDeliveries");
@@ -142,7 +140,6 @@ export default function CredentialDeliveryAudienceStep({
             value={selectedUserIds}
             placeholder={t("audience.selected_users_placeholder")}
             helperText={t("audience.selected_users_help")}
-            initialQuery={initialUserSearch}
             onChange={(userIds) => {
               onChange({
                 selectedUserIdsText: userIds.join("\n"),
