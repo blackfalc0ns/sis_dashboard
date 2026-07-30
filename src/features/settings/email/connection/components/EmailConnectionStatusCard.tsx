@@ -1,7 +1,10 @@
 "use client";
 
 import { CheckCircle2, CircleAlert, CircleOff, Clock, Send } from "lucide-react";
-import type { EmailConnection } from "@/features/settings/email/connection/types";
+import type {
+  EmailConnection,
+  EmailConnectionStatus,
+} from "@/features/settings/email/connection/types";
 
 interface EmailConnectionStatusCardProps {
   connection: EmailConnection | null;
@@ -16,8 +19,9 @@ interface EmailConnectionStatusCardProps {
     configured: string;
     notConfigured: string;
     failureReason: string;
+    failureReasonLabels: Record<string, string>;
     notAvailable: string;
-    statusLabels: Record<EmailConnection["status"], string>;
+    statusLabels: Record<EmailConnectionStatus, string>;
   };
 }
 
@@ -25,7 +29,7 @@ function formatDate(value: string | null | undefined, fallback: string) {
   return value ? new Date(value).toLocaleString() : fallback;
 }
 
-function statusIcon(status: EmailConnection["status"] | undefined) {
+function statusIcon(status: EmailConnectionStatus | null | undefined) {
   if (status === "ACTIVE" || status === "VERIFIED") {
     return <CheckCircle2 className="h-5 w-5 text-green-600" />;
   }
@@ -42,7 +46,7 @@ export default function EmailConnectionStatusCard({
   connection,
   labels,
 }: EmailConnectionStatusCardProps) {
-  const statusClasses: Record<EmailConnection["status"], string> = {
+  const statusClasses: Record<EmailConnectionStatus, string> = {
     DRAFT: "bg-amber-100 text-amber-700",
     VERIFIED: "bg-blue-100 text-blue-700",
     ACTIVE: "bg-green-100 text-green-700",
@@ -71,7 +75,7 @@ export default function EmailConnectionStatusCard({
             {labels.status}
           </p>
           <div className="mt-2">
-            {connection ? (
+            {connection?.configured && connection.status ? (
               <span
                 className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusClasses[connection.status]}`}
               >
@@ -97,7 +101,7 @@ export default function EmailConnectionStatusCard({
             {labels.lastTest}
           </p>
           <p className="mt-2 text-sm text-gray-900">
-            {formatDate(connection?.lastTestAt, labels.notAvailable)}
+            {formatDate(connection?.lastTestedAt, labels.notAvailable)}
           </p>
         </div>
         <div className="rounded-lg bg-gray-50 p-3">
@@ -122,7 +126,8 @@ export default function EmailConnectionStatusCard({
               {labels.failureReason}
             </p>
             <p className="mt-2 text-sm text-red-700">
-              {connection.failureReason}
+              {labels.failureReasonLabels[connection.failureReason] ??
+                labels.failureReasonLabels.unknown}
             </p>
           </div>
         ) : null}

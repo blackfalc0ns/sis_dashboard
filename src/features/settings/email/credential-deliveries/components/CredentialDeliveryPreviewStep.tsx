@@ -19,11 +19,11 @@ interface CredentialDeliveryPreviewStepProps {
 function RecipientList({
   recipients,
   emptyLabel,
-  showReason,
+  reasonLabels,
 }: {
   recipients: CredentialDeliveryPreviewRecipient[];
   emptyLabel: string;
-  showReason?: boolean;
+  reasonLabels?: Record<string, string>;
 }) {
   if (recipients.length === 0) {
     return <p className="text-sm text-gray-500">{emptyLabel}</p>;
@@ -39,20 +39,20 @@ function RecipientList({
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="truncate font-medium text-gray-900">
-                {recipient.fullName}
+                {recipient.fullName || recipient.recipientEmail || "—"}
               </p>
               <p className="truncate text-xs text-gray-500">
-                {recipient.username || recipient.email}
+                {recipient.username || recipient.loginEmail || "—"}
               </p>
-              {recipient.contactEmail ? (
+              {recipient.recipientEmail ? (
                 <p className="truncate text-xs text-gray-500">
-                  {recipient.contactEmail}
+                  {recipient.recipientEmail}
                 </p>
               ) : null}
             </div>
-            {showReason && recipient.skipReason ? (
+            {reasonLabels && recipient.skipReason ? (
               <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600">
-                {recipient.skipReason}
+                {reasonLabels[recipient.skipReason] ?? reasonLabels.unknown}
               </span>
             ) : null}
           </div>
@@ -69,6 +69,18 @@ export default function CredentialDeliveryPreviewStep({
   onPreview,
 }: CredentialDeliveryPreviewStepProps) {
   const t = useTranslations("settings.email.credentialDeliveries");
+  const skippedReasonLabels: Record<string, string> = {
+    disabled_user: t("preview.skip_reasons.disabled_user"),
+    missing_contact_email: t("preview.skip_reasons.missing_contact_email"),
+    missing_delivery_email: t("preview.skip_reasons.missing_delivery_email"),
+    duplicate_email: t("preview.skip_reasons.duplicate_email"),
+    invalid_email: t("preview.skip_reasons.invalid_email"),
+    already_has_password: t("preview.skip_reasons.already_has_password"),
+    unknown: t("preview.skip_reasons.unknown"),
+  };
+  const skippedReasonEntries = Object.entries(preview?.skippedReasons ?? {})
+    .filter(([, count]) => count > 0)
+    .sort(([, leftCount], [, rightCount]) => rightCount - leftCount);
 
   return (
     <SettingsSectionCard
@@ -92,7 +104,9 @@ export default function CredentialDeliveryPreviewStep({
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
             <p className="text-xs text-gray-500">{t("preview.contact_email")}</p>
             <p className="mt-1 font-semibold text-gray-900">
-              {values.requireContactEmail ? t("yes") : t("no")}
+              {values.allowLoginEmailFallback
+                ? t("preview.login_email_fallback")
+                : t("preview.contact_email_only")}
             </p>
           </div>
         </div>
@@ -103,6 +117,14 @@ export default function CredentialDeliveryPreviewStep({
 
         {preview ? (
           <div className="space-y-4">
+            {preview.eligibleCount === 0 ? (
+              <p
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700"
+              >
+                {t("preview.zero_eligible_warning")}
+              </p>
+            ) : null}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                 <p className="text-sm text-green-700">{t("preview.eligible")}</p>
@@ -117,6 +139,29 @@ export default function CredentialDeliveryPreviewStep({
                 </p>
               </div>
             </div>
+
+            {skippedReasonEntries.length > 0 ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <h3 className="text-sm font-semibold text-amber-900">
+                  {t("preview.skip_reasons.title")}
+                </h3>
+                <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {skippedReasonEntries.map(([reason, count]) => (
+                    <li
+                      key={reason}
+                      className="flex items-center justify-between gap-3 rounded-md bg-white/70 px-3 py-2 text-sm"
+                    >
+                      <span className="text-amber-900">
+                        {skippedReasonLabels[reason] ?? skippedReasonLabels.unknown}
+                      </span>
+                      <span className="font-semibold tabular-nums text-amber-900">
+                        {count}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div>
@@ -135,7 +180,7 @@ export default function CredentialDeliveryPreviewStep({
                 <RecipientList
                   recipients={preview.skippedSample || []}
                   emptyLabel={t("preview.no_skipped")}
-                  showReason
+                  reasonLabels={skippedReasonLabels}
                 />
               </div>
             </div>

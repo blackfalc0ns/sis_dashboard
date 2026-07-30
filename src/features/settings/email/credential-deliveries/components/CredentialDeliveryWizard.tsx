@@ -11,12 +11,13 @@ import CredentialDeliveryConfirmStep from "@/features/settings/email/credential-
 import { useTranslations } from "next-intl";
 import type { EmailTemplateKey } from "@/features/settings/email/templates/types";
 import type {
-  CreateCredentialDeliveryResponse,
   CredentialDeliveryAudience,
   CredentialDeliveryMode,
   CredentialDeliveryPreviewResponse,
 } from "@/features/settings/email/credential-deliveries/types";
+import type { EmailDeliveryBatch } from "@/features/settings/email/deliveries/types";
 import type { RoleDefinition } from "@/features/settings/types";
+import { credentialPreviewFingerprint } from "@/features/settings/email/credential-deliveries/utils/credentialDeliveryPayloads";
 
 export type CredentialDeliveryAudienceMode =
   | "selected-users"
@@ -33,13 +34,19 @@ export interface CredentialDeliveryWizardValues {
   templateKey: EmailTemplateKey;
   credentialMode: CredentialDeliveryMode;
   requireContactEmail: boolean;
+  allowLoginEmailFallback: boolean;
 }
 
 interface CredentialDeliveryWizardProps {
+  initialUserId?: string;
+  initialUserSearch?: string;
   canManage: boolean;
   roles: RoleDefinition[];
+  isLoadingRoles: boolean;
+  rolesError: boolean;
   preview: CredentialDeliveryPreviewResponse | null;
-  createdBatch: CreateCredentialDeliveryResponse | null;
+  previewFingerprint: string | null;
+  createdBatch: EmailDeliveryBatch | null;
   isPreviewing: boolean;
   isCreating: boolean;
   onPreview: (
@@ -47,10 +54,12 @@ interface CredentialDeliveryWizardProps {
   ) => Promise<CredentialDeliveryPreviewResponse | null>;
   onCreate: (
     values: CredentialDeliveryWizardValues,
-  ) => Promise<CreateCredentialDeliveryResponse | null>;
+  ) => Promise<EmailDeliveryBatch | null>;
+  onPreviewInvalidated: () => void;
+  onRetryRoles: () => void;
 }
 
-const initialValues: CredentialDeliveryWizardValues = {
+const defaultValues: CredentialDeliveryWizardValues = {
   audienceMode: "missing-password",
   audience: {
     missingPasswordOnly: true,
@@ -59,21 +68,44 @@ const initialValues: CredentialDeliveryWizardValues = {
   templateKey: "ACCOUNT_CREDENTIALS",
   credentialMode: "LOGIN_INFO_ONLY",
   requireContactEmail: true,
+  allowLoginEmailFallback: false,
 };
 
+function initialValuesForUser(userId?: string): CredentialDeliveryWizardValues {
+  if (!userId) {
+    return defaultValues;
+  }
+  return {
+    ...defaultValues,
+    audienceMode: "selected-users",
+    audience: { userIds: [userId] },
+    selectedUserIdsText: userId,
+    credentialMode: "GENERATE_TEMPORARY_PASSWORD",
+  };
+}
+
 export default function CredentialDeliveryWizard({
+  initialUserId,
+  initialUserSearch,
   canManage,
   roles,
+  isLoadingRoles,
+  rolesError,
   preview,
+  previewFingerprint,
   createdBatch,
   isPreviewing,
   isCreating,
   onPreview,
   onCreate,
+  onPreviewInvalidated,
+  onRetryRoles,
 }: CredentialDeliveryWizardProps) {
   const t = useTranslations("settings.email.credentialDeliveries");
   const [values, setValues] =
-    useState<CredentialDeliveryWizardValues>(initialValues);
+    useState<CredentialDeliveryWizardValues>(() =>
+      initialValuesForUser(initialUserId),
+    );
   const [step, setStep] = useState(0);
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -90,6 +122,7 @@ export default function CredentialDeliveryWizard({
   const updateValues = (next: Partial<CredentialDeliveryWizardValues>) => {
     setValues((current) => ({ ...current, ...next }));
     setValidationError(null);
+    onPreviewInvalidated();
   };
 
   const validateAudience = () => {
@@ -137,6 +170,19 @@ export default function CredentialDeliveryWizard({
     }
   };
 
+  const hasCurrentEligiblePreview =
+    preview !== null &&
+    preview.eligibleCount > 0 &&
+    previewFingerprint === credentialPreviewFingerprint(values);
+  const createDisabled =
+    !canManage ||
+    !hasCurrentEligiblePreview ||
+    isCreating ||
+    Boolean(createdBatch);
+  const isBusy = isPreviewing || isCreating;
+  const isStepDisabled = (index: number) =>
+    isBusy || (index === 3 && !hasCurrentEligiblePreview);
+
   return (
     <div className="space-y-6">
       <SettingsSectionCard title={t("wizard.title")} description={t("wizard.description")}>
@@ -145,8 +191,9 @@ export default function CredentialDeliveryWizard({
             <button
               key={label}
               type="button"
+              disabled={isStepDisabled(index)}
               onClick={() => setStep(index)}
-              className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
+              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${
                 index === step
                   ? "border-primary bg-primary/5 text-primary"
                   : index < step
@@ -164,7 +211,10 @@ export default function CredentialDeliveryWizard({
       </SettingsSectionCard>
 
       {validationError ? (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
           {validationError}
         </p>
       ) : null}
@@ -173,6 +223,10 @@ export default function CredentialDeliveryWizard({
         <CredentialDeliveryAudienceStep
           values={values}
           roles={roles}
+          isLoadingRoles={isLoadingRoles}
+          rolesError={rolesError}
+          onRetryRoles={onRetryRoles}
+          initialUserSearch={initialUserSearch}
           onChange={updateValues}
         />
       ) : null}
@@ -201,8 +255,8 @@ export default function CredentialDeliveryWizard({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button
           variant="secondary"
-          leftIcon={<ChevronLeft className="h-4 w-4" />}
-          disabled={step === 0}
+          leftIcon={<ChevronLeft className="h-4 w-4 rtl:rotate-180" />}
+          disabled={step === 0 || isBusy}
           onClick={() => setStep((current) => Math.max(current - 1, 0))}
         >
           {t("actions.back")}
@@ -211,6 +265,7 @@ export default function CredentialDeliveryWizard({
           <Button
             variant="secondary"
             loading={isPreviewing}
+            disabled={isBusy}
             onClick={() => void handlePreview()}
           >
             {isPreviewing ? t("actions.previewing") : t("actions.preview")}
@@ -218,7 +273,8 @@ export default function CredentialDeliveryWizard({
           {step < 3 ? (
             <Button
               variant="primary"
-              rightIcon={<ChevronRight className="h-4 w-4" />}
+              rightIcon={<ChevronRight className="h-4 w-4 rtl:rotate-180" />}
+              disabled={isBusy}
               onClick={goNext}
             >
               {t("actions.next")}
@@ -229,10 +285,7 @@ export default function CredentialDeliveryWizard({
               leftIcon={<Send className="h-4 w-4" />}
               loading={isCreating}
               disabled={
-                !canManage ||
-                !preview ||
-                preview.eligibleCount < 1 ||
-                Boolean(createdBatch)
+                createDisabled
               }
               onClick={() => void handleCreate()}
             >

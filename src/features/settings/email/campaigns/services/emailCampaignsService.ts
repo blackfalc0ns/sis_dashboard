@@ -1,16 +1,24 @@
 import { apiGet, apiPost } from "@/lib/api";
 import type {
   CreateEmailCampaignRequest,
-  CreateEmailCampaignResponse,
   EmailCampaignBatch,
   EmailCampaignPreviewRecipientsRequest,
   EmailCampaignPreviewRecipientsResponse,
   EmailCampaignPreviewRecipientsResponseDto,
   EmailCampaignPreviewRequest,
   EmailCampaignPreviewResponse,
+  EmailCampaignPreviewResponseDto,
   EmailCampaignsListResponse,
   FetchEmailCampaignsParams,
 } from "@/features/settings/email/campaigns/types";
+import {
+  mapDeliveryBatch,
+} from "@/features/settings/email/deliveries/services/emailDeliveriesService";
+import type {
+  EmailDeliveriesListResponseDto,
+  EmailDeliveryBatchDto,
+} from "@/features/settings/email/deliveries/types";
+import { mapRecipientPreview } from "@/features/settings/email/shared/recipientPreview";
 
 function toCampaignsQuery(params: FetchEmailCampaignsParams): string {
   const query = new URLSearchParams();
@@ -26,21 +34,13 @@ function toCampaignsQuery(params: FetchEmailCampaignsParams): string {
 export function mapEmailCampaignRecipientsPreview(
   response: EmailCampaignPreviewRecipientsResponseDto,
 ): EmailCampaignPreviewRecipientsResponse {
+  const preview = mapRecipientPreview(response);
   return {
-    totalMatched: response.totalMatched,
-    eligibleCount: response.eligible,
-    skippedCount: response.skipped,
-    skippedReasons: response.skippedReasons ?? undefined,
-    recipients: [
-      ...(response.sample?.eligible ?? []).map((recipient) => ({
-        ...recipient,
-        eligible: true,
-      })),
-      ...(response.sample?.skipped ?? []).map((recipient) => ({
-        ...recipient,
-        eligible: false,
-      })),
-    ],
+    totalMatched: preview.totalMatched,
+    eligibleCount: preview.eligibleCount,
+    skippedCount: preview.skippedCount,
+    skippedReasons: preview.skippedReasons,
+    recipients: preview.recipients,
   };
 }
 
@@ -57,31 +57,59 @@ export async function previewEmailCampaignRecipients(
 export async function previewEmailCampaign(
   payload: EmailCampaignPreviewRequest,
 ): Promise<EmailCampaignPreviewResponse> {
-  return apiPost<EmailCampaignPreviewResponse>(
+  const response = await apiPost<EmailCampaignPreviewResponseDto>(
     "/settings/email/campaigns/preview",
     payload,
   );
+  return mapEmailCampaignPreview(response);
+}
+
+export function mapEmailCampaignPreview(
+  response: EmailCampaignPreviewResponseDto,
+): EmailCampaignPreviewResponse {
+  return {
+    ...response,
+    missingVariables: [...response.missingVariables],
+    unknownVariables: [...response.unknownVariables],
+  };
 }
 
 export async function createEmailCampaign(
   payload: CreateEmailCampaignRequest,
-): Promise<CreateEmailCampaignResponse> {
-  return apiPost<CreateEmailCampaignResponse>(
+): Promise<EmailCampaignBatch> {
+  const response = await apiPost<EmailDeliveryBatchDto>(
     "/settings/email/campaigns",
     payload,
   );
+  return mapEmailCampaignBatch(response);
 }
 
 export async function fetchEmailCampaigns(
   params: FetchEmailCampaignsParams = {},
 ): Promise<EmailCampaignsListResponse> {
-  return apiGet<EmailCampaignsListResponse>(
+  const response = await apiGet<EmailDeliveriesListResponseDto>(
     `/settings/email/campaigns${toCampaignsQuery(params)}`,
   );
+  return {
+    items: response.items.map(mapEmailCampaignBatch),
+    pagination: response.pagination,
+  };
 }
 
 export async function fetchEmailCampaign(
   batchId: string,
 ): Promise<EmailCampaignBatch> {
-  return apiGet<EmailCampaignBatch>(`/settings/email/campaigns/${batchId}`);
+  const response = await apiGet<EmailDeliveryBatchDto>(
+    `/settings/email/campaigns/${batchId}`,
+  );
+  return mapEmailCampaignBatch(response);
+}
+
+function mapEmailCampaignBatch(
+  response: EmailDeliveryBatchDto,
+): EmailCampaignBatch {
+  return {
+    ...mapDeliveryBatch(response),
+    kind: "GENERAL_CAMPAIGN",
+  };
 }

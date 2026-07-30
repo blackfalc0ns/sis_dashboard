@@ -1,6 +1,5 @@
 import { apiGet, apiPost } from "@/lib/api";
 import type {
-  CancelEmailDeliveryResponse,
   EmailDeliveriesListResponseDto,
   EmailDeliveriesListResponse,
   EmailDeliveryBatch,
@@ -9,8 +8,15 @@ import type {
   EmailDeliveryRecipientDto,
   EmailDeliveryRecipientsResponseDto,
   EmailDeliveryRecipientsResponse,
+  EmailDeliveryStatus,
   FetchEmailDeliveriesParams,
 } from "@/features/settings/email/deliveries/types";
+
+const CANCELLABLE_BATCH_STATUSES = new Set<EmailDeliveryStatus>([
+  "DRAFT",
+  "QUEUED",
+  "PROCESSING",
+]);
 
 function toDeliveriesQuery(params: FetchEmailDeliveriesParams): string {
   const query = new URLSearchParams();
@@ -29,23 +35,21 @@ export function mapDeliveryBatch(dto: EmailDeliveryBatchDto): EmailDeliveryBatch
     batchId: dto.batchId,
     kind: dto.kind,
     status: dto.status,
+    templateKey: dto.templateKey,
     subject: dto.subjectSnapshot ?? null,
-    title: dto.subjectSnapshot ?? null,
     totalRecipients: dto.totalRecipients,
     queuedCount: dto.queuedCount,
     sentCount: dto.sentCount,
     failedCount: dto.failedCount,
     skippedCount: dto.skippedCount,
-    cancelledCount: dto.cancelledAt
-      ? Math.max(
-          dto.totalRecipients - dto.sentCount - dto.failedCount - dto.skippedCount,
-          0,
-        )
-      : 0,
+    startedAt: dto.startedAt,
+    completedAt: dto.completedAt,
+    cancelledAt: dto.cancelledAt,
+    failureReason: dto.failureReason,
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
-    cancellable: ["DRAFT", "QUEUED"].includes(dto.status),
-    failureReason: dto.failureReason,
+    deliveryMode: dto.deliveryMode,
+    cancellable: CANCELLABLE_BATCH_STATUSES.has(dto.status),
   };
 }
 
@@ -58,9 +62,13 @@ export function mapDeliveryRecipient(
     recipientEmail: dto.toEmail,
     fullName: dto.displayName,
     status: dto.status,
-    failureReason: dto.failureReason || dto.skippedReason,
+    attempts: dto.attempts,
+    lastAttemptAt: dto.lastAttemptAt,
     sentAt: dto.sentAt,
-    skippedAt: dto.status === "SKIPPED" ? dto.updatedAt : null,
+    failureReason: dto.failureReason,
+    skippedReason: dto.skippedReason,
+    createdAt: dto.createdAt,
+    updatedAt: dto.updatedAt,
   };
 }
 
@@ -100,9 +108,10 @@ export async function fetchEmailDeliveryRecipients(
 
 export async function cancelEmailDeliveryBatch(
   batchId: string,
-): Promise<CancelEmailDeliveryResponse> {
-  return apiPost<CancelEmailDeliveryResponse>(
+): Promise<EmailDeliveryBatch> {
+  const response = await apiPost<EmailDeliveryBatchDto>(
     `/settings/email/deliveries/${batchId}/cancel`,
     {},
   );
+  return mapDeliveryBatch(response);
 }

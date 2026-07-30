@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Eye, RefreshCcw } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -13,9 +13,6 @@ import SettingsAccessGuard from "@/features/settings/components/SettingsAccessGu
 import SettingsPageHeader from "@/features/settings/components/SettingsPageHeader";
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
 import CampaignComposer, {
-  buildCreateCampaignPayload,
-  buildCampaignRecipientScope,
-  buildPreviewCampaignPayload,
   type CampaignComposerValues,
 } from "@/features/settings/email/campaigns/components/CampaignComposer";
 import DeliveryStatusBadge from "@/features/settings/email/deliveries/components/DeliveryStatusBadge";
@@ -25,11 +22,14 @@ import {
   previewEmailCampaign,
   previewEmailCampaignRecipients,
 } from "@/features/settings/email/campaigns/services/emailCampaignsService";
-import { fetchSettingsRoles } from "@/features/settings/services/settingsRolesService";
-import { isApiError } from "@/lib/api-error";
+import { fetchAllSettingsRoles } from "@/features/settings/services/settingsRolesService";
+import SettingsWorkflowErrorAlert from "@/features/settings/shared/components/SettingsWorkflowErrorAlert";
+import {
+  classifySettingsWorkflowError,
+  type SettingsWorkflowError,
+} from "@/features/settings/shared/utils/settingsWorkflowErrors";
 import { usePermissions } from "@/hooks/usePermissions";
 import type {
-  CreateEmailCampaignResponse,
   EmailCampaignBatch,
   EmailCampaignPreviewRecipientsResponse,
   EmailCampaignPreviewResponse,
@@ -37,6 +37,12 @@ import type {
 } from "@/features/settings/email/campaigns/types";
 import type { EmailDeliveryStatus } from "@/features/settings/email/deliveries/types";
 import type { RoleDefinition } from "@/features/settings/types";
+import {
+  buildCampaignRecipientPreviewPayload,
+  buildCreateCampaignPayload,
+  buildPreviewCampaignPayload,
+  campaignRecipientPreviewFingerprint,
+} from "@/features/settings/email/campaigns/utils/campaignPayloads";
 
 function formatDate(value: string | null | undefined, fallback: string) {
   return value ? new Date(value).toLocaleString() : fallback;
@@ -57,16 +63,31 @@ export default function EmailCampaignsPage() {
   const [total, setTotal] = useState(0);
   const [recipientPreview, setRecipientPreview] =
     useState<EmailCampaignPreviewRecipientsResponse | null>(null);
+  const [recipientPreviewFingerprint, setRecipientPreviewFingerprint] =
+    useState<string | null>(null);
   const [renderedPreview, setRenderedPreview] =
     useState<EmailCampaignPreviewResponse | null>(null);
   const [createdBatch, setCreatedBatch] =
-    useState<CreateEmailCampaignResponse | null>(null);
-  const [pageError, setPageError] = useState<string | null>(null);
+    useState<EmailCampaignBatch | null>(null);
+  const [pageError, setPageError] = useState<SettingsWorkflowError | null>(null);
+  const [rolesError, setRolesError] = useState<SettingsWorkflowError | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPreviewingRecipients, setIsPreviewingRecipients] = useState(false);
   const [isPreviewingCampaign, setIsPreviewingCampaign] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const activeRecipientPreviewFingerprint = useRef<string | null>(null);
+  const recipientPreviewRequestId = useRef(0);
+  const showErrorRef = useRef(showError);
+  const tRef = useRef(t);
+
+  useEffect(() => {
+    showErrorRef.current = showError;
+    tRef.current = t;
+  }, [showError, t]);
 
   const statusLabels = useMemo(
     () => ({
@@ -86,7 +107,7 @@ export default function EmailCampaignsPage() {
     [limit, page, status],
   );
 
-  const hydrate = useCallback(
+  const hydrateCampaigns = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
       if (mode === "initial") {
         setIsLoading(true);
@@ -95,60 +116,95 @@ export default function EmailCampaignsPage() {
       }
       setPageError(null);
       try {
-        const [campaignResult, roleResult] = await Promise.all([
-          fetchEmailCampaigns(fetchParams),
-          fetchSettingsRoles({ limit: 100 }),
-        ]);
+        const campaignResult = await fetchEmailCampaigns(fetchParams);
         setCampaigns(campaignResult.items);
-        setTotal(
-          campaignResult.pagination?.total || campaignResult.items.length,
-        );
-        setPage(campaignResult.pagination?.page || page);
-        setLimit(campaignResult.pagination?.limit || limit);
-        setRoles(roleResult.items);
+        setTotal(campaignResult.pagination.total);
+        setPage(campaignResult.pagination.page);
+        setLimit(campaignResult.pagination.limit);
       } catch (error) {
-        const message = isApiError(error)
-          ? error.message
-          : t("messages.load_failed");
-        setPageError(message);
-        showError(message);
+        setPageError(classifySettingsWorkflowError(error));
+        showErrorRef.current(tRef.current("messages.load_failed"));
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
       }
     },
-    [fetchParams, limit, page, showError, t],
+    [fetchParams],
   );
 
+  const hydrateRoles = useCallback(async () => {
+    setIsLoadingRoles(true);
+    setRolesError(null);
+    try {
+      setRoles(await fetchAllSettingsRoles());
+    } catch (error) {
+      setRolesError(classifySettingsWorkflowError(error));
+      showErrorRef.current(tRef.current("messages.roles_load_failed"));
+    } finally {
+      setIsLoadingRoles(false);
+    }
+  }, []);
+
   useEffect(() => {
-    void Promise.resolve().then(() => hydrate("refresh"));
-  }, [hydrate]);
+    void Promise.resolve().then(() => hydrateCampaigns("refresh"));
+  }, [hydrateCampaigns]);
+
+  useEffect(() => {
+    void Promise.resolve().then(hydrateRoles);
+  }, [hydrateRoles]);
 
   useEffect(() => {
     void Promise.resolve().then(() => setPage(1));
   }, [status]);
 
+  const invalidateRecipientPreview = () => {
+    recipientPreviewRequestId.current += 1;
+    activeRecipientPreviewFingerprint.current = null;
+    setRecipientPreview(null);
+    setRecipientPreviewFingerprint(null);
+    setCreatedBatch(null);
+    setIsPreviewingRecipients(false);
+  };
+
+  const handleStartNewCampaign = () => {
+    invalidateRecipientPreview();
+    setRenderedPreview(null);
+  };
+
   const handlePreviewRecipients = async (values: CampaignComposerValues) => {
+    const fingerprint = campaignRecipientPreviewFingerprint(values);
+    const requestId = recipientPreviewRequestId.current + 1;
+    recipientPreviewRequestId.current = requestId;
+    activeRecipientPreviewFingerprint.current = fingerprint;
     setIsPreviewingRecipients(true);
     setPageError(null);
+    setRecipientPreview(null);
+    setRecipientPreviewFingerprint(null);
     setCreatedBatch(null);
     try {
-      const result = await previewEmailCampaignRecipients({
-        recipientScope: buildCampaignRecipientScope(values),
-        customEmails: values.audience.customEmails,
-      });
+      const result = await previewEmailCampaignRecipients(
+        buildCampaignRecipientPreviewPayload(values),
+      );
+      if (
+        recipientPreviewRequestId.current !== requestId ||
+        activeRecipientPreviewFingerprint.current !== fingerprint
+      ) {
+        return null;
+      }
       setRecipientPreview(result);
+      setRecipientPreviewFingerprint(fingerprint);
       showSuccess(t("messages.preview_recipients_ready"));
       return result;
     } catch (error) {
-      const message = isApiError(error)
-        ? error.message
-        : t("messages.preview_recipients_failed");
-      setPageError(message);
-      showError(message);
+      if (recipientPreviewRequestId.current === requestId) {
+        setPageError(classifySettingsWorkflowError(error));
+        showError(t("messages.preview_recipients_failed"));
+      }
       return null;
     } finally {
-      setIsPreviewingRecipients(false);
+      if (recipientPreviewRequestId.current === requestId) {
+        setIsPreviewingRecipients(false);
+      }
     }
   };
 
@@ -163,11 +219,8 @@ export default function EmailCampaignsPage() {
       showSuccess(t("messages.preview_ready"));
       return result;
     } catch (error) {
-      const message = isApiError(error)
-        ? error.message
-        : t("messages.preview_failed");
-      setPageError(message);
-      showError(message);
+      setPageError(classifySettingsWorkflowError(error));
+      showError(t("messages.preview_failed"));
       return null;
     } finally {
       setIsPreviewingCampaign(false);
@@ -178,6 +231,13 @@ export default function EmailCampaignsPage() {
     if (!canManage) {
       return null;
     }
+    if (
+      recipientPreviewFingerprint !==
+      campaignRecipientPreviewFingerprint(values)
+    ) {
+      invalidateRecipientPreview();
+      return null;
+    }
     setIsCreating(true);
     setPageError(null);
     try {
@@ -186,15 +246,14 @@ export default function EmailCampaignsPage() {
       );
       setCreatedBatch(result);
       setRecipientPreview(null);
+      setRecipientPreviewFingerprint(null);
+      activeRecipientPreviewFingerprint.current = null;
       showSuccess(t("messages.created"));
-      await hydrate("refresh");
+      await hydrateCampaigns("refresh");
       return result;
     } catch (error) {
-      const message = isApiError(error)
-        ? error.message
-        : tCommon("save_failed");
-      setPageError(message);
-      showError(message);
+      setPageError(classifySettingsWorkflowError(error));
+      showError(tCommon("save_failed"));
       return null;
     } finally {
       setIsCreating(false);
@@ -225,7 +284,7 @@ export default function EmailCampaignsPage() {
           return (
             <div className="min-w-56">
               <p className="font-medium text-gray-900">
-                {String(value || batch.title || t("not_available"))}
+                 {String(value || t("not_available"))}
               </p>
               <p className="mt-1 break-all text-xs text-gray-500">
                 {batch.batchId}
@@ -284,7 +343,12 @@ export default function EmailCampaignsPage() {
               variant="secondary"
               leftIcon={<RefreshCcw className="h-4 w-4" />}
               loading={isRefreshing}
-              onClick={() => void hydrate("refresh")}
+              onClick={() =>
+                void Promise.all([
+                  hydrateCampaigns("refresh"),
+                  hydrateRoles(),
+                ])
+              }
             >
               {t("refresh")}
             </Button>
@@ -292,15 +356,18 @@ export default function EmailCampaignsPage() {
         />
 
         {pageError ? (
-          <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {pageError}
-          </p>
+          <div className="mb-4">
+            <SettingsWorkflowErrorAlert error={pageError} />
+          </div>
         ) : null}
 
         <CampaignComposer
           canManage={canManage}
           roles={roles}
+          isLoadingRoles={isLoadingRoles}
+          rolesError={Boolean(rolesError)}
           recipientPreview={recipientPreview}
+          recipientPreviewFingerprint={recipientPreviewFingerprint}
           renderedPreview={renderedPreview}
           createdBatch={createdBatch}
           isPreviewingRecipients={isPreviewingRecipients}
@@ -309,6 +376,9 @@ export default function EmailCampaignsPage() {
           onPreviewRecipients={handlePreviewRecipients}
           onPreviewCampaign={handlePreviewCampaign}
           onCreate={handleCreate}
+          onRetryRoles={hydrateRoles}
+          onRecipientPreviewInvalidated={invalidateRecipientPreview}
+          onStartNewCampaign={handleStartNewCampaign}
         />
 
         <div className="mt-6">

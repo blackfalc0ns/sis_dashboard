@@ -20,8 +20,21 @@ const translations: Record<string, string> = {
   "audience.role_id": "Role",
   "audience.role_placeholder": "Select a role",
   "audience.roles_empty": "No roles were loaded. Refresh and try again.",
+  "audience.roles_loading": "Loading roles...",
+  "audience.roles_load_failed": "Roles could not be loaded.",
+  "audience.roles_retry": "Retry",
+  "audience.role_option": "{name} · {count} members",
   "audience.user_type": "User type",
   "audience.user_type_placeholder": "Select user type",
+  "audience.userTypes.school_user": "School user",
+  "audience.userTypes.teacher": "Teacher",
+  "audience.userTypes.student": "Student",
+  "audience.userTypes.parent": "Parent",
+  "audience.userTypes.applicant": "Applicant",
+  "audience.userTypes.pickup_delegate": "Pickup delegate",
+  "audience.userTypes.organization_user": "Organization user",
+  "audience.userTypes.platform_user": "Platform user",
+  "audience.userTypes.service_account": "Service account",
   "audience.custom_emails": "Custom emails",
   "audience.custom_emails_help": "Optional external recipients.",
   "audience.custom_email_add": "Add email",
@@ -64,11 +77,23 @@ vi.mock("@/features/communication/components/selectors/UserMultiSearchSelect", (
 function renderAudienceStep(
   values: CampaignAudienceValues,
   roles: RoleDefinition[] = [],
+  roleState: {
+    isLoadingRoles?: boolean;
+    rolesError?: boolean;
+    onRetryRoles?: () => void;
+  } = {},
 ) {
   const onChange = vi.fn();
 
   render(
-    <CampaignAudienceStep values={values} roles={roles} onChange={onChange} />,
+    <CampaignAudienceStep
+      values={values}
+      roles={roles}
+      isLoadingRoles={roleState.isLoadingRoles}
+      rolesError={roleState.rolesError}
+      onRetryRoles={roleState.onRetryRoles}
+      onChange={onChange}
+    />,
   );
 
   return onChange;
@@ -110,15 +135,15 @@ describe("CampaignAudienceStep", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "User type" }));
-    fireEvent.click(screen.getByRole("button", { name: "TEACHER" }));
+    fireEvent.click(screen.getByRole("button", { name: "Teacher" }));
 
     expect(onChange).toHaveBeenCalledWith({
-      audience: { userType: "TEACHER" },
+      audience: { userType: "teacher" },
     });
   });
 
-  it("uses role id when a role does not have a key", () => {
-    const onChange = renderAudienceStep(
+  it("does not send role ids to the backend role-key filter", () => {
+    renderAudienceStep(
       {
         ...baseValues,
         audienceMode: "role",
@@ -137,11 +162,15 @@ describe("CampaignAudienceStep", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Role" }));
-    fireEvent.click(screen.getByRole("button", { name: "Teacher Role" }));
 
-    expect(onChange).toHaveBeenCalledWith({
-      audience: { roleKey: "role-1" },
-    });
+    expect(
+      screen.queryByRole("button", { name: "Teacher Role" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "No roles were loaded. Refresh and try again.",
+      }),
+    ).toBeDisabled();
   });
 
   it("shows a clear disabled empty role option when no roles are usable", () => {
@@ -158,6 +187,45 @@ describe("CampaignAudienceStep", () => {
         name: "No roles were loaded. Refresh and try again.",
       }),
     ).toBeDisabled();
+  });
+
+  it("shows role member counts in the role options", () => {
+    renderAudienceStep(
+      { ...baseValues, audienceMode: "role", audience: {} },
+      [
+        {
+          id: "role-1",
+          key: "teacher",
+          name: "Teacher",
+          description: "Teachers",
+          isSystem: true,
+          memberCount: 24,
+          permissions: [],
+        },
+      ],
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Role" }));
+
+    expect(
+      screen.getByRole("button", { name: "Teacher · 24 members" }),
+    ).toBeVisible();
+  });
+
+  it("shows a recoverable role loading error", async () => {
+    const user = userEvent.setup();
+    const onRetryRoles = vi.fn();
+    renderAudienceStep(
+      { ...baseValues, audienceMode: "role", audience: {} },
+      [],
+      { rolesError: true, onRetryRoles },
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Roles could not be loaded.",
+    );
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRetryRoles).toHaveBeenCalledOnce();
   });
 
   it("adds custom emails as removable badges while storing backend text internally", async () => {

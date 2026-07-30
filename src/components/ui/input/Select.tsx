@@ -259,7 +259,7 @@ export default function Select({
                       : "text-gray-700 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200"
                 }`}
               >
-                <span>{option.label}</span>
+                <span dir="auto">{option.label}</span>
               </button>
             </li>
           ))
@@ -351,6 +351,7 @@ export default function Select({
           `}
         >
           <span
+            dir="auto"
             className={`${!selectedOption ? "text-gray-400" : "text-gray-900"}`}
           >
             {displayLabel}

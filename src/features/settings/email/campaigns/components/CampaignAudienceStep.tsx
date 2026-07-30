@@ -1,7 +1,7 @@
 "use client";
 
 import { type KeyboardEvent, useState } from "react";
-import { X } from "lucide-react";
+import { RefreshCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Select from "@/components/ui/input/Select";
 import Input from "@/components/ui/input/Input";
@@ -9,6 +9,7 @@ import SettingsSectionCard from "@/features/settings/components/SettingsSectionC
 import UserMultiSearchSelect from "@/features/communication/components/selectors/UserMultiSearchSelect";
 import { useTranslations } from "next-intl";
 import type { EmailCampaignAudience } from "@/features/settings/email/campaigns/types";
+import type { EmailUserType } from "@/features/settings/email/shared/recipientPreview";
 import type { RoleDefinition } from "@/features/settings/types";
 
 export type CampaignAudienceMode =
@@ -27,16 +28,23 @@ export interface CampaignAudienceValues {
 interface CampaignAudienceStepProps {
   values: CampaignAudienceValues;
   roles: RoleDefinition[];
+  isLoadingRoles?: boolean;
+  rolesError?: boolean;
+  onRetryRoles?: () => void;
   onChange: (values: Partial<CampaignAudienceValues>) => void;
 }
 
 const CAMPAIGN_USER_TYPES = [
-  "SCHOOL_USER",
-  "SCHOOL_ADMIN",
-  "TEACHER",
-  "STUDENT",
-  "PARENT",
-];
+  "platform_user",
+  "organization_user",
+  "school_user",
+  "teacher",
+  "parent",
+  "student",
+  "applicant",
+  "pickup_delegate",
+  "service_account",
+] as const satisfies readonly EmailUserType[];
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function parseDelimited(value: string) {
@@ -222,16 +230,29 @@ function CustomEmailBadgesInput({
 export default function CampaignAudienceStep({
   values,
   roles,
+  isLoadingRoles = false,
+  rolesError = false,
+  onRetryRoles,
   onChange,
 }: CampaignAudienceStepProps) {
   const t = useTranslations("settings.email.campaigns");
   const selectedUserIds =
     values.audience.userIds ?? parseDelimited(values.selectedUserIdsText);
-  const roleOptions = roles.map((role) => ({
-    value: role.key ?? role.id,
-    label: role.name,
-    searchText: role.description,
-  }));
+  const roleOptions = roles.flatMap((role) => {
+    const key = role.key?.trim();
+    return key
+      ? [
+          {
+            value: key,
+            label: t("audience.role_option", {
+              name: role.name,
+              count: role.memberCount,
+            }),
+            searchText: role.description,
+          },
+        ]
+      : [];
+  });
   const roleSelectOptions =
     roleOptions.length > 0
       ? roleOptions
@@ -290,21 +311,52 @@ export default function CampaignAudienceStep({
         ) : null}
 
         {values.audienceMode === "role" ? (
-          <Select
-            label={t("audience.role_id")}
-            value={values.audience.roleKey || ""}
-            onChange={(value) =>
-              onChange({
-                audience: withCustomEmails(
-                  { roleKey: value },
-                  values.customEmailsText,
-                ),
-              })
-            }
-            placeholder={t("audience.role_placeholder")}
-            searchable
-            options={roleSelectOptions}
-          />
+          <div className="space-y-2">
+            {isLoadingRoles && roles.length === 0 ? (
+              <div
+                role="status"
+                className="animate-pulse rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600"
+              >
+                {t("audience.roles_loading")}
+              </div>
+            ) : (
+              <Select
+                label={t("audience.role_id")}
+                value={values.audience.roleKey || ""}
+                onChange={(value) =>
+                  onChange({
+                    audience: withCustomEmails(
+                      { roleKey: value },
+                      values.customEmailsText,
+                    ),
+                  })
+                }
+                placeholder={t("audience.role_placeholder")}
+                searchable
+                options={roleSelectOptions}
+              />
+            )}
+            {rolesError ? (
+              <div
+                role="alert"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              >
+                <span>{t("audience.roles_load_failed")}</span>
+                {onRetryRoles ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    leftIcon={<RefreshCcw className="h-4 w-4" />}
+                    loading={isLoadingRoles}
+                    onClick={onRetryRoles}
+                  >
+                    {t("audience.roles_retry")}
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         ) : null}
 
         {values.audienceMode === "user-type" ? (
@@ -314,7 +366,7 @@ export default function CampaignAudienceStep({
             onChange={(value) =>
               onChange({
                 audience: withCustomEmails(
-                  { userType: value },
+                  { userType: value as EmailUserType },
                   values.customEmailsText,
                 ),
               })
@@ -322,7 +374,7 @@ export default function CampaignAudienceStep({
             placeholder={t("audience.user_type_placeholder")}
             options={CAMPAIGN_USER_TYPES.map((userType) => ({
               value: userType,
-              label: userType,
+              label: t(`audience.userTypes.${userType}`),
             }))}
           />
         ) : null}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, RefreshCcw, XCircle } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
+import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
 import SettingsAccessGuard from "@/features/settings/components/SettingsAccessGuard";
@@ -17,7 +18,11 @@ import {
   fetchEmailDeliveryBatch,
   fetchEmailDeliveryRecipients,
 } from "@/features/settings/email/deliveries/services/emailDeliveriesService";
-import { isApiError } from "@/lib/api-error";
+import SettingsWorkflowErrorAlert from "@/features/settings/shared/components/SettingsWorkflowErrorAlert";
+import {
+  classifySettingsWorkflowError,
+  type SettingsWorkflowError,
+} from "@/features/settings/shared/utils/settingsWorkflowErrors";
 import { usePermissions } from "@/hooks/usePermissions";
 import type {
   EmailDeliveryBatch,
@@ -48,10 +53,11 @@ export default function EmailDeliveryDetailPage({
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
-  const [pageError, setPageError] = useState<string | null>(null);
+  const [pageError, setPageError] = useState<SettingsWorkflowError | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
 
   const kindLabels = useMemo(
     () => ({
@@ -102,17 +108,12 @@ export default function EmailDeliveryDetailPage({
         ]);
         setBatch(batchResult);
         setRecipients(recipientsResult.items);
-        setTotal(
-          recipientsResult.pagination?.total || recipientsResult.items.length,
-        );
-        setPage(recipientsResult.pagination?.page || page);
-        setLimit(recipientsResult.pagination?.limit || limit);
+        setTotal(recipientsResult.pagination.total);
+        setPage(recipientsResult.pagination.page);
+        setLimit(recipientsResult.pagination.limit);
       } catch (error) {
-        const message = isApiError(error)
-          ? error.message
-          : t("messages.detail_load_failed");
-        setPageError(message);
-        showError(message);
+        setPageError(classifySettingsWorkflowError(error));
+        showError(t("messages.detail_load_failed"));
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -130,12 +131,14 @@ export default function EmailDeliveryDetailPage({
       return;
     }
     setIsCancelling(true);
+    setIsCancelConfirmOpen(false);
     try {
       await cancelEmailDeliveryBatch(batch.batchId);
       showSuccess(t("messages.cancelled"));
       await hydrate("refresh");
     } catch (error) {
-      showError(isApiError(error) ? error.message : tCommon("save_failed"));
+      setPageError(classifySettingsWorkflowError(error));
+      showError(tCommon("save_failed"));
     } finally {
       setIsCancelling(false);
     }
@@ -149,7 +152,7 @@ export default function EmailDeliveryDetailPage({
     <SettingsAccessGuard permission="settings.email.deliveries.view">
       <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
         <SettingsPageHeader
-          title={batch?.subject || batch?.title || t("detail.title")}
+          title={batch?.subject || t("detail.title")}
           subtitle={batchId}
           actions={
             <div className="flex flex-wrap gap-2">
@@ -174,7 +177,7 @@ export default function EmailDeliveryDetailPage({
                   variant="danger"
                   leftIcon={<XCircle className="h-4 w-4" />}
                   loading={isCancelling}
-                  onClick={() => void handleCancel()}
+                  onClick={() => setIsCancelConfirmOpen(true)}
                 >
                   {t("actions.cancel")}
                 </Button>
@@ -184,9 +187,9 @@ export default function EmailDeliveryDetailPage({
         />
 
         {pageError ? (
-          <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {pageError}
-          </p>
+          <div className="mb-4">
+            <SettingsWorkflowErrorAlert error={pageError} />
+          </div>
         ) : null}
 
         {batch ? (
@@ -238,14 +241,27 @@ export default function EmailDeliveryDetailPage({
                   value={String(batch.skippedCount)}
                 />
                 <SummaryItem
-                  label={t("table.cancelled")}
-                  value={String(batch.cancelledCount)}
-                />
-                <SummaryItem
                   label={t("detail.updated_at")}
                   value={formatDate(batch.updatedAt, t("not_available"))}
                 />
+                <SummaryItem
+                  label={t("detail.started_at")}
+                  value={formatDate(batch.startedAt, t("not_available"))}
+                />
+                <SummaryItem
+                  label={t("detail.completed_at")}
+                  value={formatDate(batch.completedAt, t("not_available"))}
+                />
+                <SummaryItem
+                  label={t("detail.cancelled_at")}
+                  value={formatDate(batch.cancelledAt, t("not_available"))}
+                />
               </div>
+              {batch.failureReason ? (
+                <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {batch.failureReason}
+                </p>
+              ) : null}
               <p className="mt-4 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600">
                 {t("detail.security_note")}
               </p>
@@ -278,9 +294,12 @@ export default function EmailDeliveryDetailPage({
                 recipient: t("recipients.recipient"),
                 email: t("recipients.email"),
                 status: t("recipients.status"),
+                attempts: t("recipients.attempts"),
+                lastAttemptAt: t("recipients.last_attempt_at"),
                 failureReason: t("recipients.failure_reason"),
+                skippedReason: t("recipients.skipped_reason"),
                 sentAt: t("recipients.sent_at"),
-                skippedAt: t("recipients.skipped_at"),
+                updatedAt: t("recipients.updated_at"),
                 notAvailable: t("not_available"),
                 statusLabels: recipientStatusLabels,
               }}
@@ -296,6 +315,17 @@ export default function EmailDeliveryDetailPage({
             </div>
           )}
         </SettingsSectionCard>
+        <ConfirmDialog
+          isOpen={isCancelConfirmOpen}
+          onClose={() => setIsCancelConfirmOpen(false)}
+          onConfirm={() => void handleCancel()}
+          title={t("confirm.cancel_title")}
+          description={t("confirm.cancel_description")}
+          confirmLabel={t("confirm.cancel_confirm")}
+          cancelLabel={tCommon("cancel")}
+          loading={isCancelling}
+          severity="danger"
+        />
       </main>
     </SettingsAccessGuard>
   );

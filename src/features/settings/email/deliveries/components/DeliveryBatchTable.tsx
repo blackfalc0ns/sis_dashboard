@@ -32,7 +32,6 @@ interface DeliveryBatchTableProps {
     sent: string;
     failed: string;
     skipped: string;
-    cancelled: string;
     createdAt: string;
     actions: string;
     view: string;
@@ -90,7 +89,7 @@ export default function DeliveryBatchTable({
         return (
           <div className="min-w-56">
             <p className="font-medium text-gray-900">
-              {String(value || batch.title || labels.notAvailable)}
+              {String(value || labels.notAvailable)}
             </p>
             <p className="mt-1 break-all text-xs text-gray-500">
               {batch.batchId}
@@ -104,7 +103,6 @@ export default function DeliveryBatchTable({
     { key: "sentCount", label: labels.sent },
     { key: "failedCount", label: labels.failed },
     { key: "skippedCount", label: labels.skipped },
-    { key: "cancelledCount", label: labels.cancelled },
     {
       key: "createdAt",
       label: labels.createdAt,

@@ -12,7 +12,11 @@ import SettingsPageHeader from "@/features/settings/components/SettingsPageHeade
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
 import DeliveryStatusBadge from "@/features/settings/email/deliveries/components/DeliveryStatusBadge";
 import { fetchEmailCampaign } from "@/features/settings/email/campaigns/services/emailCampaignsService";
-import { isApiError } from "@/lib/api-error";
+import SettingsWorkflowErrorAlert from "@/features/settings/shared/components/SettingsWorkflowErrorAlert";
+import {
+  classifySettingsWorkflowError,
+  type SettingsWorkflowError,
+} from "@/features/settings/shared/utils/settingsWorkflowErrors";
 import type { EmailCampaignBatch } from "@/features/settings/email/campaigns/types";
 import type { EmailDeliveryStatus } from "@/features/settings/email/deliveries/types";
 
@@ -48,7 +52,7 @@ export default function EmailCampaignDetailPage({
   const locale = useLocale();
   const { showError } = useToast();
   const [campaign, setCampaign] = useState<EmailCampaignBatch | null>(null);
-  const [pageError, setPageError] = useState<string | null>(null);
+  const [pageError, setPageError] = useState<SettingsWorkflowError | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -77,11 +81,8 @@ export default function EmailCampaignDetailPage({
         const result = await fetchEmailCampaign(batchId);
         setCampaign(result);
       } catch (error) {
-        const message = isApiError(error)
-          ? error.message
-          : t("messages.detail_load_failed");
-        setPageError(message);
-        showError(message);
+        setPageError(classifySettingsWorkflowError(error));
+        showError(t("messages.detail_load_failed"));
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -102,7 +103,7 @@ export default function EmailCampaignDetailPage({
     <SettingsAccessGuard permission="settings.email.campaigns.view">
       <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-6">
         <SettingsPageHeader
-          title={campaign?.subject || campaign?.title || t("detail.title")}
+          title={campaign?.subject || t("detail.title")}
           subtitle={batchId}
           actions={
             <div className="flex flex-wrap gap-2">
@@ -127,9 +128,9 @@ export default function EmailCampaignDetailPage({
         />
 
         {pageError ? (
-          <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {pageError}
-          </p>
+          <div className="mb-4">
+            <SettingsWorkflowErrorAlert error={pageError} />
+          </div>
         ) : null}
 
         {campaign ? (
@@ -172,10 +173,6 @@ export default function EmailCampaignDetailPage({
               <SummaryItem
                 label={t("fields.subject")}
                 value={campaign.subject || t("not_available")}
-              />
-              <SummaryItem
-                label={t("fields.title")}
-                value={campaign.title || t("not_available")}
               />
               <SummaryItem
                 label={t("detail.updated_at")}

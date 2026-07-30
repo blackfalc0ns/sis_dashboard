@@ -9066,6 +9066,115 @@
       "upload_preview_hint": "A saved logo is already available. Drop a new file here to replace it.",
       "upload_drop_hint": "Drag and drop a logo file here, or click to browse."
     },
+    "workflow_errors": {
+      "teacher-directory": {
+        "title": "Complete this account in Teachers",
+        "message": "Teacher accounts cannot be created, promoted, activated, or repaired from Settings. Open Teachers and complete the directory provisioning or lifecycle action there.",
+        "action": "Open Teachers"
+      },
+      "email-connection": {
+        "title": "Email delivery is not ready",
+        "message": "Configure and activate the school email connection before queuing credential emails.",
+        "action": "Configure email"
+      },
+      "email-connection-unverified": {
+        "title": "Verify the email connection",
+        "message": "Test the saved SMTP configuration successfully before activating it.",
+        "action": "Open email connection"
+      },
+      "email-connection-test": {
+        "title": "Email connection test failed",
+        "message": "Review the SMTP settings and saved password, then test the connection again.",
+        "action": "Review SMTP settings"
+      },
+      "email-template": {
+        "title": "Credential email template is unavailable",
+        "message": "Activate a valid account-credentials template before creating this delivery.",
+        "action": "Manage templates"
+      },
+      "email-content-invalid": {
+        "title": "Email content is invalid",
+        "message": "Review the reported fields and template variables, then preview again.",
+        "action": "Manage templates"
+      },
+      "login-identity": {
+        "title": "Login identity settings need attention",
+        "message": "Configure a valid school login domain, then retry this account action.",
+        "action": "Open login identity"
+      },
+      "no-recipients": {
+        "title": "No eligible recipients",
+        "message": "Review the selected audience, contact emails, account status, and credential mode, then preview again."
+      },
+      "recipient-invalid": {
+        "title": "A recipient is invalid",
+        "message": "Review the selected users and recipient email addresses, then preview again."
+      },
+      "recipient-limit": {
+        "title": "Recipient limit exceeded",
+        "message": "Reduce the audience and preview the delivery again.",
+        "message_with_values": "{count} recipients matched, but this delivery allows at most {limit}. Reduce the audience and preview again."
+      },
+      "delivery-not-found": {
+        "title": "Delivery batch was not found",
+        "message": "Refresh the delivery list. The batch may have been removed or belongs to another school."
+      },
+      "delivery-not-cancelable": {
+        "title": "Delivery cannot be cancelled",
+        "message": "Refresh the batch and review its latest status before trying again."
+      },
+      "campaign-invalid": {
+        "title": "Campaign content is invalid",
+        "message": "Review the campaign subject and body, then preview it again."
+      },
+      "credential-variables": {
+        "title": "Credential variables are not allowed",
+        "message": "Remove credential-only variables from this general campaign."
+      },
+      "credential-mode": {
+        "title": "Choose a different credential action",
+        "message": "The account's current password state does not support this action. Refresh the list and choose Generate, Regenerate, or Set password as appropriate."
+      },
+      "credential-state": {
+        "title": "Credentials are unavailable for this account",
+        "message": "The account is disabled, suspended, deleted, or otherwise not manageable. Review its lifecycle state before changing credentials."
+      },
+      "user-state": {
+        "title": "This user cannot be invited again",
+        "message": "The account is not in an invitable state. Refresh the directory and manage the existing account instead."
+      },
+      "validation": {
+        "title": "Review the highlighted values",
+        "message": "One or more values were rejected. Correct them and try again."
+      },
+      "not-found": {
+        "title": "The requested record was not found",
+        "message": "Refresh the current data and try the action again."
+      },
+      "conflict": {
+        "title": "The record changed",
+        "message": "Refresh the current data, review its latest status, and try the action again."
+      },
+      "permission": {
+        "title": "You cannot complete this action",
+        "message": "Your current role does not have the required permission. Ask an administrator for access."
+      },
+      "retryable": {
+        "title": "The service is temporarily unavailable",
+        "message": "Refresh the current state before retrying. If the problem continues, share the trace ID with support."
+      },
+      "generic": {
+        "title": "The action could not be completed",
+        "message": "The operation did not report success. Refresh the current state, review the inputs, and try again. Share the trace ID with support if it continues."
+      },
+      "details": {
+        "invalid_fields": "Invalid fields: {fields}",
+        "reason": "Reason: {reason}",
+        "batch_status": "Current batch status: {status}",
+        "variables": "Variables: {variables}"
+      },
+      "trace_id": "Support trace ID"
+    },
     "users": {
       "title": "Users",
       "subtitle": "Manage staff users, invitations, and account provisioning.",
@@ -9377,12 +9486,19 @@
           "last_test": "Last test",
           "configured": "Configured",
           "not_configured": "Not configured",
-          "failure_reason": "Failure reason"
+          "failure_reason": "Failure reason",
+          "failure_reasons": {
+            "smtp_configuration_invalid": "The SMTP configuration is invalid.",
+            "smtp_password_missing": "The SMTP password is missing.",
+            "secret_decryption_failed": "The saved connection secret could not be read. Save the secret again.",
+            "unknown": "The connection test failed."
+          }
         },
         "form": {
           "title": "Sender configuration",
           "description": "Update the school email provider and sender identity.",
-          "secret_help": "Leave blank to keep the existing saved secret."
+          "secret_help": "Leave blank to keep the existing saved secret.",
+          "test_recipient_help": "Optional. Leave blank to use your account contact or login email."
         },
         "fields": {
           "provider_type": "Provider type",
@@ -9403,13 +9519,17 @@
           "activate": "Activate",
           "disable": "Disable"
         },
+        "confirm": {
+          "disable_title": "Disable email connection?",
+          "disable_description": "The school sender will be unavailable until this connection is activated again.",
+          "disable_confirm": "Disable connection"
+        },
         "validation": {
           "provider_required": "Provider type is required.",
           "from_name_required": "From name is required.",
           "from_email_required": "From email is required.",
           "host_required": "Host is required for SMTP connections.",
-          "port_invalid": "Port must be a positive whole number.",
-          "test_recipient_required": "Enter a test recipient email."
+          "port_invalid": "Port must be a whole number between 1 and 65535."
         },
         "messages": {
           "load_failed": "Failed to load email connection.",
@@ -9439,7 +9559,11 @@
           "description": "Template content and sender support details.",
           "allowed_variables": "Allowed variables",
           "no_variables": "No variables reported by backend.",
-          "credential_safety": "Credential variables are only safe in backend-approved credential templates. General previews must not be used to expose credentials."
+          "credential_safety": "Credential variables are only safe in backend-approved credential templates. General previews must not be used to expose credentials.",
+          "html_tab": "HTML",
+          "text_tab": "Plain text",
+          "variable_help": "Select a variable to insert it into the active body editor.",
+          "insert_variable": "Insert {variable}"
         },
         "fields": {
           "subject": "Subject",
@@ -9461,6 +9585,11 @@
           "preview": "Preview",
           "save": "Save template",
           "reset": "Reset default"
+        },
+        "confirm": {
+          "reset_title": "Reset this template?",
+          "reset_description": "{template} will be replaced with the backend default. Unsaved changes will be lost.",
+          "reset_confirm": "Reset template"
         },
         "preview": {
           "title": "Preview data",
@@ -9524,13 +9653,30 @@
           "selected_users": "Selected users",
           "selected_users_placeholder": "Search users",
           "selected_users_help": "Search and add users.",
-          "role_id": "Role ID",
+          "role_id": "Role",
           "role_placeholder": "Select a role",
           "roles_empty": "No roles were loaded. Refresh the wizard and try again.",
+          "roles_loading": "Loading roles...",
+          "roles_load_failed": "Roles could not be loaded. Other audience options remain available.",
+          "roles_retry": "Retry",
+          "role_option": "{name} · {count} members",
           "user_type": "User type",
           "user_type_placeholder": "Select user type",
           "require_contact_email": "Require contactEmail",
           "require_contact_email_help": "Skip recipients without a personal contact inbox. The generated login email is not the personal inbox.",
+          "allow_login_email_fallback": "Fall back to the login email",
+          "allow_login_email_fallback_help": "When a contact email is missing, deliver to the user's login email instead.",
+          "userTypes": {
+            "platform_user": "Platform user",
+            "organization_user": "Organization user",
+            "school_user": "School user",
+            "teacher": "Teacher",
+            "student": "Student",
+            "parent": "Parent",
+            "applicant": "Applicant",
+            "pickup_delegate": "Pickup delegate",
+            "service_account": "Service account"
+          },
           "options": {
             "selected_users": "Selected users",
             "role": "Role",
@@ -9558,12 +9704,25 @@
           "template": "Template",
           "mode": "Credential mode",
           "contact_email": "Requires contactEmail",
+          "contact_email_only": "Contact email only",
+          "login_email_fallback": "Contact email, then login email",
           "eligible": "Eligible",
           "skipped": "Skipped",
           "sample_eligible": "Sample eligible recipients",
           "sample_skipped": "Sample skipped recipients",
           "no_eligible": "No eligible recipients in the sample.",
           "no_skipped": "No skipped recipients in the sample.",
+          "zero_eligible_warning": "No recipients are eligible. Review the skip reasons or choose a different audience before creating the delivery.",
+          "skip_reasons": {
+            "title": "Why recipients are skipped",
+            "disabled_user": "Disabled account",
+            "missing_contact_email": "No contact email",
+            "missing_delivery_email": "No usable delivery email",
+            "duplicate_email": "Duplicate recipient email",
+            "invalid_email": "Invalid email address",
+            "already_has_password": "Already has a password",
+            "unknown": "Other backend eligibility rule"
+          },
           "empty_title": "No preview yet",
           "empty_description": "Run recipient preview before confirming delivery."
         },
@@ -9571,7 +9730,7 @@
           "title": "Confirm delivery",
           "description": "Create a queued backend batch for the eligible recipients.",
           "preview_required": "Preview recipients before creating a delivery batch.",
-          "manage_required": "Creating a delivery batch requires settings.email.deliveries.manage.",
+          "manage_required": "Creating a credential delivery batch requires settings.email.credential_deliveries.manage.",
           "created": "Delivery batch queued.",
           "batch_id": "Batch ID",
           "status": "Status",
@@ -9587,7 +9746,7 @@
         },
         "validation": {
           "selected_users_required": "Enter at least one user ID.",
-          "role_required": "Enter a role ID.",
+          "role_required": "Select a role.",
           "user_type_required": "Enter a user type."
         },
         "messages": {
@@ -9653,6 +9812,11 @@
           "cancel": "Cancel batch",
           "back": "Back to deliveries"
         },
+        "confirm": {
+          "cancel_title": "Cancel this delivery batch?",
+          "cancel_description": "The backend will cancel the remaining batch work where possible. Already-sent email cannot be recalled.",
+          "cancel_confirm": "Cancel batch"
+        },
         "empty": {
           "title": "No delivery batches found",
           "description": "Try changing filters or refresh after creating a delivery batch."
@@ -9661,6 +9825,9 @@
           "title": "Delivery batch",
           "summary": "Batch summary",
           "summary_description": "Backend delivery metadata and recipient counts.",
+          "started_at": "Started at",
+          "completed_at": "Completed at",
+          "cancelled_at": "Cancelled at",
           "updated_at": "Updated at",
           "security_note": "Delivery metadata is for monitoring only. Raw temporary passwords are not exposed or reconstructed here.",
           "not_found": "Delivery batch was not found."
@@ -9671,9 +9838,12 @@
           "recipient": "Recipient",
           "email": "Recipient email",
           "status": "Status",
+          "attempts": "Attempts",
+          "last_attempt_at": "Last attempt",
           "failure_reason": "Failure reason",
+          "skipped_reason": "Skipped reason",
           "sent_at": "Sent at",
-          "skipped_at": "Skipped at",
+          "updated_at": "Updated at",
           "empty_title": "No recipients found",
           "empty_description": "This batch does not have recipient rows yet."
         },
@@ -9712,8 +9882,23 @@
           "role_id": "Role",
           "role_placeholder": "Select a role",
           "roles_empty": "No roles were loaded. Refresh and try again.",
+          "roles_loading": "Loading roles...",
+          "roles_load_failed": "Roles could not be loaded. Campaigns remain available.",
+          "roles_retry": "Retry",
+          "role_option": "{name} · {count} members",
           "user_type": "User type",
           "user_type_placeholder": "Select user type",
+          "userTypes": {
+            "platform_user": "Platform user",
+            "organization_user": "Organization user",
+            "school_user": "School user",
+            "teacher": "Teacher",
+            "parent": "Parent",
+            "student": "Student",
+            "applicant": "Applicant",
+            "pickup_delegate": "Pickup delegate",
+            "service_account": "Service account"
+          },
           "custom_emails": "Custom emails",
           "custom_emails_help": "Optional external recipients. Add each email as a badge.",
           "custom_email_placeholder": "Enter email address",
@@ -9740,12 +9925,14 @@
           "title": "Title",
           "body_html": "Body HTML",
           "body_text": "Body text",
-          "body_text_help": "Optional plain-text fallback if supported by the backend."
+          "body_text_help": "Optional plain-text fallback if supported by the backend.",
+          "footer_html": "Footer HTML"
         },
         "actions": {
           "preview_recipients": "Preview recipients",
           "preview_campaign": "Preview campaign",
           "create": "Create campaign",
+          "create_another": "Create another campaign",
           "view": "View details",
           "back": "Back to campaigns",
           "close": "Close"
@@ -9756,13 +9943,14 @@
       "total_matched": "Matched",
       "eligible": "Eligible",
       "skipped": "Skipped",
+      "zero_eligible_warning": "No recipients are eligible. Review the skip reasons or choose a different audience before creating the campaign.",
       "skip_reasons": {
         "title": "Why recipients are skipped",
         "disabled_user": "Disabled account",
         "missing_contact_email": "No contact email",
         "duplicate_email": "Duplicate recipient email",
         "invalid_email": "Invalid email address",
-        "unknown": "Why recipients are skipped"
+        "unknown": "Other backend eligibility rule"
       },
           "sample_eligible": "Sample eligible recipients",
           "sample_skipped": "Sample skipped recipients",
@@ -9829,6 +10017,7 @@
         },
         "messages": {
           "load_failed": "Failed to load email campaigns.",
+          "roles_load_failed": "Failed to load campaign roles.",
           "detail_load_failed": "Failed to load campaign batch.",
           "preview_recipients_ready": "Recipient preview is ready.",
           "preview_recipients_failed": "Failed to preview campaign recipients.",

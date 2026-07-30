@@ -107,4 +107,37 @@ describe("Select", () => {
     expect(screen.getByText("Finance Team")).toBeInTheDocument();
     expect(screen.queryByText("Educators")).not.toBeInTheDocument();
   });
+
+  it("isolates mixed-direction labels in the trigger and menu options", async () => {
+    const user = userEvent.setup();
+    render(
+      <Select
+        value="student-copy"
+        onChange={vi.fn()}
+        options={[
+          {
+            value: "student-copy",
+            label: "Student Copy · 0 عضو",
+          },
+          {
+            value: "test-account",
+            label: "حساب تجريبي · 0 عضو",
+          },
+        ]}
+      />,
+    );
+
+    const triggerLabel = screen.getByText("Student Copy · 0 عضو");
+    expect(triggerLabel).toHaveAttribute("dir", "auto");
+
+    await user.click(
+      screen.getByRole("button", { name: "Student Copy · 0 عضو" }),
+    );
+
+    expect(screen.getByText("حساب تجريبي · 0 عضو")).toHaveAttribute(
+      "dir",
+      "auto",
+    );
+  });
+
 });

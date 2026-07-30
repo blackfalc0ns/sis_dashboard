@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Filter, RefreshCcw, X } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import Select from "@/components/ui/input/Select";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -14,7 +15,11 @@ import {
   cancelEmailDeliveryBatch,
   fetchEmailDeliveries,
 } from "@/features/settings/email/deliveries/services/emailDeliveriesService";
-import { isApiError } from "@/lib/api-error";
+import SettingsWorkflowErrorAlert from "@/features/settings/shared/components/SettingsWorkflowErrorAlert";
+import {
+  classifySettingsWorkflowError,
+  type SettingsWorkflowError,
+} from "@/features/settings/shared/utils/settingsWorkflowErrors";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useTranslations } from "next-intl";
 import type {
@@ -36,13 +41,15 @@ export default function EmailDeliveriesPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
-  const [pageError, setPageError] = useState<string | null>(null);
+  const [pageError, setPageError] = useState<SettingsWorkflowError | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [cancellingBatchId, setCancellingBatchId] = useState<string | null>(
     null,
   );
   const [showFilters, setShowFilters] = useState(false);
+  const [batchToCancel, setBatchToCancel] =
+    useState<EmailDeliveryBatch | null>(null);
 
   const kindLabels = useMemo(
     () => ({
@@ -86,21 +93,18 @@ export default function EmailDeliveriesPage() {
       try {
         const result = await fetchEmailDeliveries(fetchParams);
         setBatches(result.items);
-        setTotal(result.pagination?.total || result.items.length);
-        setPage(result.pagination?.page || page);
-        setLimit(result.pagination?.limit || limit);
+        setTotal(result.pagination.total);
+        setPage(result.pagination.page);
+        setLimit(result.pagination.limit);
       } catch (error) {
-        const message = isApiError(error)
-          ? error.message
-          : t("messages.load_failed");
-        setPageError(message);
-        showError(message);
+        setPageError(classifySettingsWorkflowError(error));
+        showError(t("messages.load_failed"));
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
       }
     },
-    [fetchParams, limit, page, showError, t],
+    [fetchParams, showError, t],
   );
 
   useEffect(() => {
@@ -116,12 +120,14 @@ export default function EmailDeliveriesPage() {
       return;
     }
     setCancellingBatchId(batch.batchId);
+    setBatchToCancel(null);
     try {
       await cancelEmailDeliveryBatch(batch.batchId);
       showSuccess(t("messages.cancelled"));
       await hydrate("refresh");
     } catch (error) {
-      showError(isApiError(error) ? error.message : tCommon("save_failed"));
+      setPageError(classifySettingsWorkflowError(error));
+      showError(tCommon("save_failed"));
     } finally {
       setCancellingBatchId(null);
     }
@@ -165,9 +171,9 @@ export default function EmailDeliveriesPage() {
         />
 
         {pageError ? (
-          <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {pageError}
-          </p>
+          <div className="mb-4">
+            <SettingsWorkflowErrorAlert error={pageError} />
+          </div>
         ) : null}
 
         {showFilters ? (
@@ -241,7 +247,7 @@ export default function EmailDeliveriesPage() {
                 setLimit(nextLimit);
                 setPage(1);
               }}
-              onCancel={handleCancel}
+              onCancel={setBatchToCancel}
               labels={{
                 kind: t("table.kind"),
                 status: t("table.status"),
@@ -251,7 +257,6 @@ export default function EmailDeliveriesPage() {
                 sent: t("table.sent"),
                 failed: t("table.failed"),
                 skipped: t("table.skipped"),
-                cancelled: t("table.cancelled"),
                 createdAt: t("table.created_at"),
                 actions: t("table.actions"),
                 view: t("actions.view"),
@@ -270,6 +275,19 @@ export default function EmailDeliveriesPage() {
             </div>
           )}
         </SettingsSectionCard>
+        <ConfirmDialog
+          isOpen={batchToCancel !== null}
+          onClose={() => setBatchToCancel(null)}
+          onConfirm={() => {
+            if (batchToCancel) void handleCancel(batchToCancel);
+          }}
+          title={t("confirm.cancel_title")}
+          description={t("confirm.cancel_description")}
+          confirmLabel={t("confirm.cancel_confirm")}
+          cancelLabel={tCommon("cancel")}
+          loading={cancellingBatchId !== null}
+          severity="danger"
+        />
       </main>
     </SettingsAccessGuard>
   );

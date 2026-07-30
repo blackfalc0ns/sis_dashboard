@@ -48,7 +48,7 @@ export interface UpdateEmailConnectionRequest {
 }
 
 export interface TestEmailConnectionRequest {
-  toEmail: string;
+  toEmail?: string;
 }
 
 export interface TestEmailConnectionResponseDto

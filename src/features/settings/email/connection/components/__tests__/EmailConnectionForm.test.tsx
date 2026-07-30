@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import EmailConnectionForm, {
   toEmailConnectionFormValues,
   toUpdateEmailConnectionRequest,
+  validateEmailConnectionForm,
 } from "../EmailConnectionForm";
 
 const labels = {
@@ -22,6 +23,15 @@ const labels = {
   configured: "Configured",
   notConfigured: "Not configured",
   secretHelp: "Leave blank to keep saved secret.",
+  testRecipientHelp: "Leave blank to use your account email.",
+};
+
+const validationMessages = {
+  fromNameRequired: "From name is required.",
+  fromEmailRequired: "From email is required.",
+  providerRequired: "Provider is required.",
+  hostRequired: "Host is required.",
+  portInvalid: "Port must be between 1 and 65535.",
 };
 
 describe("EmailConnectionForm Sprint 11 behavior", () => {
@@ -62,5 +72,36 @@ describe("EmailConnectionForm Sprint 11 behavior", () => {
       password: expect.any(String),
       apiKey: expect.any(String),
     });
+  });
+
+  it("allows the backend to resolve the optional test recipient", () => {
+    const values = {
+      ...toEmailConnectionFormValues(null),
+      fromName: "School",
+      fromEmail: "school@example.edu",
+      host: "smtp.example.edu",
+      port: "587",
+      username: "mailer",
+      testRecipientEmail: "",
+    };
+
+    expect(
+      validateEmailConnectionForm(values, validationMessages),
+    ).not.toHaveProperty("testRecipientEmail");
+  });
+
+  it("rejects SMTP ports above the backend maximum", () => {
+    const values = {
+      ...toEmailConnectionFormValues(null),
+      fromName: "School",
+      fromEmail: "school@example.edu",
+      host: "smtp.example.edu",
+      port: "65536",
+      username: "mailer",
+    };
+
+    expect(
+      validateEmailConnectionForm(values, validationMessages),
+    ).toMatchObject({ port: "Port must be between 1 and 65535." });
   });
 });

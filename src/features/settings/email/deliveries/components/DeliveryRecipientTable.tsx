@@ -18,9 +18,12 @@ interface DeliveryRecipientTableProps {
     recipient: string;
     email: string;
     status: string;
+    attempts: string;
+    lastAttemptAt: string;
     failureReason: string;
+    skippedReason: string;
     sentAt: string;
-    skippedAt: string;
+    updatedAt: string;
     notAvailable: string;
     statusLabels: Record<EmailRecipientStatus, string>;
   };
@@ -84,6 +87,17 @@ export default function DeliveryRecipientTable({
       },
     },
     {
+      key: "attempts",
+      label: labels.attempts,
+      render: (value: unknown) => String(value),
+    },
+    {
+      key: "lastAttemptAt",
+      label: labels.lastAttemptAt,
+      render: (value: unknown) =>
+        formatDate(value as string | null, labels.notAvailable),
+    },
+    {
       key: "failureReason",
       label: labels.failureReason,
       render: (value: unknown) => String(value || labels.notAvailable),
@@ -95,10 +109,15 @@ export default function DeliveryRecipientTable({
         formatDate(value as string | null | undefined, labels.notAvailable),
     },
     {
-      key: "skippedAt",
-      label: labels.skippedAt,
+      key: "skippedReason",
+      label: labels.skippedReason,
+      render: (value: unknown) => String(value || labels.notAvailable),
+    },
+    {
+      key: "updatedAt",
+      label: labels.updatedAt,
       render: (value: unknown) =>
-        formatDate(value as string | null | undefined, labels.notAvailable),
+        formatDate(value as string, labels.notAvailable),
     },
   ];
 

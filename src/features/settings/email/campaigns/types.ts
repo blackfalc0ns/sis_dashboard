@@ -1,6 +1,11 @@
 import type { SettingsPaginationApiDto } from "@/features/settings/types";
 import type { EmailTemplateKey } from "@/features/settings/email/templates/types";
 import type {
+  EmailRecipientPreview,
+  EmailRecipientPreviewResponseDto,
+  EmailUserType,
+} from "@/features/settings/email/shared/recipientPreview";
+import type {
   EmailDeliveryBatch,
   EmailDeliveryStatus,
 } from "@/features/settings/email/deliveries/types";
@@ -8,7 +13,7 @@ import type {
 export interface EmailCampaignAudience {
   userIds?: string[];
   roleKey?: string;
-  userType?: string;
+  userType?: EmailUserType;
   allSchool?: boolean;
   customEmails?: string[];
 }
@@ -23,7 +28,7 @@ export interface EmailRecipientScopeRequest {
   scope: CampaignRecipientScope;
   userIds?: string[];
   roleKeys?: string[];
-  userTypes?: string[];
+  userTypes?: EmailUserType[];
 }
 
 export interface EmailCampaignPreviewRecipientsRequest {
@@ -35,80 +40,48 @@ export interface EmailCampaignPreviewRecipientsRequest {
   limit?: number;
 }
 
-export interface EmailCampaignPreviewRecipient {
-  userId?: string | null;
-  fullName?: string | null;
-  username?: string | null;
-  toEmail?: string | null;
-  contactEmail?: string | null;
-  loginEmail?: string | null;
-  userType?: string | null;
-  roleKey?: string | null;
-  hasPassword?: boolean | null;
-  mustChangePassword?: boolean | null;
-  credentialVersion?: number | null;
-  eligible?: boolean;
-  reason?: string | null;
-}
+export type EmailCampaignPreviewRecipient = EmailRecipientPreview;
 
 export interface EmailCampaignPreviewRecipientsResponse {
   eligibleCount: number;
   skippedCount: number;
-  totalMatched?: number;
-  skippedReasons?: Record<string, number>;
+  totalMatched: number;
+  skippedReasons: Record<string, number>;
   recipients: EmailCampaignPreviewRecipient[];
-  pagination?: SettingsPaginationApiDto;
 }
 
-export interface EmailCampaignPreviewRecipientsResponseDto {
-  totalMatched: number;
-  eligible: number;
-  skipped: number;
-  skippedReasons?: Record<string, number> | null;
-  sample?: {
-    eligible?: EmailCampaignPreviewRecipient[];
-    skipped?: EmailCampaignPreviewRecipient[];
-  } | null;
-}
+export type EmailCampaignPreviewRecipientsResponseDto =
+  EmailRecipientPreviewResponseDto;
 
 export interface EmailCampaignPreviewRequest {
-  templateKey?: Extract<EmailTemplateKey, "GENERAL_MESSAGE">;
-  subject: string;
-  title?: string | null;
-  bodyHtml: string;
-  bodyText?: string | null;
-  previewData?: Record<string, unknown>;
-}
-
-export interface EmailCampaignPreviewResponse {
-  subject: string;
-  html: string;
-  text?: string | null;
-  unknownVariables: string[];
-  missingVariables: string[];
-}
-
-export interface CreateEmailCampaignRequest {
-  recipientScope: EmailRecipientScopeRequest;
-  customEmails?: string[];
-  templateKey?: Extract<EmailTemplateKey, "GENERAL_MESSAGE">;
-  subject: string;
-  title?: string | null;
+  templateKey?: EmailTemplateKey;
+  subject?: string;
+  title?: string;
   bodyHtml: string;
   bodyText?: string | null;
   footerHtml?: string | null;
   previewData?: Record<string, unknown>;
+}
+
+export interface EmailCampaignPreviewResponseDto {
+  key: EmailTemplateKey;
+  subject: string;
+  html: string;
+  text: string | null;
+  missingVariables: string[];
+  unknownVariables: string[];
+}
+
+export type EmailCampaignPreviewResponse = EmailCampaignPreviewResponseDto;
+
+export interface CreateEmailCampaignRequest
+  extends EmailCampaignPreviewRequest {
+  recipientScope: EmailRecipientScopeRequest;
+  customEmails?: string[];
   includeDisabledUsers?: boolean;
   requireContactEmail?: boolean;
   allowLoginEmailFallback?: boolean;
   maxRecipients?: number;
-}
-
-export interface CreateEmailCampaignResponse {
-  batchId: string;
-  status: EmailDeliveryStatus;
-  totalRecipients: number;
-  createdAt: string;
 }
 
 export interface FetchEmailCampaignsParams {
@@ -123,5 +96,5 @@ export interface EmailCampaignBatch extends EmailDeliveryBatch {
 
 export interface EmailCampaignsListResponse {
   items: EmailCampaignBatch[];
-  pagination?: SettingsPaginationApiDto;
+  pagination: SettingsPaginationApiDto;
 }

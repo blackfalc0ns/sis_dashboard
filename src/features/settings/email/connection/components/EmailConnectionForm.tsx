@@ -49,13 +49,10 @@ interface EmailConnectionFormProps {
     apiKey: string;
     testRecipientEmail: string;
     smtp: string;
-    sendgrid: string;
-    mailgun: string;
-    ses: string;
-    custom: string;
     configured: string;
     notConfigured: string;
     secretHelp: string;
+    testRecipientHelp: string;
   };
 }
 
@@ -85,10 +82,10 @@ export function toUpdateEmailConnectionRequest(
     fromName: values.fromName.trim(),
     fromEmail: values.fromEmail.trim(),
     replyToEmail: values.replyToEmail.trim() || null,
-    host: values.host.trim() || null,
-    port: values.port.trim() ? Number(values.port) : null,
+    host: values.host.trim() || undefined,
+    port: values.port.trim() ? Number(values.port) : undefined,
     secure: values.secure,
-    username: values.username.trim() || null,
+    username: values.username.trim() || undefined,
   };
 
   if (values.password.trim()) {
@@ -109,9 +106,7 @@ export function validateEmailConnectionForm(
     providerRequired: string;
     hostRequired: string;
     portInvalid: string;
-    testRecipientRequired: string;
   },
-  mode: "save" | "test" = "save",
 ): EmailConnectionFormErrors {
   const errors: EmailConnectionFormErrors = {};
   if (!values.providerType) {
@@ -128,12 +123,11 @@ export function validateEmailConnectionForm(
   }
   if (
     values.port.trim() &&
-    (!Number.isInteger(Number(values.port)) || Number(values.port) < 1)
+    (!Number.isInteger(Number(values.port)) ||
+      Number(values.port) < 1 ||
+      Number(values.port) > 65535)
   ) {
     errors.port = messages.portInvalid;
-  }
-  if (mode === "test" && !values.testRecipientEmail.trim()) {
-    errors.testRecipientEmail = messages.testRecipientRequired;
   }
   return errors;
 }
@@ -158,10 +152,6 @@ export default function EmailConnectionForm({
         }
         options={[
           { value: "SMTP", label: labels.smtp },
-          { value: "SENDGRID", label: labels.sendgrid },
-          { value: "MAILGUN", label: labels.mailgun },
-          { value: "SES", label: labels.ses },
-          { value: "CUSTOM", label: labels.custom },
         ]}
         error={errors?.providerType}
       />
@@ -244,6 +234,7 @@ export default function EmailConnectionForm({
           type="email"
           value={values.testRecipientEmail}
           disabled={!canManage}
+          helperText={labels.testRecipientHelp}
           onChange={(event) => onChange("testRecipientEmail", event.target.value)}
           error={errors?.testRecipientEmail}
         />

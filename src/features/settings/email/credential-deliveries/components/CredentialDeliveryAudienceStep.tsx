@@ -1,5 +1,7 @@
 "use client";
 
+import { RefreshCcw } from "lucide-react";
+import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
 import UserMultiSearchSelect from "@/features/communication/components/selectors/UserMultiSearchSelect";
 import SettingsSectionCard from "@/features/settings/components/SettingsSectionCard";
@@ -8,22 +10,33 @@ import type {
   CredentialDeliveryAudienceMode,
   CredentialDeliveryWizardValues,
 } from "@/features/settings/email/credential-deliveries/components/CredentialDeliveryWizard";
-import type { CredentialDeliveryAudience } from "@/features/settings/email/credential-deliveries/types";
+import type {
+  CredentialDeliveryAudience,
+  CredentialDeliveryUserType,
+} from "@/features/settings/email/credential-deliveries/types";
 import type { RoleDefinition } from "@/features/settings/types";
 
 interface CredentialDeliveryAudienceStepProps {
   values: CredentialDeliveryWizardValues;
   roles: RoleDefinition[];
+  isLoadingRoles?: boolean;
+  rolesError?: boolean;
+  onRetryRoles?: () => void;
+  initialUserSearch?: string;
   onChange: (values: Partial<CredentialDeliveryWizardValues>) => void;
 }
 
 const CREDENTIAL_DELIVERY_USER_TYPES = [
-  "SCHOOL_USER",
-  "SCHOOL_ADMIN",
-  "TEACHER",
-  "STUDENT",
-  "PARENT",
-];
+  "platform_user",
+  "organization_user",
+  "school_user",
+  "teacher",
+  "parent",
+  "student",
+  "applicant",
+  "pickup_delegate",
+  "service_account",
+] as const satisfies readonly CredentialDeliveryUserType[];
 
 function parseUserIds(value: string) {
   return value
@@ -56,16 +69,30 @@ function audienceForMode(
 export default function CredentialDeliveryAudienceStep({
   values,
   roles,
+  isLoadingRoles = false,
+  rolesError = false,
+  onRetryRoles,
+  initialUserSearch,
   onChange,
 }: CredentialDeliveryAudienceStepProps) {
   const t = useTranslations("settings.email.credentialDeliveries");
   const selectedUserIds =
     values.audience.userIds ?? parseUserIds(values.selectedUserIdsText);
-  const roleOptions = roles.map((role) => ({
-    value: role.key ?? role.id,
-    label: role.name,
-    searchText: role.description,
-  }));
+  const roleOptions = roles.flatMap((role) => {
+    const key = role.key?.trim();
+    return key
+      ? [
+          {
+            value: key,
+            label: t("audience.role_option", {
+              name: role.name,
+              count: role.memberCount,
+            }),
+            searchText: role.description,
+          },
+        ]
+      : [];
+  });
   const roleSelectOptions =
     roleOptions.length > 0
       ? roleOptions
@@ -115,6 +142,7 @@ export default function CredentialDeliveryAudienceStep({
             value={selectedUserIds}
             placeholder={t("audience.selected_users_placeholder")}
             helperText={t("audience.selected_users_help")}
+            initialQuery={initialUserSearch}
             onChange={(userIds) => {
               onChange({
                 selectedUserIdsText: userIds.join("\n"),
@@ -125,14 +153,47 @@ export default function CredentialDeliveryAudienceStep({
         ) : null}
 
         {values.audienceMode === "role" ? (
-          <Select
-            label={t("audience.role_id")}
-            value={values.audience.roleKey || ""}
-            onChange={(value) => onChange({ audience: { roleKey: value } })}
-            placeholder={t("audience.role_placeholder")}
-            searchable
-            options={roleSelectOptions}
-          />
+          <div className="space-y-2">
+            {isLoadingRoles && roles.length === 0 ? (
+              <div
+                role="status"
+                className="animate-pulse rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600"
+              >
+                {t("audience.roles_loading")}
+              </div>
+            ) : (
+              <Select
+                label={t("audience.role_id")}
+                value={values.audience.roleKey || ""}
+                onChange={(value) =>
+                  onChange({ audience: { roleKey: value } })
+                }
+                placeholder={t("audience.role_placeholder")}
+                searchable
+                options={roleSelectOptions}
+              />
+            )}
+            {rolesError ? (
+              <div
+                role="alert"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              >
+                <span>{t("audience.roles_load_failed")}</span>
+                {onRetryRoles ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    leftIcon={<RefreshCcw className="h-4 w-4" />}
+                    loading={isLoadingRoles}
+                    onClick={onRetryRoles}
+                  >
+                    {t("audience.roles_retry")}
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         ) : null}
 
         {values.audienceMode === "user-type" ? (
@@ -140,12 +201,16 @@ export default function CredentialDeliveryAudienceStep({
             label={t("audience.user_type")}
             value={values.audience.userType || ""}
             onChange={(value) =>
-              onChange({ audience: { userType: value } })
+              onChange({
+                audience: {
+                  userType: value as CredentialDeliveryUserType,
+                },
+              })
             }
             placeholder={t("audience.user_type_placeholder")}
             options={CREDENTIAL_DELIVERY_USER_TYPES.map((userType) => ({
               value: userType,
-              label: userType,
+              label: t(`audience.userTypes.${userType}`),
             }))}
           />
         ) : null}
@@ -154,17 +219,21 @@ export default function CredentialDeliveryAudienceStep({
           <input
             type="checkbox"
             className="mt-1 h-4 w-4 rounded border-gray-300"
-            checked={values.requireContactEmail}
-            onChange={(event) =>
-              onChange({ requireContactEmail: event.target.checked })
-            }
+            checked={values.allowLoginEmailFallback}
+            onChange={(event) => {
+              const allowLoginEmailFallback = event.target.checked;
+              onChange({
+                requireContactEmail: !allowLoginEmailFallback,
+                allowLoginEmailFallback,
+              });
+            }}
           />
           <span>
             <span className="block font-medium text-gray-900">
-              {t("audience.require_contact_email")}
+              {t("audience.allow_login_email_fallback")}
             </span>
             <span className="mt-1 block text-gray-500">
-              {t("audience.require_contact_email_help")}
+              {t("audience.allow_login_email_fallback_help")}
             </span>
           </span>
         </label>

@@ -1,15 +1,21 @@
-import type { SettingsPaginationApiDto } from "@/features/settings/types";
 import type { EmailTemplateKey } from "@/features/settings/email/templates/types";
+import type {
+  EmailRecipientPreview,
+  EmailRecipientPreviewResponseDto,
+  EmailUserType,
+} from "@/features/settings/email/shared/recipientPreview";
 
 export type CredentialDeliveryMode =
   | "LOGIN_INFO_ONLY"
   | "GENERATE_TEMPORARY_PASSWORD"
   | "REGENERATE_TEMPORARY_PASSWORD";
 
+export type CredentialDeliveryUserType = EmailUserType;
+
 export interface CredentialDeliveryAudience {
   userIds?: string[];
   roleKey?: string;
-  userType?: string;
+  userType?: CredentialDeliveryUserType;
   missingPasswordOnly?: boolean;
   mustChangePasswordOnly?: boolean;
   allSchool?: boolean;
@@ -28,7 +34,7 @@ export interface CredentialDeliveryPreviewRequest {
   scope: EmailRecipientScope;
   userIds?: string[];
   roleKeys?: string[];
-  userTypes?: string[];
+  userTypes?: CredentialDeliveryUserType[];
   includeUsersWithPassword?: boolean;
   includeDisabledUsers?: boolean;
   requireContactEmail?: boolean;
@@ -36,36 +42,19 @@ export interface CredentialDeliveryPreviewRequest {
   limit?: number;
 }
 
-export interface CredentialDeliveryPreviewRecipient {
-  userId: string;
-  fullName: string;
-  username?: string | null;
-  email: string;
-  contactEmail?: string | null;
-  eligible: boolean;
-  skipReason?: string | null;
-}
+export type CredentialDeliveryPreviewRecipient = EmailRecipientPreview;
 
 export interface CredentialDeliveryPreviewResponse {
   eligibleCount: number;
   skippedCount: number;
-  totalMatched?: number;
-  skippedReasons?: Record<string, number>;
+  totalMatched: number;
+  skippedReasons: Record<string, number>;
   eligibleSample: CredentialDeliveryPreviewRecipient[];
   skippedSample: CredentialDeliveryPreviewRecipient[];
-  pagination?: SettingsPaginationApiDto;
 }
 
-export interface CredentialDeliveryPreviewResponseDto {
-  totalMatched: number;
-  eligible: number;
-  skipped: number;
-  skippedReasons?: Record<string, number> | null;
-  sample?: {
-    eligible?: CredentialDeliveryPreviewRecipient[];
-    skipped?: CredentialDeliveryPreviewRecipient[];
-  } | null;
-}
+export type CredentialDeliveryPreviewResponseDto =
+  EmailRecipientPreviewResponseDto;
 
 export interface CreateCredentialDeliveryRequest
   extends CredentialDeliveryPreviewRequest {
@@ -73,18 +62,4 @@ export interface CreateCredentialDeliveryRequest
   credentialMode: CredentialDeliveryMode;
   maxRecipients?: number;
   dryRun?: boolean;
-}
-
-export interface CreateCredentialDeliveryResponse {
-  batchId: string;
-  status: "DRAFT" | "QUEUED" | "PROCESSING" | "SUCCEEDED" | "PARTIAL_FAILED" | "FAILED" | "CANCELLED";
-  kind?: string;
-  templateKey?: EmailTemplateKey | null;
-  subjectSnapshot?: string | null;
-  totalRecipients: number;
-  queuedCount: number;
-  sentCount?: number;
-  failedCount?: number;
-  skippedCount: number;
-  createdAt: string;
 }

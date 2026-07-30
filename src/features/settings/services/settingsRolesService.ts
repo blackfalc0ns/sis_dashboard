@@ -11,10 +11,20 @@ import type {
   SettingsRolePermissionsResponseDto,
 } from "@/features/settings/types";
 
+function normalizeRoleKey(name: string): string {
+  const normalized = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return normalized || "role";
+}
+
 function mapRole(payload: SettingsRoleApiDto): RoleDefinition {
   return {
     id: payload.id,
-    key: payload.key ?? undefined,
+    key: payload.key?.trim() || normalizeRoleKey(payload.name),
     name: payload.name,
     description: payload.description,
     isSystem: payload.isSystem ?? false,
@@ -81,6 +91,26 @@ export async function fetchSettingsRoles(
     items: items.map(mapRole),
     pagination,
   };
+}
+
+export async function fetchAllSettingsRoles(): Promise<RoleDefinition[]> {
+  const firstPage = await fetchSettingsRoles({ page: 1, limit: 100 });
+  const pageCount = Math.ceil(
+    firstPage.pagination.total / firstPage.pagination.limit,
+  );
+  if (pageCount <= 1) {
+    return firstPage.items;
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: pageCount - 1 }, (_, index) =>
+      fetchSettingsRoles({ page: index + 2, limit: 100 }),
+    ),
+  );
+  return [
+    ...firstPage.items,
+    ...remainingPages.flatMap((page) => page.items),
+  ];
 }
 
 export async function fetchSettingsPermissions(): Promise<

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Input from "@/components/ui/input/Input";
 import TextArea from "@/components/ui/input/TextArea";
 import type {
@@ -54,6 +55,10 @@ interface TemplateEditorProps {
     allowedVariables: string;
     noVariables: string;
     credentialSafety: string;
+    htmlTab: string;
+    textTab: string;
+    variableHelp: string;
+    insertVariable: string;
   };
 }
 
@@ -83,10 +88,10 @@ export function toUpdateTemplateRequest(
   values: TemplateEditorValues,
 ): UpdateEmailTemplateRequest {
   const socialLinks: EmailTemplateSocialLinks = {
-    website: values.website.trim() || null,
-    facebook: values.facebook.trim() || null,
-    instagram: values.instagram.trim() || null,
-    x: values.x.trim() || null,
+    website: values.website.trim() || undefined,
+    facebook: values.facebook.trim() || undefined,
+    instagram: values.instagram.trim() || undefined,
+    x: values.x.trim() || undefined,
   };
 
   return {
@@ -129,6 +134,18 @@ export default function TemplateEditor({
   onChange,
   labels,
 }: TemplateEditorProps) {
+  const [activeBody, setActiveBody] = useState<"html" | "text">("html");
+  const activeBodyField = activeBody === "html" ? "bodyHtml" : "bodyText";
+
+  const insertVariable = (variable: string) => {
+    const token = `{{${variable}}}`;
+    const currentValue = values[activeBodyField];
+    onChange(
+      activeBodyField,
+      `${currentValue}${currentValue && !currentValue.endsWith(" ") ? " " : ""}${token}`,
+    );
+  };
+
   return (
     <div className="space-y-5">
       <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
@@ -138,15 +155,23 @@ export default function TemplateEditor({
         <p className="text-sm font-semibold text-gray-900">
           {labels.allowedVariables}
         </p>
+        <p className="mt-1 text-xs text-gray-500">{labels.variableHelp}</p>
         {allowedVariables.length > 0 ? (
           <div className="mt-2 flex flex-wrap gap-2">
             {allowedVariables.map((variable) => (
-              <code
+              <button
                 key={variable}
-                className="rounded bg-white px-2 py-1 text-xs text-gray-700"
+                type="button"
+                disabled={!canManage}
+                aria-label={labels.insertVariable.replace(
+                  "{variable}",
+                  `{{${variable}}}`,
+                )}
+                className="rounded border border-gray-200 bg-white px-2 py-1 font-mono text-xs text-gray-700 transition-colors hover:border-primary hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => insertVariable(variable)}
               >
-                {variable}
-              </code>
+                {`{{${variable}}}`}
+              </button>
             ))}
           </div>
         ) : (
@@ -183,23 +208,50 @@ export default function TemplateEditor({
           error={errors?.subtitle}
         />
       </div>
-      <TextArea
-        label={labels.bodyHtml}
-        rows={10}
-        value={values.bodyHtml}
-        disabled={!canManage}
-        dir="ltr"
-        onChange={(event) => onChange("bodyHtml", event.target.value)}
-        error={errors?.bodyHtml}
-      />
-      <TextArea
-        label={labels.bodyText}
-        rows={6}
-        value={values.bodyText}
-        disabled={!canManage}
-        onChange={(event) => onChange("bodyText", event.target.value)}
-        error={errors?.bodyText}
-      />
+      <div className="space-y-3">
+        <div
+          role="tablist"
+          aria-label={labels.bodyHtml}
+          className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1"
+        >
+          {(["html", "text"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              role="tab"
+              aria-selected={activeBody === tab}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${
+                activeBody === tab
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-900"
+              }`}
+              onClick={() => setActiveBody(tab)}
+            >
+              {tab === "html" ? labels.htmlTab : labels.textTab}
+            </button>
+          ))}
+        </div>
+        {activeBody === "html" ? (
+          <TextArea
+            label={labels.bodyHtml}
+            rows={10}
+            value={values.bodyHtml}
+            disabled={!canManage}
+            dir="ltr"
+            onChange={(event) => onChange("bodyHtml", event.target.value)}
+            error={errors?.bodyHtml}
+          />
+        ) : (
+          <TextArea
+            label={labels.bodyText}
+            rows={10}
+            value={values.bodyText}
+            disabled={!canManage}
+            onChange={(event) => onChange("bodyText", event.target.value)}
+            error={errors?.bodyText}
+          />
+        )}
+      </div>
       <TextArea
         label={labels.footerHtml}
         rows={5}

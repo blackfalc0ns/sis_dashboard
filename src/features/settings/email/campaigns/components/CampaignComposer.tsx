@@ -15,15 +15,16 @@ import CampaignAudienceStep, {
 import CampaignPreviewModal from "@/features/settings/email/campaigns/components/CampaignPreviewModal";
 import { useTranslations } from "next-intl";
 import type {
-  CreateEmailCampaignRequest,
-  CreateEmailCampaignResponse,
+  EmailCampaignBatch,
   EmailCampaignAudience,
   EmailCampaignPreviewRecipientsResponse,
   EmailCampaignPreviewResponse,
-  EmailCampaignPreviewRequest,
-  EmailRecipientScopeRequest,
 } from "@/features/settings/email/campaigns/types";
 import type { RoleDefinition } from "@/features/settings/types";
+import {
+  campaignRecipientPreviewFingerprint,
+  findCredentialVariables,
+} from "@/features/settings/email/campaigns/utils/campaignPayloads";
 
 export interface CampaignComposerValues {
   audienceMode: CampaignAudienceMode;
@@ -35,14 +36,18 @@ export interface CampaignComposerValues {
   title: string;
   bodyHtml: string;
   bodyText: string;
+  footerHtml: string;
 }
 
 interface CampaignComposerProps {
   canManage: boolean;
   roles: RoleDefinition[];
+  isLoadingRoles: boolean;
+  rolesError: boolean;
   recipientPreview: EmailCampaignPreviewRecipientsResponse | null;
+  recipientPreviewFingerprint: string | null;
   renderedPreview: EmailCampaignPreviewResponse | null;
-  createdBatch: CreateEmailCampaignResponse | null;
+  createdBatch: EmailCampaignBatch | null;
   isPreviewingRecipients: boolean;
   isPreviewingCampaign: boolean;
   isCreating: boolean;
@@ -54,7 +59,10 @@ interface CampaignComposerProps {
   ) => Promise<EmailCampaignPreviewResponse | null>;
   onCreate: (
     values: CampaignComposerValues,
-  ) => Promise<CreateEmailCampaignResponse | null>;
+  ) => Promise<EmailCampaignBatch | null>;
+  onRetryRoles: () => void;
+  onRecipientPreviewInvalidated: () => void;
+  onStartNewCampaign: () => void;
 }
 
 const initialValues: CampaignComposerValues = {
@@ -67,73 +75,16 @@ const initialValues: CampaignComposerValues = {
   title: "",
   bodyHtml: "",
   bodyText: "",
+  footerHtml: "",
 };
-
-function findCredentialVariables(values: CampaignComposerValues) {
-  const fields = [values.subject, values.title, values.bodyHtml, values.bodyText];
-  const variables = fields.flatMap((field) => field.match(/{{\s*[^}]+?\s*}}/g) || []);
-  return Array.from(
-    new Set(
-      variables.filter((variable) =>
-        /credential|temporaryPassword|temporary_password|password/i.test(
-          variable,
-        ),
-      ),
-    ),
-  );
-}
-
-function previewPayload(values: CampaignComposerValues): EmailCampaignPreviewRequest {
-  return {
-    templateKey: values.templateKey,
-    subject: values.subject.trim(),
-    title: values.title.trim() || null,
-    bodyHtml: values.bodyHtml,
-    bodyText: values.bodyText.trim() || null,
-    previewData: {},
-  };
-}
-
-export function buildCampaignRecipientScope(
-  values: CampaignComposerValues,
-): EmailRecipientScopeRequest {
-  const audience = buildCampaignAudience(values);
-  if (values.audienceMode === "selected-users") {
-    return { scope: "selected", userIds: audience.userIds };
-  }
-  if (values.audienceMode === "role") {
-    return { scope: "role", roleKeys: audience.roleKey ? [audience.roleKey] : undefined };
-  }
-  if (values.audienceMode === "user-type") {
-    return {
-      scope: "user_type",
-      userTypes: audience.userType ? [audience.userType] : undefined,
-    };
-  }
-  return { scope: "all_school_users" };
-}
-
-function createPayload(values: CampaignComposerValues): CreateEmailCampaignRequest {
-  const audience = buildCampaignAudience(values);
-  return {
-    recipientScope: buildCampaignRecipientScope(values),
-    customEmails: audience.customEmails,
-    templateKey: values.templateKey,
-    subject: values.subject.trim(),
-    title: values.title.trim() || null,
-    bodyHtml: values.bodyHtml,
-    bodyText: values.bodyText.trim() || null,
-  };
-}
-
-export { createPayload as buildCreateCampaignPayload };
-export { previewPayload as buildPreviewCampaignPayload };
-export { findCredentialVariables };
 
 export default function CampaignComposer({
   canManage,
   roles,
+  isLoadingRoles,
+  rolesError,
   recipientPreview,
+  recipientPreviewFingerprint,
   renderedPreview,
   createdBatch,
   isPreviewingRecipients,
@@ -142,6 +93,9 @@ export default function CampaignComposer({
   onPreviewRecipients,
   onPreviewCampaign,
   onCreate,
+  onRetryRoles,
+  onRecipientPreviewInvalidated,
+  onStartNewCampaign,
 }: CampaignComposerProps) {
   const t = useTranslations("settings.email.campaigns");
   const [values, setValues] = useState<CampaignComposerValues>(initialValues);
@@ -152,6 +106,7 @@ export default function CampaignComposer({
     missing_contact_email: t("recipients.skip_reasons.missing_contact_email"),
     duplicate_email: t("recipients.skip_reasons.duplicate_email"),
     invalid_email: t("recipients.skip_reasons.invalid_email"),
+    unknown: t("recipients.skip_reasons.unknown"),
   };
 
   const audienceValues = useMemo<CampaignAudienceValues>(
@@ -176,6 +131,7 @@ export default function CampaignComposer({
 
   const updateAudience = (patch: Partial<CampaignAudienceValues>) => {
     updateValues(patch as Partial<CampaignComposerValues>);
+    onRecipientPreviewInvalidated();
   };
 
   const validate = (mode: "preview" | "create") => {
@@ -237,17 +193,37 @@ export default function CampaignComposer({
       setValidationError(error);
       return;
     }
-    const result = await onCreate({ ...values, audience: buildCampaignAudience(values) });
-    if (result) {
-      setValues(initialValues);
-    }
+    await onCreate({ ...values, audience: buildCampaignAudience(values) });
   };
+
+  const handleStartNewCampaign = () => {
+    setValues(initialValues);
+    setValidationError(null);
+    setIsPreviewOpen(false);
+    onStartNewCampaign();
+  };
+
+  const hasCurrentEligiblePreview =
+    recipientPreview !== null &&
+    recipientPreview.eligibleCount > 0 &&
+    recipientPreviewFingerprint ===
+      campaignRecipientPreviewFingerprint(values);
+  const operationPending =
+    isPreviewingRecipients || isPreviewingCampaign || isCreating;
+  const createDisabled =
+    !canManage ||
+    !hasCurrentEligiblePreview ||
+    operationPending ||
+    Boolean(createdBatch);
 
   return (
     <div className="space-y-6">
       <CampaignAudienceStep
         values={audienceValues}
         roles={roles}
+        isLoadingRoles={isLoadingRoles}
+        rolesError={rolesError}
+        onRetryRoles={onRetryRoles}
         onChange={updateAudience}
       />
 
@@ -257,7 +233,10 @@ export default function CampaignComposer({
       >
         <div className="space-y-4">
           {validationError ? (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+            >
               {validationError}
             </p>
           ) : null}
@@ -304,6 +283,15 @@ export default function CampaignComposer({
             onChange={(event) => updateValues({ bodyText: event.target.value })}
             helperText={t("fields.body_text_help")}
           />
+          <TextArea
+            label={t("fields.footer_html")}
+            rows={4}
+            dir="ltr"
+            value={values.footerHtml}
+            onChange={(event) =>
+              updateValues({ footerHtml: event.target.value })
+            }
+          />
 
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
             {t("composer.credential_safety")}
@@ -314,6 +302,7 @@ export default function CampaignComposer({
               variant="secondary"
               leftIcon={<Eye className="h-4 w-4" />}
               loading={isPreviewingRecipients}
+              disabled={operationPending}
               onClick={() => void handlePreviewRecipients()}
             >
               {t("actions.preview_recipients")}
@@ -322,6 +311,7 @@ export default function CampaignComposer({
               variant="secondary"
               leftIcon={<Eye className="h-4 w-4" />}
               loading={isPreviewingCampaign}
+              disabled={operationPending}
               onClick={() => void handlePreviewCampaign()}
             >
               {t("actions.preview_campaign")}
@@ -330,7 +320,7 @@ export default function CampaignComposer({
               variant="primary"
               leftIcon={<Send className="h-4 w-4" />}
               loading={isCreating}
-              disabled={!canManage}
+              disabled={createDisabled}
               onClick={() => void handleCreate()}
             >
               {t("actions.create")}
@@ -351,6 +341,14 @@ export default function CampaignComposer({
       >
         {recipientPreview ? (
           <div className="space-y-4">
+            {recipientPreview.eligibleCount === 0 ? (
+              <p
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700"
+              >
+                {t("recipients.zero_eligible_warning")}
+              </p>
+            ) : null}
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <SummaryMetric
                 label={t("recipients.total_matched")}
@@ -412,11 +410,22 @@ export default function CampaignComposer({
         >
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <SummaryMetric label={t("created.batch_id")} value={createdBatch.batchId} />
-            <SummaryMetric label={t("created.status")} value={createdBatch.status} />
+            <SummaryMetric
+              label={t("created.status")}
+              value={t(`statuses.${createdBatch.status}`)}
+            />
             <SummaryMetric
               label={t("created.total_recipients")}
               value={createdBatch.totalRecipients}
             />
+          </div>
+          <div className="mt-4">
+            <Button
+              variant="secondary"
+              onClick={handleStartNewCampaign}
+            >
+              {t("actions.create_another")}
+            </Button>
           </div>
         </SettingsSectionCard>
       ) : null}
@@ -478,21 +487,22 @@ function RecipientSample({
         <div className="divide-y divide-gray-100">
           {sample.map((recipient, index) => (
             <div
-              key={`${recipient.username || recipient.toEmail || "recipient"}-${index}`}
+              key={`${recipient.username || recipient.recipientEmail || "recipient"}-${index}`}
               className="px-3 py-2 text-sm"
             >
               <p className="font-medium text-gray-900">
-                {recipient.fullName || recipient.toEmail || "—"}
+                {recipient.fullName || recipient.recipientEmail || "—"}
               </p>
               {recipient.username ? (
                 <p className="text-xs text-gray-500">{recipient.username}</p>
               ) : null}
-              {recipient.toEmail ? (
-                <p className="break-all text-xs text-gray-500">{recipient.toEmail}</p>
+              {recipient.recipientEmail ? (
+                <p className="break-all text-xs text-gray-500">{recipient.recipientEmail}</p>
               ) : null}
-              {recipient.reason ? (
+              {recipient.skipReason ? (
                 <p className="mt-1 text-xs text-red-600">
-                  {skipReasonLabels[recipient.reason] || recipient.reason.replaceAll("_", " ")}
+                  {skipReasonLabels[recipient.skipReason] ||
+                    skipReasonLabels.unknown}
                 </p>
               ) : null}
             </div>
@@ -523,7 +533,7 @@ function SkippedReasonSummary({
       <ul className="mt-2 space-y-1 text-sm text-amber-800">
         {entries.map(([reason, count]) => (
           <li key={reason} className="flex items-center justify-between gap-3">
-            <span>{labels[reason] || reason.replaceAll("_", " ")}</span>
+            <span>{labels[reason] || labels.unknown}</span>
             <span className="font-semibold tabular-nums">{count}</span>
           </li>
         ))}

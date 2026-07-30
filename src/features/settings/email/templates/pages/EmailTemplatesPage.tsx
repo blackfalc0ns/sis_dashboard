@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Eye, RefreshCcw, RotateCcw, Save } from "lucide-react";
 import Button from "@/components/ui/button/Button";
+import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import TextArea from "@/components/ui/input/TextArea";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -25,7 +26,11 @@ import {
   resetEmailTemplateToDefault,
   updateEmailTemplate,
 } from "@/features/settings/email/templates/services/emailTemplatesService";
-import { isApiError } from "@/lib/api-error";
+import SettingsWorkflowErrorAlert from "@/features/settings/shared/components/SettingsWorkflowErrorAlert";
+import {
+  classifySettingsWorkflowError,
+  type SettingsWorkflowError,
+} from "@/features/settings/shared/utils/settingsWorkflowErrors";
 import { getValidationFieldErrors } from "@/lib/validation-errors";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useTranslations } from "next-intl";
@@ -59,7 +64,7 @@ export default function EmailTemplatesPage() {
   );
   const [values, setValues] = useState<TemplateEditorValues | null>(null);
   const [errors, setErrors] = useState<TemplateEditorErrors>({});
-  const [pageError, setPageError] = useState<string | null>(null);
+  const [pageError, setPageError] = useState<SettingsWorkflowError | null>(null);
   const [previewDataJson, setPreviewDataJson] = useState(
     emptyPreviewData(),
   );
@@ -73,6 +78,9 @@ export default function EmailTemplatesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const operationPending =
+    isRefreshing || isSaving || isPreviewing || isResetting;
 
   const selectedTemplate = templatesByKey.get(selectedKey) || null;
   const templateLabels = useMemo(
@@ -129,10 +137,7 @@ export default function EmailTemplatesPage() {
           setPreviewDataJson(emptyPreviewData());
         }
       } catch (error) {
-        const message = isApiError(error)
-          ? error.message
-          : t("messages.load_failed");
-        setPageError(message);
+        setPageError(classifySettingsWorkflowError(error));
         showError(t("messages.load_failed"));
       } finally {
         setIsLoading(false);
@@ -148,7 +153,7 @@ export default function EmailTemplatesPage() {
 
   const handleSelectKey = async (key: EmailTemplateKey) => {
     setSelectedKey(key);
-      setPreviewDataJson(emptyPreviewData());
+    setPreviewDataJson(emptyPreviewData());
     setPreviewJsonError(null);
     const existing = templatesByKey.get(key);
     if (existing) {
@@ -159,7 +164,8 @@ export default function EmailTemplatesPage() {
     try {
       await hydrateTemplate(key);
     } catch (error) {
-      showError(isApiError(error) ? error.message : t("messages.load_failed"));
+      setPageError(classifySettingsWorkflowError(error));
+      showError(t("messages.load_failed"));
     }
   };
 
@@ -183,6 +189,7 @@ export default function EmailTemplatesPage() {
       return;
     }
 
+    setPageError(null);
     setIsSaving(true);
     try {
       const saved = await updateEmailTemplate(
@@ -197,6 +204,7 @@ export default function EmailTemplatesPage() {
       setValues(toTemplateEditorValues(saved));
       showSuccess(t("messages.saved"));
     } catch (error) {
+      setPageError(classifySettingsWorkflowError(error));
       const fieldErrors = getValidationFieldErrors(error);
       setErrors({
         subject: fieldErrors.subject,
@@ -213,7 +221,7 @@ export default function EmailTemplatesPage() {
         instagram: fieldErrors.instagram,
         x: fieldErrors.x,
       });
-      showError(isApiError(error) ? error.message : tCommon("save_failed"));
+      showError(tCommon("save_failed"));
     } finally {
       setIsSaving(false);
     }
@@ -239,6 +247,7 @@ export default function EmailTemplatesPage() {
     if (!data) {
       return;
     }
+    setPageError(null);
     setIsPreviewing(true);
     try {
       const result = await previewEmailTemplate(selectedKey, {
@@ -248,15 +257,16 @@ export default function EmailTemplatesPage() {
       setPreview(result);
       setIsPreviewOpen(true);
     } catch (error) {
-      showError(
-        isApiError(error) ? error.message : t("messages.preview_failed"),
-      );
+      setPageError(classifySettingsWorkflowError(error));
+      showError(t("messages.preview_failed"));
     } finally {
       setIsPreviewing(false);
     }
   };
 
   const handleReset = async () => {
+    setPageError(null);
+    setIsResetConfirmOpen(false);
     setIsResetting(true);
     try {
       const reset = await resetEmailTemplateToDefault(selectedKey);
@@ -269,7 +279,8 @@ export default function EmailTemplatesPage() {
       setErrors({});
       showSuccess(t("messages.reset"));
     } catch (error) {
-      showError(isApiError(error) ? error.message : tCommon("save_failed"));
+      setPageError(classifySettingsWorkflowError(error));
+      showError(tCommon("save_failed"));
     } finally {
       setIsResetting(false);
     }
@@ -291,6 +302,7 @@ export default function EmailTemplatesPage() {
                 variant="secondary"
                 leftIcon={<RefreshCcw className="h-4 w-4" />}
                 loading={isRefreshing}
+                disabled={operationPending}
                 onClick={() => void hydrate("refresh")}
               >
                 {t("refresh")}
@@ -299,6 +311,7 @@ export default function EmailTemplatesPage() {
                 variant="secondary"
                 leftIcon={<Eye className="h-4 w-4" />}
                 loading={isPreviewing}
+                disabled={operationPending}
                 onClick={() => void handlePreview()}
               >
                 {t("actions.preview")}
@@ -309,7 +322,8 @@ export default function EmailTemplatesPage() {
                     variant="secondary"
                     leftIcon={<RotateCcw className="h-4 w-4" />}
                     loading={isResetting}
-                    onClick={() => void handleReset()}
+                    disabled={operationPending}
+                    onClick={() => setIsResetConfirmOpen(true)}
                   >
                     {t("actions.reset")}
                   </Button>
@@ -317,6 +331,7 @@ export default function EmailTemplatesPage() {
                     variant="primary"
                     leftIcon={<Save className="h-4 w-4" />}
                     loading={isSaving}
+                    disabled={operationPending}
                     onClick={() => void handleSave()}
                   >
                     {t("actions.save")}
@@ -328,9 +343,9 @@ export default function EmailTemplatesPage() {
         />
 
         {pageError ? (
-          <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {pageError}
-          </p>
+          <div className="mb-4">
+            <SettingsWorkflowErrorAlert error={pageError} />
+          </div>
         ) : null}
 
         <div className="space-y-6">
@@ -346,6 +361,7 @@ export default function EmailTemplatesPage() {
               labels={templateLabels}
               activeLabel={t("active")}
               inactiveLabel={t("inactive")}
+              disabled={operationPending}
             />
           </SettingsSectionCard>
 
@@ -379,6 +395,10 @@ export default function EmailTemplatesPage() {
                     allowedVariables: t("editor.allowed_variables"),
                     noVariables: t("editor.no_variables"),
                     credentialSafety: t("editor.credential_safety"),
+                    htmlTab: t("editor.html_tab"),
+                    textTab: t("editor.text_tab"),
+                    variableHelp: t("editor.variable_help"),
+                    insertVariable: t("editor.insert_variable"),
                   }}
                 />
               </SettingsSectionCard>
@@ -425,6 +445,19 @@ export default function EmailTemplatesPage() {
             none: t("preview.none"),
             close: tCommon("close"),
           }}
+        />
+        <ConfirmDialog
+          isOpen={isResetConfirmOpen}
+          onClose={() => setIsResetConfirmOpen(false)}
+          onConfirm={() => void handleReset()}
+          title={t("confirm.reset_title")}
+          description={t("confirm.reset_description", {
+            template: templateLabels[selectedKey],
+          })}
+          confirmLabel={t("confirm.reset_confirm")}
+          cancelLabel={tCommon("cancel")}
+          loading={isResetting}
+          severity="danger"
         />
       </main>
     </SettingsAccessGuard>

@@ -6,14 +6,14 @@ import { Send } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { CredentialDeliveryWizardValues } from "@/features/settings/email/credential-deliveries/components/CredentialDeliveryWizard";
 import type {
-  CreateCredentialDeliveryResponse,
   CredentialDeliveryPreviewResponse,
 } from "@/features/settings/email/credential-deliveries/types";
+import type { EmailDeliveryBatch } from "@/features/settings/email/deliveries/types";
 
 interface CredentialDeliveryConfirmStepProps {
   values: CredentialDeliveryWizardValues;
   preview: CredentialDeliveryPreviewResponse | null;
-  createdBatch: CreateCredentialDeliveryResponse | null;
+  createdBatch: EmailDeliveryBatch | null;
   canManage: boolean;
   isCreating: boolean;
   onCreate: () => Promise<void>;
@@ -28,6 +28,7 @@ export default function CredentialDeliveryConfirmStep({
   onCreate,
 }: CredentialDeliveryConfirmStepProps) {
   const t = useTranslations("settings.email.credentialDeliveries");
+  const tStatus = useTranslations("settings.email.deliveries.statuses");
 
   return (
     <SettingsSectionCard
@@ -90,7 +91,9 @@ export default function CredentialDeliveryConfirmStep({
               </div>
               <div>
                 <dt className="text-green-700">{t("confirm.status")}</dt>
-                <dd className="font-medium">{createdBatch.status}</dd>
+                <dd className="font-medium">
+                  {tStatus(createdBatch.status)}
+                </dd>
               </div>
               <div>
                 <dt className="text-green-700">{t("confirm.queued")}</dt>
