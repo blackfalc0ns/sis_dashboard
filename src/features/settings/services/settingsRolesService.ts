@@ -22,9 +22,11 @@ function normalizeRoleKey(name: string): string {
 }
 
 function mapRole(payload: SettingsRoleApiDto): RoleDefinition {
+  const backendKey = payload.key?.trim();
   return {
     id: payload.id,
-    key: payload.key?.trim() || normalizeRoleKey(payload.name),
+    key: backendKey || normalizeRoleKey(payload.name),
+    isKeyDerived: !backendKey,
     name: payload.name,
     description: payload.description,
     isSystem: payload.isSystem ?? false,

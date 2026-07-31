@@ -143,7 +143,9 @@ function mergeCredentialRoleKeys(
   );
   return roles.map((role) => ({
     id: role.id,
-    key: role.key ?? credentialRolesById.get(role.id)?.key,
+    key:
+      (role.isKeyDerived ? undefined : role.key) ??
+      credentialRolesById.get(role.id)?.key,
     name: role.name,
   }));
 }

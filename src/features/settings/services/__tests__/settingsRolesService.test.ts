@@ -25,7 +25,7 @@ describe("Settings roles exhaustive loading", () => {
     expect(apiGet).toHaveBeenCalledTimes(1);
   });
 
-  it("derives the backend role key when the roles response omits it", async () => {
+  it("marks role keys derived from names as non-authoritative", async () => {
     vi.mocked(apiGet).mockResolvedValue([
       {
         id: "role-1",
@@ -47,8 +47,16 @@ describe("Settings roles exhaustive loading", () => {
     ]);
 
     await expect(fetchAllSettingsRoles()).resolves.toEqual([
-      expect.objectContaining({ id: "role-1", key: "school_admin" }),
-      expect.objectContaining({ id: "role-2", key: "explicit_key" }),
+      expect.objectContaining({
+        id: "role-1",
+        key: "school_admin",
+        isKeyDerived: true,
+      }),
+      expect.objectContaining({
+        id: "role-2",
+        key: "explicit_key",
+        isKeyDerived: false,
+      }),
     ]);
   });
 

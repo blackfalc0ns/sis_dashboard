@@ -127,6 +127,7 @@ export interface SettingsPermissionApiDto {
 export interface RoleDefinition {
   id: string;
   key?: string;
+  isKeyDerived?: boolean;
   name: string;
   description: string;
   isSystem: boolean;
