@@ -8,10 +8,13 @@ import {
   type LessonPlan,
   type LessonPlanItem,
 } from "../../services/lessonPlansService";
+import {
+  getConfig,
+  getDashboardTimetable,
+} from "@/features/academics/timetable/services/timetableApiAdapter";
 import LessonPlansBoard from "../LessonPlansBoard";
 
 const showError = vi.fn();
-const timetableConfigResult = vi.fn();
 
 vi.mock("@mui/material", () => ({
   useMediaQuery: () => false,
@@ -22,9 +25,9 @@ vi.mock("@/components/ui/toast/Toast", () => ({
   useToast: () => ({ showError, showSuccess: vi.fn() }),
 }));
 
-vi.mock("../TimetableSlotSelect", () => ({
-  activeTimetableDates: (dates: string[]) => dates,
-  useTimetableConfigForScope: () => timetableConfigResult(),
+vi.mock("@/features/academics/timetable/services/timetableApiAdapter", () => ({
+  getConfig: vi.fn(),
+  getDashboardTimetable: vi.fn(),
 }));
 
 vi.mock("../LessonLibrary", () => ({
@@ -155,18 +158,25 @@ describe("LessonPlansBoard timetable metadata", () => {
     vi.mocked(createLessonPlan).mockReset();
     vi.mocked(createLessonPlanItem).mockReset();
     vi.mocked(reorderLessonPlanItem).mockReset();
+    vi.mocked(getConfig).mockReset().mockResolvedValue({
+      id: "config-1",
+      activeDays: [2],
+      weekStartDay: 0,
+    } as never);
+    vi.mocked(getDashboardTimetable).mockReset();
   });
 
   it("blocks drag creation and reports metadata load errors accurately", async () => {
-    timetableConfigResult.mockReturnValue({
-      config: null,
-      isLoading: false,
-      error: new Error("network"),
-      isMissing: false,
-    });
+    vi.mocked(getConfig).mockReset().mockRejectedValue(new Error("network"));
     const user = userEvent.setup();
     renderBoard();
 
+    await waitFor(() => expect(getConfig).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "drop lesson" }),
+      ).toBeInTheDocument(),
+    );
     await user.click(screen.getByRole("button", { name: "drag lesson" }));
     await user.click(screen.getByRole("button", { name: "drop lesson" }));
 

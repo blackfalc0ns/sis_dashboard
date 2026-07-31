@@ -90,11 +90,6 @@ const requestConfig = <T extends Record<string, QueryParamValue>>(
 const timetableConfigParams = (timetableConfigId: string) =>
   requestConfig({ timetableConfigId: timetableConfigId });
 
-const listResponseItems = <T>(response: ListResponse<T> | T[]): T[] => {
-  const unwrapped = unwrap<ListResponse<T> | T[]>(response);
-  return Array.isArray(unwrapped) ? unwrapped : unwrapped.items || [];
-};
-
 const unwrap = <T>(res: T | { data?: T }): T =>
   res && typeof res === "object" && "data" in res && res.data
     ? res.data
