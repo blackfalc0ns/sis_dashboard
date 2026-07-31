@@ -8,6 +8,13 @@ export function canEditLessonPlans(input: {
   return input.canManage && input.termStatus !== "closed";
 }
 
+export function canOpenAutoPlan(input: {
+  canManage: boolean;
+  canPreview: boolean;
+}): boolean {
+  return input.canManage && input.canPreview;
+}
+
 export type LessonPlansViewState =
   | "loading"
   | "no-selection"

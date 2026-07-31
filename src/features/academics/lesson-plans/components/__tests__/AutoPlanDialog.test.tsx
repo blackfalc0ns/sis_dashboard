@@ -13,6 +13,30 @@ const scope = {
   subjectId: "subject-1",
 };
 
+const ready = {
+  canPreview: true,
+  canApply: true,
+  previewBlockingReasons: [],
+  applyBlockingReasons: [],
+  warnings: [],
+} as const;
+
+const previewResponse = {
+  termId: "term-1",
+  academicYearId: "year-1",
+  teacherSubjectAllocationId: "allocation-1",
+  dryRun: true,
+  summary: {
+    candidateLessons: 1,
+    availableSlots: 1,
+    proposedItems: 1,
+    createdItems: 0,
+    skippedExistingItems: 0,
+    skippedHolidaySlots: 0,
+  },
+  items: [],
+};
+
 describe("AutoPlanDialog missing-data actions", () => {
   it.each([
     [
@@ -41,8 +65,9 @@ describe("AutoPlanDialog missing-data actions", () => {
             .mockRejectedValue(new ApiError("blocked", 422, code))}
           onApply={vi.fn()}
           showError={vi.fn()}
-          readiness={{ canAutoPlan: true, blockingReasons: [], warnings: [] }}
-          blockedMessage="blocked"
+          readiness={ready}
+          previewBlockedMessage="preview blocked"
+          applyBlockedMessage="apply blocked"
           hasVisibleLessons
           locale="en"
           scope={scope}
@@ -59,4 +84,84 @@ describe("AutoPlanDialog missing-data actions", () => {
       expect(onNavigate).toHaveBeenCalledWith(expectedHref);
     },
   );
+
+  it("allows Preview but keeps Apply blocked for a closed term", async () => {
+    const onPreview = vi.fn().mockResolvedValue(previewResponse);
+    const onApply = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <AutoPlanDialog
+        isOpen
+        termStartDate="2026-09-01"
+        termEndDate="2026-12-31"
+        onClose={vi.fn()}
+        onPreview={onPreview}
+        onApply={onApply}
+        showError={vi.fn()}
+        readiness={{
+          ...ready,
+          canApply: false,
+          applyBlockingReasons: ["closed_term"],
+        }}
+        previewBlockedMessage="preview blocked"
+        applyBlockedMessage="closed term apply blocked"
+        hasVisibleLessons
+        locale="en"
+        scope={scope}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "actions.preview" }));
+
+    expect(onPreview).toHaveBeenCalledWith({
+      from: "2026-09-01",
+      to: "2026-12-31",
+      overwrite: false,
+    });
+    expect(
+      screen.getByRole("button", { name: "actions.apply" }),
+    ).toBeDisabled();
+    expect(screen.getByText("closed term apply blocked")).toBeInTheDocument();
+    expect(onApply).not.toHaveBeenCalled();
+  });
+
+  it("previews and applies independently when both actions are ready", async () => {
+    const onPreview = vi.fn().mockResolvedValue(previewResponse);
+    const onApply = vi.fn().mockResolvedValue({
+      ...previewResponse,
+      dryRun: false,
+    });
+    const user = userEvent.setup();
+    render(
+      <AutoPlanDialog
+        isOpen
+        termStartDate="2026-09-01"
+        termEndDate="2026-12-31"
+        onClose={vi.fn()}
+        onPreview={onPreview}
+        onApply={onApply}
+        showError={vi.fn()}
+        readiness={ready}
+        previewBlockedMessage="preview blocked"
+        applyBlockedMessage="apply blocked"
+        hasVisibleLessons
+        locale="en"
+        scope={scope}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "actions.preview" }));
+    await user.click(
+      await screen.findByRole("button", { name: "actions.apply" }),
+    );
+
+    expect(onPreview).toHaveBeenCalledTimes(1);
+    expect(onApply).toHaveBeenCalledWith({
+      from: "2026-09-01",
+      to: "2026-12-31",
+      overwrite: false,
+    });
+  });
 });

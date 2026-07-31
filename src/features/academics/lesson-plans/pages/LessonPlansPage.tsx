@@ -30,6 +30,7 @@ import {
 import { useLessonPlanMutations } from "../hooks/useLessonPlanMutations";
 import {
   canEditLessonPlans,
+  canOpenAutoPlan,
   missingDataStatusForLessonPlansView,
   resolveLessonPlansView,
 } from "./lessonPlansPageState";
@@ -708,19 +709,35 @@ export default function LessonPlansPage() {
       termStatus,
     ],
   );
-  const firstAutoPlanBlockingReason = autoPlanReadiness.blockingReasons[0] as
+  const firstAutoPlanPreviewBlockingReason =
+    autoPlanReadiness.previewBlockingReasons[0] as
+      | AutoPlanBlockingReason
+      | undefined;
+  const firstAutoPlanApplyBlockingReason =
+    autoPlanReadiness.applyBlockingReasons[0] as
     | AutoPlanBlockingReason
     | undefined;
 
   const isSecondaryLoading = summaryLoading || validationLoading;
 
-  const autoPlanBlockedMessage = isSecondaryLoading
+  const autoPlanPreviewBlockedMessage = isSecondaryLoading
     ? t("autoPlan.checkingReadiness", {
         defaultValue: "Checking auto-plan readiness...",
       })
-    : firstAutoPlanBlockingReason
-      ? t(`autoPlan.readiness.${firstAutoPlanBlockingReason}`)
+    : firstAutoPlanPreviewBlockingReason
+      ? t(`autoPlan.readiness.${firstAutoPlanPreviewBlockingReason}`)
       : t("tooltips.autoPlanUnavailable");
+  const autoPlanApplyBlockedMessage = isSecondaryLoading
+    ? t("autoPlan.checkingReadiness", {
+        defaultValue: "Checking auto-plan readiness...",
+      })
+    : firstAutoPlanApplyBlockingReason
+      ? t(`autoPlan.readiness.${firstAutoPlanApplyBlockingReason}`)
+      : t("tooltips.autoPlanUnavailable");
+  const canOpenAutoPlanDialog = canOpenAutoPlan({
+    canManage: canManageLessonPlans,
+    canPreview: autoPlanReadiness.canPreview,
+  });
 
   const handleCreatePlan = async (payload: CreateLessonPlanDialogPayload) => {
     if (
@@ -764,11 +781,11 @@ export default function LessonPlansPage() {
         <LessonPlansPageHeader
           scopeLabels={scopeLabels}
           createPlanDisabled={createPlanDisabled}
-          autoPlanDisabled={isReadOnly || !autoPlanReadiness.canAutoPlan}
+          autoPlanDisabled={!canOpenAutoPlanDialog}
           autoPlanUnavailableReason={
-            isReadOnly && autoPlanReadiness.canAutoPlan
+            !canManageLessonPlans
               ? t("readOnlyBanner")
-              : autoPlanBlockedMessage
+              : autoPlanPreviewBlockedMessage
           }
           exportDisabled={lessonPlanExportRows.length === 0}
           refreshing={isRefreshing || plansLoading}
@@ -1056,7 +1073,8 @@ export default function LessonPlansPage() {
         onApply={applyAutoPlan}
         showError={showError}
         readiness={autoPlanReadiness}
-        blockedMessage={autoPlanBlockedMessage}
+        previewBlockedMessage={autoPlanPreviewBlockedMessage}
+        applyBlockedMessage={autoPlanApplyBlockedMessage}
         hasVisibleLessons={lessons.length > 0}
         locale={locale}
         scope={missingDataScope}

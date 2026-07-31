@@ -28,8 +28,10 @@ export type AutoPlanBlockingReason =
 export type AutoPlanWarning = "timetable_slots_backend_check";
 
 export interface AutoPlanReadiness {
-  canAutoPlan: boolean;
-  blockingReasons: AutoPlanBlockingReason[];
+  canPreview: boolean;
+  canApply: boolean;
+  previewBlockingReasons: AutoPlanBlockingReason[];
+  applyBlockingReasons: AutoPlanBlockingReason[];
   warnings: AutoPlanWarning[];
 }
 
@@ -78,66 +80,75 @@ export function getAutoPlanReadiness({
   termEndDate,
   termStatus,
 }: AutoPlanReadinessInput): AutoPlanReadiness {
-  const blockingReasons: AutoPlanBlockingReason[] = [];
+  const commonBlockingReasons: AutoPlanBlockingReason[] = [];
 
-  if (scopeStatus !== "ready") blockingReasons.push("incomplete_scope");
-  if (!termId) blockingReasons.push("missing_term");
+  if (scopeStatus !== "ready") commonBlockingReasons.push("incomplete_scope");
+  if (!termId) commonBlockingReasons.push("missing_term");
   if (scopeStatus === "missing-classroom" || !selectedClassroomId) {
-    blockingReasons.push("missing_classroom");
+    commonBlockingReasons.push("missing_classroom");
   }
   if (
     scopeStatus === "missing-teacher-allocation" ||
     !teacherSubjectAllocationId
   ) {
-    blockingReasons.push("missing_teacher_allocation");
+    commonBlockingReasons.push("missing_teacher_allocation");
   }
   if (scopeStatus === "missing-curriculum" || !curriculumId) {
-    blockingReasons.push("missing_curriculum");
+    commonBlockingReasons.push("missing_curriculum");
   }
-  if (lessons.length === 0) blockingReasons.push("no_curriculum_lessons");
+  if (lessons.length === 0) {
+    commonBlockingReasons.push("no_curriculum_lessons");
+  }
   if (
     curriculum?.subjectId &&
     selectedSubjectId &&
     curriculum.subjectId !== selectedSubjectId
   ) {
-    blockingReasons.push("curriculum_subject_mismatch");
+    commonBlockingReasons.push("curriculum_subject_mismatch");
   }
   if (
     curriculum?.gradeId &&
     selectedGradeId &&
     curriculum.gradeId !== selectedGradeId
   ) {
-    blockingReasons.push("curriculum_subject_mismatch");
+    commonBlockingReasons.push("curriculum_subject_mismatch");
   }
   if (
     teacherAllocation?.subjectId &&
     selectedSubjectId &&
     teacherAllocation.subjectId !== selectedSubjectId
   ) {
-    blockingReasons.push("allocation_subject_mismatch");
+    commonBlockingReasons.push("allocation_subject_mismatch");
   }
   if (
     teacherAllocation?.classroomId &&
     selectedClassroomId &&
     teacherAllocation.classroomId !== selectedClassroomId
   ) {
-    blockingReasons.push("allocation_subject_mismatch");
+    commonBlockingReasons.push("allocation_subject_mismatch");
   }
   if (!termStartDate || !termEndDate || termStartDate > termEndDate) {
-    blockingReasons.push("invalid_date_range");
+    commonBlockingReasons.push("invalid_date_range");
   }
-  if (termStatus === "closed") blockingReasons.push("closed_term");
   if (timetableSlotsKnown && !timetableSlotsKnown.hasSlots) {
-    blockingReasons.push("no_timetable_slots_if_known");
+    commonBlockingReasons.push("no_timetable_slots_if_known");
   }
 
   const warnings: AutoPlanWarning[] = [];
   if (!timetableSlotsKnown) warnings.push("timetable_slots_backend_check");
 
-  const reasons = unique(blockingReasons);
+  const previewBlockingReasons = unique(commonBlockingReasons);
+  const applyBlockingReasons = unique([
+    ...commonBlockingReasons,
+    ...(termStatus === "closed"
+      ? (["closed_term"] as AutoPlanBlockingReason[])
+      : []),
+  ]);
   return {
-    canAutoPlan: reasons.length === 0,
-    blockingReasons: reasons,
+    canPreview: previewBlockingReasons.length === 0,
+    canApply: applyBlockingReasons.length === 0,
+    previewBlockingReasons,
+    applyBlockingReasons,
     warnings,
   };
 }

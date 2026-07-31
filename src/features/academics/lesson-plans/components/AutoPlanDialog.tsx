@@ -37,7 +37,8 @@ interface Props {
   }) => Promise<AutoPlanLessonPlanResponseDto>;
   showError: (message: string) => void;
   readiness: AutoPlanReadiness;
-  blockedMessage: string;
+  previewBlockedMessage: string;
+  applyBlockedMessage: string;
   hasVisibleLessons: boolean;
   locale: string;
   scope: LessonPlansMissingDataScope;
@@ -53,7 +54,8 @@ export default function AutoPlanDialog({
   onApply,
   showError,
   readiness,
-  blockedMessage,
+  previewBlockedMessage,
+  applyBlockedMessage,
   hasVisibleLessons,
   locale,
   scope,
@@ -92,7 +94,8 @@ export default function AutoPlanDialog({
     [fromValue, termEndDate, termStartDate, toValue],
   );
   const valid = !errors.from && !errors.to && Boolean(fromValue && toValue);
-  const canSubmit = valid && readiness.canAutoPlan;
+  const canPreview = valid && readiness.canPreview;
+  const canApply = Boolean(preview) && readiness.canApply;
   const backendAutoPlanError = (error: unknown) => {
     if (!(error instanceof ApiError)) return lessonPlansUiError(error);
     const messageByCode: Record<string, string> = {
@@ -100,7 +103,7 @@ export default function AutoPlanDialog({
         "backendNoCurriculum",
       ),
       "academics.lesson_plan.auto_plan_no_slots": tReadiness("backendNoSlots"),
-      "academics.lesson_plan.closed_term": tReadiness("closedTerm"),
+      "academics.lesson_plan.closed_term": tReadiness("closed_term"),
       "academics.lesson_plan.invalid_scope": tReadiness("backendInvalidScope"),
     };
     const message = messageByCode[error.code] ?? lessonPlansUiError(error);
@@ -113,8 +116,12 @@ export default function AutoPlanDialog({
     return message;
   };
   const run = async (apply: boolean) => {
-    if (!readiness.canAutoPlan) {
-      showError(blockedMessage);
+    if (apply && !readiness.canApply) {
+      showError(applyBlockedMessage);
+      return;
+    }
+    if (!apply && !readiness.canPreview) {
+      showError(previewBlockedMessage);
       return;
     }
     if (!valid || !fromValue || !toValue) return;
@@ -160,13 +167,13 @@ export default function AutoPlanDialog({
             variant="secondary"
             onClick={() => void run(false)}
             loading={loading}
-            disabled={!canSubmit}
+            disabled={!canPreview}
           >
             {t("actions.preview")}
           </Button>
           <Button
             onClick={() => void run(true)}
-            disabled={!preview || !canSubmit}
+            disabled={!canApply}
             loading={loading}
           >
             {t("actions.apply")}
@@ -182,12 +189,12 @@ export default function AutoPlanDialog({
             </h3>
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                readiness.canAutoPlan
+                readiness.canPreview
                   ? "bg-green-100 text-green-700"
                   : "bg-amber-100 text-amber-800"
               }`}
             >
-              {readiness.canAutoPlan
+              {readiness.canPreview
                 ? tReadiness("ready")
                 : tReadiness("notReady")}
             </span>
@@ -200,14 +207,14 @@ export default function AutoPlanDialog({
             <li className="flex gap-2">
               <span
                 className={
-                  readiness.blockingReasons.includes(
+                  readiness.previewBlockingReasons.includes(
                     "missing_teacher_allocation",
                   )
                     ? "text-red-600"
                     : "text-green-600"
                 }
               >
-                {readiness.blockingReasons.includes(
+                {readiness.previewBlockingReasons.includes(
                   "missing_teacher_allocation",
                 )
                   ? "✕"
@@ -218,12 +225,12 @@ export default function AutoPlanDialog({
             <li className="flex gap-2">
               <span
                 className={
-                  readiness.blockingReasons.includes("missing_curriculum")
+                  readiness.previewBlockingReasons.includes("missing_curriculum")
                     ? "text-red-600"
                     : "text-green-600"
                 }
               >
-                {readiness.blockingReasons.includes("missing_curriculum")
+                {readiness.previewBlockingReasons.includes("missing_curriculum")
                   ? "✕"
                   : "✓"}
               </span>
@@ -232,25 +239,31 @@ export default function AutoPlanDialog({
             <li className="flex gap-2">
               <span
                 className={
-                  readiness.blockingReasons.includes("no_curriculum_lessons")
+                  readiness.previewBlockingReasons.includes(
+                    "no_curriculum_lessons",
+                  )
                     ? "text-red-600"
                     : "text-green-600"
                 }
               >
-                {readiness.blockingReasons.includes("no_curriculum_lessons")
+                {readiness.previewBlockingReasons.includes(
+                  "no_curriculum_lessons",
+                )
                   ? "✕"
                   : "✓"}
               </span>
               {tReadiness("curriculumLessonsAvailable")}
             </li>
-            <li className="flex gap-2">
-              <span className="text-amber-600">⚠</span>
-              {tReadiness("timetableSlotsBackendCheck")}
-            </li>
+            {readiness.warnings.includes("timetable_slots_backend_check") && (
+              <li className="flex gap-2">
+                <span className="text-amber-600">⚠</span>
+                {tReadiness("timetableSlotsBackendCheck")}
+              </li>
+            )}
           </ul>
-          {readiness.blockingReasons[0] && (
+          {readiness.previewBlockingReasons[0] && (
             <p className="mt-2 text-xs text-amber-800">
-              {tReadiness(readiness.blockingReasons[0])}
+              {previewBlockedMessage}
             </p>
           )}
           {backendMissingDataStatus && (
@@ -305,6 +318,11 @@ export default function AutoPlanDialog({
         </label>
         {preview && (
           <>
+            {!readiness.canApply && (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                {applyBlockedMessage}
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {Object.entries(preview.summary).map(([label, count]) => (
                 <div key={label} className="rounded bg-gray-50 p-2">

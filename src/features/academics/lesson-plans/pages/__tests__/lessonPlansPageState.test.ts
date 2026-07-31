@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   canEditLessonPlans,
+  canOpenAutoPlan,
   missingDataStatusForLessonPlansView,
   resolveLessonPlansView,
 } from "../lessonPlansPageState";
@@ -14,6 +15,14 @@ describe("lesson plans mutation gate", () => {
     "derives editability from permission and term state",
     (input, expected) => expect(canEditLessonPlans(input)).toBe(expected),
   );
+
+  it.each([
+    [{ canManage: true, canPreview: true }, true],
+    [{ canManage: true, canPreview: false }, false],
+    [{ canManage: false, canPreview: true }, false],
+  ])("gates opening Auto-plan by permission and preview readiness", (input, expected) => {
+    expect(canOpenAutoPlan(input)).toBe(expected);
+  });
 });
 
 describe("lesson plans page state", () => {
