@@ -49,6 +49,7 @@ import {
   activeTimetableDates,
   useTimetableConfigForScope,
 } from "./TimetableSlotSelect";
+import { adjacentReorderCommands } from "./lessonPlanBoardActions";
 import {
   deriveIssueWeekIndexes,
   filterLessonPlanWeeks,
@@ -544,33 +545,48 @@ export default function LessonPlansBoard({
         candidate.items.some((item) => item.id === itemId),
       );
       if (!plan) return;
-      const ordered = [...plan.items].sort((a, b) => a.order - b.order);
-      const index = ordered.findIndex((item) => item.id === itemId);
-      const target = ordered[index + (direction === "up" ? -1 : 1)];
-      if (!target) return;
+      const commands = adjacentReorderCommands(plan, itemId, direction);
+      if (commands.length !== 2) return;
+      const affectedIds = commands.map((command) => command.itemId);
+      affectedIds.forEach((affectedId) =>
+        markItemPending(affectedId, true),
+      );
       setIsUpdating(true);
-      markItemPending(itemId, true);
       try {
-        const updatedItem = await reorderLessonPlanItem({
-          lessonPlanId: plan.id,
-          itemId,
-          payload: { sortOrder: target.order },
-        });
-        onUpsertPlanItem(plan.id, updatedItem);
-        void onRefreshSummaryAndValidation({ silent: true });
+        const results = await Promise.allSettled(
+          commands.map((command) => reorderLessonPlanItem(command)),
+        );
+
+        let refreshError: unknown;
+        try {
+          await onRefreshPlanDetail(plan.id, { silent: true });
+        } catch (error) {
+          refreshError = error;
+        }
+
+        const mutationFailure = results.find(
+          (result): result is PromiseRejectedResult =>
+            result.status === "rejected",
+        );
+        if (mutationFailure) throw mutationFailure.reason;
+        if (refreshError) throw refreshError;
+
+        await onRefreshSummaryAndValidation({ silent: true });
         showSuccess("Saved successfully");
       } catch (error) {
         showError(lessonPlansUiError(error));
       } finally {
         setIsUpdating(false);
-        markItemPending(itemId, false);
+        affectedIds.forEach((affectedId) =>
+          markItemPending(affectedId, false),
+        );
       }
     },
     [
       isReadOnly,
       markItemPending,
+      onRefreshPlanDetail,
       onRefreshSummaryAndValidation,
-      onUpsertPlanItem,
       pendingItemIds,
       plans,
       showError,

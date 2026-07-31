@@ -1,4 +1,8 @@
-import type { LessonPlanItemStatus } from "../services/lessonPlansService";
+import type {
+  LessonPlan,
+  LessonPlanItemStatus,
+  ReorderLessonPlanItemCommand,
+} from "../services/lessonPlansService";
 
 export function lessonPlanItemAction(status: LessonPlanItemStatus) {
   const actions = {
@@ -33,4 +37,31 @@ const transitions: Record<
 
 export function lessonPlanItemTransitions(status: LessonPlanItemStatus) {
   return transitions[status];
+}
+
+export function adjacentReorderCommands(
+  plan: LessonPlan,
+  itemId: string,
+  direction: "up" | "down",
+): ReorderLessonPlanItemCommand[] {
+  const ordered = [...plan.items].sort((left, right) => left.order - right.order);
+  const currentIndex = ordered.findIndex((item) => item.id === itemId);
+  const targetIndex = currentIndex + (direction === "up" ? -1 : 1);
+  const current = ordered[currentIndex];
+  const target = ordered[targetIndex];
+
+  if (!current || !target) return [];
+
+  return [
+    {
+      lessonPlanId: plan.id,
+      itemId: current.id,
+      payload: { sortOrder: target.order },
+    },
+    {
+      lessonPlanId: plan.id,
+      itemId: target.id,
+      payload: { sortOrder: current.order },
+    },
+  ];
 }

@@ -1,7 +1,13 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createLessonPlan, createLessonPlanItem } from "../../services/lessonPlansService";
+import {
+  createLessonPlan,
+  createLessonPlanItem,
+  reorderLessonPlanItem,
+  type LessonPlan,
+  type LessonPlanItem,
+} from "../../services/lessonPlansService";
 import LessonPlansBoard from "../LessonPlansBoard";
 
 const showError = vi.fn();
@@ -33,8 +39,20 @@ vi.mock("../LessonLibrary", () => ({
 }));
 
 vi.mock("../WeeksBoardDesktop", () => ({
-  default: (props: { onDropOnWeek: (weekIndex: number) => void }) => (
-    <button onClick={() => props.onDropOnWeek(1)}>drop lesson</button>
+  default: (props: {
+    onDropOnWeek: (weekIndex: number) => void;
+    onReorder: (itemId: string, direction: "up" | "down") => void;
+    pendingItemIds: Set<string>;
+  }) => (
+    <>
+      <button onClick={() => props.onDropOnWeek(1)}>drop lesson</button>
+      <button onClick={() => props.onReorder("item-2", "up")}>
+        reorder lesson
+      </button>
+      <output data-testid="pending-items">
+        {[...props.pendingItemIds].sort().join(",")}
+      </output>
+    </>
   ),
 }));
 
@@ -52,6 +70,7 @@ vi.mock("../../services/lessonPlansService", async (importOriginal) => {
     ...actual,
     createLessonPlan: vi.fn(),
     createLessonPlanItem: vi.fn(),
+    reorderLessonPlanItem: vi.fn(),
   };
 });
 
@@ -68,7 +87,17 @@ const lesson = {
   updatedAt: "2026-09-01T00:00:00.000Z",
 };
 
-const renderBoard = () =>
+const renderBoard = ({
+  plans = [],
+  onRefreshPlanDetail = vi.fn(),
+  onRefreshSummaryAndValidation = vi.fn(),
+  onUpsertPlanItem = vi.fn(),
+}: {
+  plans?: LessonPlan[];
+  onRefreshPlanDetail?: ReturnType<typeof vi.fn>;
+  onRefreshSummaryAndValidation?: ReturnType<typeof vi.fn>;
+  onUpsertPlanItem?: ReturnType<typeof vi.fn>;
+} = {}) =>
   render(
     <LessonPlansBoard
       academicYearId="year-1"
@@ -84,7 +113,7 @@ const renderBoard = () =>
       teacherId="teacher-1"
       lessons={[lesson]}
       units={[]}
-      plans={[]}
+      plans={plans}
       weeks={[
         {
           weekIndex: 1,
@@ -106,11 +135,11 @@ const renderBoard = () =>
       librarySelectedUnitId=""
       onLibrarySearchQueryChange={vi.fn()}
       onLibrarySelectedUnitIdChange={vi.fn()}
-      onRefreshPlanDetail={vi.fn()}
-      onRefreshSummaryAndValidation={vi.fn()}
+      onRefreshPlanDetail={onRefreshPlanDetail}
+      onRefreshSummaryAndValidation={onRefreshSummaryAndValidation}
       onUpsertPlan={vi.fn()}
       onRemovePlan={vi.fn()}
-      onUpsertPlanItem={vi.fn()}
+      onUpsertPlanItem={onUpsertPlanItem}
       onRemovePlanItem={vi.fn()}
       validationMessages={{
         noInstructionalDays: "validation.no_instructional_days",
@@ -125,6 +154,7 @@ describe("LessonPlansBoard timetable metadata", () => {
     showError.mockReset();
     vi.mocked(createLessonPlan).mockReset();
     vi.mocked(createLessonPlanItem).mockReset();
+    vi.mocked(reorderLessonPlanItem).mockReset();
   });
 
   it("blocks drag creation and reports metadata load errors accurately", async () => {
@@ -147,4 +177,136 @@ describe("LessonPlansBoard timetable metadata", () => {
     expect(createLessonPlan).not.toHaveBeenCalled();
     expect(createLessonPlanItem).not.toHaveBeenCalled();
   });
+
+  it("keeps both adjacent items pending and reconciles after both patches", async () => {
+    const first = deferred<LessonPlanItem>();
+    const second = deferred<LessonPlanItem>();
+    vi.mocked(reorderLessonPlanItem)
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise);
+    const onRefreshPlanDetail = vi.fn().mockResolvedValue(reorderPlan);
+    const onRefreshSummaryAndValidation = vi.fn().mockResolvedValue(undefined);
+    const onUpsertPlanItem = vi.fn();
+    const user = userEvent.setup();
+    renderBoard({
+      plans: [reorderPlan],
+      onRefreshPlanDetail,
+      onRefreshSummaryAndValidation,
+      onUpsertPlanItem,
+    });
+
+    await user.click(screen.getByRole("button", { name: "reorder lesson" }));
+    expect(screen.getByTestId("pending-items")).toHaveTextContent(
+      "item-1,item-2",
+    );
+    expect(reorderLessonPlanItem).toHaveBeenNthCalledWith(1, {
+      lessonPlanId: "plan-1",
+      itemId: "item-2",
+      payload: { sortOrder: 10 },
+    });
+    expect(reorderLessonPlanItem).toHaveBeenNthCalledWith(2, {
+      lessonPlanId: "plan-1",
+      itemId: "item-1",
+      payload: { sortOrder: 20 },
+    });
+
+    first.resolve(reorderPlan.items[1]);
+    expect(screen.getByTestId("pending-items")).toHaveTextContent(
+      "item-1,item-2",
+    );
+    second.resolve(reorderPlan.items[0]);
+
+    await waitFor(() =>
+      expect(onRefreshPlanDetail).toHaveBeenCalledWith("plan-1", {
+        silent: true,
+      }),
+    );
+    expect(onRefreshSummaryAndValidation).toHaveBeenCalledWith({
+      silent: true,
+    });
+    expect(onUpsertPlanItem).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.getByTestId("pending-items")).toHaveTextContent(""),
+    );
+  });
+
+  it("reconciles partial reorder failure before reporting it", async () => {
+    vi.mocked(reorderLessonPlanItem)
+      .mockResolvedValueOnce(reorderPlan.items[1])
+      .mockRejectedValueOnce(new Error("second patch failed"));
+    const onRefreshPlanDetail = vi.fn().mockResolvedValue(reorderPlan);
+    const onRefreshSummaryAndValidation = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderBoard({
+      plans: [reorderPlan],
+      onRefreshPlanDetail,
+      onRefreshSummaryAndValidation,
+    });
+
+    await user.click(screen.getByRole("button", { name: "reorder lesson" }));
+
+    await waitFor(() => expect(showError).toHaveBeenCalled());
+    expect(onRefreshPlanDetail).toHaveBeenCalledWith("plan-1", {
+      silent: true,
+    });
+    expect(onRefreshSummaryAndValidation).not.toHaveBeenCalled();
+    expect(onRefreshPlanDetail.mock.invocationCallOrder[0]).toBeLessThan(
+      showError.mock.invocationCallOrder[0],
+    );
+  });
 });
+
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+};
+
+const reorderPlan = {
+  id: "plan-1",
+  academicYearId: "year-1",
+  termId: "term-1",
+  teacherSubjectAllocationId: "allocation-1",
+  teacherId: "teacher-1",
+  classroomId: "classroom-1",
+  subjectId: "subject-1",
+  curriculumId: "curriculum-1",
+  title: "Week 1",
+  description: null,
+  status: "ACTIVE" as const,
+  rawStatus: "active",
+  weekIndex: 1,
+  weekStartDate: "2026-09-01",
+  weekEndDate: "2026-09-07",
+  updatedAt: "2026-09-01T00:00:00.000Z",
+  items: [
+    {
+      id: "item-1",
+      planId: "plan-1",
+      lessonId: "lesson-1",
+      unitId: "unit-1",
+      unitTitle: "Unit 1",
+      lessonTitle: "Lesson 1",
+      status: "PLANNED" as const,
+      rawStatus: "planned",
+      order: 10,
+      createdAt: "2026-09-01T00:00:00.000Z",
+      updatedAt: "2026-09-01T00:00:00.000Z",
+    },
+    {
+      id: "item-2",
+      planId: "plan-1",
+      lessonId: "lesson-2",
+      unitId: "unit-1",
+      unitTitle: "Unit 1",
+      lessonTitle: "Lesson 2",
+      status: "PLANNED" as const,
+      rawStatus: "planned",
+      order: 20,
+      createdAt: "2026-09-01T00:00:00.000Z",
+      updatedAt: "2026-09-01T00:00:00.000Z",
+    },
+  ],
+} satisfies LessonPlan;
