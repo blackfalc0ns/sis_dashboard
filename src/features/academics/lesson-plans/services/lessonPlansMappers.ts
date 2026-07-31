@@ -22,6 +22,7 @@ const itemStatuses = {
   done: "DONE",
   skipped: "SKIPPED",
   cancelled: "CANCELLED",
+  rescheduled: "RESCHEDULED",
 } as const;
 const weekContaining = (
   date: string | null,
@@ -111,4 +112,12 @@ export const mapLessonPlanWeeksDto = (
   }));
 export const mapLessonPlanSummaryDto = (
   dto: LessonPlanSummaryResponseDto,
-): LessonPlanSummary => dto.summary;
+): LessonPlanSummary => ({
+  ...dto.summary,
+  byTeacherAllocation: dto.byTeacherAllocation.map((allocation) => ({
+    ...allocation,
+    teacher: { ...allocation.teacher },
+    subject: { ...allocation.subject },
+    classroom: { ...allocation.classroom },
+  })),
+});

@@ -6634,6 +6634,7 @@
         "DONE": "منتهي",
         "SKIPPED": "متخطى",
         "CANCELLED": "ملغى",
+        "RESCHEDULED": "تمت إعادة الجدولة",
         "UNKNOWN": "غير معروف"
       },
       "planStatus": {
@@ -6780,6 +6781,9 @@
         "academics_lesson_plan_outside_term": "يوجد عنصر مخطط خارج الفصل الدراسي المحدد.",
         "academics_lesson_plan_holiday": "يوجد عنصر مخطط في يوم عطلة.",
         "missing_planned_lesson": "بعض دروس المنهج لم يتم تخطيطها بعد.",
+        "missing_planned_date": "يوجد عنصر مخطط بدون تاريخ محدد.",
+        "holiday_planned_item": "يوجد عنصر مخطط في يوم عطلة.",
+        "duplicate_planned_lesson": "تم تخطيط درس من المنهج أكثر من مرة.",
         "duplicate_lesson": "تم اكتشاف تخطيط مكرر لبعض الدروس.",
         "outside_term_item": "بعض العناصر المخططة خارج الفصل الدراسي المحدد.",
         "holiday_item": "بعض العناصر المخططة مجدولة في أيام عطلات."

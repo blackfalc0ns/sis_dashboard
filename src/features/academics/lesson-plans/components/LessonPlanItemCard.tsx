@@ -63,6 +63,7 @@ export default function LessonPlanItemCard({
     DONE: "bg-green-100 text-green-700 border-green-200",
     SKIPPED: "bg-orange-100 text-orange-700 border-orange-200",
     CANCELLED: "bg-red-100 text-red-700 border-red-200",
+    RESCHEDULED: "bg-slate-100 text-slate-700 border-slate-200",
     UNKNOWN: "bg-gray-100 text-gray-700 border-gray-200",
   } satisfies Record<typeof item.status, string>;
 

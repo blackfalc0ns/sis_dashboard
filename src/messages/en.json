@@ -6650,6 +6650,7 @@
         "DONE": "Done",
         "SKIPPED": "Skipped",
         "CANCELLED": "Cancelled",
+        "RESCHEDULED": "Rescheduled",
         "UNKNOWN": "Unknown"
       },
       "planStatus": {
@@ -6796,6 +6797,9 @@
         "academics_lesson_plan_outside_term": "A planned item falls outside the selected term.",
         "academics_lesson_plan_holiday": "A planned item is scheduled on a holiday.",
         "missing_planned_lesson": "Some curriculum lessons are not planned yet.",
+        "missing_planned_date": "A planned item is missing its planned date.",
+        "holiday_planned_item": "A planned item is scheduled on a holiday.",
+        "duplicate_planned_lesson": "A curriculum lesson is planned more than once.",
         "duplicate_lesson": "Duplicate lesson planning was detected.",
         "outside_term_item": "Some planned items fall outside the selected term.",
         "holiday_item": "Some planned items are scheduled on holidays."

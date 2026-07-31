@@ -22,6 +22,7 @@ describe("lesson plan board actions", () => {
     ["DONE", []],
     ["SKIPPED", []],
     ["CANCELLED", []],
+    ["RESCHEDULED", []],
     ["UNKNOWN", []],
   ] as const)("exposes backend transitions from %s", (status, expected) => {
     expect(lessonPlanItemTransitions(status)).toEqual(expected);

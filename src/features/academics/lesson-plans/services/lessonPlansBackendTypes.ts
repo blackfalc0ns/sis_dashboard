@@ -4,7 +4,8 @@ export type LessonPlanItemStatusDto =
   | "in_progress"
   | "done"
   | "skipped"
-  | "cancelled";
+  | "cancelled"
+  | "rescheduled";
 export type LessonPlanStatus = "DRAFT" | "ACTIVE" | "ARCHIVED" | "UNKNOWN";
 export type LessonPlanItemStatus =
   | "PLANNED"
@@ -12,6 +13,7 @@ export type LessonPlanItemStatus =
   | "DONE"
   | "SKIPPED"
   | "CANCELLED"
+  | "RESCHEDULED"
   | "UNKNOWN";
 export type LessonPlanStatusFilter = "DRAFT" | "ACTIVE" | "ARCHIVED";
 
@@ -107,11 +109,31 @@ export interface LessonPlanSummaryTotals {
   unplannedLessonsCount: number;
   coveragePercent: number;
 }
+export interface LessonPlanSafeTeacherSummaryDto {
+  id: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+}
+export interface LessonPlanSubjectSummaryDto extends NamedSummaryDto {
+  code: string | null;
+  color: string | null;
+}
+export interface LessonPlanAllocationSummaryDto {
+  teacherSubjectAllocationId: string;
+  teacher: LessonPlanSafeTeacherSummaryDto;
+  subject: LessonPlanSubjectSummaryDto;
+  classroom: NamedSummaryDto;
+  plannedItemsCount: number;
+  completedItemsCount: number;
+  unplannedLessonsCount: number;
+  coveragePercent: number;
+}
 export interface LessonPlanSummaryResponseDto {
   termId: string;
   academicYearId: string;
   summary: LessonPlanSummaryTotals;
-  byTeacherAllocation: unknown[];
+  byTeacherAllocation: LessonPlanAllocationSummaryDto[];
 }
 export interface LessonPlanValidationResponseDto {
   termId: string;
@@ -304,7 +326,9 @@ export interface WeekInfo {
   hasHolidays: boolean;
   plannedItemsCount: number;
 }
-export type LessonPlanSummary = LessonPlanSummaryTotals;
+export interface LessonPlanSummary extends LessonPlanSummaryTotals {
+  byTeacherAllocation: LessonPlanAllocationSummaryDto[];
+}
 
 export interface CreateLessonPlanItemCommand {
   lessonPlanId: string;

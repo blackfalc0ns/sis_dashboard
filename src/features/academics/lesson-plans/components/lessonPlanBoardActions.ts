@@ -27,6 +27,7 @@ const transitions: Record<
   DONE: [],
   SKIPPED: [],
   CANCELLED: [],
+  RESCHEDULED: [],
   UNKNOWN: [],
 };
 

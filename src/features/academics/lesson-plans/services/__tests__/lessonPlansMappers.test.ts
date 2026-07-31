@@ -116,6 +116,9 @@ describe("lesson plan mappers", () => {
     );
     expect(
       mapLessonPlanItemDto({ ...itemDto, status: "rescheduled" }).status,
+    ).toBe("RESCHEDULED");
+    expect(
+      mapLessonPlanItemDto({ ...itemDto, status: "future_status" }).status,
     ).toBe("UNKNOWN");
     expect(
       mapLessonPlanItemDto({ ...itemDto, status: "blocked" }).rawStatus,
@@ -149,8 +152,7 @@ describe("lesson plan mappers", () => {
       hasHolidays: true,
       lostTeachingDays: 1,
     });
-    expect(
-      mapLessonPlanSummaryDto({
+    const response = {
         termId: "term-1",
         academicYearId: "year-1",
         summary: {
@@ -161,8 +163,39 @@ describe("lesson plan mappers", () => {
           unplannedLessonsCount: 4,
           coveragePercent: 42,
         },
-        byTeacherAllocation: [],
-      }),
-    ).toMatchObject({ lessonPlansCount: 2, coveragePercent: 42 });
+        byTeacherAllocation: [
+          {
+            teacherSubjectAllocationId: "allocation-1",
+            teacher: {
+              id: "teacher-1",
+              name: "Teacher One",
+              firstName: "Teacher",
+              lastName: "One",
+            },
+            subject: {
+              id: "subject-1",
+              name: "Math",
+              nameAr: "رياضيات",
+              nameEn: "Math",
+              code: "MATH",
+              color: "#123456",
+            },
+            classroom: {
+              id: "classroom-1",
+              name: "Classroom 1",
+              nameAr: "الفصل 1",
+              nameEn: "Classroom 1",
+            },
+            plannedItemsCount: 7,
+            completedItemsCount: 3,
+            unplannedLessonsCount: 4,
+            coveragePercent: 42,
+          },
+        ],
+      };
+    expect(mapLessonPlanSummaryDto(response)).toEqual({
+      ...response.summary,
+      byTeacherAllocation: response.byTeacherAllocation,
+    });
   });
 });

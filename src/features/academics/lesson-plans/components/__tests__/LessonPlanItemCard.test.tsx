@@ -72,4 +72,31 @@ describe("lesson plan item card", () => {
     expect(screen.queryByText("actions.skip")).not.toBeInTheDocument();
     expect(screen.queryByText("actions.cancel")).not.toBeInTheDocument();
   });
+
+  it("renders rescheduled as a terminal display-only status", async () => {
+    const user = userEvent.setup();
+    render(
+      <LessonPlanItemCard
+        item={{ ...item, status: "RESCHEDULED", rawStatus: "rescheduled" }}
+        onDragStart={vi.fn()}
+        onDragEnd={vi.fn()}
+        onStatusChange={vi.fn()}
+        onEditItem={vi.fn()}
+        onRemove={vi.fn()}
+        isReadOnly={false}
+        onReorder={vi.fn()}
+        disableMoveUp
+        disableMoveDown
+      />,
+    );
+
+    expect(screen.getByText("status.RESCHEDULED")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "actions.lessonActions" }),
+    );
+    expect(screen.queryByText("actions.markInProgress")).not.toBeInTheDocument();
+    expect(screen.queryByText("actions.markDone")).not.toBeInTheDocument();
+    expect(screen.queryByText("actions.skip")).not.toBeInTheDocument();
+    expect(screen.queryByText("actions.cancel")).not.toBeInTheDocument();
+  });
 });
