@@ -18,7 +18,7 @@ import {
   StudentDocument,
 } from "@/features/students-guardians/students/types";
 import { Button, ConfirmDialog, DataTable } from "@/components/ui";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import StudentTabSkeleton from "@/features/students-guardians/students/components/StudentTabSkeleton";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import UploadDocumentModal, {
   DocumentUploadData,
@@ -371,13 +371,12 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
   const completeCount = documents.filter((d) => d.status === "complete").length;
   const missingCount = documents.filter((d) => d.status === "missing").length;
 
+  if (isLoading) {
+    return <StudentTabSkeleton variant="table" />;
+  }
+
   return (
     <div className="space-y-6">
-      {isLoading ? (
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
-          <PartialLoader size={24} />
-        </div>
-      ) : null}
       {error ? (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}

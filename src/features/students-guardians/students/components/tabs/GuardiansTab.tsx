@@ -27,7 +27,7 @@ import AddGuardianModal, {
   GuardianFormData,
 } from "@/features/students-guardians/students/components/modals/AddGuardianModal";
 import { useTranslations } from "next-intl";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import StudentTabSkeleton from "@/features/students-guardians/students/components/StudentTabSkeleton";
 import { Button, EmptyState, Input, Modal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast/Toast";
 
@@ -320,9 +320,12 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
     return phone || "N/A";
   };
 
+  if (isLoading) {
+    return <StudentTabSkeleton variant="cards" />;
+  }
+
   return (
     <div className="space-y-6">
-      {isLoading ? <PartialLoader /> : null}
       {error ? (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}

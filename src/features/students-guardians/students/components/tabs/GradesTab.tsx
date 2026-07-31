@@ -7,7 +7,9 @@ import { LineChart } from "@mui/x-charts/LineChart";
 import type { Student } from "@/features/students-guardians/students/types";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
 import { DataTable } from "@/components/ui/data-table";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import StudentEnrollmentMissingState from "@/features/students-guardians/students/components/StudentEnrollmentMissingState";
+import StudentTabSkeleton from "@/features/students-guardians/students/components/StudentTabSkeleton";
+import { isStudentEnrollmentNotFoundError } from "@/features/students-guardians/students/utils/studentProfileErrors";
 import { fetchStudentGradesSnapshot } from "@/features/grades/overview/services/gradesOverviewService";
 import type { StudentGradesSnapshot } from "@/features/grades/overview/types";
 
@@ -27,6 +29,7 @@ export default function GradesTab({
   const [snapshot, setSnapshot] = useState<StudentGradesSnapshot | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEnrollmentMissing, setIsEnrollmentMissing] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -40,6 +43,7 @@ export default function GradesTab({
 
       setIsLoading(true);
       setError(null);
+      setIsEnrollmentMissing(false);
 
       try {
         const nextSnapshot = await fetchStudentGradesSnapshot(student.id, {
@@ -53,6 +57,10 @@ export default function GradesTab({
       } catch (loadError) {
         if (!isCancelled) {
           setSnapshot(null);
+          if (isStudentEnrollmentNotFoundError(loadError)) {
+            setIsEnrollmentMissing(true);
+            return;
+          }
           const message = loadError instanceof Error ? loadError.message : "";
           if (
             message.includes("not found") ||
@@ -309,11 +317,11 @@ export default function GradesTab({
   }
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center py-8">
-        <PartialLoader />
-      </div>
-    );
+    return <StudentTabSkeleton variant="dashboard" />;
+  }
+
+  if (isEnrollmentMissing) {
+    return <StudentEnrollmentMissingState />;
   }
 
   if (error) {

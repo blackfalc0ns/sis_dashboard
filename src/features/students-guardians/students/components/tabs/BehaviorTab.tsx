@@ -21,7 +21,9 @@ import Input from "@/components/ui/input/Input";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
 import DatePicker from "@/components/ui/input/DatePicker";
 import EmptyState from "@/components/ui/empty-state/EmptyState";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import StudentEnrollmentMissingState from "@/features/students-guardians/students/components/StudentEnrollmentMissingState";
+import StudentTabSkeleton from "@/features/students-guardians/students/components/StudentTabSkeleton";
+import { isStudentEnrollmentNotFoundError } from "@/features/students-guardians/students/utils/studentProfileErrors";
 import { usePermissions } from "@/hooks/usePermissions";
 import type {
   BehaviorSummary,
@@ -98,9 +100,11 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
   const [summary, setSummary] = useState<BehaviorSummary | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(true);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [isSummaryEnrollmentMissing, setIsSummaryEnrollmentMissing] = useState(false);
   const [records, setRecords] = useState<BehaviorRecord[]>([]);
   const [isLoadingRecords, setIsLoadingRecords] = useState(true);
   const [recordsError, setRecordsError] = useState<string | null>(null);
+  const [isRecordsEnrollmentMissing, setIsRecordsEnrollmentMissing] = useState(false);
 
   const [activeView, setActiveView] = useState<"reinforcement" | "incidents">(
     "reinforcement",
@@ -130,6 +134,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
     if (!canViewBehavior) return;
     setIsLoadingSummary(true);
     setSummaryError(null);
+    setIsSummaryEnrollmentMissing(false);
     try {
       const data = await behaviorApi.fetchStudentBehaviorSummary(student.id, {
         academicYearId: yearId ?? undefined,
@@ -140,9 +145,13 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
       });
       setSummary(data);
     } catch (err) {
-      setSummaryError(
-        err instanceof Error ? err.message : "Failed to load behavior summary.",
-      );
+      if (isStudentEnrollmentNotFoundError(err)) {
+        setIsSummaryEnrollmentMissing(true);
+      } else {
+        setSummaryError(
+          err instanceof Error ? err.message : "Failed to load behavior summary.",
+        );
+      }
       setSummary(null);
     } finally {
       setIsLoadingSummary(false);
@@ -153,6 +162,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
     if (!canViewBehavior) return;
     setIsLoadingRecords(true);
     setRecordsError(null);
+    setIsRecordsEnrollmentMissing(false);
     try {
       const studentRecords = await behaviorApi.fetchBehaviorRecords({
         studentId: student.id,
@@ -161,9 +171,13 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
       });
       setRecords(studentRecords);
     } catch (err) {
-      setRecordsError(
-        err instanceof Error ? err.message : "Failed to load behavior records.",
-      );
+      if (isStudentEnrollmentNotFoundError(err)) {
+        setIsRecordsEnrollmentMissing(true);
+      } else {
+        setRecordsError(
+          err instanceof Error ? err.message : "Failed to load behavior records.",
+        );
+      }
       setRecords([]);
     } finally {
       setIsLoadingRecords(false);
@@ -374,7 +388,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   if (!isPermissionsReady) {
-    return <div className="flex justify-center py-16"><PartialLoader size={32} /></div>;
+    return <StudentTabSkeleton variant="dashboard" />;
   }
 
   if (!canViewBehavior) {
@@ -389,6 +403,14 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
         </div>
       </div>
     );
+  }
+
+  if (isSummaryEnrollmentMissing || isRecordsEnrollmentMissing) {
+    return <StudentEnrollmentMissingState />;
+  }
+
+  if (isLoadingSummary || isLoadingRecords) {
+    return <StudentTabSkeleton variant="dashboard" />;
   }
 
   return (
@@ -471,11 +493,7 @@ export default function BehaviorTab({ student }: BehaviorTabProps) {
         </div>
 
         <div className="p-6">
-          {isLoadingRecords ? (
-            <div className="flex justify-center py-10">
-              <PartialLoader size={24} />
-            </div>
-          ) : activeView === "reinforcement" ? (
+          {activeView === "reinforcement" ? (
             reinforcementRecords.length > 0 ? (
               <DataTable
                 columns={reinforcementColumns}

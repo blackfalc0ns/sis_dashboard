@@ -146,6 +146,63 @@ describe("useLessonPlansData", () => {
     expect(result.current.plans[0]?.weekIndex).toBe(1);
   });
 
+  it("loads the selected classroom and subject scope once without duplicate requests", async () => {
+    vi.mocked(fetchStructureTree).mockResolvedValue({
+      stages: [],
+      grades: [],
+      sections: [],
+      classrooms: [{ id: "classroom-1", sectionId: "section-1" }],
+    } as never);
+    vi.mocked(fetchTeacherAllocations).mockResolvedValue([
+      {
+        id: "allocation-1",
+        termId: "term-1",
+        sectionId: "section-1",
+        classroomId: "classroom-1",
+        subjectId: "subject-1",
+        teacherId: "teacher-1",
+      },
+    ]);
+    const onLoadError = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ classroomId, subjectId }) =>
+        useLessonPlansData({
+          academicYearId: "year-1",
+          termId: "term-1",
+          isInitializing: false,
+          selectedGradeId: "grade-1",
+          selectedSectionId: "section-1",
+          selectedClassroomId: classroomId,
+          selectedSubjectId: subjectId,
+          onLoadError,
+        }),
+      {
+        initialProps: {
+          classroomId: "",
+          subjectId: "",
+        },
+      },
+    );
+
+    await waitFor(() =>
+      expect(result.current.scopeStatus).toBe("missing-subject"),
+    );
+    vi.clearAllMocks();
+
+    rerender({
+      classroomId: "classroom-1",
+      subjectId: "subject-1",
+    });
+
+    await waitFor(() => expect(result.current.scopeStatus).toBe("ready"));
+    expect(fetchCurriculumForScope).toHaveBeenCalledTimes(1);
+    expect(fetchTeacherAllocations).toHaveBeenCalledTimes(1);
+    expect(listLessonPlanWeeks).toHaveBeenCalledTimes(1);
+    expect(listLessonPlans).toHaveBeenCalledTimes(1);
+    expect(getLessonPlanSummary).toHaveBeenCalledTimes(1);
+    expect(getLessonPlanValidation).toHaveBeenCalledTimes(1);
+  });
+
   it("does not resolve allocation or load lesson plans when the section requires a classroom", async () => {
     vi.mocked(fetchStructureTree).mockResolvedValue({
       stages: [],

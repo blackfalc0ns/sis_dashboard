@@ -18,7 +18,7 @@ import type {
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { useTranslations } from "next-intl";
 import { EmptyState } from "@/components/ui";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import StudentTabSkeleton from "@/features/students-guardians/students/components/StudentTabSkeleton";
 
 interface TimelineTabProps {
   student: Student;
@@ -105,6 +105,10 @@ export default function TimelineTab({ student }: TimelineTabProps) {
     return icons[type] || <Calendar className="w-6 h-6" />;
   };
 
+  if (isLoading) {
+    return <StudentTabSkeleton variant="timeline" />;
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -114,11 +118,6 @@ export default function TimelineTab({ student }: TimelineTabProps) {
           <p className="text-sm text-gray-500 mt-1">{t("subtitle")}</p>
         </div>
       </div>
-      {isLoading ? (
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
-          <PartialLoader size={24} />
-        </div>
-      ) : null}
       {error ? (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}

@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertCircle, RefreshCw, ShieldAlert } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import StudentEnrollmentMissingState from "@/features/students-guardians/students/components/StudentEnrollmentMissingState";
+import StudentTabSkeleton from "@/features/students-guardians/students/components/StudentTabSkeleton";
 import StudentProgressCard from "@/features/reinforcement/components/StudentProgressCard";
 import { getStudentReinforcementProgress } from "@/features/reinforcement/services/reinforcementOverviewService";
 import type { StudentReinforcementProgress } from "@/features/reinforcement/types";
+import { isStudentEnrollmentNotFoundError } from "@/features/students-guardians/students/utils/studentProfileErrors";
 import { usePermissions } from "@/hooks/usePermissions";
 
 interface ReinforcementProgressTabProps {
@@ -26,6 +28,7 @@ export default function ReinforcementProgressTab({
   const [progress, setProgress] = useState<StudentReinforcementProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEnrollmentMissing, setIsEnrollmentMissing] = useState(false);
   const canView = isPermissionsReady && hasPermission("reinforcement.overview.view");
   const fallbackError = t("common.error");
   const params = useMemo(
@@ -40,11 +43,16 @@ export default function ReinforcementProgressTab({
     if (!canView) return;
     setLoading(true);
     setError(null);
+    setIsEnrollmentMissing(false);
     try {
       setProgress(await getStudentReinforcementProgress(studentId, params));
     } catch (caught) {
       setProgress(null);
-      setError(caught instanceof Error ? caught.message : fallbackError);
+      if (isStudentEnrollmentNotFoundError(caught)) {
+        setIsEnrollmentMissing(true);
+      } else {
+        setError(caught instanceof Error ? caught.message : fallbackError);
+      }
     } finally {
       setLoading(false);
     }
@@ -55,7 +63,7 @@ export default function ReinforcementProgressTab({
   }, [isPermissionsReady, loadProgress]);
 
   if (!isPermissionsReady) {
-    return <div className="flex justify-center py-16"><PartialLoader size={32} /></div>;
+    return <StudentTabSkeleton variant="dashboard" />;
   }
 
   if (!canView) {
@@ -70,7 +78,11 @@ export default function ReinforcementProgressTab({
   }
 
   if (loading) {
-    return <div className="flex justify-center py-16"><PartialLoader size={32} /></div>;
+    return <StudentTabSkeleton variant="dashboard" />;
+  }
+
+  if (isEnrollmentMissing) {
+    return <StudentEnrollmentMissingState />;
   }
 
   if (error) {

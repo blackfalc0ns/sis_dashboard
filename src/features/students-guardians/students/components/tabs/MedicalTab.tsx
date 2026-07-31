@@ -11,7 +11,7 @@ import type {
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { useTranslations } from "next-intl";
 import { Button, Input, TextArea } from "@/components/ui";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import StudentTabSkeleton from "@/features/students-guardians/students/components/StudentTabSkeleton";
 
 interface MedicalTabProps {
   student: Student;
@@ -201,6 +201,10 @@ export default function MedicalTab({ student }: MedicalTabProps) {
     setIsEditing(false);
   };
 
+  if (isLoading) {
+    return <StudentTabSkeleton variant="form" />;
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -238,11 +242,6 @@ export default function MedicalTab({ student }: MedicalTabProps) {
           </div>
         )}
       </div>
-      {isLoading ? (
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
-          <PartialLoader size={24} />
-        </div>
-      ) : null}
       {error ? (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}

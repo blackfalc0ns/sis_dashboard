@@ -18,6 +18,7 @@ import {
 } from "@/features/students-guardians/enrollments/services/enrollmentsApiService";
 import { useTranslations } from "next-intl";
 import KPICardV2 from "@/components/ui/kpi-card/KPICardV2";
+import StudentTabSkeleton from "@/features/students-guardians/students/components/StudentTabSkeleton";
 
 interface EnrollmentHistoryTabProps {
   student: Student;
@@ -111,12 +112,7 @@ export default function EnrollmentHistoryTab({
   };
 
   if (isLoading) {
-    return (
-      <div className="bg-white rounded-xl p-12 shadow-sm text-center">
-        <GraduationCap className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-500">Loading enrollment...</p>
-      </div>
-    );
+    return <StudentTabSkeleton variant="timeline" />;
   }
 
   if (enrollmentHistory.length === 0) {

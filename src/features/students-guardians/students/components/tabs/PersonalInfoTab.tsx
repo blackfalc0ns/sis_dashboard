@@ -20,7 +20,7 @@ import { Button, Input, Select } from "@/components/ui";
 
 interface PersonalInfoTabProps {
   student: Student;
-  onStudentUpdated?: () => void;
+  onStudentUpdated?: (student: Student) => void;
 }
 
 type PersonalInfoFormData = {
@@ -176,8 +176,11 @@ export default function PersonalInfoTab({
 
     setIsSaving(true);
     try {
-      await updateStudent(student.id, buildPatchPayload(formData, student));
-      onStudentUpdated?.();
+      const updatedStudent = await updateStudent(
+        student.id,
+        buildPatchPayload(formData, student),
+      );
+      onStudentUpdated?.(updatedStudent);
       setSaveSuccess(t("save_success"));
       setIsEditing(false);
     } catch (error) {

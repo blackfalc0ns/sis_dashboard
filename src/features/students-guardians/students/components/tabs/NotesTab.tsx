@@ -16,7 +16,7 @@ import {
   FilterPanel,
   Select,
 } from "@/components/ui";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
+import StudentTabSkeleton from "@/features/students-guardians/students/components/StudentTabSkeleton";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import { getStudentDisplayName } from "@/features/students-guardians/students/utils/studentUtils";
 import AddNoteModal, {
@@ -212,16 +212,15 @@ export default function NotesTab({ student }: NotesTabProps) {
     },
   ];
 
+  if (isLoading) {
+    return <StudentTabSkeleton variant="table" />;
+  }
+
   return (
     <div className="space-y-6">
       {feedback ? (
         <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
           {feedback}
-        </div>
-      ) : null}
-      {isLoading ? (
-        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">
-          <PartialLoader size={24} />
         </div>
       ) : null}
       {error ? (

@@ -188,14 +188,11 @@ export function useLessonPlansData(params: Params) {
     [withWeekIndex],
   );
 
-  const refreshSummary = useCallback(
+  const refreshSummaryForQuery = useCallback(
     async (
+      query: LessonPlanSummaryQuery,
       options: RefreshLessonPlansOptions = {},
-      explicitQuery?: LessonPlanSummaryQuery,
     ) => {
-      void options.silent;
-      const query = explicitQuery || scopedLessonPlansQuery();
-      if (!query) return;
       const currentRequest = ++summaryRequestId.current;
       if (!options.silent) {
         setSummaryLoading(true);
@@ -217,17 +214,14 @@ export function useLessonPlansData(params: Params) {
         }
       }
     },
-    [scopedLessonPlansQuery],
+    [],
   );
 
-  const refreshValidation = useCallback(
+  const refreshValidationForQuery = useCallback(
     async (
+      query: LessonPlanSummaryQuery,
       options: RefreshLessonPlansOptions = {},
-      explicitQuery?: LessonPlanSummaryQuery,
     ) => {
-      void options.silent;
-      const query = explicitQuery || scopedLessonPlansQuery();
-      if (!query) return;
       const currentRequest = ++validationRequestId.current;
       if (!options.silent) {
         setValidationLoading(true);
@@ -249,7 +243,31 @@ export function useLessonPlansData(params: Params) {
         }
       }
     },
-    [scopedLessonPlansQuery],
+    [],
+  );
+
+  const refreshSummary = useCallback(
+    async (
+      options: RefreshLessonPlansOptions = {},
+      explicitQuery?: LessonPlanSummaryQuery,
+    ) => {
+      const query = explicitQuery || scopedLessonPlansQuery();
+      if (!query) return;
+      await refreshSummaryForQuery(query, options);
+    },
+    [refreshSummaryForQuery, scopedLessonPlansQuery],
+  );
+
+  const refreshValidation = useCallback(
+    async (
+      options: RefreshLessonPlansOptions = {},
+      explicitQuery?: LessonPlanSummaryQuery,
+    ) => {
+      const query = explicitQuery || scopedLessonPlansQuery();
+      if (!query) return;
+      await refreshValidationForQuery(query, options);
+    },
+    [refreshValidationForQuery, scopedLessonPlansQuery],
   );
 
   const refreshSummaryAndValidation = useCallback(
@@ -261,6 +279,17 @@ export function useLessonPlansData(params: Params) {
       void refreshValidation(options, explicitQuery);
     },
     [refreshSummary, refreshValidation],
+  );
+
+  const refreshSummaryAndValidationForQuery = useCallback(
+    (
+      query: LessonPlanSummaryQuery,
+      options: RefreshLessonPlansOptions = {},
+    ) => {
+      void refreshSummaryForQuery(query, options);
+      void refreshValidationForQuery(query, options);
+    },
+    [refreshSummaryForQuery, refreshValidationForQuery],
   );
 
   const refreshWeeks = useCallback(
@@ -451,7 +480,7 @@ export function useLessonPlansData(params: Params) {
       if (currentRequest !== requestId.current) return;
       
       // Fire summary/validation updates concurrently without blocking page load
-      void refreshSummaryAndValidation(options, summaryQuery);
+      refreshSummaryAndValidationForQuery(summaryQuery, options);
       setResolvedClassroomId(classroomId);
       setAssignedTeacherId(allocation.teacherId ?? "");
       setTeacherSubjectAllocationId(allocation.id);
@@ -495,7 +524,7 @@ export function useLessonPlansData(params: Params) {
     selectedSectionId,
     selectedSubjectId,
     termId,
-    refreshSummaryAndValidation,
+    refreshSummaryAndValidationForQuery,
   ]);
 
   useEffect(() => {

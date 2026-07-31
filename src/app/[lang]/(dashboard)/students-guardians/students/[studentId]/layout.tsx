@@ -25,6 +25,7 @@ import {
 } from "@/features/students-guardians/students/utils/studentUtils";
 import { useSectionTabs, type TabConfig } from "@/hooks/useSectionTabs";
 import { buildLocalePath } from "@/lib/routing/localePath";
+import { StudentProfileProvider } from "@/features/students-guardians/students/components/StudentProfileContext";
 
 const tabs: TabConfig[] = [
   { key: "personal", labelKey: "tabs.personal_info", icon: User },
@@ -223,7 +224,19 @@ export default function StudentProfileLayout({
             })}
           </div>
         </div>
-        <div className="p-6">{children}</div>
+        <StudentProfileProvider
+          value={{
+            student,
+            updateStudent: (updatedStudent) =>
+              setStudent((currentStudent) =>
+                currentStudent
+                  ? { ...currentStudent, ...updatedStudent }
+                  : updatedStudent,
+              ),
+          }}
+        >
+          <div className="p-6">{children}</div>
+        </StudentProfileProvider>
       </div>
     </div>
   );

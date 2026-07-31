@@ -3434,6 +3434,10 @@
       "classroom": "الفصل",
       "na": "غير متاح",
       "no_data": "لا توجد بيانات متاحة",
+      "missing_enrollment": {
+        "title": "لا يوجد تسجيل لهذا الفصل",
+        "description": "هذا الطالب غير مسجل في السنة الدراسية والفصل المحددين. اختر فترة دراسية أخرى لعرض هذه المعلومات."
+      },
       "account_linking": {
         "action": "ربط الحساب",
         "manage_required": "ربط الحسابات يتطلب settings.users.manage."

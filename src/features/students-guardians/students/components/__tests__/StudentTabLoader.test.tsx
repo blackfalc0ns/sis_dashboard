@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import StudentTabLoader from "../StudentTabLoader";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import { StudentProfileProvider } from "../StudentProfileContext";
 import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import type { Student } from "@/features/students-guardians/students/types";
 
@@ -72,26 +73,29 @@ describe("StudentTabLoader", () => {
     });
   });
 
-  it("passes academicYearId and termId from context to GradesTab", async () => {
-    vi.mocked(studentsService.fetchStudentById).mockResolvedValue(mockStudent);
+  const renderTab = (tab: "grades" | "reinforcement") =>
+    render(
+      <StudentProfileProvider
+        value={{ student: mockStudent, updateStudent: vi.fn() }}
+      >
+        <StudentTabLoader studentId="student-456" tab={tab} />
+      </StudentProfileProvider>,
+    );
 
-    render(<StudentTabLoader studentId="student-456" tab="grades" />);
+  it("renders the grades tab from the profile context without refetching the student", () => {
+    renderTab("grades");
 
-    await waitFor(() => {
-      expect(screen.getByTestId("grades-tab")).toBeInTheDocument();
-    });
-
+    expect(screen.getByTestId("grades-tab")).toBeInTheDocument();
     expect(screen.getByText("Student: student-456")).toBeInTheDocument();
     expect(screen.getByText("Year: year-2026")).toBeInTheDocument();
     expect(screen.getByText("Term: term-1")).toBeInTheDocument();
+    expect(studentsService.fetchStudentById).not.toHaveBeenCalled();
   });
 
-  it("passes the student and academic context to the reinforcement progress tab", async () => {
-    vi.mocked(studentsService.fetchStudentById).mockResolvedValue(mockStudent);
+  it("passes the student and academic context to the reinforcement progress tab", () => {
+    renderTab("reinforcement");
 
-    render(<StudentTabLoader studentId="student-456" tab={"reinforcement" as never} />);
-
-    expect(await screen.findByTestId("reinforcement-progress-tab")).toHaveTextContent(
+    expect(screen.getByTestId("reinforcement-progress-tab")).toHaveTextContent(
       "student-456:year-2026:term-1",
     );
   });

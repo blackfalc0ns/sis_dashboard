@@ -1,8 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { notFound } from "next/navigation";
-import * as studentsService from "@/features/students-guardians/students/services/studentsService";
 import type { Student } from "@/features/students-guardians/students/types";
 import OverviewTab from "@/features/students-guardians/students/components/tabs/OverviewTab";
 import PersonalInfoTab from "@/features/students-guardians/students/components/tabs/PersonalInfoTab";
@@ -16,9 +13,9 @@ import BehaviorTab from "@/features/students-guardians/students/components/tabs/
 import GradesTab from "@/features/students-guardians/students/components/tabs/GradesTab";
 import HeroJourneyTab from "@/features/students-guardians/students/components/tabs/HeroJourneyTab";
 import ReinforcementProgressTab from "@/features/students-guardians/students/components/tabs/ReinforcementProgressTab";
+import { useStudentProfile } from "@/features/students-guardians/students/components/StudentProfileContext";
 import { useStudentsGuardiansYearTermContext } from "@/features/students-guardians/shared/hooks/useStudentsGuardiansYearTermContext";
 import { Clock } from "lucide-react";
-import PartialLoader from "@/components/ui/loaders/PartialLoader";
 
 export type StudentTabKey =
   | "overview"
@@ -40,6 +37,14 @@ interface StudentTabLoaderProps {
   tab: StudentTabKey;
 }
 
+interface RenderTabOptions {
+  tab: StudentTabKey;
+  student: Student;
+  onStudentUpdated: (student: Student) => void;
+  academicYearId?: string | null;
+  termId?: string | null;
+}
+
 function ComingSoonTab({ label }: { label: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 gap-4 text-gray-400">
@@ -52,13 +57,13 @@ function ComingSoonTab({ label }: { label: string }) {
   );
 }
 
-function renderTab(
-  tab: StudentTabKey,
-  student: Student,
-  onStudentUpdated: () => void,
-  academicYearId?: string | null,
-  termId?: string | null,
-) {
+function renderTab({
+  tab,
+  student,
+  onStudentUpdated,
+  academicYearId,
+  termId,
+}: RenderTabOptions) {
   switch (tab) {
     case "overview":
       return <OverviewTab student={student} />;
@@ -106,69 +111,16 @@ function renderTab(
 }
 
 export default function StudentTabLoader({
-  studentId,
   tab,
 }: StudentTabLoaderProps) {
   const { yearId, termId } = useStudentsGuardiansYearTermContext();
-  const [student, setStudent] = useState<Student | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isNotFound, setIsNotFound] = useState(false);
+  const { student, updateStudent } = useStudentProfile();
 
-  const loadStudent = async () => {
-    setIsLoading(true);
-    setIsNotFound(false);
-    try {
-      const data = await studentsService.fetchStudentById(studentId);
-      if (!data) {
-        setIsNotFound(true);
-      } else {
-        setStudent(data);
-      }
-    } catch {
-      setIsNotFound(true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let mounted = true;
-
-    const load = async () => {
-      try {
-        const data = await studentsService.fetchStudentById(studentId);
-        if (!mounted) return;
-        if (!data) {
-          setIsNotFound(true);
-        } else {
-          setStudent(data);
-        }
-      } catch {
-        if (mounted) setIsNotFound(true);
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    };
-
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [studentId]);
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-16">
-        <PartialLoader size={32} />
-      </div>
-    );
-  }
-
-  if (isNotFound) {
-    notFound();
-  }
-
-  if (!student) return null;
-
-  return renderTab(tab, student, loadStudent, yearId, termId);
+  return renderTab({
+    tab,
+    student,
+    onStudentUpdated: updateStudent,
+    academicYearId: yearId,
+    termId,
+  });
 }

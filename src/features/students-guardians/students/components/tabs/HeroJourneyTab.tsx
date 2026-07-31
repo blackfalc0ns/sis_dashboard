@@ -16,6 +16,9 @@ import { isApiError } from "@/lib/api-error";
 import AuthenticatedFileImage from "@/components/ui/authenticated-file-image/AuthenticatedFileImage";
 import Button from "@/components/ui/button/Button";
 import Modal from "@/components/ui/modal/Modal";
+import StudentEnrollmentMissingState from "@/features/students-guardians/students/components/StudentEnrollmentMissingState";
+import StudentTabSkeleton from "@/features/students-guardians/students/components/StudentTabSkeleton";
+import { isStudentEnrollmentNotFoundError } from "@/features/students-guardians/students/utils/studentProfileErrors";
 import { usePermissions } from "@/hooks/usePermissions";
 import type { Student } from "@/features/students-guardians/students/types";
 import { getStudentHeroJourneyProgress } from "@/features/hero-journey/services/heroJourneyProgressService";
@@ -121,16 +124,20 @@ export default function HeroJourneyTab({ student, academicYearId, termId }: { st
   const [amount, setAmount] = useState("");
   const [isXpModalOpen, setIsXpModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEnrollmentMissing, setIsEnrollmentMissing] = useState(false);
   const [loading, setLoading] = useState(true);
   const query = useMemo(() => ({ academicYearId: academicYearId || undefined, termId: termId || undefined }), [academicYearId, termId]);
   const rewardsQuery = useMemo(() => ({ ...query, includeEvents: true }), [query]);
   const load = useCallback(async () => {
-    setLoading(true); setError(null);
+    setLoading(true); setError(null); setIsEnrollmentMissing(false);
     try {
       const [nextProgress, nextRewards] = await Promise.all([getStudentHeroJourneyProgress(student.id, query), getStudentHeroJourneyRewards(student.id, rewardsQuery)]);
       setProgress(normalizeHeroJourneyProgress(nextProgress));
       setRewards(normalizeHeroJourneyRewards(nextRewards));
-    } catch { setError(loadError); }
+    } catch (caught) {
+      if (isStudentEnrollmentNotFoundError(caught)) setIsEnrollmentMissing(true);
+      else setError(loadError);
+    }
     finally { setLoading(false); }
   }, [loadError, query, rewardsQuery, student.id]);
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
@@ -160,7 +167,8 @@ export default function HeroJourneyTab({ student, academicYearId, termId }: { st
     catch (caught) { setError(mutationErrorMessage(caught, t("unableAward"))); }
   };
 
-  if (loading) return <div className="grid gap-4 lg:grid-cols-2"><div className="h-56 animate-pulse rounded-xl bg-gray-100" /><div className="h-56 animate-pulse rounded-xl bg-gray-100" /></div>;
+  if (loading) return <StudentTabSkeleton variant="dashboard" />;
+  if (isEnrollmentMissing) return <StudentEnrollmentMissingState />;
   if (error && !progress.missions.length) return <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><p>{error}</p><Button type="button" variant="secondary" size="sm" className="mt-3" onClick={() => void load()}>{t("retry")}</Button></div>;
 
   const total = Math.max(progress.summary.missionsTotal, 1);

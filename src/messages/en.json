@@ -3433,6 +3433,10 @@
       "classroom": "Classroom",
       "na": "N/A",
       "no_data": "No data available",
+      "missing_enrollment": {
+        "title": "No enrollment for this term",
+        "description": "This student is not enrolled in the selected academic year and term. Choose another academic period to view this information."
+      },
       "account_linking": {
         "action": "Link account",
         "manage_required": "Linking accounts requires settings.users.manage."

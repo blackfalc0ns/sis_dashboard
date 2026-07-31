@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import GradesTab from "../GradesTab";
 import { fetchStudentGradesSnapshot } from "@/features/grades/overview/services/gradesOverviewService";
 import type { Student } from "@/features/students-guardians/students/types";
+import { ApiError } from "@/lib/api-error";
 
 // Mock next-intl
 vi.mock("next-intl", () => ({
@@ -45,6 +46,23 @@ describe("GradesTab", () => {
 
     expect(screen.getByText("missing_term_context")).toBeInTheDocument();
     expect(fetchStudentGradesSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("shows a content skeleton instead of a spinner while tab data loads", () => {
+    vi.mocked(fetchStudentGradesSnapshot).mockImplementation(
+      () => new Promise(() => undefined),
+    );
+
+    render(
+      <GradesTab
+        student={mockStudent}
+        academicYearId="year-2026"
+        termId="term-1"
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
   });
 
   it("fetches snapshot when academicYearId and termId are provided", async () => {
@@ -226,9 +244,20 @@ describe("GradesTab", () => {
     expect(screen.getByText("pending_tag")).toBeInTheDocument();
   });
 
-  it("renders no_snapshot_available error on 404 or enrollment not found", async () => {
+  it("renders the missing-enrollment state for the production not_found response", async () => {
     vi.mocked(fetchStudentGradesSnapshot).mockRejectedValue(
-      new Error("Student enrollment not found (404)")
+      new ApiError(
+        "Student enrollment not found",
+        404,
+        "not_found",
+        undefined,
+        {
+          studentId: "student-123",
+          academicYearId: "year-2026",
+          termId: "term-1",
+        },
+        "trace-1",
+      ),
     );
 
     render(
@@ -239,7 +268,9 @@ describe("GradesTab", () => {
       />
     );
 
-    expect(await screen.findByText("no_snapshot_available")).toBeInTheDocument();
+    expect(await screen.findByText("title")).toBeInTheDocument();
+    expect(screen.getByText("description")).toBeInTheDocument();
+    expect(screen.queryByText("Student enrollment not found")).not.toBeInTheDocument();
   });
 
   it("renders custom error message on generic fetch error", async () => {
@@ -258,4 +289,3 @@ describe("GradesTab", () => {
     expect(await screen.findByText("Database connection error")).toBeInTheDocument();
   });
 });
-
