@@ -1,5 +1,4 @@
 import { apiGet, apiPut } from "@/lib/api";
-import { isApiError } from "@/lib/api-error";
 import type {
   BackendTimetableConfigDto,
   TimetableConfigEnvelopeDto,
@@ -7,6 +6,7 @@ import type {
   UpsertConfigRequest,
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import { listTimetablePeriods } from "@/features/academics/timetable/services/timetablePeriodsService";
+import { isTimetableConfigNotFound } from "@/features/academics/timetable/services/timetableErrorHandling";
 import {
   type TimetableConfig,
   type TimetableConfigScope,
@@ -83,9 +83,6 @@ const requestConfig = (params: Record<string, QueryParamValue>) => ({
     ),
   ),
 });
-
-const configNotFound = (error: unknown): boolean =>
-  isApiError(error) && error.status === 404;
 
 const activeDayNumbers = (days: TimetableDay[]): number[] =>
   days.filter((day) => day.isActive).map((day) => day.index);
@@ -182,7 +179,7 @@ export async function fetchTimetableConfig(
     const periods = await listTimetablePeriods(config.id);
     return mapBackendConfigToUi(config, periods);
   } catch (error) {
-    if (configNotFound(error)) {
+    if (isTimetableConfigNotFound(error)) {
       return null;
     }
     throw error;
@@ -222,6 +219,7 @@ export async function fetchTimetableConfigs(
           academicYearId: params.academicYearId,
           termId: params.termId,
           scopeType: "SECTION",
+          gradeId: params.gradeId,
           sectionId: params.sectionId,
         })
       : Promise.resolve(null),
@@ -230,6 +228,8 @@ export async function fetchTimetableConfigs(
           academicYearId: params.academicYearId,
           termId: params.termId,
           scopeType: "CLASSROOM",
+          gradeId: params.gradeId,
+          sectionId: params.sectionId,
           classroomId: params.classroomId,
         })
       : Promise.resolve(null),

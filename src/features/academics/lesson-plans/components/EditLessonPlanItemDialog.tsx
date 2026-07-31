@@ -49,11 +49,12 @@ export default function EditLessonPlanItemDialog(props: Props) {
       props.termId,
     ],
   );
-  const { config: timetableConfig, isLoading: isTimetableConfigLoading } =
-    useTimetableConfigForScope(
-      timetableScope,
-      true,
-    );
+  const {
+    config: timetableConfig,
+    isLoading: isTimetableConfigLoading,
+    error: timetableConfigError,
+    isMissing: isTimetableConfigMissing,
+  } = useTimetableConfigForScope(timetableScope, true);
   const validDays = useMemo(() => {
     const baseValidDays = props.week.instructionalDays.filter(
       (date) =>
@@ -95,7 +96,12 @@ export default function EditLessonPlanItemDialog(props: Props) {
       new Date(date),
     );
   const save = () => {
-    if (!plannedDate || !validDays.includes(plannedDate)) return;
+    if (
+      !plannedDate ||
+      !validDays.includes(plannedDate) ||
+      timetableConfigError ||
+      isTimetableConfigMissing
+    ) return;
     props.onSave({
       title: title.trim() || null,
       notes: notes.trim() || null,
@@ -119,7 +125,12 @@ export default function EditLessonPlanItemDialog(props: Props) {
           </Button>
           <Button
             onClick={save}
-            disabled={!plannedDate || isTimetableConfigLoading}
+            disabled={
+              !plannedDate ||
+              isTimetableConfigLoading ||
+              Boolean(timetableConfigError) ||
+              isTimetableConfigMissing
+            }
             loading={props.loading}
           >
             {t("editItem.save")}
@@ -135,11 +146,20 @@ export default function EditLessonPlanItemDialog(props: Props) {
           value={plannedDate}
           onChange={(date) => { setPlannedDate(date); setSlot(null); }}
           options={validDays.map((date) => ({ value: date, label: formatDate(date) }))}
-          disabled={isTimetableConfigLoading || validDays.length === 0}
+          disabled={
+            isTimetableConfigLoading ||
+            Boolean(timetableConfigError) ||
+            isTimetableConfigMissing ||
+            validDays.length === 0
+          }
           error={
-            !isTimetableConfigLoading && validDays.length === 0
-              ? t("validation.no_instructional_days")
-              : undefined
+            timetableConfigError
+              ? t("timetableSlotOptions.loadError")
+              : isTimetableConfigMissing
+                ? t("timetableSlotOptions.noConfig")
+                : timetableConfig && validDays.length === 0
+                  ? t("validation.no_instructional_days")
+                  : undefined
           }
         />
         {plannedDate && (
@@ -152,6 +172,7 @@ export default function EditLessonPlanItemDialog(props: Props) {
             emptyOptionLabel={t("addWithoutSlot")}
             noSlotsMessage={t("timetableSlotOptions.noSlots")}
             loadingMessage={t("timetableSlotOptions.loading")}
+            loadErrorMessage={t("timetableSlotOptions.loadError")}
           />
         )}
       </div>

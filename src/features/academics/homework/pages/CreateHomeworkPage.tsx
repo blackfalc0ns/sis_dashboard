@@ -7,9 +7,9 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import DatePicker from "@/components/ui/input/DatePicker";
 import Select from "@/components/ui/input/Select";
-import TimetableSlotSelect, {
-  listAvailableTimetableDays,
-} from "@/features/academics/lesson-plans/components/TimetableSlotSelect";
+import TimetableSlotSelect from "@/features/academics/lesson-plans/components/TimetableSlotSelect";
+import { dashboardDaysForScope } from "@/features/academics/lesson-plans/services/lessonPlanTimetable";
+import { getDashboardTimetable } from "@/features/academics/timetable/services/timetableApiAdapter";
 import type { BackendTimetableEntryDto } from "@/features/academics/timetable/services/timetableApiTypes";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { AccessDenied } from "@/components/ui";
@@ -404,14 +404,28 @@ export default function CreateHomeworkPage() {
       };
     }
 
-    void listAvailableTimetableDays(timetableScope).then((days) => {
-      if (isActive) setAvailableTimetableDays(days);
-    });
+    void getDashboardTimetable({
+      termId: timetableScope.termId,
+      classroomId: timetableScope.classroomId,
+    })
+      .then((response) => {
+        if (isActive) {
+          setAvailableTimetableDays(
+            dashboardDaysForScope(response, timetableScope),
+          );
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setAvailableTimetableDays([]);
+          showError(t("messages.timetableSlotsLoadFailed"));
+        }
+      });
 
     return () => {
       isActive = false;
     };
-  }, [selectedAllocation, timetableScope]);
+  }, [selectedAllocation, showError, t, timetableScope]);
 
   const toggleSelectedStudent = (studentId: string) => {
     setDraft((current) => {
@@ -678,6 +692,7 @@ export default function CreateHomeworkPage() {
                 emptyOptionLabel={t("placeholders.timetableEntry")}
                 noSlotsMessage={t("messages.noTimetableSlots")}
                 loadingMessage={t("messages.loadingTimetableSlots")}
+                loadErrorMessage={t("messages.timetableSlotsLoadFailed")}
               />
             )}
             <Input

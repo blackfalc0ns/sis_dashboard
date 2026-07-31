@@ -1,14 +1,22 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getConfig, listEntries } from "@/features/academics/timetable/services/timetableApiAdapter";
+import { getConfig, getDashboardTimetable } from "@/features/academics/timetable/services/timetableApiAdapter";
 import type { WeekInfo } from "../../services/lessonPlansService";
 import AddLessonDialog from "../AddLessonDialog";
 
 vi.mock("@/features/academics/timetable/services/timetableApiAdapter", () => ({
   getConfig: vi.fn(),
-  listEntries: vi.fn(),
+  getDashboardTimetable: vi.fn(),
 }));
+
+const dashboard = (entries: unknown[] = []) => ({
+  termId: "term-1",
+  academicYearId: "year-1",
+  publishedAt: null,
+  isPublished: false,
+  items: [{ classroomId: "classroom-1", entries }],
+});
 
 const week = (instructionalDays: string[]): WeekInfo => ({
   weekIndex: 2,
@@ -58,12 +66,28 @@ function renderDialog(instructionalDays: string[], onConfirm = vi.fn()) {
 
 describe("AddLessonDialog planned day selection", () => {
   beforeEach(() => {
-    vi.mocked(getConfig).mockResolvedValue({
+    vi.mocked(getConfig).mockReset().mockResolvedValue({
       id: "config-1",
       activeDays: [3, 4],
       weekStartDay: 0,
     } as never);
-    vi.mocked(listEntries).mockResolvedValue([]);
+    vi.mocked(getDashboardTimetable).mockReset().mockResolvedValue(
+      dashboard() as never,
+    );
+  });
+
+  it("blocks confirmation and reports a timetable metadata load failure", async () => {
+    vi.mocked(getConfig).mockReset().mockRejectedValue(new Error("network"));
+    const onConfirm = renderDialog(["2026-09-09"]);
+
+    expect(
+      await screen.findByText("timetableSlotOptions.loadError"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("validation.no_instructional_days"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "confirm" })).toBeDisabled();
+    expect(onConfirm).not.toHaveBeenCalled();
   });
   it("defaults confirmation to the first instructional day", async () => {
     const user = userEvent.setup();
@@ -108,7 +132,7 @@ describe("AddLessonDialog planned day selection", () => {
       activeDays: [4],
       weekStartDay: 0,
     } as never);
-    vi.mocked(listEntries).mockResolvedValue([
+    vi.mocked(getDashboardTimetable).mockResolvedValue(dashboard([
       {
         id: "entry-1",
         dayOfWeek: 4,
@@ -120,7 +144,7 @@ describe("AddLessonDialog planned day selection", () => {
         subject: { id: "subject-1" },
         teacher: { userId: "teacher-1" },
       },
-    ] as never);
+    ]) as never);
     const user = userEvent.setup();
     const onConfirm = renderDialog(["2026-09-10"]);
 

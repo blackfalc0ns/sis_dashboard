@@ -102,11 +102,12 @@ export default function AddLessonDialog({
       termId,
     ],
   );
-  const { config: timetableConfig, isLoading: isTimetableConfigLoading } =
-    useTimetableConfigForScope(
-      timetableScope,
-      isOpen,
-    );
+  const {
+    config: timetableConfig,
+    isLoading: isTimetableConfigLoading,
+    error: timetableConfigError,
+    isMissing: isTimetableConfigMissing,
+  } = useTimetableConfigForScope(timetableScope, isOpen);
 
   const selectedWeek = weeks.find(
     (week) => week.weekIndex.toString() === selectedWeekIndex,
@@ -139,7 +140,13 @@ export default function AddLessonDialog({
   }, [isOpen, preselectedWeekIndex, termEndDate, termStartDate, timetableConfig, weeks]);
 
   const handleConfirm = async () => {
-    if (lesson && selectedWeekIndex && selectedPlannedDate) {
+    if (
+      lesson &&
+      selectedWeekIndex &&
+      selectedPlannedDate &&
+      !timetableConfigError &&
+      !isTimetableConfigMissing
+    ) {
       setSubmitting(true);
       try {
         await onConfirm(
@@ -198,7 +205,9 @@ export default function AddLessonDialog({
               !selectedWeekIndex ||
               !selectedPlannedDate ||
               availableInstructionalDays.length === 0 ||
-              isTimetableConfigLoading
+              isTimetableConfigLoading ||
+              Boolean(timetableConfigError) ||
+              isTimetableConfigMissing
             }
           >
             {t("confirm")}
@@ -245,11 +254,21 @@ export default function AddLessonDialog({
               value: date,
               label: formatDate(date),
             }))}
-            disabled={isTimetableConfigLoading || availableInstructionalDays.length === 0}
+            disabled={
+              isTimetableConfigLoading ||
+              Boolean(timetableConfigError) ||
+              isTimetableConfigMissing ||
+              availableInstructionalDays.length === 0
+            }
             error={
-              !isTimetableConfigLoading && availableInstructionalDays.length === 0
-                ? tLessonPlans("validation.no_instructional_days")
-                : undefined
+              timetableConfigError
+                ? tLessonPlans("timetableSlotOptions.loadError")
+                : isTimetableConfigMissing
+                  ? tLessonPlans("timetableSlotOptions.noConfig")
+                  : timetableConfig &&
+                      availableInstructionalDays.length === 0
+                    ? tLessonPlans("validation.no_instructional_days")
+                    : undefined
             }
           />
         )}
@@ -270,6 +289,7 @@ export default function AddLessonDialog({
             emptyOptionLabel={tLessonPlans("addWithoutSlot")}
             noSlotsMessage={tLessonPlans("timetableSlotOptions.noSlots")}
             loadingMessage={tLessonPlans("timetableSlotOptions.loading")}
+            loadErrorMessage={tLessonPlans("timetableSlotOptions.loadError")}
           />
         )}
       </div>

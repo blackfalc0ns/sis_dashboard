@@ -167,7 +167,11 @@ export default function LessonPlansBoard({
       termId,
     ],
   );
-  const { config: timetableConfig } = useTimetableConfigForScope(
+  const {
+    config: timetableConfig,
+    error: timetableConfigError,
+    isMissing: isTimetableConfigMissing,
+  } = useTimetableConfigForScope(
     timetableScope,
     Boolean(classroomId && termId && academicYearId),
   );
@@ -250,6 +254,14 @@ export default function LessonPlansBoard({
   const handleDropOnWeek = useCallback(
     async (weekIndex: number) => {
       if (isReadOnly || isUpdating) return;
+      if (timetableConfigError) {
+        showError(t("timetableSlotOptions.loadError"));
+        return;
+      }
+      if (isTimetableConfigMissing) {
+        showError(t("timetableSlotOptions.noConfig"));
+        return;
+      }
       if (draggedLesson && onAddLessonMobile && onSelectLessonFromLibrary) {
         onAddLessonMobile(weekIndex);
         onSelectLessonFromLibrary(draggedLesson);
@@ -371,6 +383,8 @@ export default function LessonPlansBoard({
       termStartDate,
       termEndDate,
       timetableConfig,
+      timetableConfigError,
+      isTimetableConfigMissing,
       academicYearId,
       subjectId,
       classroomId,
@@ -386,6 +400,7 @@ export default function LessonPlansBoard({
       onRefreshSummaryAndValidation,
       onAddLessonMobile,
       onSelectLessonFromLibrary,
+      t,
     ],
   );
 

@@ -102,7 +102,11 @@ describe("timetableConfigService", () => {
 
   it("returns null instead of inventing a default config when backend has none", async () => {
     mockedApiGet.mockRejectedValueOnce(
-      new ApiError("Config not found", 404, "NOT_FOUND"),
+      new ApiError(
+        "Config not found",
+        404,
+        "academics.timetable.config_not_found",
+      ),
     );
 
     await expect(
@@ -113,6 +117,26 @@ describe("timetableConfigService", () => {
       }),
     ).resolves.toBeNull();
     expect(mockedApiGet).toHaveBeenCalledTimes(1);
+  });
+
+  it("propagates other 404 errors instead of treating them as a missing config", async () => {
+    const error = new ApiError(
+      "Classroom not found",
+      404,
+      "academics.timetable.classroom_not_found",
+    );
+    mockedApiGet.mockRejectedValueOnce(error);
+
+    await expect(
+      fetchTimetableConfig({
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "CLASSROOM",
+        gradeId: "grade-1",
+        sectionId: "section-1",
+        classroomId: "classroom-1",
+      }),
+    ).rejects.toBe(error);
   });
 
   it("fetches only real scope configs for the selected timetable target", async () => {
@@ -126,7 +150,11 @@ describe("timetableConfigService", () => {
       ) {
         return backendConfig;
       }
-      throw new ApiError("Config not found", 404, "NOT_FOUND");
+      throw new ApiError(
+        "Config not found",
+        404,
+        "academics.timetable.config_not_found",
+      );
     });
 
     await expect(
@@ -145,6 +173,44 @@ describe("timetableConfigService", () => {
         termId: "term-1",
         scopeType: "GRADE",
         gradeId: "grade-1",
+      },
+    });
+  });
+
+  it("preserves grade and section ancestors in narrow config lookups", async () => {
+    mockedApiGet.mockRejectedValue(
+      new ApiError(
+        "Config not found",
+        404,
+        "academics.timetable.config_not_found",
+      ),
+    );
+
+    await fetchTimetableConfigs({
+      academicYearId: "year-1",
+      termId: "term-1",
+      gradeId: "grade-1",
+      sectionId: "section-1",
+      classroomId: "classroom-1",
+    });
+
+    expect(mockedApiGet).toHaveBeenCalledWith("/academics/timetable/config", {
+      params: {
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "SECTION",
+        gradeId: "grade-1",
+        sectionId: "section-1",
+      },
+    });
+    expect(mockedApiGet).toHaveBeenCalledWith("/academics/timetable/config", {
+      params: {
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "CLASSROOM",
+        gradeId: "grade-1",
+        sectionId: "section-1",
+        classroomId: "classroom-1",
       },
     });
   });

@@ -296,6 +296,39 @@ describe("useTimetableData", () => {
     expect(result.current.apiError).toBe("Backend says timetable failed");
   });
 
+  it("treats only the exact backend code as an absent config", async () => {
+    mockedGetConfig.mockRejectedValueOnce(
+      new ApiError(
+        "Config not found",
+        404,
+        "academics.timetable.config_not_found",
+      ),
+    );
+
+    const { result } = renderHook(() => useTimetableData(hookParams));
+
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    expect(result.current.config).toBeNull();
+    expect(result.current.apiError).toBeNull();
+  });
+
+  it("surfaces hierarchy 404 errors instead of clearing them as absent configs", async () => {
+    mockedGetConfig.mockRejectedValueOnce(
+      new ApiError(
+        "Classroom not found",
+        404,
+        "academics.timetable.classroom_not_found",
+      ),
+    );
+
+    const { result } = renderHook(() => useTimetableData(hookParams));
+
+    await waitFor(() => expect(result.current.timetableLoading).toBe(false));
+    expect(result.current.apiError).toBe(
+      "The selected classroom no longer exists or is outside this scope.",
+    );
+  });
+
   it("marks the loaded config active after publishing", async () => {
     mockedValidate.mockResolvedValueOnce({ canPublish: true });
     mockedGetPublication.mockResolvedValueOnce(activePublication);

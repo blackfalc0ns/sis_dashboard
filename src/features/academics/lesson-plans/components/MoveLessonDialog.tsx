@@ -49,11 +49,12 @@ export default function MoveLessonDialog(props: MoveLessonDialogProps) {
       props.termId,
     ],
   );
-  const { config: timetableConfig, isLoading: isTimetableConfigLoading } =
-    useTimetableConfigForScope(
-      timetableScope,
-      props.isOpen,
-    );
+  const {
+    config: timetableConfig,
+    isLoading: isTimetableConfigLoading,
+    error: timetableConfigError,
+    isMissing: isTimetableConfigMissing,
+  } = useTimetableConfigForScope(timetableScope, props.isOpen);
   const validDays = useMemo(() => {
     const baseValidDays = props.targetWeek.instructionalDays.filter(
       (date) =>
@@ -85,7 +86,7 @@ export default function MoveLessonDialog(props: MoveLessonDialogProps) {
       new Date(date),
     );
   const confirm = () => {
-    if (!plannedDate) return;
+    if (!plannedDate || timetableConfigError || isTimetableConfigMissing) return;
     props.onConfirm({
       weekIndex: props.targetWeek.weekIndex,
       plannedDate,
@@ -99,7 +100,7 @@ export default function MoveLessonDialog(props: MoveLessonDialogProps) {
       onClose={props.onClose}
       title={t("actions.move")}
       size="sm"
-      footer={<div className="flex gap-2 justify-end"><Button variant="secondary" onClick={props.onClose} disabled={props.loading}>{t("actions.cancel")}</Button><Button onClick={confirm} disabled={!plannedDate || isTimetableConfigLoading} loading={props.loading}>{t("actions.confirmMove")}</Button></div>}
+      footer={<div className="flex gap-2 justify-end"><Button variant="secondary" onClick={props.onClose} disabled={props.loading}>{t("actions.cancel")}</Button><Button onClick={confirm} disabled={!plannedDate || isTimetableConfigLoading || Boolean(timetableConfigError) || isTimetableConfigMissing} loading={props.loading}>{t("actions.confirmMove")}</Button></div>}
     >
       <div className="space-y-4">
         <Select
@@ -107,14 +108,18 @@ export default function MoveLessonDialog(props: MoveLessonDialogProps) {
           value={plannedDate}
           onChange={(date) => { setPlannedDate(date); setEntry(null); }}
           options={validDays.map((date) => ({ value: date, label: formatDate(date) }))}
-          disabled={isTimetableConfigLoading || validDays.length === 0}
+          disabled={isTimetableConfigLoading || Boolean(timetableConfigError) || isTimetableConfigMissing || validDays.length === 0}
           error={
-            !isTimetableConfigLoading && validDays.length === 0
-              ? t("validation.no_instructional_days")
-              : undefined
+            timetableConfigError
+              ? t("timetableSlotOptions.loadError")
+              : isTimetableConfigMissing
+                ? t("timetableSlotOptions.noConfig")
+                : timetableConfig && validDays.length === 0
+                  ? t("validation.no_instructional_days")
+                  : undefined
           }
         />
-        {plannedDate && <TimetableSlotSelect {...props} plannedDate={plannedDate} value={entry?.id ?? ""} onChange={setEntry} label={t("timetableSlotOptions.label")} emptyOptionLabel={t("moveWithoutSlot")} noSlotsMessage={t("timetableSlotOptions.noSlots")} loadingMessage={t("timetableSlotOptions.loading")} />}
+        {plannedDate && <TimetableSlotSelect {...props} plannedDate={plannedDate} value={entry?.id ?? ""} onChange={setEntry} label={t("timetableSlotOptions.label")} emptyOptionLabel={t("moveWithoutSlot")} noSlotsMessage={t("timetableSlotOptions.noSlots")} loadingMessage={t("timetableSlotOptions.loading")} loadErrorMessage={t("timetableSlotOptions.loadError")} />}
       </div>
     </Modal>
   );

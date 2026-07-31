@@ -2,23 +2,22 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Select from "@/components/ui/input/Select";
-import { getConfig, listEntries } from "@/features/academics/timetable/services/timetableApiAdapter";
+import {
+  getConfig,
+  getDashboardTimetable,
+} from "@/features/academics/timetable/services/timetableApiAdapter";
+import { isTimetableConfigNotFound } from "@/features/academics/timetable/services/timetableErrorHandling";
 import type {
   BackendTimetableConfigDto,
   BackendTimetableEntryDto,
-  TimetableScopeType,
 } from "@/features/academics/timetable/services/timetableApiTypes";
+import {
+  dashboardEntriesForScope,
+  timetableConfigCandidates,
+  type TimetableSlotScope,
+} from "../services/lessonPlanTimetable";
 
-export interface TimetableSlotScope {
-  academicYearId: string;
-  termId: string;
-  gradeId: string;
-  sectionId: string;
-  classroomId: string;
-  teacherUserId: string;
-  subjectId: string;
-  teacherSubjectAllocationId: string;
-}
+export type { TimetableSlotScope } from "../services/lessonPlanTimetable";
 
 interface TimetableSlotSelectProps extends TimetableSlotScope {
   plannedDate: string;
@@ -28,42 +27,12 @@ interface TimetableSlotSelectProps extends TimetableSlotScope {
   emptyOptionLabel: string;
   noSlotsMessage: string;
   loadingMessage: string;
+  loadErrorMessage: string;
 }
 
 export function dayOfWeekFromDateOnly(date: string): number {
   const [year, month, day] = date.split("-").map(Number);
   return new Date(year, month - 1, day).getDay();
-}
-
-const responseEntries = (
-  response: BackendTimetableEntryDto[] | { items: BackendTimetableEntryDto[] },
-) => (Array.isArray(response) ? response : response.items || []);
-
-export function timetableConfigAttempts(scope: TimetableSlotScope) {
-  type Attempt = {
-    academicYearId: string;
-    termId: string;
-    scopeType: TimetableScopeType;
-    classroomId?: string;
-    sectionId?: string;
-    gradeId?: string;
-  };
-  const common = {
-    academicYearId: scope.academicYearId,
-    termId: scope.termId,
-  };
-  const attempts: Attempt[] = [];
-  if (scope.classroomId) {
-    attempts.push({ ...common, scopeType: "CLASSROOM", classroomId: scope.classroomId });
-  }
-  if (scope.sectionId) {
-    attempts.push({ ...common, scopeType: "SECTION", sectionId: scope.sectionId });
-  }
-  if (scope.gradeId) {
-    attempts.push({ ...common, scopeType: "GRADE", gradeId: scope.gradeId });
-  }
-  attempts.push({ ...common, scopeType: "TERM" });
-  return attempts;
 }
 
 export function useTimetableConfigForScope(
@@ -72,38 +41,53 @@ export function useTimetableConfigForScope(
 ) {
   const [config, setConfig] = useState<BackendTimetableConfigDto | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const [isMissing, setIsMissing] = useState(false);
 
   useEffect(() => {
     let active = true;
-    if (
-      !enabled ||
-      !scope.academicYearId ||
-      !scope.termId ||
-      !scope.classroomId
-    ) {
+    const scopeIsComplete =
+      scope.academicYearId &&
+      scope.termId &&
+      scope.gradeId &&
+      scope.sectionId &&
+      scope.classroomId;
+
+    if (!enabled || !scopeIsComplete) {
       void Promise.resolve().then(() => {
+        if (!active) return;
         setConfig(null);
         setIsLoading(false);
+        setError(null);
+        setIsMissing(false);
       });
       return () => {
         active = false;
       };
     }
 
-    void Promise.resolve().then(() => setConfig(null));
-    void Promise.resolve().then(() => setIsLoading(true));
+    void Promise.resolve().then(() => {
+      if (!active) return;
+      setConfig(null);
+      setIsLoading(true);
+      setError(null);
+      setIsMissing(false);
+    });
+
     void (async () => {
-      for (const attempt of timetableConfigAttempts(scope)) {
-        if (!active) return;
+      for (const candidate of timetableConfigCandidates(scope)) {
         try {
-          const resolvedConfig = await getConfig(attempt);
-          if (active) setConfig(resolvedConfig);
+          const resolved = await getConfig(candidate);
+          if (active) setConfig(resolved);
           return;
-        } catch {
-          // Try the next broader timetable scope.
+        } catch (lookupError) {
+          if (!isTimetableConfigNotFound(lookupError)) {
+            if (active) setError(lookupError);
+            return;
+          }
         }
       }
-      if (active) setConfig(null);
+      if (active) setIsMissing(true);
     })().finally(() => {
       if (active) setIsLoading(false);
     });
@@ -113,7 +97,7 @@ export function useTimetableConfigForScope(
     };
   }, [enabled, scope]);
 
-  return { config, isLoading };
+  return { config, isLoading, error, isMissing };
 }
 
 export function activeTimetableDates(
@@ -132,79 +116,6 @@ export function activeTimetableDates(
       if (leftOffset !== rightOffset) return leftOffset - rightOffset;
       return left.localeCompare(right);
     });
-}
-
-export function filterEntriesForScope(
-  entries: BackendTimetableEntryDto[],
-): BackendTimetableEntryDto[] {
-  return entries.filter((entry) => entry.status?.toLowerCase() !== "cancelled");
-}
-
-export function entryMatchesTimetableScope(
-  entry: BackendTimetableEntryDto,
-  scope: TimetableSlotScope,
-): boolean {
-  if (entry.status?.toLowerCase() === "cancelled") return false;
-
-  const allocationMatch = Boolean(
-    entry.teacherSubjectAllocationId &&
-      scope.teacherSubjectAllocationId &&
-      entry.teacherSubjectAllocationId === scope.teacherSubjectAllocationId,
-  );
-  const flatEntry = entry as BackendTimetableEntryDto & {
-    classroomId?: string;
-    subjectId?: string;
-    teacherUserId?: string;
-    teacher?: BackendTimetableEntryDto["teacher"] & { id?: string };
-  };
-  const classroomMatch =
-    !scope.classroomId ||
-    entry.classroom?.id === scope.classroomId ||
-    flatEntry.classroomId === scope.classroomId;
-  const subjectMatch =
-    !scope.subjectId ||
-    entry.subject?.id === scope.subjectId ||
-    flatEntry.subjectId === scope.subjectId;
-  const teacherMatch =
-    !scope.teacherUserId ||
-    entry.teacher?.userId === scope.teacherUserId ||
-    flatEntry.teacherUserId === scope.teacherUserId ||
-    flatEntry.teacher?.id === scope.teacherUserId;
-
-  return allocationMatch || (classroomMatch && subjectMatch && teacherMatch);
-}
-
-export async function listAvailableTimetableDays(
-  scope: TimetableSlotScope,
-): Promise<number[]> {
-  for (const attempt of timetableConfigAttempts(scope)) {
-    try {
-      const config = await getConfig(attempt);
-      const timetableConfigId = config.timetableConfigId || config.id;
-      const entriesByDay = await Promise.all(
-        config.activeDays.map(async (dayOfWeek) => ({
-          dayOfWeek,
-          response: await listEntries({
-            timetableConfigId,
-            classroomId: scope.classroomId || undefined,
-            dayOfWeek,
-          }),
-        })),
-      );
-
-      return entriesByDay
-        .filter(({ response }) =>
-          filterEntriesForScope(responseEntries(response)).some((entry) =>
-            entryMatchesTimetableScope(entry, scope),
-          ),
-        )
-        .map(({ dayOfWeek }) => dayOfWeek);
-    } catch {
-      // Try the next broader timetable scope.
-    }
-  }
-
-  return [];
 }
 
 function entryOptionLabel(entry: BackendTimetableEntryDto): string {
@@ -235,6 +146,7 @@ export default function TimetableSlotSelect({
   emptyOptionLabel,
   noSlotsMessage,
   loadingMessage,
+  loadErrorMessage,
   academicYearId,
   termId,
   gradeId,
@@ -246,7 +158,8 @@ export default function TimetableSlotSelect({
 }: TimetableSlotSelectProps) {
   const [entries, setEntries] = useState<BackendTimetableEntryDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const scope = useMemo(
+  const [loadError, setLoadError] = useState<unknown>(null);
+  const scope = useMemo<TimetableSlotScope>(
     () => ({
       academicYearId,
       termId,
@@ -257,18 +170,33 @@ export default function TimetableSlotSelect({
       subjectId,
       teacherSubjectAllocationId,
     }),
-    [academicYearId, classroomId, gradeId, sectionId, subjectId, teacherSubjectAllocationId, teacherUserId, termId],
+    [
+      academicYearId,
+      classroomId,
+      gradeId,
+      sectionId,
+      subjectId,
+      teacherSubjectAllocationId,
+      teacherUserId,
+      termId,
+    ],
   );
 
   useEffect(() => {
     let active = true;
     onChange(null);
+    void Promise.resolve().then(() => {
+      if (!active) return;
+      setEntries([]);
+      setIsLoading(false);
+      setLoadError(null);
+    });
+
     if (
       !plannedDate ||
-      !scope.academicYearId ||
       !scope.termId ||
-      !scope.subjectId ||
-      !scope.classroomId
+      !scope.classroomId ||
+      !scope.teacherSubjectAllocationId
     ) {
       return () => {
         active = false;
@@ -278,46 +206,54 @@ export default function TimetableSlotSelect({
     void Promise.resolve().then(() => {
       if (active) setIsLoading(true);
     });
-    void (async () => {
-      for (const attempt of timetableConfigAttempts(scope)) {
+    void getDashboardTimetable({
+      termId: scope.termId,
+      classroomId: scope.classroomId,
+    })
+      .then((dashboard) => {
         if (!active) return;
-        try {
-          const config = await getConfig(attempt);
-          const response = await listEntries({
-            timetableConfigId: config.timetableConfigId || config.id,
-            classroomId: scope.classroomId || undefined,
-            dayOfWeek: dayOfWeekFromDateOnly(plannedDate),
-          });
-          const filtered = filterEntriesForScope(responseEntries(response));
-          if (active) setEntries(filtered);
-          return;
-        } catch {
-          // Try the next broader timetable scope.
-        }
-      }
-      if (active) setEntries([]);
-    })().finally(() => {
-      if (active) setIsLoading(false);
-    });
+        setEntries(
+          dashboardEntriesForScope(
+            dashboard,
+            scope,
+            dayOfWeekFromDateOnly(plannedDate),
+          ),
+        );
+      })
+      .catch((error) => {
+        if (active) setLoadError(error);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
 
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [onChange, plannedDate, scope]);
 
   return (
     <Select
       label={label}
       value={value}
-      onChange={(entryId) => onChange(entries.find((entry) => entry.id === entryId) ?? null)}
-      disabled={isLoading}
+      onChange={(entryId) =>
+        onChange(entries.find((entry) => entry.id === entryId) ?? null)
+      }
+      disabled={isLoading || Boolean(loadError)}
       options={[
         { value: "", label: isLoading ? loadingMessage : emptyOptionLabel },
         ...entries.map((entry) => ({
           value: entry.id,
           label: entryOptionLabel(entry),
-          disabled: !entryMatchesTimetableScope(entry, scope),
         })),
       ]}
-      helperText={!isLoading && entries.length === 0 ? noSlotsMessage : undefined}
+      helperText={
+        loadError
+          ? loadErrorMessage
+          : !isLoading && entries.length === 0
+            ? noSlotsMessage
+            : undefined
+      }
     />
   );
 }

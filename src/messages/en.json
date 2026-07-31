@@ -5519,7 +5519,8 @@
           "loadingTimetableDays": "Finding available lesson dates...",
           "noTimetableDays": "No scheduled lesson dates are available for this class.",
           "loadingTimetableSlots": "Loading timetable lessons...",
-          "noTimetableSlots": "No timetable lessons are available for this lesson date."
+          "noTimetableSlots": "No timetable lessons are available for this lesson date.",
+          "timetableSlotsLoadFailed": "Failed to load timetable lessons. Please try again."
         },
         "errors": {
           "contextRequired": "Select an academic year and term first.",
@@ -6549,6 +6550,8 @@
         "placeholder": "Select a timetable slot",
         "loading": "Loading timetable slots...",
         "noSlots": "No timetable slots found for this day. You can still save the lesson without a timetable slot.",
+        "loadError": "Failed to load timetable slots. Please try again.",
+        "noConfig": "No timetable configuration exists for this academic scope.",
         "optional": "Optional",
         "retry": "Retry"
       },

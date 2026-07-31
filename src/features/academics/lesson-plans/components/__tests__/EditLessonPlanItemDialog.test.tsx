@@ -1,13 +1,21 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getConfig, listEntries } from "@/features/academics/timetable/services/timetableApiAdapter";
+import { getConfig, getDashboardTimetable } from "@/features/academics/timetable/services/timetableApiAdapter";
 import EditLessonPlanItemDialog from "../EditLessonPlanItemDialog";
 
 vi.mock("@/features/academics/timetable/services/timetableApiAdapter", () => ({
   getConfig: vi.fn(),
-  listEntries: vi.fn(),
+  getDashboardTimetable: vi.fn(),
 }));
+
+const dashboard = (entries: unknown[] = []) => ({
+  termId: "term-1",
+  academicYearId: "year-1",
+  publishedAt: null,
+  isPublished: false,
+  items: [{ classroomId: "classroom-1", entries }],
+});
 
 const item = {
   id: "item-1",
@@ -50,12 +58,38 @@ const scope = {
 
 describe("EditLessonPlanItemDialog", () => {
   beforeEach(() => {
-    vi.mocked(getConfig).mockResolvedValue({
+    vi.mocked(getConfig).mockReset().mockResolvedValue({
       id: "config-1",
       activeDays: [3, 4],
       weekStartDay: 0,
     } as never);
-    vi.mocked(listEntries).mockResolvedValue([]);
+    vi.mocked(getDashboardTimetable).mockReset().mockResolvedValue(
+      dashboard() as never,
+    );
+  });
+
+  it("blocks saving and reports a timetable metadata load failure", async () => {
+    vi.mocked(getConfig).mockReset().mockRejectedValue(new Error("network"));
+    const onSave = vi.fn();
+    render(
+      <EditLessonPlanItemDialog
+        item={item}
+        week={week}
+        {...scope}
+        onClose={vi.fn()}
+        onSave={onSave}
+        loading={false}
+      />,
+    );
+
+    expect(
+      await screen.findByText("timetableSlotOptions.loadError"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("validation.no_instructional_days"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "editItem.save" })).toBeDisabled();
+    expect(onSave).not.toHaveBeenCalled();
   });
 
   it("saves title notes and another instructional day without a slot", async () => {
@@ -117,7 +151,7 @@ describe("EditLessonPlanItemDialog", () => {
       activeDays: [3],
       weekStartDay: 0,
     } as never);
-    vi.mocked(listEntries).mockReset().mockResolvedValue([
+    vi.mocked(getDashboardTimetable).mockReset().mockResolvedValue(dashboard([
       {
         id: "entry-1",
         dayOfWeek: 3,
@@ -126,7 +160,7 @@ describe("EditLessonPlanItemDialog", () => {
         teacherSubjectAllocationId: "allocation-1",
         status: "active",
       },
-    ] as never);
+    ]) as never);
     const onSave = vi.fn();
     const user = userEvent.setup();
     render(

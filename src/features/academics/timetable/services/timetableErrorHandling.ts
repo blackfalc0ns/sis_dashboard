@@ -123,6 +123,10 @@ export function isTimetableErrorCode(
   return timetableErrorCode(error) === code;
 }
 
+export const isTimetableConfigNotFound = (error: unknown): boolean =>
+  isApiError(error) &&
+  error.code === "academics.timetable.config_not_found";
+
 export function timetableFormErrors(
   error: unknown,
   fallback = "Unable to save timetable changes.",

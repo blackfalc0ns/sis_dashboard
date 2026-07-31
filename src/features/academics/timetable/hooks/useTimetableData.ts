@@ -60,7 +60,7 @@ import {
 } from "@/features/academics/timetable/services/timetableValidationSummary";
 import {
   conflictFromTimetableError,
-  isTimetableErrorCode,
+  isTimetableConfigNotFound,
   timetableErrorMessage,
   type TimetableErrorTranslator,
 } from "@/features/academics/timetable/services/timetableErrorHandling";
@@ -75,7 +75,6 @@ import type {
   TimetableConflict,
   TimetableEntry,
 } from "@/features/academics/timetable/types/timetable";
-import { isApiError } from "@/lib/api-error";
 
 interface UseTimetableDataParams {
   schoolId: string;
@@ -207,10 +206,6 @@ const configDtoToResolvedConfig = (
     id: scopeId(config),
   },
 });
-
-const configMissing = (error: unknown): boolean =>
-  (isApiError(error) && error.status === 404) ||
-  isTimetableErrorCode(error, "academics.timetable.config_not_found");
 
 const isPublicationActive = (
   publication: PublicationResponse | null,
@@ -523,7 +518,7 @@ export function useTimetableData({
       setResolvedConfig(configDtoToResolvedConfig(nextConfig, nextPeriods));
     } catch (error) {
       if (requestId !== timetableRequestIdRef.current) return;
-      if (configMissing(error)) {
+      if (isTimetableConfigNotFound(error)) {
         clearTimetableState();
         return;
       }
