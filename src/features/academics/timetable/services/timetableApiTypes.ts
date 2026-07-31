@@ -76,11 +76,46 @@ export interface BackendTimetableEntryDto {
     nameAr: string;
     nameEn: string;
   } | null;
-  teacherSubjectAllocationId: string | null;
+  teacherSubjectAllocationId: string;
   notes: string | null;
   status: BackendTimetableStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TimetableDashboardConfigSummaryDto {
+  id: string;
+  name: string;
+  scopeType: string;
+  scopeKey: string;
+  status: string;
+  activeDays: number[];
+}
+
+export interface TimetableDashboardItemDto {
+  classroomId: string;
+  classroom: {
+    id: string;
+    nameAr: string;
+    nameEn: string;
+  };
+  gradeId: string;
+  grade: {
+    id: string;
+    nameAr: string;
+    nameEn: string;
+  };
+  configs: TimetableDashboardConfigSummaryDto[];
+  periods: BackendTimetablePeriodDto[];
+  entries: BackendTimetableEntryDto[];
+}
+
+export interface TimetableDashboardAllResponseDto {
+  termId: string;
+  academicYearId: string;
+  publishedAt: string | null;
+  isPublished: boolean;
+  items: TimetableDashboardItemDto[];
 }
 
 export interface ListResponse<T> {

@@ -7,6 +7,7 @@ import type {
   CreateEntryRequest,
   CreatePeriodRequest,
   ListResponse,
+  TimetableDashboardAllResponseDto,
   TimetableScopeType,
   TimetableValidationResponse,
   UpdateEntryRequest,
@@ -101,10 +102,8 @@ const unwrap = <T>(res: T | { data?: T }): T =>
 
 export const getDashboardTimetable = (
   params: DashboardTimetableParams,
-): Promise<
-  ListResponse<BackendTimetableEntryDto> | BackendTimetableEntryDto[]
-> =>
-  apiGet<ListResponse<BackendTimetableEntryDto> | BackendTimetableEntryDto[]>(
+): Promise<TimetableDashboardAllResponseDto> =>
+  apiGet<TimetableDashboardAllResponseDto>(
     `${BASE}/all`,
     requestConfig(params),
   ).then(unwrap);
@@ -276,12 +275,17 @@ export const createTimetableApiAdapter = (
       termId,
       classroomId,
     });
-    return listResponseItems(response).map(mapBackendEntryToUi);
+    const entries =
+      response.items.find((item) => item.classroomId === classroomId)
+        ?.entries ?? [];
+    return entries.map(mapBackendEntryToUi);
   },
 
   async fetchAllTimetablesForTerm(termId) {
     const response = await getDashboardTimetable({ termId });
-    return listResponseItems(response).map(mapBackendEntryToUi);
+    return response.items
+      .flatMap((item) => item.entries)
+      .map(mapBackendEntryToUi);
   },
 
   async upsertTimetableEntries() {

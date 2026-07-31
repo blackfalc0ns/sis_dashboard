@@ -38,6 +38,44 @@ const mockedApiPatch = vi.mocked(apiPatch);
 const mockedApiPost = vi.mocked(apiPost);
 const mockedApiPut = vi.mocked(apiPut);
 
+const dashboardEntry = (
+  id: string,
+  classroomId: string,
+  dayOfWeek: number,
+) => ({
+  id,
+  timetableConfigId: `config-${classroomId}`,
+  periodId: `period-${id}`,
+  dayOfWeek,
+  period: {
+    id: `period-${id}`,
+    index: dayOfWeek + 1,
+    label: `P${dayOfWeek + 1}`,
+    startTime: "08:00",
+    endTime: "08:45",
+  },
+  classroom: {
+    id: classroomId,
+    nameAr: classroomId,
+    nameEn: classroomId,
+  },
+  subject: {
+    id: `subject-${id}`,
+    nameAr: `Subject ${id}`,
+    nameEn: `Subject ${id}`,
+  },
+  teacher: {
+    userId: `teacher-${id}`,
+    fullName: `Teacher ${id}`,
+  },
+  room: null,
+  teacherSubjectAllocationId: `allocation-${id}`,
+  notes: null,
+  status: "active" as const,
+  createdAt: "2026-07-31T08:00:00.000Z",
+  updatedAt: "2026-07-31T08:00:00.000Z",
+});
+
 describe("timetableApiAdapter", () => {
   beforeEach(() => {
     mockedApiDelete.mockReset();
@@ -284,7 +322,13 @@ describe("timetableApiAdapter", () => {
   });
 
   it("does not send a section id as a grade filter through the legacy adapter", async () => {
-    mockedApiGet.mockResolvedValueOnce({ items: [] });
+    mockedApiGet.mockResolvedValueOnce({
+      termId: "term-1",
+      academicYearId: "year-1",
+      publishedAt: null,
+      isPublished: false,
+      items: [],
+    });
 
     const adapter = createTimetableApiAdapter(() => []);
     await adapter.fetchTimetable("term-1", "section-1");
@@ -292,5 +336,69 @@ describe("timetableApiAdapter", () => {
     expect(mockedApiGet).toHaveBeenCalledWith("/academics/timetable/all", {
       params: { termId: "term-1" },
     });
+  });
+
+  it("preserves the grouped dashboard response and reads entries from its classroom items", async () => {
+    const response = {
+      termId: "term-1",
+      academicYearId: "year-1",
+      publishedAt: null,
+      isPublished: false,
+      items: [
+        {
+          classroomId: "classroom-1",
+          classroom: {
+            id: "classroom-1",
+            nameAr: "Classroom 1",
+            nameEn: "Classroom 1",
+          },
+          gradeId: "grade-1",
+          grade: {
+            id: "grade-1",
+            nameAr: "Grade 1",
+            nameEn: "Grade 1",
+          },
+          configs: [],
+          periods: [],
+          entries: [dashboardEntry("entry-1", "classroom-1", 1)],
+        },
+        {
+          classroomId: "classroom-2",
+          classroom: {
+            id: "classroom-2",
+            nameAr: "Classroom 2",
+            nameEn: "Classroom 2",
+          },
+          gradeId: "grade-1",
+          grade: {
+            id: "grade-1",
+            nameAr: "Grade 1",
+            nameEn: "Grade 1",
+          },
+          configs: [],
+          periods: [],
+          entries: [dashboardEntry("entry-2", "classroom-2", 2)],
+        },
+      ],
+    };
+    mockedApiGet
+      .mockResolvedValueOnce(response)
+      .mockResolvedValueOnce(response)
+      .mockResolvedValueOnce(response);
+
+    await expect(
+      getDashboardTimetable({ termId: "term-1" }),
+    ).resolves.toEqual(response);
+
+    const adapter = createTimetableApiAdapter(() => []);
+    await expect(
+      adapter.fetchTimetable("term-1", "section-1", "classroom-2"),
+    ).resolves.toMatchObject([{ id: "entry-2", classroomId: "classroom-2" }]);
+    await expect(adapter.fetchAllTimetablesForTerm("term-1")).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "entry-1" }),
+        expect.objectContaining({ id: "entry-2" }),
+      ]),
+    );
   });
 });
