@@ -141,10 +141,12 @@ Every request includes `academicYearId` and `termId`. Section candidates include
 `gradeId` and `sectionId`. Classroom candidates include `gradeId`, `sectionId`,
 and `classroomId` so the backend can reject inconsistent hierarchy selections.
 
-Fallback continues only when an `ApiError` has code
-`academics.timetable.config_not_found` or HTTP status `404`. Permission,
-validation, server, request-setup, and network errors stop resolution and
-propagate to the caller.
+Fallback continues only when an `ApiError` has the exact code
+`academics.timetable.config_not_found`. A generic HTTP `404` is not sufficient:
+the backend also uses `404` for invalid academic years, terms, hierarchy IDs,
+and inconsistent ancestor/descendant selections. Permission, validation,
+all other not-found responses, server, request-setup, and network errors stop
+resolution and propagate to the caller.
 
 The first successfully resolved config supplies metadata such as `activeDays`
 and `weekStartDay`. A successfully resolved specific config overrides broader
@@ -157,19 +159,26 @@ Obsolete async responses are ignored when the selected lesson-plan scope changes
 Config metadata does not own lesson-plan slot discovery. Backend Auto-plan finds
 eligible timetable entries by `termId` and `teacherSubjectAllocationId` across
 configs, excluding cancelled entries. Manual selection will follow the same
-business rule using the existing timetable dashboard and entry contracts.
+business rule through `GET /academics/timetable/all`.
+
+The frontend adapter will model that endpoint's actual response contract:
+`TimetableDashboardAllResponseDto` contains an `items` array grouped by
+classroom, and each classroom item contains its applicable `configs`, `periods`,
+and `entries`. It is not a flat entry-list response. For a classroom-scoped
+request, slot discovery reads the matching classroom item's `entries`.
 
 The frontend will:
 
-1. load timetable entries for the selected `termId` and `classroomId`;
-2. exclude cancelled entries;
-3. filter to the selected planned day;
-4. prefer an exact `teacherSubjectAllocationId` match; and
-5. use classroom, subject, and teacher IDs only when an entry lacks an
-   allocation ID.
+1. request the timetable dashboard for the selected `termId` and `classroomId`;
+2. select the response item whose `classroomId` matches the selected classroom;
+3. exclude cancelled entries;
+4. filter to the selected planned day; and
+5. require an exact, non-null `teacherSubjectAllocationId` match.
 
-An entry carrying a different non-null allocation ID is never accepted through
-the compatibility fallback.
+Entries with a different or missing allocation ID are not selectable. The
+lesson-plan create and move use cases validate this same allocation identity,
+so a classroom/subject/teacher compatibility fallback would expose choices that
+the backend rejects.
 
 The resolved config still controls active-day presentation. If there is no
 matching entry, the UI shows the existing no-slots state. If entry loading
@@ -203,7 +212,8 @@ summary, or validation requests.
 - Candidate order is classroom, section, grade, then term.
 - Candidate requests contain a consistent ancestor chain.
 - Config-not-found responses continue to the next candidate.
-- Non-404 API and network errors propagate immediately.
+- Generic `404` responses with any other error code propagate immediately.
+- Other API and network errors propagate immediately.
 - A successful specific config stops metadata fallback.
 - Obsolete config responses cannot replace the current scope.
 
@@ -211,10 +221,10 @@ summary, or validation requests.
 
 - Entries can be discovered across timetable configs for the selected
   term/classroom.
+- The dashboard adapter preserves the grouped `items[].entries` response shape.
 - Exact teacher-allocation matches are selectable.
-- Entries with another non-null allocation ID are rejected.
-- Legacy entries without allocation IDs require classroom, subject, and teacher
-  matches.
+- Entries with another allocation ID are rejected.
+- Entries without an allocation ID are rejected.
 - Cancelled and wrong-day entries are excluded.
 - Request failure and empty-result states remain distinct.
 
