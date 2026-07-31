@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import Modal from "@/components/ui/modal/Modal";
 import Button from "@/components/ui/button/Button";
@@ -45,6 +45,17 @@ interface Props {
   onNavigate: (href: string) => void;
 }
 
+interface AutoPlanRequest {
+  from: string;
+  to: string;
+  overwrite: boolean;
+}
+
+interface PreviewState {
+  response: AutoPlanLessonPlanResponseDto;
+  request: AutoPlanRequest;
+}
+
 export default function AutoPlanDialog({
   isOpen,
   termStartDate,
@@ -68,10 +79,9 @@ export default function AutoPlanDialog({
   );
   const [to, setTo] = useState<Date | null>(() => parseDateOnly(termEndDate));
   const [overwrite, setOverwrite] = useState(false);
-  const [preview, setPreview] = useState<AutoPlanLessonPlanResponseDto | null>(
-    null,
-  );
+  const [previewState, setPreviewState] = useState<PreviewState | null>(null);
   const [loading, setLoading] = useState(false);
+  const operationRequestId = useRef(0);
   const [backendMissingDataStatus, setBackendMissingDataStatus] = useState<
     Extract<
       LessonPlansMissingDataStatus,
@@ -79,13 +89,28 @@ export default function AutoPlanDialog({
     > | null
   >(null);
   useEffect(() => {
-    if (!isOpen) return;
+    const requestId = operationRequestId;
+    const currentRequest = ++requestId.current;
+    if (!isOpen) {
+      void Promise.resolve().then(() => {
+        if (currentRequest !== requestId.current) return;
+        setPreviewState(null);
+        setLoading(false);
+        setBackendMissingDataStatus(null);
+      });
+      return;
+    }
     void Promise.resolve().then(() => {
+      if (currentRequest !== requestId.current) return;
       setFrom(parseDateOnly(termStartDate));
       setTo(parseDateOnly(termEndDate));
-      setPreview(null);
+      setPreviewState(null);
+      setLoading(false);
       setBackendMissingDataStatus(null);
     });
+    return () => {
+      ++requestId.current;
+    };
   }, [isOpen, termEndDate, termStartDate]);
   const fromValue = from ? formatDateOnly(from) : undefined;
   const toValue = to ? formatDateOnly(to) : undefined;
@@ -95,7 +120,17 @@ export default function AutoPlanDialog({
   );
   const valid = !errors.from && !errors.to && Boolean(fromValue && toValue);
   const canPreview = valid && readiness.canPreview;
-  const canApply = Boolean(preview) && readiness.canApply;
+  const canApply = Boolean(previewState) && readiness.canApply;
+  const invalidatePreview = () => {
+    ++operationRequestId.current;
+    setPreviewState(null);
+    setLoading(false);
+  };
+  const closeDialog = () => {
+    invalidatePreview();
+    setBackendMissingDataStatus(null);
+    onClose();
+  };
   const backendAutoPlanError = (error: unknown) => {
     if (!(error instanceof ApiError)) return lessonPlansUiError(error);
     const messageByCode: Record<string, string> = {
@@ -125,17 +160,25 @@ export default function AutoPlanDialog({
       return;
     }
     if (!valid || !fromValue || !toValue) return;
+    const request = apply
+      ? previewState?.request
+      : { from: fromValue, to: toValue, overwrite };
+    if (!request) return;
+    const currentRequest = ++operationRequestId.current;
     setLoading(true);
     setBackendMissingDataStatus(null);
     try {
       const response = await (apply
-        ? onApply({ from: fromValue, to: toValue, overwrite })
-        : onPreview({ from: fromValue, to: toValue, overwrite }));
+        ? onApply(request)
+        : onPreview(request));
+      if (currentRequest !== operationRequestId.current) return;
       if (apply) {
-        setPreview(null);
-        onClose();
-      } else setPreview(response);
+        closeDialog();
+      } else {
+        setPreviewState({ response, request });
+      }
     } catch (error) {
+      if (currentRequest !== operationRequestId.current) return;
       if (error instanceof ApiError) {
         if (error.code === "academics.lesson_plan.auto_plan_no_curriculum") {
           setBackendMissingDataStatus("missing-curriculum");
@@ -145,9 +188,12 @@ export default function AutoPlanDialog({
       }
       showError(backendAutoPlanError(error));
     } finally {
-      setLoading(false);
+      if (currentRequest === operationRequestId.current) {
+        setLoading(false);
+      }
     }
   };
+  const preview = previewState?.response ?? null;
   const termRange =
     termStartDate && termEndDate
       ? t("labels.term_range", { start: termStartDate, end: termEndDate })
@@ -155,12 +201,12 @@ export default function AutoPlanDialog({
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={closeDialog}
       title={t("actions.autoPlan")}
       size="lg"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={closeDialog}>
             {t("actions.cancel")}
           </Button>
           <Button
@@ -283,7 +329,7 @@ export default function AutoPlanDialog({
             value={from}
             onChange={(date) => {
               setFrom(date);
-              setPreview(null);
+              invalidatePreview();
             }}
             minDate={parseDateOnly(termStartDate) ?? undefined}
             maxDate={parseDateOnly(termEndDate) ?? undefined}
@@ -296,7 +342,7 @@ export default function AutoPlanDialog({
             value={to}
             onChange={(date) => {
               setTo(date);
-              setPreview(null);
+              invalidatePreview();
             }}
             minDate={parseDateOnly(termStartDate) ?? undefined}
             maxDate={parseDateOnly(termEndDate) ?? undefined}
@@ -311,7 +357,7 @@ export default function AutoPlanDialog({
             checked={overwrite}
             onChange={(event) => {
               setOverwrite(event.target.checked);
-              setPreview(null);
+              invalidatePreview();
             }}
           />
           {t("labels.overwrite")}

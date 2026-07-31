@@ -357,10 +357,16 @@ export function useLessonPlansData(params: Params) {
     const silent = options.silent === true;
     const currentRequest = ++requestId.current;
     const clearScopedData = () => {
+      ++summaryRequestId.current;
+      ++validationRequestId.current;
       setPlans([]);
       setWeeks([]);
       setSummary(null);
+      setSummaryLoading(false);
+      setSummaryError(null);
       setValidation(null);
+      setValidationLoading(false);
+      setValidationError(null);
       setUnits([]);
       setLessons([]);
       setCurriculumId("");

@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchStructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import { fetchCurriculumForScope } from "@/features/academics/curriculum/services/curriculumService";
@@ -17,6 +17,8 @@ import {
   listLessonPlans,
   listLessonPlanWeeks,
   type LessonPlan,
+  type LessonPlanSummary,
+  type LessonPlanValidationResponseDto,
 } from "../../services/lessonPlansService";
 import { useLessonPlansData } from "../useLessonPlansData";
 
@@ -80,6 +82,32 @@ const detailPlan = {
     },
   ],
 } satisfies LessonPlan;
+const lessonPlanSummary = {
+  lessonPlansCount: 1,
+  itemsCount: 1,
+  plannedItemsCount: 1,
+  inProgressItemsCount: 0,
+  completedItemsCount: 0,
+  skippedItemsCount: 0,
+  cancelledItemsCount: 0,
+  rescheduledItemsCount: 0,
+  unplannedLessonsCount: 0,
+  coveragePercent: 100,
+  byTeacherAllocation: [],
+} satisfies LessonPlanSummary;
+const lessonPlanValidation = {
+  termId: "term-1",
+  academicYearId: "year-1",
+  summary: {
+    lessonPlansChecked: 1,
+    itemsChecked: 1,
+    missingPlannedLessons: 0,
+    holidayItems: 0,
+    outsideTermItems: 0,
+    duplicateLessons: 0,
+  },
+  issues: [],
+} satisfies LessonPlanValidationResponseDto;
 
 describe("useLessonPlansData", () => {
   beforeEach(() => {
@@ -120,8 +148,8 @@ describe("useLessonPlansData", () => {
     ]);
     vi.mocked(listLessonPlans).mockResolvedValue([summaryPlan]);
     vi.mocked(getLessonPlan).mockResolvedValue(detailPlan);
-    vi.mocked(getLessonPlanSummary).mockResolvedValue({} as never);
-    vi.mocked(getLessonPlanValidation).mockResolvedValue({} as never);
+    vi.mocked(getLessonPlanSummary).mockResolvedValue(lessonPlanSummary);
+    vi.mocked(getLessonPlanValidation).mockResolvedValue(lessonPlanValidation);
   });
 
   it("hydrates list summaries from detail before storing board plans", async () => {
@@ -230,4 +258,57 @@ describe("useLessonPlansData", () => {
     expect(fetchTeacherAllocations).not.toHaveBeenCalled();
     expect(listLessonPlans).not.toHaveBeenCalled();
   });
+
+  it("ignores stale summary and validation responses after the scope becomes incomplete", async () => {
+    const summaryRequest = deferred<LessonPlanSummary>();
+    const validationRequest = deferred<LessonPlanValidationResponseDto>();
+    vi.mocked(getLessonPlanSummary).mockReturnValue(summaryRequest.promise);
+    vi.mocked(getLessonPlanValidation).mockReturnValue(validationRequest.promise);
+    const onLoadError = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ subjectId }) =>
+        useLessonPlansData({
+          academicYearId: "year-1",
+          termId: "term-1",
+          isInitializing: false,
+          selectedGradeId: "grade-1",
+          selectedSectionId: "section-1",
+          selectedClassroomId: "",
+          selectedSubjectId: subjectId,
+          onLoadError,
+        }),
+      { initialProps: { subjectId: "subject-1" } },
+    );
+
+    await waitFor(() => expect(result.current.scopeStatus).toBe("ready"));
+    expect(result.current.summaryLoading).toBe(true);
+    expect(result.current.validationLoading).toBe(true);
+
+    rerender({ subjectId: "" });
+
+    await waitFor(() =>
+      expect(result.current.scopeStatus).toBe("missing-subject"),
+    );
+    expect(result.current.summary).toBeNull();
+    expect(result.current.validation).toBeNull();
+    expect(result.current.summaryLoading).toBe(false);
+    expect(result.current.validationLoading).toBe(false);
+
+    await act(async () => {
+      summaryRequest.resolve(lessonPlanSummary);
+      validationRequest.resolve(lessonPlanValidation);
+      await Promise.all([summaryRequest.promise, validationRequest.promise]);
+    });
+
+    expect(result.current.summary).toBeNull();
+    expect(result.current.validation).toBeNull();
+  });
 });
+
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+};

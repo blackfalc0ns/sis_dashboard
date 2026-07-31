@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useMediaQuery, useTheme } from "@mui/material";
 import {
@@ -145,6 +145,7 @@ export default function LessonPlansBoard({
   const [pendingPlanIds, setPendingPlanIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const reorderInFlightPlanIds = useRef(new Set<string>());
   const [weekFilter, setWeekFilter] = useState<WeekBoardFilter>("ALL");
   const timetableScope = useMemo(
     () => ({
@@ -544,10 +545,14 @@ export default function LessonPlansBoard({
       const plan = plans.find((candidate) =>
         candidate.items.some((item) => item.id === itemId),
       );
-      if (!plan) return;
+      if (!plan || reorderInFlightPlanIds.current.has(plan.id)) return;
       const commands = adjacentReorderCommands(plan, itemId, direction);
       if (commands.length !== 2) return;
       const affectedIds = commands.map((command) => command.itemId);
+      if (affectedIds.some((affectedId) => pendingItemIds.has(affectedId))) {
+        return;
+      }
+      reorderInFlightPlanIds.current.add(plan.id);
       affectedIds.forEach((affectedId) =>
         markItemPending(affectedId, true),
       );
@@ -576,6 +581,7 @@ export default function LessonPlansBoard({
       } catch (error) {
         showError(lessonPlansUiError(error));
       } finally {
+        reorderInFlightPlanIds.current.delete(plan.id);
         setIsUpdating(false);
         affectedIds.forEach((affectedId) =>
           markItemPending(affectedId, false),

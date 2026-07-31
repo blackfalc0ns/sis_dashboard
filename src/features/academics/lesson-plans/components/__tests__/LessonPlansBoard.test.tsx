@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -51,6 +51,9 @@ vi.mock("../WeeksBoardDesktop", () => ({
       <button onClick={() => props.onDropOnWeek(1)}>drop lesson</button>
       <button onClick={() => props.onReorder("item-2", "up")}>
         reorder lesson
+      </button>
+      <button onClick={() => props.onReorder("item-3", "up")}>
+        overlapping reorder
       </button>
       <output data-testid="pending-items">
         {[...props.pendingItemIds].sort().join(",")}
@@ -264,6 +267,33 @@ describe("LessonPlansBoard timetable metadata", () => {
       showError.mock.invocationCallOrder[0],
     );
   });
+
+  it("rejects overlapping reorder operations for the same plan", async () => {
+    const first = deferred<LessonPlanItem>();
+    const second = deferred<LessonPlanItem>();
+    vi.mocked(reorderLessonPlanItem)
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise);
+    const user = userEvent.setup();
+    renderBoard({
+      plans: [reorderPlan],
+      onRefreshPlanDetail: vi.fn().mockResolvedValue(reorderPlan),
+      onRefreshSummaryAndValidation: vi.fn().mockResolvedValue(undefined),
+    });
+
+    await user.click(screen.getByRole("button", { name: "reorder lesson" }));
+    await user.click(
+      screen.getByRole("button", { name: "overlapping reorder" }),
+    );
+
+    expect(reorderLessonPlanItem).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      first.resolve(reorderPlan.items[1]);
+      second.resolve(reorderPlan.items[0]);
+      await Promise.all([first.promise, second.promise]);
+    });
+  });
 });
 
 const deferred = <T,>() => {
@@ -315,6 +345,19 @@ const reorderPlan = {
       status: "PLANNED" as const,
       rawStatus: "planned",
       order: 20,
+      createdAt: "2026-09-01T00:00:00.000Z",
+      updatedAt: "2026-09-01T00:00:00.000Z",
+    },
+    {
+      id: "item-3",
+      planId: "plan-1",
+      lessonId: "lesson-3",
+      unitId: "unit-1",
+      unitTitle: "Unit 1",
+      lessonTitle: "Lesson 3",
+      status: "PLANNED" as const,
+      rawStatus: "planned",
+      order: 30,
       createdAt: "2026-09-01T00:00:00.000Z",
       updatedAt: "2026-09-01T00:00:00.000Z",
     },

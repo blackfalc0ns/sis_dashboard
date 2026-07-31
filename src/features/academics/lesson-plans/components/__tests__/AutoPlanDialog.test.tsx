@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api-error";
@@ -164,4 +164,79 @@ describe("AutoPlanDialog missing-data actions", () => {
       overwrite: false,
     });
   });
+
+  it("discards a preview response when the form changes before it resolves", async () => {
+    const previewRequest = deferred<typeof previewResponse>();
+    const user = userEvent.setup();
+    render(
+      <AutoPlanDialog
+        isOpen
+        termStartDate="2026-09-01"
+        termEndDate="2026-12-31"
+        onClose={vi.fn()}
+        onPreview={vi.fn().mockReturnValue(previewRequest.promise)}
+        onApply={vi.fn()}
+        showError={vi.fn()}
+        readiness={ready}
+        previewBlockedMessage="preview blocked"
+        applyBlockedMessage="apply blocked"
+        hasVisibleLessons
+        locale="en"
+        scope={scope}
+        onNavigate={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "actions.preview" }));
+    await user.click(screen.getByRole("checkbox"));
+    await act(async () => {
+      previewRequest.resolve(previewResponse);
+      await previewRequest.promise;
+    });
+
+    expect(
+      screen.getByRole("button", { name: "actions.apply" }),
+    ).toBeDisabled();
+  });
+
+  it("discards a preview response from a previous dialog session", async () => {
+    const previewRequest = deferred<typeof previewResponse>();
+    const props = {
+      termStartDate: "2026-09-01",
+      termEndDate: "2026-12-31",
+      onClose: vi.fn(),
+      onPreview: vi.fn().mockReturnValue(previewRequest.promise),
+      onApply: vi.fn(),
+      showError: vi.fn(),
+      readiness: ready,
+      previewBlockedMessage: "preview blocked",
+      applyBlockedMessage: "apply blocked",
+      hasVisibleLessons: true,
+      locale: "en",
+      scope,
+      onNavigate: vi.fn(),
+    };
+    const user = userEvent.setup();
+    const { rerender } = render(<AutoPlanDialog isOpen {...props} />);
+
+    await user.click(screen.getByRole("button", { name: "actions.preview" }));
+    rerender(<AutoPlanDialog isOpen={false} {...props} />);
+    rerender(<AutoPlanDialog isOpen {...props} />);
+    await act(async () => {
+      previewRequest.resolve(previewResponse);
+      await previewRequest.promise;
+    });
+
+    expect(
+      screen.getByRole("button", { name: "actions.apply" }),
+    ).toBeDisabled();
+  });
 });
+
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+};
