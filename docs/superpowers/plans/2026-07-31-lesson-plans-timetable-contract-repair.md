@@ -13,6 +13,10 @@
 - Frontend-only: do not modify `Moazez-Backend` or add API routes.
 - Preserve the Lesson Plans route, filters, weekly board, dialogs, permissions, and responsive layouts.
 - Preserve unrelated dirty-worktree changes, especially student-profile work.
+- If execution starts in an isolated worktree, first port only the current
+  uncommitted diffs for `useLessonPlansData.ts` and
+  `useLessonPlansData.test.tsx`; a worktree created from `HEAD` will not contain
+  the already-completed Task 1 repair.
 - `src/messages/en.json` and `src/messages/ar.json` already contain unrelated
   dirty-worktree edits; stage only Lesson Plans translation hunks with
   `git add -p` and inspect `git diff --cached` before every commit that includes
@@ -37,8 +41,11 @@
 **Interfaces:**
 - Produces: `refreshSummaryForQuery(query, options)` and `refreshValidationForQuery(query, options)`, stable callbacks that do not close over selected React scope.
 - Preserves: public `refreshSummary`, `refreshValidation`, and `refreshSummaryAndValidation` signatures returned by `useLessonPlansData`.
+- Current state: this repair and its regression test already exist as
+  uncommitted Lesson Plans changes in the shared worktree; verify and land them
+  without reverting or duplicating them.
 
-- [ ] **Step 1: Keep the duplicate-request regression test focused on observable calls**
+- [ ] **Step 1: Review the existing duplicate-request regression test**
 
 Add a test that begins with an incomplete classroom/subject selection, rerenders with the complete scope, waits for `scopeStatus === "ready"`, and asserts one call each:
 
@@ -51,7 +58,7 @@ expect(getLessonPlanSummary).toHaveBeenCalledTimes(1);
 expect(getLessonPlanValidation).toHaveBeenCalledTimes(1);
 ```
 
-- [ ] **Step 2: Run the hook test and verify the regression**
+- [ ] **Step 2: Run the hook test and verify the existing repair**
 
 Run:
 
@@ -59,9 +66,10 @@ Run:
 npm run test:run -- src/features/academics/lesson-plans/hooks/__tests__/useLessonPlansData.test.tsx
 ```
 
-Expected before the repair: the selected classroom/subject scenario reports duplicate curriculum, allocation, weeks, plan, summary, or validation calls.
+Expected in the current worktree: PASS, with one curriculum, allocation, weeks,
+plan, summary, and validation request set.
 
-- [ ] **Step 3: Separate explicit-query refreshes from state-derived callbacks**
+- [ ] **Step 3: Verify the explicit-query implementation**
 
 Implement stable query consumers:
 
@@ -147,7 +155,11 @@ const refreshSummary = useCallback(
 );
 ```
 
-In the main loader, invoke the explicit-query pair with its already-derived `summaryQuery`; do not depend on `scopedLessonPlansQuery` or the public refresh wrappers.
+Confirm the existing uncommitted implementation has these boundaries. In the
+main loader, the explicit-query pair must receive its already-derived
+`summaryQuery`; it must not depend on `scopedLessonPlansQuery` or the public
+refresh wrappers. Make changes only if the worktree diff does not match this
+contract.
 
 - [ ] **Step 4: Run the hook test and verify one request set**
 
@@ -310,8 +322,13 @@ git commit -m "fix: model grouped timetable dashboard response"
 - Modify: `src/features/academics/lesson-plans/components/TimetableSlotSelect.tsx`
 - Modify: `src/features/academics/lesson-plans/components/__tests__/TimetableSlotSelect.test.tsx`
 - Modify: `src/features/academics/lesson-plans/components/AddLessonDialog.tsx`
+- Modify: `src/features/academics/lesson-plans/components/__tests__/AddLessonDialog.test.tsx`
 - Modify: `src/features/academics/lesson-plans/components/EditLessonPlanItemDialog.tsx`
+- Modify: `src/features/academics/lesson-plans/components/__tests__/EditLessonPlanItemDialog.test.tsx`
 - Modify: `src/features/academics/lesson-plans/components/MoveLessonDialog.tsx`
+- Modify: `src/features/academics/lesson-plans/components/__tests__/MoveLessonDialog.test.tsx`
+- Modify: `src/features/academics/lesson-plans/components/LessonPlansBoard.tsx`
+- Create: `src/features/academics/lesson-plans/components/__tests__/LessonPlansBoard.test.tsx`
 - Modify: `src/features/academics/timetable/services/timetableErrorHandling.ts`
 - Modify: `src/features/academics/timetable/services/timetableConfigService.ts`
 - Modify: `src/features/academics/timetable/services/__tests__/timetableConfigService.test.ts`
@@ -328,7 +345,12 @@ git commit -m "fix: model grouped timetable dashboard response"
   `timetableConfigCandidates(scope): TimetableConfigLookupParams[]`.
 - Produces: shared `isTimetableConfigNotFound(error): boolean` from `timetableErrorHandling.ts`.
 - Produces: `dashboardEntriesForScope(response, scope, dayOfWeek): BackendTimetableEntryDto[]`.
+- Produces: `useTimetableConfigForScope(scope, enabled)` result
+  `{ config, isLoading, error, isMissing }`.
 - Preserves: the first successful config as the sole source of `activeDays` and `weekStartDay`.
+- Removes: unused `listAvailableTimetableDays`, `responseEntries`,
+  `filterEntriesForScope`, and the compatibility-based
+  `entryMatchesTimetableScope`.
 
 - [ ] **Step 1: Write pure resolver and entry-selection tests**
 
@@ -368,6 +390,8 @@ Also prove in the lesson-plan and timetable service tests:
 - network errors return `false`;
 - `fetchTimetableConfig` returns `null` only for the exact config-not-found code;
 - `fetchTimetableConfig` propagates hierarchy/entity 404 errors;
+- `fetchTimetableConfigs` supplies `gradeId` to section lookups and both
+  `gradeId` and `sectionId` to classroom lookups;
 - the matching classroom item is selected from `response.items`;
 - only the selected day, non-cancelled status, and exact allocation ID survive;
 - a missing or different allocation ID is rejected.
@@ -413,6 +437,7 @@ Export `TimetableSlotScope` from `TimetableSlotSelect.tsx` as a type re-export
 so its existing dialog imports remain valid:
 
 ```ts
+import type { TimetableSlotScope } from "../services/lessonPlanTimetable";
 export type { TimetableSlotScope } from "../services/lessonPlanTimetable";
 ```
 
@@ -450,6 +475,28 @@ export const isTimetableConfigNotFound = (error: unknown): boolean =>
 Replace `error.status === 404` checks in `timetableConfigService.ts` and
 `useTimetableData.ts` with this shared guard.
 
+When `fetchTimetableConfigs` constructs exact lookup requests, preserve the
+ancestor chain already present in `FetchTimetableConfigsParams`:
+
+```ts
+fetchTimetableConfig({
+  academicYearId: params.academicYearId,
+  termId: params.termId,
+  scopeType: "SECTION",
+  gradeId: params.gradeId,
+  sectionId: params.sectionId,
+});
+
+fetchTimetableConfig({
+  academicYearId: params.academicYearId,
+  termId: params.termId,
+  scopeType: "CLASSROOM",
+  gradeId: params.gradeId,
+  sectionId: params.sectionId,
+  classroomId: params.classroomId,
+});
+```
+
 - [ ] **Step 4: Run the pure tests and verify all branches pass**
 
 Run:
@@ -462,16 +509,28 @@ Expected: PASS.
 
 - [ ] **Step 5: Rewrite component tests around independent requests**
 
-Mock `getConfig` and `getDashboardTimetable`, not `listEntries`. Add interaction tests proving:
+Mock `getConfig` for `useTimetableConfigForScope` tests and
+`getDashboardTimetable` for selector tests; remove `listEntries` mocks. Add
+tests proving:
 
 - config lookup sends the complete ancestor chain;
 - exact config-not-found advances to the next candidate;
 - generic 404, permission, and network failures stop without broader attempts;
-- a successful classroom config with no matching entries does not trigger metadata fallback;
+- the config hook exposes non-config-not-found errors to its caller;
+- exhausting all four exact config candidates sets `isMissing: true` without
+  manufacturing an API error;
+- a successful classroom config stops metadata fallback, regardless of whether
+  the independent dashboard request has matching entries;
 - dashboard entries from multiple configs appear when their allocation matches;
-- missing/different allocation entries are absent or disabled and cannot call `onChange`;
+- missing/different allocation entries are absent and cannot call `onChange`;
 - dashboard failure renders an error state distinct from `noSlotsMessage`;
 - rerendering with a new scope ignores the obsolete config/dashboard response.
+
+Add focused dialog/board assertions that a metadata error renders
+`timetableSlotOptions.loadError`, does not render
+`validation.no_instructional_days`, and prevents add, edit, move, or drag
+mutations. This prevents a permission, hierarchy, or network failure from being
+misreported as a school calendar with zero instructional days.
 
 - [ ] **Step 6: Run the component test and verify current behavior fails**
 
@@ -492,15 +551,14 @@ import {
   dashboardEntriesForScope,
   timetableConfigCandidates,
 } from "../services/lessonPlanTimetable";
-import { isTimetableConfigNotFound } from
-  "@/features/academics/timetable/services/timetableErrorHandling";
+import { isTimetableConfigNotFound } from "@/features/academics/timetable/services/timetableErrorHandling";
 import {
   getConfig,
   getDashboardTimetable,
 } from "@/features/academics/timetable/services/timetableApiAdapter";
 ```
 
-Metadata resolution must use:
+`useTimetableConfigForScope` owns metadata resolution and must use:
 
 ```ts
 for (const candidate of timetableConfigCandidates(scope)) {
@@ -514,7 +572,16 @@ for (const candidate of timetableConfigCandidates(scope)) {
 }
 ```
 
-Load slots independently:
+Catch non-config-not-found errors inside the hook's async effect, store them in
+`error`, and return `{ config, isLoading, error, isMissing }`; do not allow an
+unhandled rejected promise. Set `isMissing` only after every exact candidate
+returns `academics.timetable.config_not_found`. Clear `error` and `isMissing`
+when a new enabled scope begins and ignore stale responses after cleanup.
+
+The default `TimetableSlotSelect` component must not call `getConfig`. Its
+parent dialog has already resolved metadata to build the valid date list, and a
+second config request would reintroduce duplicate calls. Load slots only from
+the dashboard:
 
 ```ts
 const dashboard = await getDashboardTimetable({
@@ -528,11 +595,15 @@ const entries = dashboardEntriesForScope(
 );
 ```
 
-Maintain separate loading/error state for config metadata and dashboard entries. Reset both on scope changes, guard every state write with the active request flag, and never translate an exception into an empty entry array.
+The selector maintains only dashboard loading/error state. Reset it on scope
+changes, guard every state write with the active request flag, and never
+translate an exception into an empty entry array. Delete the unused
+single-config `listAvailableTimetableDays` path and compatibility helpers so no
+export preserves behavior that the backend would reject.
 
 Add a required `loadErrorMessage: string` prop. Render it as the Select helper
-text when either request has failed; render `noSlotsMessage` only after both
-requests succeeded and the filtered entry list is empty:
+text when the dashboard request has failed; render `noSlotsMessage` only after
+the dashboard request succeeded and the filtered entry list is empty:
 
 ```tsx
 helperText={
@@ -545,14 +616,33 @@ helperText={
 ```
 
 Pass `t("timetableSlotOptions.loadError")` from `AddLessonDialog`,
-`EditLessonPlanItemDialog`, and `MoveLessonDialog`. Add matching locale values:
+`EditLessonPlanItemDialog`, and `MoveLessonDialog`. Read `error` from
+`useTimetableConfigForScope`; show `loadError` on the planned-day Select and
+disable confirmation when that error exists. `LessonPlansBoard` must check the
+same hook error before drag/create logic and call
+`showError(t("timetableSlotOptions.loadError"))` instead of the
+no-instructional-days message.
+
+Read `isMissing` separately and show
+`t("timetableSlotOptions.noConfig")`. Reserve
+`validation.no_instructional_days` for a successfully resolved config whose
+active days do not overlap the selected teaching week. Prevent add, edit, move,
+and drag mutations while `isMissing` is true.
+
+Add matching locale values:
 
 ```json
-"loadError": "Failed to load timetable slots. Please try again."
+{
+  "loadError": "Failed to load timetable slots. Please try again.",
+  "noConfig": "No timetable configuration exists for this academic scope."
+}
 ```
 
 ```json
-"loadError": "تعذر تحميل حصص الجدول. يرجى المحاولة مرة أخرى."
+{
+  "loadError": "تعذر تحميل حصص الجدول. يرجى المحاولة مرة أخرى.",
+  "noConfig": "لا يوجد إعداد للجدول الدراسي لهذا النطاق الأكاديمي."
+}
 ```
 
 - [ ] **Step 8: Run timetable selector and adapter tests**
@@ -560,7 +650,7 @@ Pass `t("timetableSlotOptions.loadError")` from `AddLessonDialog`,
 Run:
 
 ```powershell
-npm run test:run -- src/features/academics/lesson-plans/components/__tests__/TimetableSlotSelect.test.tsx src/features/academics/lesson-plans/services/__tests__/lessonPlanTimetable.test.ts src/features/academics/timetable/services/__tests__/timetableApiAdapter.test.ts src/features/academics/timetable/services/__tests__/timetableConfigService.test.ts src/features/academics/timetable/hooks/__tests__/useTimetableData.test.tsx
+npm run test:run -- src/features/academics/lesson-plans/components/__tests__/TimetableSlotSelect.test.tsx src/features/academics/lesson-plans/components/__tests__/AddLessonDialog.test.tsx src/features/academics/lesson-plans/components/__tests__/EditLessonPlanItemDialog.test.tsx src/features/academics/lesson-plans/components/__tests__/MoveLessonDialog.test.tsx src/features/academics/lesson-plans/components/__tests__/LessonPlansBoard.test.tsx src/features/academics/lesson-plans/services/__tests__/lessonPlanTimetable.test.ts src/features/academics/timetable/services/__tests__/timetableApiAdapter.test.ts src/features/academics/timetable/services/__tests__/timetableConfigService.test.ts src/features/academics/timetable/hooks/__tests__/useTimetableData.test.tsx
 ```
 
 Expected: PASS.
@@ -568,7 +658,7 @@ Expected: PASS.
 - [ ] **Step 9: Commit timetable resolution and slot discovery**
 
 ```powershell
-git add -- src/features/academics/lesson-plans/services/lessonPlanTimetable.ts src/features/academics/lesson-plans/services/__tests__/lessonPlanTimetable.test.ts src/features/academics/lesson-plans/components/TimetableSlotSelect.tsx src/features/academics/lesson-plans/components/__tests__/TimetableSlotSelect.test.tsx src/features/academics/lesson-plans/components/AddLessonDialog.tsx src/features/academics/lesson-plans/components/EditLessonPlanItemDialog.tsx src/features/academics/lesson-plans/components/MoveLessonDialog.tsx src/features/academics/timetable/services/timetableErrorHandling.ts src/features/academics/timetable/services/timetableConfigService.ts src/features/academics/timetable/services/__tests__/timetableConfigService.test.ts src/features/academics/timetable/hooks/useTimetableData.ts src/features/academics/timetable/hooks/__tests__/useTimetableData.test.tsx
+git add -- src/features/academics/lesson-plans/services/lessonPlanTimetable.ts src/features/academics/lesson-plans/services/__tests__/lessonPlanTimetable.test.ts src/features/academics/lesson-plans/components/TimetableSlotSelect.tsx src/features/academics/lesson-plans/components/__tests__/TimetableSlotSelect.test.tsx src/features/academics/lesson-plans/components/AddLessonDialog.tsx src/features/academics/lesson-plans/components/__tests__/AddLessonDialog.test.tsx src/features/academics/lesson-plans/components/EditLessonPlanItemDialog.tsx src/features/academics/lesson-plans/components/__tests__/EditLessonPlanItemDialog.test.tsx src/features/academics/lesson-plans/components/MoveLessonDialog.tsx src/features/academics/lesson-plans/components/__tests__/MoveLessonDialog.test.tsx src/features/academics/lesson-plans/components/LessonPlansBoard.tsx src/features/academics/lesson-plans/components/__tests__/LessonPlansBoard.test.tsx src/features/academics/timetable/services/timetableErrorHandling.ts src/features/academics/timetable/services/timetableConfigService.ts src/features/academics/timetable/services/__tests__/timetableConfigService.test.ts src/features/academics/timetable/hooks/useTimetableData.ts src/features/academics/timetable/hooks/__tests__/useTimetableData.test.tsx
 git add -p -- src/messages/en.json src/messages/ar.json
 git diff --cached -- src/messages/en.json src/messages/ar.json
 git commit -m "fix: align lesson plan timetable selection"
@@ -584,6 +674,7 @@ git commit -m "fix: align lesson plan timetable selection"
 - Modify: `src/features/academics/lesson-plans/services/__tests__/lessonPlansMappers.test.ts`
 - Modify: `src/features/academics/lesson-plans/components/__tests__/lessonPlanBoardActions.test.ts`
 - Modify: `src/features/academics/lesson-plans/components/__tests__/LessonPlanItemCard.test.tsx`
+- Modify: `src/features/academics/lesson-plans/components/__tests__/LessonPlanValidationPanel.test.tsx`
 - Modify: `src/messages/en.json`
 - Modify: `src/messages/ar.json`
 
@@ -695,11 +786,15 @@ Add `RESCHEDULED: []` to the transition record. Add a localized status label and
 Add matching locale entries:
 
 ```json
-"RESCHEDULED": "Rescheduled"
+{
+  "RESCHEDULED": "Rescheduled"
+}
 ```
 
 ```json
-"RESCHEDULED": "تمت إعادة الجدولة"
+{
+  "RESCHEDULED": "تمت إعادة الجدولة"
+}
 ```
 
 Under `academics.lessonPlans.validationIssues`, add matching English and Arabic keys for:
@@ -711,6 +806,10 @@ holiday_planned_item
 outside_term_item
 duplicate_planned_lesson
 ```
+
+Extend `LessonPlanValidationPanel.test.tsx` with all five exact backend codes
+and one unknown code. Assert the exact codes use localized messages and the
+unknown code renders `issue.message`.
 
 - [ ] **Step 6: Run DTO, mapper, card, action, and locale tests**
 
@@ -725,7 +824,7 @@ Expected: PASS; allocation data survives mapping and `RESCHEDULED` exposes no li
 - [ ] **Step 7: Commit lesson-plan contract presentation**
 
 ```powershell
-git add -- src/features/academics/lesson-plans/services/lessonPlansBackendTypes.ts src/features/academics/lesson-plans/services/lessonPlansMappers.ts src/features/academics/lesson-plans/components/lessonPlanBoardActions.ts src/features/academics/lesson-plans/components/LessonPlanItemCard.tsx src/features/academics/lesson-plans/services/__tests__/lessonPlansMappers.test.ts src/features/academics/lesson-plans/components/__tests__/lessonPlanBoardActions.test.ts src/features/academics/lesson-plans/components/__tests__/LessonPlanItemCard.test.tsx
+git add -- src/features/academics/lesson-plans/services/lessonPlansBackendTypes.ts src/features/academics/lesson-plans/services/lessonPlansMappers.ts src/features/academics/lesson-plans/components/lessonPlanBoardActions.ts src/features/academics/lesson-plans/components/LessonPlanItemCard.tsx src/features/academics/lesson-plans/services/__tests__/lessonPlansMappers.test.ts src/features/academics/lesson-plans/components/__tests__/lessonPlanBoardActions.test.ts src/features/academics/lesson-plans/components/__tests__/LessonPlanItemCard.test.tsx src/features/academics/lesson-plans/components/__tests__/LessonPlanValidationPanel.test.tsx
 git add -p -- src/messages/en.json src/messages/ar.json
 git diff --cached -- src/messages/en.json src/messages/ar.json
 git commit -m "fix: complete lesson plan response presentation"
@@ -737,7 +836,7 @@ git commit -m "fix: complete lesson plan response presentation"
 - Modify: `src/features/academics/lesson-plans/components/lessonPlanBoardActions.ts`
 - Modify: `src/features/academics/lesson-plans/components/LessonPlansBoard.tsx`
 - Modify: `src/features/academics/lesson-plans/components/__tests__/lessonPlanBoardActions.test.ts`
-- Create: `src/features/academics/lesson-plans/components/__tests__/LessonPlansBoard.test.tsx`
+- Modify: `src/features/academics/lesson-plans/components/__tests__/LessonPlansBoard.test.tsx`
 
 **Interfaces:**
 - Produces: `adjacentReorderCommands(plan, itemId, direction)` returning exactly two `ReorderLessonPlanItemCommand` values or an empty array at a boundary.
@@ -893,11 +992,17 @@ git commit -m "fix: reconcile adjacent lesson plan reorder"
 - Modify: `src/features/academics/lesson-plans/components/AutoPlanDialog.tsx`
 - Modify: `src/features/academics/lesson-plans/components/__tests__/AutoPlanDialog.test.tsx`
 - Modify: `src/features/academics/lesson-plans/pages/LessonPlansPage.tsx`
+- Modify: `src/features/academics/lesson-plans/pages/lessonPlansPageState.ts`
+- Modify: `src/features/academics/lesson-plans/pages/__tests__/lessonPlansPageState.test.ts`
 - Modify: `src/messages/en.json`
 - Modify: `src/messages/ar.json`
 
 **Interfaces:**
 - Produces: `AutoPlanReadiness` with `canPreview`, `canApply`, `previewBlockingReasons`, `applyBlockingReasons`, and `warnings`.
+- Produces: `canOpenAutoPlan({ canManage, canPreview }): boolean` for the page
+  header gate.
+- Produces: `AutoPlanDialog` props `previewBlockedMessage` and
+  `applyBlockedMessage`.
 - Consumes: existing `previewAutoPlan` and `applyAutoPlan` functions, which already force `dryRun: true` and `dryRun: false` respectively.
 - Preserves: all readiness checks except closed-term writability is Apply-only.
 
@@ -975,6 +1080,8 @@ Update fixtures to the new readiness shape. Assert:
 - Apply never calls `onApply` while `canApply` is false;
 - open-term preview followed by Apply still calls both handlers;
 - preview and Apply show their corresponding first blocked reason.
+- the readiness checklist uses preview reasons, while a closed-term Apply-only
+  warning remains visible after a successful preview.
 
 - [ ] **Step 6: Run the dialog test and verify the single gate fails**
 
@@ -1005,11 +1112,68 @@ if (!readiness.canApply) return;
 await onApply(values);
 ```
 
-In `LessonPlansPage`, allow the Auto-plan dialog trigger for closed terms when the user has `academics.lesson_plans.manage` and `canPreview` is true. Continue disabling all other lesson-plan mutations through the existing read-only gate. Pass the readiness object unchanged to the dialog.
+Replace every `readiness.canAutoPlan` and `readiness.blockingReasons` reference
+inside `AutoPlanDialog`. The readiness badge and prerequisite checklist use
+`canPreview` and `previewBlockingReasons`. The Preview button uses
+`canPreview`; the Apply button uses `canApply` and still requires a completed
+preview.
+
+Change the dialog interface from one ambiguous `blockedMessage` to:
+
+```ts
+previewBlockedMessage: string;
+applyBlockedMessage: string;
+```
+
+Use the matching message in each handler guard. After a closed-term preview,
+render `applyBlockedMessage` near the disabled Apply action so the user is not
+left with an unexplained disabled button.
+
+Add and test this page-state helper:
+
+```ts
+export function canOpenAutoPlan(input: {
+  canManage: boolean;
+  canPreview: boolean;
+}): boolean {
+  return input.canManage && input.canPreview;
+}
+```
+
+In `LessonPlansPage`, derive separate first preview/apply reasons and localized
+messages. Use `canOpenAutoPlan` for the header gate, which allows a closed-term
+manager to open the dialog when preview-ready without weakening `isReadOnly`
+for create, edit, reorder, lifecycle, move, or delete operations:
+
+```ts
+const canOpenAutoPlanDialog = canOpenAutoPlan({
+  canManage: canManageLessonPlans,
+  canPreview: autoPlanReadiness.canPreview,
+});
+```
+
+Pass `previewBlockedMessage` and `applyBlockedMessage` to the dialog.
 
 - [ ] **Step 8: Add matching closed-term preview copy**
 
-Add English and Arabic messages explaining that preview is available but Apply is disabled because the term is closed. Keep keys identical between locales and reuse `autoPlan.readiness.closed_term` for the Apply blocked reason.
+Change the existing Apply-only reason to:
+
+```json
+{
+  "closed_term": "Preview is available, but applying Auto-plan is disabled because the selected term is closed."
+}
+```
+
+```json
+{
+  "closed_term": "يمكنك معاينة التخطيط التلقائي، لكن لا يمكن تطبيقه لأن الفصل الدراسي مغلق."
+}
+```
+
+Keep keys identical between locales. In `backendAutoPlanError`, map backend code
+`academics.lesson_plan.closed_term` to `tReadiness("closed_term")`; the current
+`closedTerm` lookup does not exist under the Lesson Plans Auto-plan readiness
+namespace.
 
 - [ ] **Step 9: Run readiness, dialog, page-state, and mutation tests**
 
@@ -1024,7 +1188,7 @@ Expected: PASS, including explicit `dryRun: true` preview and `dryRun: false` Ap
 - [ ] **Step 10: Commit Auto-plan readiness**
 
 ```powershell
-git add -- src/features/academics/lesson-plans/services/autoPlanReadiness.ts src/features/academics/lesson-plans/services/__tests__/autoPlanReadiness.test.ts src/features/academics/lesson-plans/components/AutoPlanDialog.tsx src/features/academics/lesson-plans/components/__tests__/AutoPlanDialog.test.tsx src/features/academics/lesson-plans/pages/LessonPlansPage.tsx
+git add -- src/features/academics/lesson-plans/services/autoPlanReadiness.ts src/features/academics/lesson-plans/services/__tests__/autoPlanReadiness.test.ts src/features/academics/lesson-plans/components/AutoPlanDialog.tsx src/features/academics/lesson-plans/components/__tests__/AutoPlanDialog.test.tsx src/features/academics/lesson-plans/pages/LessonPlansPage.tsx src/features/academics/lesson-plans/pages/lessonPlansPageState.ts src/features/academics/lesson-plans/pages/__tests__/lessonPlansPageState.test.ts
 git add -p -- src/messages/en.json src/messages/ar.json
 git diff --cached -- src/messages/en.json src/messages/ar.json
 git commit -m "fix: allow closed term auto plan previews"
@@ -1038,6 +1202,8 @@ git commit -m "fix: allow closed term auto plan previews"
 
 **Interfaces:**
 - Verifies: the implemented behavior against the approved design and pinned backend commit.
+- Verifies: shared timetable-config changes against Attendance Roll Call,
+  Excuses, and Policy consumers.
 - Produces: no new feature surface; only corrections found by verification.
 
 - [ ] **Step 1: Run the complete focused Lesson Plans suite**
@@ -1056,7 +1222,20 @@ npm run test:run -- src/features/academics/timetable
 
 Expected: all timetable adapter, service, hook, component, and utility tests pass.
 
-- [ ] **Step 3: Verify locale JSON and recursive key parity**
+- [ ] **Step 3: Run shared Attendance consumer regressions**
+
+Run the shared timetable-config consumer suite first:
+
+```powershell
+npm run test:run -- src/features/attendance
+```
+
+Expected: all Attendance policy, excuse, roll-call, late/early, absence, and
+report tests pass. In particular, config-not-found remains a normal missing
+scope only for `academics.timetable.config_not_found`; permission, invalid
+hierarchy, and network errors remain visible.
+
+- [ ] **Step 4: Verify locale JSON and recursive key parity**
 
 Run:
 
@@ -1075,21 +1254,23 @@ const flatten = (value, prefix = "", result = []) => {
   }
   return result;
 };
-const enKeys = new Set(flatten(en));
-const arKeys = new Set(flatten(ar));
+const enKeys = new Set(flatten(en.academics.lessonPlans));
+const arKeys = new Set(flatten(ar.academics.lessonPlans));
 const onlyEn = [...enKeys].filter((key) => !arKeys.has(key));
 const onlyAr = [...arKeys].filter((key) => !enKeys.has(key));
 if (onlyEn.length || onlyAr.length) {
   console.error({ onlyEn, onlyAr });
   process.exit(1);
 }
-console.log(`Locale parity OK: ${enKeys.size} leaf keys`);
+console.log(`Lesson Plans locale parity OK: ${enKeys.size} leaf keys`);
 '@ | node
 ```
 
-Expected: exit code `0` and `Locale parity OK`.
+Expected: exit code `0` and `Lesson Plans locale parity OK`. Scope the check to
+Lesson Plans because unrelated dirty Behavior translation work is outside this
+plan and must not be staged or repaired here.
 
-- [ ] **Step 4: Run TypeScript and scoped ESLint**
+- [ ] **Step 5: Run TypeScript and scoped ESLint**
 
 ```powershell
 npm run typecheck
@@ -1098,7 +1279,7 @@ npx eslint src/features/academics/lesson-plans src/features/academics/timetable
 
 Expected: both commands exit `0`.
 
-- [ ] **Step 5: Check whitespace and review only in-scope diffs**
+- [ ] **Step 6: Check whitespace and review only in-scope diffs**
 
 ```powershell
 git diff --check
@@ -1107,13 +1288,13 @@ git diff -- src/features/academics/lesson-plans src/features/academics/timetable
 
 Expected: no whitespace errors; no student-profile or unrelated feature edits appear in the implementation commits.
 
-- [ ] **Step 6: Run required code and test quality gates**
+- [ ] **Step 7: Run required code and test quality gates**
 
 Invoke `clean-code-guard` for changed production code and `test-guard` for changed Vitest/Testing Library tests. Fix concrete findings, rerun the affected focused tests, TypeScript, ESLint, locale parity, and `git diff --check`.
 
-- [ ] **Step 7: Commit verification corrections only if needed**
+- [ ] **Step 8: Commit verification corrections only if needed**
 
-If Step 6 required changes:
+If Step 7 required changes:
 
 ```powershell
 git add -- src/features/academics/lesson-plans src/features/academics/timetable
@@ -1122,4 +1303,4 @@ git diff --cached -- src/messages/en.json src/messages/ar.json
 git commit -m "test: harden lesson plan contract repairs"
 ```
 
-If Step 6 required no changes, do not create an empty commit.
+If Step 7 required no changes, do not create an empty commit.
