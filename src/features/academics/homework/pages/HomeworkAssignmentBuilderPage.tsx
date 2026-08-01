@@ -747,6 +747,8 @@ export default function HomeworkAssignmentBuilderPage({
         <HomeworkSubmissionReviewPanel
           homeworkId={homeworkId}
           totalMarks={homework.totalMarks}
+          assignmentStatus={homework.status}
+          isGraded={homework.isGraded}
         />
       ) : activeTab === "grade-sync" ? (
         <HomeworkGradeSyncPanel

@@ -28,11 +28,14 @@ import {
   listHomeworkSubmissionAnswers,
   listHomeworkSubmissionAttachments,
   listHomeworkSubmissions,
+  getHomeworkGradeSyncStatus,
   reviewHomeworkSubmission,
   reviewHomeworkSubmissionAnswer,
   syncHomeworkSubmissionGrade,
 } from "@/features/academics/homework/services/homeworkService";
 import type {
+  HomeworkAssignmentStatus,
+  HomeworkGradeSyncStatusUiModel,
   HomeworkSubmissionAnswerUiModel,
   HomeworkSubmissionAttachmentUiModel,
   HomeworkSubmissionListFilters,
@@ -42,6 +45,17 @@ import type {
 import type {
   AssignmentQuestion,
 } from "@/features/academics/curriculum/services/curriculumService";
+import {
+  buildHomeworkSubmissionReviewRequest,
+  calculateAnswerScoreRollup,
+  calculateProspectiveAnswerScoreRollup,
+  chunkHomeworkAnswerReviews,
+  isHomeworkAnswerReviewable,
+  isHomeworkFinalReviewable,
+  requiredAnswerReviewsComplete,
+  validateHomeworkAnswerDraft,
+  validateProspectiveAnswerScoreRollup,
+} from "@/features/academics/homework/utils/homeworkReview";
 
 const REVIEW_NOTE_MAX_LENGTH = 2000;
 const SEARCH_MAX_LENGTH = 200;
@@ -50,6 +64,8 @@ const DEFAULT_PAGE_SIZE = 25;
 interface HomeworkSubmissionReviewPanelProps {
   homeworkId: string;
   totalMarks: number | null;
+  assignmentStatus: HomeworkAssignmentStatus;
+  isGraded: boolean;
 }
 
 type ReviewDraft = {
@@ -94,6 +110,8 @@ function scoreDraftValue(value: number | null | undefined) {
 export default function HomeworkSubmissionReviewPanel({
   homeworkId,
   totalMarks,
+  assignmentStatus,
+  isGraded,
 }: HomeworkSubmissionReviewPanelProps) {
   const locale = useLocale();
   const t = useTranslations("academics.homework.review");
@@ -101,7 +119,10 @@ export default function HomeworkSubmissionReviewPanel({
   const { hasPermission } = usePermissions();
   const canView = hasPermission("homework.submissions.view");
   const canManage = hasPermission("homework.assignments.manage");
-  const canSync = hasPermission("grades.items.manage");
+  const canViewGradeSyncStatus =
+    hasPermission("homework.assignments.view") &&
+    hasPermission("grades.items.view");
+  const canSync = canManage && hasPermission("grades.items.manage");
   const canDownloadFiles = hasPermission("files.downloads.view");
   const { showError, showSuccess } = useToast();
   const [submissions, setSubmissions] = useState<HomeworkSubmissionUiModel[]>(
@@ -143,6 +164,8 @@ export default function HomeworkSubmissionReviewPanel({
       total: 0,
     });
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [gradeSyncStatus, setGradeSyncStatus] =
+    useState<HomeworkGradeSyncStatusUiModel | null>(null);
 
   const selectedSubmission = useMemo(
     () =>
@@ -186,28 +209,60 @@ export default function HomeworkSubmissionReviewPanel({
   );
 
   const reviewNoteLength = submissionReviewDraft.reviewNote.length;
+  const effectiveTotalMarks = selectedSubmission?.totalMarks ?? totalMarks;
+  const hasQuestions = questions.length > 0;
+  const answerScoreRollup = useMemo(
+    () => calculateAnswerScoreRollup(answers),
+    [answers],
+  );
+  const answerReviewable = Boolean(
+    selectedSubmission &&
+      isHomeworkAnswerReviewable(assignmentStatus, selectedSubmission.status),
+  );
+  const finalReviewable = Boolean(
+    selectedSubmission &&
+      isHomeworkFinalReviewable(assignmentStatus, selectedSubmission.status),
+  );
+  const requiredReviewsAreComplete = useMemo(
+    () => requiredAnswerReviewsComplete(questions, answers),
+    [answers, questions],
+  );
 
-  const reviewNoteError =
-    reviewNoteLength > REVIEW_NOTE_MAX_LENGTH
-      ? t("validation.reviewNoteMax", { max: REVIEW_NOTE_MAX_LENGTH })
-      : undefined;
-
-  const awardedMarksError = useMemo(() => {
-    const raw = submissionReviewDraft.awardedMarks.trim();
-    if (!raw) return undefined;
-    const parsed = Number(raw);
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      return t("validation.awardedMarksMin");
-    }
-    if (!/^\d+(\.\d{1,2})?$/.test(raw)) {
-      return t("validation.awardedMarksDecimals");
-    }
-    const maxMarks = selectedSubmission?.totalMarks ?? totalMarks ?? undefined;
-    if (maxMarks !== undefined && parsed > maxMarks) {
-      return t("validation.awardedMarksMax", { max: maxMarks });
-    }
-    return undefined;
-  }, [selectedSubmission?.totalMarks, submissionReviewDraft.awardedMarks, t, totalMarks]);
+  const answerDraftValues = useMemo(
+    () =>
+      new Map(
+        answers.map((answer) => {
+          const draft = drafts[answer.id];
+          return [
+            answer.id,
+            {
+              score: draft?.score.trim() ? Number(draft.score) : null,
+              feedback: draft?.feedback ?? null,
+              maxScore: answer.maxScore,
+            },
+          ] as const;
+        }),
+      ),
+    [answers, drafts],
+  );
+  const answerErrors = useMemo(
+    () =>
+      Object.fromEntries(
+        answers.map((answer) => [
+          answer.id,
+          validateHomeworkAnswerDraft(answerDraftValues.get(answer.id) ?? {}),
+        ]),
+      ),
+    [answerDraftValues, answers],
+  );
+  const prospectiveRollup = useMemo(
+    () => calculateProspectiveAnswerScoreRollup(answers, answerDraftValues),
+    [answerDraftValues, answers],
+  );
+  const prospectiveRollupError = validateProspectiveAnswerScoreRollup(
+    prospectiveRollup,
+    effectiveTotalMarks,
+  );
 
   const submissionStatusLabel = useCallback(
     (status: string | undefined) => {
@@ -248,11 +303,49 @@ export default function HomeworkSubmissionReviewPanel({
   );
   const hasUnsavedChanges = isSubmissionReviewDirty || dirtyAnswerCount > 0;
 
+  const parsedAwardedMarks = submissionReviewDraft.awardedMarks.trim()
+    ? Number(submissionReviewDraft.awardedMarks)
+    : undefined;
+  const finalReviewResult = selectedSubmission
+    ? buildHomeworkSubmissionReviewRequest({
+        assignmentStatus,
+        submissionStatus: selectedSubmission.status,
+        hasQuestions,
+        isGraded,
+        totalMarks: effectiveTotalMarks,
+        awardedMarks: parsedAwardedMarks,
+        reviewNote: submissionReviewDraft.reviewNote,
+        hasUnsavedAnswerChanges: dirtyAnswerCount > 0,
+        requiredReviewsComplete: requiredReviewsAreComplete,
+      })
+    : { errors: { submission: "notReviewable" as const } };
+  const finalReviewErrors =
+    "errors" in finalReviewResult ? finalReviewResult.errors : {};
+  const reviewNoteError = finalReviewErrors.reviewNote
+    ? t(`validation.${finalReviewErrors.reviewNote}`, { max: REVIEW_NOTE_MAX_LENGTH })
+    : undefined;
+  const awardedMarksError = finalReviewErrors.awardedMarks
+    ? t(`validation.${finalReviewErrors.awardedMarks}`, {
+        max: effectiveTotalMarks ?? "-",
+      })
+    : undefined;
   const canSaveSubmissionReview =
-    canManage &&
-    isSubmissionReviewDirty &&
-    !reviewNoteError &&
-    !awardedMarksError;
+    canManage && finalReviewable && "request" in finalReviewResult;
+  const selectedAwardedMarks = selectedSubmission?.awardedMarks;
+  const observableSyncMaximum = gradeSyncStatus?.gradeAssessment?.maxMarks;
+  const canSyncSelectedSubmission = Boolean(
+    canSync &&
+      selectedSubmission &&
+      normalizeStatus(selectedSubmission.status) === "reviewed" &&
+      typeof selectedAwardedMarks === "number" &&
+      Number.isFinite(selectedAwardedMarks) &&
+      selectedAwardedMarks >= 0 &&
+      (effectiveTotalMarks == null || selectedAwardedMarks <= effectiveTotalMarks) &&
+      (!canViewGradeSyncStatus ||
+        (gradeSyncStatus?.linked === true &&
+          (observableSyncMaximum == null ||
+            selectedAwardedMarks <= observableSyncMaximum))),
+  );
 
   const submissionSummary = useMemo(() => {
     return submissions.reduce(
@@ -332,7 +425,7 @@ export default function HomeworkSubmissionReviewPanel({
             nextAnswers.map((answer) => [
               answer.id,
               {
-                score: answer.score === undefined ? "" : String(answer.score),
+                score: scoreDraftValue(answer.score),
                 feedback: answer.feedback ?? "",
               },
             ]),
@@ -368,6 +461,24 @@ export default function HomeworkSubmissionReviewPanel({
       active = false;
     };
   }, [homeworkId]);
+
+  useEffect(() => {
+    if (!canViewGradeSyncStatus) {
+      setGradeSyncStatus(null);
+      return;
+    }
+    let active = true;
+    void getHomeworkGradeSyncStatus(homeworkId)
+      .then((status) => {
+        if (active) setGradeSyncStatus(status);
+      })
+      .catch(() => {
+        if (active) setGradeSyncStatus(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [canViewGradeSyncStatus, homeworkId]);
 
   useEffect(() => {
     if (!selectedSubmissionId || !canView) return;
@@ -817,9 +928,28 @@ export default function HomeworkSubmissionReviewPanel({
   };
 
   const saveAnswerReview = async (answerId: string) => {
-    if (!selectedSubmissionId || !canManage) return;
+    if (!selectedSubmissionId || !canManage || !answerReviewable) return;
+    const answer = answers.find((item) => item.id === answerId);
+    if (!answer || !isAnswerReviewDirty(answer)) return;
     const draft = drafts[answerId];
-    const parsedScore = draft?.score.trim() ? Number(draft.score) : undefined;
+    const parsedScore = draft?.score.trim() ? Number(draft.score) : null;
+    const errors = validateHomeworkAnswerDraft({
+      score: parsedScore,
+      feedback: draft?.feedback,
+      maxScore: answer.maxScore,
+    });
+    const nextRollup = calculateProspectiveAnswerScoreRollup(
+      answers,
+      new Map([[answerId, { score: parsedScore }]]),
+    );
+    const rollupError = validateProspectiveAnswerScoreRollup(
+      nextRollup,
+      effectiveTotalMarks,
+    );
+    if (errors.score || errors.feedback || rollupError) {
+      showError(t(`validation.${errors.score ?? errors.feedback ?? rollupError}`));
+      return;
+    }
     setPendingAnswerId(answerId);
     try {
       const updated = await reviewHomeworkSubmissionAnswer(
@@ -827,8 +957,8 @@ export default function HomeworkSubmissionReviewPanel({
         selectedSubmissionId,
         answerId,
         {
-          score: Number.isFinite(parsedScore) ? parsedScore : undefined,
-          feedback: draft?.feedback,
+          score: parsedScore,
+          feedback: draft?.feedback.trim() || null,
         },
       );
       setAnswers((current) =>
@@ -850,23 +980,42 @@ export default function HomeworkSubmissionReviewPanel({
   };
 
   const saveAllReviews = async () => {
-    if (!selectedSubmissionId || !canManage || dirtyAnswerCount === 0) return;
+    if (!selectedSubmissionId || !canManage || !answerReviewable || dirtyAnswerCount === 0) return;
     const reviewItems = answers.filter(isAnswerReviewDirty).map((answer) => {
       const draft = drafts[answer.id];
-      const parsedScore = draft?.score.trim() ? Number(draft.score) : undefined;
+      const parsedScore = draft?.score.trim() ? Number(draft.score) : null;
       return {
         answerId: answer.id,
-        score: Number.isFinite(parsedScore) ? parsedScore : undefined,
-        feedback: draft?.feedback,
+        score: parsedScore,
+        feedback: draft?.feedback.trim() || null,
       };
     });
-    setIsBulkSaving(true);
-    try {
-      const updatedAnswers = await bulkReviewHomeworkSubmissionAnswers(
-        homeworkId,
-        selectedSubmissionId,
-        { answers: reviewItems },
+    const firstInvalid = answers
+      .filter(isAnswerReviewDirty)
+      .find((answer) => {
+        const errors = answerErrors[answer.id];
+        return errors?.score || errors?.feedback;
+      });
+    if (firstInvalid || prospectiveRollupError) {
+      const errors = firstInvalid ? answerErrors[firstInvalid.id] : undefined;
+      showError(
+        t(`validation.${errors?.score ?? errors?.feedback ?? prospectiveRollupError}`),
       );
+      return;
+    }
+    setIsBulkSaving(true);
+    let completedBatches = 0;
+    try {
+      const updatedAnswers: HomeworkSubmissionAnswerUiModel[] = [];
+      for (const batch of chunkHomeworkAnswerReviews(reviewItems)) {
+        const updatedBatch = await bulkReviewHomeworkSubmissionAnswers(
+          homeworkId,
+          selectedSubmissionId,
+          batch,
+        );
+        updatedAnswers.push(...updatedBatch);
+        completedBatches += 1;
+      }
       setAnswers((current) => {
         const updatedById = new Map(
           updatedAnswers.map((answer) => [answer.id, answer]),
@@ -887,6 +1036,40 @@ export default function HomeworkSubmissionReviewPanel({
       }));
       showSuccess(t("messages.allSaved"));
     } catch (error) {
+      if (completedBatches > 0) {
+        try {
+          const reloadedAnswers = await listHomeworkSubmissionAnswers(
+            homeworkId,
+            selectedSubmissionId,
+          );
+          setAnswers(reloadedAnswers);
+          setDrafts(
+            Object.fromEntries(
+              reloadedAnswers.map((answer) => [
+                answer.id,
+                {
+                  score: scoreDraftValue(answer.score),
+                  feedback: answer.feedback ?? "",
+                },
+              ]),
+            ),
+          );
+          showError(
+            t("errors.saveAllPartiallyApplied", {
+              message: getHomeworkErrorMessage(error, tHomeworkError),
+            }),
+          );
+          return;
+        } catch (reloadError) {
+          showError(
+            t("errors.saveAllRecoveryFailed", {
+              saveMessage: getHomeworkErrorMessage(error, tHomeworkError),
+              reloadMessage: getHomeworkErrorMessage(reloadError, tHomeworkError),
+            }),
+          );
+          return;
+        }
+      }
       showError(t("errors.saveAll", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
     } finally {
       setIsBulkSaving(false);
@@ -894,19 +1077,17 @@ export default function HomeworkSubmissionReviewPanel({
   };
 
   const saveSubmissionReview = async () => {
-    if (!selectedSubmissionId || !canSaveSubmissionReview) return;
-    const parsedMarks = submissionReviewDraft.awardedMarks.trim()
-      ? Number(submissionReviewDraft.awardedMarks)
-      : undefined;
+    if (
+      !selectedSubmissionId ||
+      !canSaveSubmissionReview ||
+      !("request" in finalReviewResult)
+    ) return;
     setIsSavingSubmissionReview(true);
     try {
       const updated = await reviewHomeworkSubmission(
         homeworkId,
         selectedSubmissionId,
-        {
-          awardedMarks: Number.isFinite(parsedMarks) ? parsedMarks : undefined,
-          reviewNote: submissionReviewDraft.reviewNote.trim(),
-        },
+        finalReviewResult.request,
       );
       updateSelectedSubmission(updated);
       showSuccess(t("messages.submissionSaved"));
@@ -920,7 +1101,7 @@ export default function HomeworkSubmissionReviewPanel({
   };
 
   const syncSelectedSubmission = async () => {
-    if (!selectedSubmissionId || !canSync) return;
+    if (!selectedSubmissionId || !canSyncSelectedSubmission) return;
     setIsSyncingSubmission(true);
     try {
       await syncHomeworkSubmissionGrade(homeworkId, selectedSubmissionId);
@@ -1023,7 +1204,11 @@ export default function HomeworkSubmissionReviewPanel({
                       size="sm"
                       onClick={() => void saveAllReviews()}
                       loading={isBulkSaving}
-                      disabled={dirtyAnswerCount === 0}
+                      disabled={
+                        !answerReviewable ||
+                        dirtyAnswerCount === 0 ||
+                        Boolean(prospectiveRollupError)
+                      }
                       leftIcon={<Save className="h-4 w-4" />}
                     >
                       {t("actions.saveAll")}
@@ -1034,6 +1219,7 @@ export default function HomeworkSubmissionReviewPanel({
                       size="sm"
                       onClick={() => void syncSelectedSubmission()}
                       loading={isSyncingSubmission}
+                      disabled={!canSyncSelectedSubmission}
                       leftIcon={<CheckCircle2 className="h-4 w-4" />}
                     >
                       {t("actions.syncSubmission")}
@@ -1154,7 +1340,11 @@ export default function HomeworkSubmissionReviewPanel({
                         min={0}
                         max={selectedSubmission.totalMarks ?? totalMarks ?? undefined}
                         step="0.01"
-                        value={submissionReviewDraft.awardedMarks}
+                        value={
+                          hasQuestions
+                            ? answerScoreRollup
+                            : submissionReviewDraft.awardedMarks
+                        }
                         error={awardedMarksError}
                         onChange={(event) =>
                           setSubmissionReviewDraft((current) => ({
@@ -1162,7 +1352,12 @@ export default function HomeworkSubmissionReviewPanel({
                             awardedMarks: event.target.value,
                           }))
                         }
-                        disabled={!canManage}
+                        disabled={
+                          !canManage ||
+                          !finalReviewable ||
+                          hasQuestions ||
+                          !isGraded
+                        }
                       />
                       <TextArea
                         label={t("submissionReview.reviewNote")}
@@ -1181,7 +1376,7 @@ export default function HomeworkSubmissionReviewPanel({
                             reviewNote: event.target.value,
                           }))
                         }
-                        disabled={!canManage}
+                        disabled={!canManage || !finalReviewable}
                       />
                       {canManage && (
                         <Button
@@ -1194,6 +1389,16 @@ export default function HomeworkSubmissionReviewPanel({
                         </Button>
                       )}
                     </div>
+                    {finalReviewErrors.answers && (
+                      <p className="mt-2 text-sm text-red-600">
+                        {t(`validation.${finalReviewErrors.answers}`)}
+                      </p>
+                    )}
+                    {!finalReviewable && (
+                      <p className="mt-2 text-sm text-gray-500">
+                        {t("validation.readOnly")}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-3">
@@ -1249,32 +1454,58 @@ export default function HomeworkSubmissionReviewPanel({
                             type="number"
                             min={0}
                             max={answer.maxScore}
+                            step={0.01}
                             value={drafts[answer.id]?.score ?? ""}
+                            error={
+                              answerErrors[answer.id]?.score
+                                ? t(`validation.${answerErrors[answer.id].score}`, {
+                                    max: answer.maxScore ?? "-",
+                                  })
+                                : prospectiveRollupError && isAnswerReviewDirty(answer)
+                                  ? t(`validation.${prospectiveRollupError}`, {
+                                      max: effectiveTotalMarks ?? "-",
+                                    })
+                                  : undefined
+                            }
                             onChange={(event) =>
                               updateDraft(answer.id, {
                                 score: event.target.value,
                               })
                             }
-                            disabled={!canManage}
+                            disabled={!canManage || !answerReviewable}
                           />
                           <TextArea
                             label={t("answers.feedback")}
                             value={drafts[answer.id]?.feedback ?? ""}
                             rows={2}
+                            maxLength={REVIEW_NOTE_MAX_LENGTH + 1}
                             resize="vertical"
+                            error={
+                              answerErrors[answer.id]?.feedback
+                                ? t(`validation.${answerErrors[answer.id].feedback}`, {
+                                    max: REVIEW_NOTE_MAX_LENGTH,
+                                  })
+                                : undefined
+                            }
                             onChange={(event) =>
                               updateDraft(answer.id, {
                                 feedback: event.target.value,
                               })
                             }
-                            disabled={!canManage}
+                            disabled={!canManage || !answerReviewable}
                           />
                           {canManage && (
                             <Button
                               variant="secondary"
                               onClick={() => void saveAnswerReview(answer.id)}
                               loading={pendingAnswerId === answer.id}
-                              disabled={!isAnswerReviewDirty(answer)}
+                              disabled={
+                                !answerReviewable ||
+                                !isAnswerReviewDirty(answer) ||
+                                Boolean(answerErrors[answer.id]?.score) ||
+                                Boolean(answerErrors[answer.id]?.feedback) ||
+                                Boolean(prospectiveRollupError)
+                              }
                               leftIcon={<Save className="h-4 w-4" />}
                             >
                               {t("actions.saveAnswer")}

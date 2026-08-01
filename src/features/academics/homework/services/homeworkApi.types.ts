@@ -483,7 +483,7 @@ export interface HomeworkSubmissionAttachmentUiModel {
 
 export interface HomeworkAnswerReviewRequest {
   score?: number | null;
-  feedback?: string;
+  feedback?: string | null;
   isCorrect?: boolean;
 }
 

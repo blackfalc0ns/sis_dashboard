@@ -1,0 +1,237 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import HomeworkSubmissionReviewPanel from "../HomeworkSubmissionReviewPanel";
+import {
+  fetchHomeworkSubmission,
+  getHomeworkGradeSyncStatus,
+  listHomeworkQuestions,
+  listHomeworkSubmissionAnswers,
+  listHomeworkSubmissionAttachments,
+  listHomeworkSubmissions,
+  reviewHomeworkSubmission,
+  reviewHomeworkSubmissionAnswer,
+} from "../../services/homeworkService";
+
+const showError = vi.fn();
+const showSuccess = vi.fn();
+const translate = (key: string) => key;
+
+vi.mock("next-intl", () => ({
+  useLocale: () => "en",
+  useTranslations: () => translate,
+}));
+
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => ({ hasPermission: () => true }),
+}));
+
+vi.mock("@/components/ui/toast/Toast", () => ({
+  useToast: () => ({ showError, showSuccess }),
+}));
+
+vi.mock("@/components/ui/input/Select", () => ({
+  default: ({ label, value, options, onChange }: {
+    label: string;
+    value?: string;
+    options: Array<{ value: string; label: string }>;
+    onChange: (value: string) => void;
+  }) => (
+    <label>
+      {label}
+      <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
+        ))}
+      </select>
+    </label>
+  ),
+}));
+
+vi.mock("@/components/ui/confirm-dialog/ConfirmDialog", () => ({
+  default: () => null,
+}));
+
+vi.mock("../../services/homeworkService", () => ({
+  listHomeworkSubmissions: vi.fn(),
+  fetchHomeworkSubmission: vi.fn(),
+  listHomeworkQuestions: vi.fn(),
+  listHomeworkSubmissionAnswers: vi.fn(),
+  listHomeworkSubmissionAttachments: vi.fn(),
+  reviewHomeworkSubmission: vi.fn(),
+  reviewHomeworkSubmissionAnswer: vi.fn(),
+  bulkReviewHomeworkSubmissionAnswers: vi.fn(),
+  syncHomeworkSubmissionGrade: vi.fn(),
+  getHomeworkGradeSyncStatus: vi.fn(),
+}));
+
+const submission = (status: string) => ({
+  id: "submission-1",
+  homeworkId: "homework-1",
+  studentName: "Student One",
+  status,
+  totalMarks: 10,
+  awardedMarks: status === "reviewed" ? 1 : undefined,
+  reviewNote: null,
+});
+
+const reviewedAnswer = {
+  id: "answer-1",
+  questionId: "question-1",
+  prompt: "Prompt",
+  answerText: "Response",
+  score: 1,
+  maxScore: 2,
+  feedback: null,
+  reviewedAt: "2026-01-02T00:00:00.000Z",
+};
+
+const requiredQuestion = {
+  id: "question-1",
+  assignmentId: "homework-1",
+  questionTextAr: "Prompt",
+  questionTextEn: "Prompt",
+  questionType: "SHORT_ANSWER" as const,
+  points: 2,
+  isRequired: true,
+  order: 0,
+  createdAt: "2026-01-01T00:00:00.000Z",
+};
+
+function arrange(status = "submitted", hasQuestions = true) {
+  const item = submission(status);
+  vi.mocked(listHomeworkSubmissions).mockResolvedValue({
+    items: [item],
+    pagination: { page: 1, limit: 25, total: 1 },
+  });
+  vi.mocked(fetchHomeworkSubmission).mockResolvedValue(item);
+  vi.mocked(listHomeworkQuestions).mockResolvedValue(
+    hasQuestions ? [requiredQuestion] : [],
+  );
+  vi.mocked(listHomeworkSubmissionAnswers).mockResolvedValue(
+    hasQuestions ? [reviewedAnswer] : [],
+  );
+  vi.mocked(listHomeworkSubmissionAttachments).mockResolvedValue([]);
+  vi.mocked(getHomeworkGradeSyncStatus).mockResolvedValue({
+    homeworkId: "homework-1",
+    linked: true,
+  });
+  vi.mocked(reviewHomeworkSubmission).mockResolvedValue(submission("reviewed"));
+}
+
+describe("HomeworkSubmissionReviewPanel backend workflow", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("locks every review control after the submission is reviewed", async () => {
+    arrange("reviewed");
+    render(
+      <HomeworkSubmissionReviewPanel
+        homeworkId="homework-1"
+        totalMarks={10}
+        assignmentStatus="published"
+        isGraded
+      />,
+    );
+
+    expect(await screen.findByLabelText("answers.score")).toBeDisabled();
+    expect(screen.getByLabelText("answers.feedback")).toBeDisabled();
+    expect(screen.getByLabelText("submissionReview.awardedMarks")).toBeDisabled();
+    expect(screen.getByLabelText("submissionReview.reviewNote")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "actions.saveAll" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "actions.saveSubmission" })).toBeDisabled();
+  });
+
+  it("uses the answer rollup and finalizes question-based work with an empty request", async () => {
+    arrange();
+    render(
+      <HomeworkSubmissionReviewPanel
+        homeworkId="homework-1"
+        totalMarks={10}
+        assignmentStatus="published"
+        isGraded
+      />,
+    );
+
+    const awardedMarks = await screen.findByLabelText("submissionReview.awardedMarks");
+    expect(awardedMarks).toBeDisabled();
+    await waitFor(() => expect(awardedMarks).toHaveValue(1));
+    const finalize = screen.getByRole("button", { name: "actions.saveSubmission" });
+    expect(finalize).toBeEnabled();
+    fireEvent.click(finalize);
+    await waitFor(() =>
+      expect(reviewHomeworkSubmission).toHaveBeenCalledWith(
+        "homework-1",
+        "submission-1",
+        {},
+      ),
+    );
+  });
+
+  it("shows answer validation and does not send a score above question points", async () => {
+    arrange();
+    render(
+      <HomeworkSubmissionReviewPanel
+        homeworkId="homework-1"
+        totalMarks={10}
+        assignmentStatus="published"
+        isGraded
+      />,
+    );
+
+    const score = await screen.findByLabelText("answers.score");
+    fireEvent.change(score, { target: { value: "2.01" } });
+    await screen.findByText("validation.scoreMax");
+    expect(screen.getByRole("button", { name: "actions.saveAnswer" })).toBeDisabled();
+    expect(reviewHomeworkSubmissionAnswer).not.toHaveBeenCalled();
+  });
+
+  it("sends a valid manual mark for body-only graded work and locks the returned review", async () => {
+    arrange("submitted", false);
+    render(
+      <HomeworkSubmissionReviewPanel
+        homeworkId="homework-1"
+        totalMarks={10}
+        assignmentStatus="closed"
+        isGraded
+      />,
+    );
+
+    const awardedMarks = await screen.findByLabelText("submissionReview.awardedMarks");
+    await waitFor(() => expect(awardedMarks).toBeEnabled());
+    fireEvent.change(awardedMarks, { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: "actions.saveSubmission" }));
+    await waitFor(() =>
+      expect(reviewHomeworkSubmission).toHaveBeenCalledWith(
+        "homework-1",
+        "submission-1",
+        { awardedMarks: 5 },
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByLabelText("submissionReview.reviewNote")).toBeDisabled(),
+    );
+  });
+
+  it("omits assignment marks for body-only ungraded work", async () => {
+    arrange("submitted", false);
+    render(
+      <HomeworkSubmissionReviewPanel
+        homeworkId="homework-1"
+        totalMarks={null}
+        assignmentStatus="published"
+        isGraded={false}
+      />,
+    );
+
+    expect(await screen.findByLabelText("submissionReview.awardedMarks")).toBeDisabled();
+    const finalize = screen.getByRole("button", { name: "actions.saveSubmission" });
+    await waitFor(() => expect(finalize).toBeEnabled());
+    fireEvent.click(finalize);
+    await waitFor(() =>
+      expect(reviewHomeworkSubmission).toHaveBeenCalledWith(
+        "homework-1",
+        "submission-1",
+        {},
+      ),
+    );
+  });
+});

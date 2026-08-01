@@ -5672,6 +5672,16 @@
         },
         "validation": {
           "reviewNoteMax": "Review note must be {max} characters or fewer.",
+          "scoreFinite": "Enter a valid answer score.",
+          "scoreMin": "Answer score cannot be negative.",
+          "scoreMax": "Answer score cannot exceed {max}.",
+          "scoreDecimals": "Answer score can use at most 2 decimal places.",
+          "feedbackMax": "Feedback must be {max} characters or fewer.",
+          "rollupMax": "Answer scores cannot exceed the homework total of {max}.",
+          "unsavedAnswerChanges": "Save all answer reviews before finalizing the submission.",
+          "requiredAnswerReviews": "Review every required answer before finalizing the submission.",
+          "readOnly": "This submission is read-only and cannot be reviewed again.",
+          "awardedMarksFinite": "Enter a valid awarded mark.",
           "awardedMarksMin": "Awarded marks must be a non-negative number.",
           "awardedMarksDecimals": "Awarded marks can use at most 2 decimal places.",
           "awardedMarksMax": "Awarded marks cannot exceed {max}."
@@ -5717,6 +5727,8 @@
           "loadDetail": "Failed to load submission details: {message}",
           "saveAnswer": "Failed to save answer review: {message}",
           "saveAll": "Failed to save answer reviews: {message}",
+          "saveAllPartiallyApplied": "Some answer reviews were saved. The latest answers were reloaded. {message}",
+          "saveAllRecoveryFailed": "Some answer reviews may have been saved, but the latest answers could not be reloaded. Save error: {saveMessage}. Reload error: {reloadMessage}.",
           "saveSubmission": "Failed to save submission review: {message}",
           "sync": "Failed to sync submission grade: {message}"
         }
