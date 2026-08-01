@@ -5457,6 +5457,15 @@
       "create": {
         "title": "Create homework",
         "description": "Create a backend-backed homework draft before opening the builder.",
+        "sections": {
+          "assignment": "Assignment",
+          "assignmentDescription": "Choose the teacher context, audience, and homework type.",
+          "schedule": "Schedule",
+          "scheduleDescription": "Set the exact submission deadline and optionally link a lesson.",
+          "grading": "Grading",
+          "gradingDescription": "Set the maximum score and expected completion time.",
+          "recipients": "Recipients"
+        },
         "fields": {
           "title": "Title",
           "teacherSubjectAllocation": "Teacher subject allocation",
@@ -5611,7 +5620,10 @@
           "saveAnswer": "Save answer",
           "saveAll": "Save all reviews",
           "saveSubmission": "Save submission review",
-          "syncSubmission": "Sync submission"
+          "syncSubmission": "Sync submission",
+          "saveChanges": "Save changes",
+          "discardChanges": "Discard changes",
+          "closeStudents": "Close students list"
         },
         "filters": {
           "status": "Status",
@@ -5716,6 +5728,10 @@
           "unsavedChanges": "{count, plural, =0 {You have unsaved review changes.} one {You have # unsaved answer review.} other {You have # unsaved answer reviews.}}",
           "saveBeforeContinuing": "Save or discard them before changing the queue."
         },
+        "guidance": {
+          "requiredProgress": "Reviewed {reviewed} of {total} required answers.",
+          "syncUnavailable": "Only reviewed submissions with an awarded score can be synced."
+        },
         "unsavedChanges": {
           "title": "Discard unsaved review changes?",
           "description": "Your edits to this submission will be lost if you continue.",
@@ -5752,7 +5768,8 @@
           "noAssessments": "No assessments found for this homework context.",
           "noResults": "No matching assessments.",
           "discoveryPermissionRequired": "Assessment view permission is required to discover link candidates.",
-          "lifecycleBlocked": "Cancelled or archived homework cannot be linked to an assessment."
+          "lifecycleBlocked": "Cancelled or archived homework cannot be linked to an assessment.",
+          "alreadyLinked": "This homework is already linked. The linked assessment cannot be changed."
         },
         "status": {
           "title": "Current status",
@@ -5764,13 +5781,15 @@
         },
         "sync": {
           "title": "Sync reviewed submissions",
-          "description": "Run sync after submissions have been reviewed. Re-running should be idempotent."
+          "description": "Run sync after submissions have been reviewed. Re-running should be idempotent.",
+          "linkRequired": "Link a grade assessment before syncing reviewed submissions."
         },
         "summary": {
           "total": "Total",
           "synced": "Synced",
-          "skipped": "Skipped",
-          "failed": "Failed"
+          "pending": "Pending",
+          "failed": "Failed",
+          "lastSynced": "Last synced {date}"
         },
         "warnings": {
           "title": "Warnings"

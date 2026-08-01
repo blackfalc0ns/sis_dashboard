@@ -65,6 +65,12 @@ vi.mock("@/components/ui/input/Select", () => ({
   ),
 }));
 
+vi.mock("@/components/ui/input/DateTimePicker", () => ({
+  default: ({ label }: { label: string }) => (
+    <div data-testid="homework-due-date-time-picker">{label}</div>
+  ),
+}));
+
 vi.mock("@/features/academics/academic-structure-tree/services/structureService", () => ({
   fetchStructureTree: vi.fn().mockResolvedValue({
     stages: [{ id: "stage-1", name: "Stage", nameAr: "مرحلة", nameEn: "Stage", order: 1 }],
@@ -152,5 +158,13 @@ describe("CreateHomeworkPage assignment contract", () => {
         estimatedMinutes: 1,
       }),
     );
+  });
+
+  it("uses a date-time control for the homework deadline", async () => {
+    render(<CreateHomeworkPage />);
+
+    expect(
+      await screen.findByTestId("homework-due-date-time-picker"),
+    ).toHaveTextContent("fields.dueAt");
   });
 });

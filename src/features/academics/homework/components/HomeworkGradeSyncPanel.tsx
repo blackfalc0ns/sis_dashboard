@@ -126,6 +126,8 @@ export default function HomeworkGradeSyncPanel({
     canLink &&
     !isLifecycleBlocked &&
     status?.linked !== true;
+  const lastSyncedAt = status?.syncSummary?.lastSyncedAt;
+  const syncNeedsLink = canSync && canViewStatus && status?.linked !== true;
 
   const linkAssessment = async () => {
     if (!canCreateLink || !gradeAssessmentId.trim()) return;
@@ -231,6 +233,11 @@ export default function HomeworkGradeSyncPanel({
                 {t("link.lifecycleBlocked")}
               </p>
             )}
+            {status?.linked && (
+              <p className="mt-3 text-sm text-gray-500">
+                {t("link.alreadyLinked")}
+              </p>
+            )}
           </section>
 
           <section className="rounded-lg border border-border bg-white p-4">
@@ -281,6 +288,11 @@ export default function HomeworkGradeSyncPanel({
               </Button>
             )}
           </div>
+          {syncNeedsLink && (
+            <p className="mt-3 text-sm text-amber-700">
+              {t("sync.linkRequired")}
+            </p>
+          )}
           <div className="mt-4 grid gap-3 sm:grid-cols-4">
             <Metric
               label={t("summary.total")}
@@ -299,6 +311,13 @@ export default function HomeworkGradeSyncPanel({
               value={status?.syncSummary?.failed}
             />
           </div>
+          {canViewStatus && lastSyncedAt && (
+            <p className="mt-3 text-sm text-gray-500">
+              {t("summary.lastSynced", {
+                date: new Date(lastSyncedAt).toLocaleString(locale),
+              })}
+            </p>
+          )}
         </section>
 
         {(status?.warnings?.length ?? 0) > 0 && (

@@ -166,6 +166,25 @@ describe("HomeworkSubmissionReviewPanel backend workflow", () => {
     );
   });
 
+  it("shows required-answer progress and opens the mobile queue as a dialog", async () => {
+    arrange();
+    render(
+      <HomeworkSubmissionReviewPanel
+        homeworkId="homework-1"
+        totalMarks={10}
+        assignmentStatus="published"
+        isGraded
+      />,
+    );
+
+    expect(await screen.findByText("guidance.requiredProgress")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "actions.students" }));
+    expect(screen.getByRole("dialog", { name: "actions.students" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "actions.closeStudents" })).toHaveFocus();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "actions.students" })).not.toBeInTheDocument();
+  });
+
   it("shows answer validation and does not send a score above question points", async () => {
     arrange();
     render(

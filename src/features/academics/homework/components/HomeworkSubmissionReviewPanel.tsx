@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   Check,
@@ -107,6 +107,14 @@ function scoreDraftValue(value: number | null | undefined) {
   return value == null ? "" : String(value);
 }
 
+function drawerFocusableElements(container: HTMLDivElement | null) {
+  return Array.from(
+    container?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ) ?? [],
+  );
+}
+
 export default function HomeworkSubmissionReviewPanel({
   homeworkId,
   totalMarks,
@@ -164,6 +172,9 @@ export default function HomeworkSubmissionReviewPanel({
       total: 0,
     });
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const drawerCloseButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerPanelRef = useRef<HTMLDivElement>(null);
+  const drawerTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [gradeSyncStatus, setGradeSyncStatus] =
     useState<HomeworkGradeSyncStatusUiModel | null>(null);
   const visibleGradeSyncStatus = canViewGradeSyncStatus
@@ -230,6 +241,15 @@ export default function HomeworkSubmissionReviewPanel({
     () => requiredAnswerReviewsComplete(questions, answers),
     [answers, questions],
   );
+  const requiredAnswerProgress = useMemo(() => {
+    const requiredQuestions = questions.filter((question) => question.isRequired);
+    return {
+      total: requiredQuestions.length,
+      reviewed: requiredQuestions.filter((question) =>
+        answers.some((answer) => answer.questionId === question.id && Boolean(answer.reviewedAt)),
+      ).length,
+    };
+  }, [answers, questions]);
 
   const answerDraftValues = useMemo(
     () =>
@@ -305,6 +325,56 @@ export default function HomeworkSubmissionReviewPanel({
     [answers, isAnswerReviewDirty],
   );
   const hasUnsavedChanges = isSubmissionReviewDirty || dirtyAnswerCount > 0;
+
+  const discardReviewChanges = useCallback(() => {
+    setDrafts(
+      Object.fromEntries(
+        answers.map((answer) => [
+          answer.id,
+          { score: scoreDraftValue(answer.score), feedback: answer.feedback ?? "" },
+        ]),
+      ),
+    );
+    setSubmissionReviewDraft({
+      awardedMarks: scoreDraftValue(selectedSubmission?.awardedMarks),
+      reviewNote: selectedSubmission?.reviewNote ?? "",
+    });
+  }, [answers, selectedSubmission]);
+
+  const closeMobileDrawer = useCallback(() => {
+    setIsMobileDrawerOpen(false);
+    requestAnimationFrame(() => drawerTriggerRef.current?.focus());
+  }, []);
+
+  const openMobileDrawer = useCallback((trigger: HTMLButtonElement) => {
+    drawerTriggerRef.current = trigger;
+    setIsMobileDrawerOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileDrawerOpen) return;
+    const keepFocusInDrawer = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeMobileDrawer();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusableElements = drawerFocusableElements(drawerPanelRef.current);
+      if (focusableElements.length === 0) return;
+      const firstFocusableElement = focusableElements[0];
+      const lastFocusableElement = focusableElements[focusableElements.length - 1];
+      if (event.shiftKey && document.activeElement === firstFocusableElement) {
+        event.preventDefault();
+        lastFocusableElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastFocusableElement) {
+        event.preventDefault();
+        firstFocusableElement.focus();
+      }
+    };
+    window.addEventListener("keydown", keepFocusInDrawer);
+    drawerCloseButtonRef.current?.focus();
+    return () => window.removeEventListener("keydown", keepFocusInDrawer);
+  }, [closeMobileDrawer, isMobileDrawerOpen]);
 
   const parsedAwardedMarks = submissionReviewDraft.awardedMarks.trim()
     ? Number(submissionReviewDraft.awardedMarks)
@@ -598,7 +668,7 @@ export default function HomeworkSubmissionReviewPanel({
       return (
         <div className="mt-3 space-y-3">
           <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4 shadow-sm">
-            <div className="flex items-center justify-between border-b border-gray-150 pb-2 mb-2">
+            <div className="mb-2 flex items-center justify-between border-b border-gray-200 pb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
                 {t("answers.studentAnswer")}
               </span>
@@ -813,7 +883,7 @@ export default function HomeworkSubmissionReviewPanel({
               onClick={() => {
                 requestSubmissionSelection(submission.id);
                 if (isDrawer) {
-                  setIsMobileDrawerOpen(false);
+                  closeMobileDrawer();
                 }
               }}
               aria-current={selectedSubmissionId === submission.id ? "true" : undefined}
@@ -845,7 +915,7 @@ export default function HomeworkSubmissionReviewPanel({
                   {submissionStatusLabel(submission.status)}
                 </span>
               </div>
-              <div className="mt-2 text-xs text-gray-650">
+              <div className="mt-2 text-xs text-gray-600">
                 {scoreText(
                   submission.awardedMarks,
                   submission.totalMarks ?? totalMarks ?? undefined,
@@ -891,6 +961,7 @@ export default function HomeworkSubmissionReviewPanel({
       </div>
     ),
     [
+      closeMobileDrawer,
       submissions,
       selectedSubmissionId,
       isLoadingSubmissions,
@@ -1138,9 +1209,31 @@ export default function HomeworkSubmissionReviewPanel({
           aria-live="polite"
         >
           <span>{t("messages.unsavedChanges", { count: dirtyAnswerCount })}</span>
-          <span className="shrink-0 text-xs font-semibold">
-            {t("messages.saveBeforeContinuing")}
-          </span>
+          <div className="flex shrink-0 items-center gap-2">
+            {dirtyAnswerCount > 0 && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void saveAllReviews()}
+                disabled={!answerReviewable || Boolean(prospectiveRollupError)}
+              >
+                {t("actions.saveAll")}
+              </Button>
+            )}
+            {isSubmissionReviewDirty && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void saveSubmissionReview()}
+                disabled={!canSaveSubmissionReview}
+              >
+                {t("actions.saveChanges")}
+              </Button>
+            )}
+            <Button variant="secondary" size="sm" onClick={discardReviewChanges}>
+              {t("actions.discardChanges")}
+            </Button>
+          </div>
         </div>
       )}
 
@@ -1158,7 +1251,7 @@ export default function HomeworkSubmissionReviewPanel({
                 variant="primary"
                 size="sm"
                 className="lg:hidden"
-                onClick={() => setIsMobileDrawerOpen(true)}
+                onClick={(event) => openMobileDrawer(event.currentTarget)}
                 leftIcon={<Menu className="h-4 w-4" />}
               >
                 {t("actions.viewStudents")}
@@ -1173,7 +1266,7 @@ export default function HomeworkSubmissionReviewPanel({
                       variant="secondary"
                       size="sm"
                       className="lg:hidden shrink-0"
-                      onClick={() => setIsMobileDrawerOpen(true)}
+                      onClick={(event) => openMobileDrawer(event.currentTarget)}
                       leftIcon={<Menu className="h-4 w-4" />}
                     >
                       {t("actions.students")}
@@ -1215,15 +1308,22 @@ export default function HomeworkSubmissionReviewPanel({
                     </Button>
                   )}
                   {canSync && (
-                    <Button
-                      size="sm"
-                      onClick={() => void syncSelectedSubmission()}
-                      loading={isSyncingSubmission}
-                      disabled={!canSyncSelectedSubmission}
-                      leftIcon={<CheckCircle2 className="h-4 w-4" />}
-                    >
-                      {t("actions.syncSubmission")}
-                    </Button>
+                    <div className="flex flex-col items-end gap-1">
+                      <Button
+                        size="sm"
+                        onClick={() => void syncSelectedSubmission()}
+                        loading={isSyncingSubmission}
+                        disabled={!canSyncSelectedSubmission}
+                        leftIcon={<CheckCircle2 className="h-4 w-4" />}
+                      >
+                        {t("actions.syncSubmission")}
+                      </Button>
+                      {!canSyncSelectedSubmission && (
+                        <span className="text-xs text-gray-500">
+                          {t("guidance.syncUnavailable")}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -1281,7 +1381,7 @@ export default function HomeworkSubmissionReviewPanel({
                             {formatMaybeDate(selectedSubmission.reviewedAt, locale)}
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1.5 text-gray-450">
+                          <span className="flex items-center gap-1.5 text-gray-500">
                             <Clock className="h-4 w-4" />
                             {t("detail.pendingReview")}
                           </span>
@@ -1294,7 +1394,7 @@ export default function HomeworkSubmissionReviewPanel({
                       <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
                         {t("detail.score")}
                       </span>
-                      <div className="mt-2 text-sm font-bold text-gray-905 flex items-baseline gap-1">
+                      <div className="mt-2 flex items-baseline gap-1 text-sm font-bold text-gray-900">
                         <span className="text-lg text-primary">
                           {selectedSubmission.awardedMarks !== undefined && selectedSubmission.awardedMarks !== null ? selectedSubmission.awardedMarks : "-"}
                         </span>
@@ -1318,7 +1418,7 @@ export default function HomeworkSubmissionReviewPanel({
                           • {t("detail.bodyText")}
                         </span>
                       </div>
-                      <p className="whitespace-pre-wrap text-sm text-gray-750 font-medium leading-relaxed bg-white border border-gray-150 rounded-lg p-3">
+                      <p className="whitespace-pre-wrap rounded-lg border border-gray-200 bg-white p-3 text-sm font-medium leading-relaxed text-gray-700">
                         {selectedSubmission.bodyText}
                       </p>
                     </div>
@@ -1405,6 +1505,11 @@ export default function HomeworkSubmissionReviewPanel({
                     <h3 className="text-sm font-semibold text-gray-900">
                       {t("answers.title")}
                     </h3>
+                    {requiredAnswerProgress.total > 0 && (
+                      <p className="text-sm text-gray-600">
+                        {t("guidance.requiredProgress", requiredAnswerProgress)}
+                      </p>
+                    )}
                     {answers.length === 0 && (
                       <div className="rounded-lg border border-dashed p-6 text-center text-sm text-gray-500">
                         {t("answers.empty")}
@@ -1580,10 +1685,14 @@ export default function HomeworkSubmissionReviewPanel({
           {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-300"
-            onClick={() => setIsMobileDrawerOpen(false)}
+            onClick={closeMobileDrawer}
           />
           {/* Drawer Panel */}
           <div
+            ref={drawerPanelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("actions.students")}
             className={`fixed inset-y-0 w-full max-w-[345px] bg-white shadow-2xl transition-transform duration-300 flex flex-col
               ${locale === "ar" ? "right-0 border-l border-border" : "left-0 border-r border-border"}`}
           >
@@ -1593,8 +1702,10 @@ export default function HomeworkSubmissionReviewPanel({
               </span>
               <button
                 type="button"
-                className="rounded-lg p-1 text-gray-400 hover:bg-gray-150 hover:text-gray-700 transition"
-                onClick={() => setIsMobileDrawerOpen(false)}
+                ref={drawerCloseButtonRef}
+                aria-label={t("actions.closeStudents")}
+                className="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+                onClick={closeMobileDrawer}
               >
                 <X className="h-5 w-5" />
               </button>

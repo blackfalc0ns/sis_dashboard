@@ -7,6 +7,12 @@ vi.mock("next-intl", () => ({
   useTranslations: () => (key: string) => key,
 }));
 
+vi.mock("@/components/ui/input/DateTimePicker", () => ({
+  default: ({ label }: { label: string }) => (
+    <div data-testid="assignment-due-date-time-picker">{label}</div>
+  ),
+}));
+
 describe("AssignmentSettingsPanel", () => {
   it("uses single title and description controls for homework", () => {
     const onUpdate = vi.fn();
@@ -101,5 +107,30 @@ describe("AssignmentSettingsPanel", () => {
     );
     fireEvent.change(screen.getByLabelText(/max_score/), { target: { value: "" } });
     expect(onUpdate).toHaveBeenLastCalledWith({ maxScore: null });
+  });
+
+  it("uses a date-time control for the assignment deadline", () => {
+    render(
+      <AssignmentSettingsPanel
+        assignment={{
+          id: "homework-1",
+          lessonId: "homework",
+          titleAr: "Homework title",
+          titleEn: "Homework title",
+          descriptionAr: "",
+          descriptionEn: "",
+          maxScore: 10,
+          dueDate: "2026-08-02T09:30:00.000Z",
+        }}
+        pointsSummary={{ maxScore: 10, totalPoints: 10, difference: 0, isMatch: true }}
+        validationErrors={{}}
+        isReadOnly={false}
+        detailsInputMode="single"
+        onUpdate={vi.fn()}
+        onAutoDistributePoints={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("assignment-due-date-time-picker")).toHaveTextContent("due_date");
   });
 });

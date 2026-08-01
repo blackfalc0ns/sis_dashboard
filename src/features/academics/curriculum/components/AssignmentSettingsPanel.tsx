@@ -6,7 +6,7 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import TextArea from "@/components/ui/input/TextArea";
 import BilingualTextField from "@/components/ui/bilingual-text-field/BilingualTextField";
-import DatePicker from "@/components/ui/input/DatePicker";
+import DateTimePicker from "@/components/ui/input/DateTimePicker";
 import { Assignment } from "@/features/academics/curriculum/services/curriculumService";
 import { ValidationErrors, PointsSummary } from "@/features/academics/curriculum/types/types";
 
@@ -140,7 +140,7 @@ export default function AssignmentSettingsPanel({
             )}
           </div>
 
-          <DatePicker
+          <DateTimePicker
             label={tQuestions("due_date")}
             value={assignment.dueDate ? new Date(assignment.dueDate) : null}
             onChange={(date) => onUpdate({ dueDate: date?.toISOString() })}

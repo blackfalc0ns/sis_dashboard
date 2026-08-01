@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import DatePicker from "@/components/ui/input/DatePicker";
+import DateTimePicker from "@/components/ui/input/DateTimePicker";
 import Select from "@/components/ui/input/Select";
 import TimetableSlotSelect from "@/features/academics/lesson-plans/components/TimetableSlotSelect";
 import { dashboardDaysForScope } from "@/features/academics/lesson-plans/services/lessonPlanTimetable";
@@ -578,6 +579,14 @@ export default function CreateHomeworkPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <h2 className="text-sm font-semibold text-gray-900">
+                {t("sections.assignment")}
+              </h2>
+              <p className="mt-1 text-sm text-gray-600">
+                {t("sections.assignmentDescription")}
+              </p>
+            </div>
             <Input
               label={t("fields.title")}
               required
@@ -656,7 +665,15 @@ export default function CreateHomeworkPage() {
                 { value: "project", label: t("modes.project") },
               ]}
             />
-            <DatePicker
+            <div className="md:col-span-2 border-t border-gray-200 pt-4">
+              <h2 className="text-sm font-semibold text-gray-900">
+                {t("sections.schedule")}
+              </h2>
+              <p className="mt-1 text-sm text-gray-600">
+                {t("sections.scheduleDescription")}
+              </p>
+            </div>
+            <DateTimePicker
               label={t("fields.dueAt")}
               error={assignmentErrors.dueDate}
               value={draft.dueAt ? new Date(draft.dueAt) : null}
@@ -666,6 +683,7 @@ export default function CreateHomeworkPage() {
                   dueAt: date?.toISOString() || "",
                 }))
               }
+              minDateTime={new Date()}
             />
             <DatePicker
               label={t("fields.scheduleDate")}
@@ -713,6 +731,14 @@ export default function CreateHomeworkPage() {
                 loadErrorMessage={t("messages.timetableSlotsLoadFailed")}
               />
             )}
+            <div className="md:col-span-2 border-t border-gray-200 pt-4">
+              <h2 className="text-sm font-semibold text-gray-900">
+                {t("sections.grading")}
+              </h2>
+              <p className="mt-1 text-sm text-gray-600">
+                {t("sections.gradingDescription")}
+              </p>
+            </div>
             <Input
               label={t("fields.totalMarks")}
               type="number"
@@ -763,7 +789,7 @@ export default function CreateHomeworkPage() {
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-gray-900">
-                  {t("targets.title")}
+                  {t("sections.recipients")}
                 </h2>
                 <p className="mt-1 text-sm text-gray-600">
                   {selectedAllocation

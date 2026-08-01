@@ -107,7 +107,13 @@ describe("HomeworkGradeSyncPanel endpoint permissions and lifecycle", () => {
     vi.mocked(getHomeworkGradeSyncStatus).mockResolvedValue({
       homeworkId: "homework-1",
       linked: false,
-      syncSummary: { total: 4, synced: 1, pending: 3, failed: 0 },
+      syncSummary: {
+        total: 4,
+        synced: 1,
+        pending: 3,
+        failed: 0,
+        lastSyncedAt: "2026-08-01T09:30:00.000Z",
+      },
     });
     vi.mocked(discoverHomeworkGradeSyncCandidates).mockResolvedValue([candidate]);
   });
@@ -165,5 +171,17 @@ describe("HomeworkGradeSyncPanel endpoint permissions and lifecycle", () => {
     expect(screen.getByText("summary.pending")).toBeInTheDocument();
     expect(screen.queryByText("summary.skipped")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "actions.link" })).not.toBeInTheDocument();
+  });
+
+  it("shows sync freshness and explains when a visible status has no link", async () => {
+    permissions.add("homework.assignments.view");
+    permissions.add("grades.items.view");
+    permissions.add("homework.assignments.manage");
+    permissions.add("grades.items.manage");
+
+    render(<HomeworkGradeSyncPanel homeworkId="homework-1" homework={homework()} isGraded />);
+
+    expect(await screen.findByText("summary.lastSynced")).toBeInTheDocument();
+    expect(screen.getByText("sync.linkRequired")).toBeInTheDocument();
   });
 });
