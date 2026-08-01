@@ -5,7 +5,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { AlertTriangle, Link2, RefreshCcw, Send } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Select, { type SelectOption } from "@/components/ui/input/Select";
-import { AccessDenied } from "@/components/ui";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/components/ui/toast/Toast";
 import { getHomeworkErrorMessage } from "@/features/academics/homework/services/homeworkErrors";
@@ -18,7 +17,7 @@ import type {
   HomeworkAssignmentUiModel,
   HomeworkGradeSyncStatusUiModel,
 } from "@/features/academics/homework/services/homeworkApi.types";
-import { fetchAssessments } from "@/features/grades/overview/services/gradesOverviewService";
+import { discoverHomeworkGradeSyncCandidates } from "@/features/academics/homework/services/homeworkGradeSyncCandidates";
 import type { Assessment } from "@/features/grades/shared/types";
 
 interface HomeworkGradeSyncPanelProps {
@@ -36,9 +35,10 @@ export default function HomeworkGradeSyncPanel({
   const t = useTranslations("academics.homework.gradeSync");
   const tHomeworkError = useTranslations("academics.homework.errorMessages");
   const { hasPermission } = usePermissions();
-  const canView =
+  const canViewStatus =
     hasPermission("homework.assignments.view") &&
     hasPermission("grades.items.view");
+  const canDiscoverAssessments = hasPermission("grades.assessments.view");
   const canLink =
     hasPermission("homework.assignments.manage") &&
     hasPermission("grades.assessments.manage");
@@ -53,13 +53,18 @@ export default function HomeworkGradeSyncPanel({
   const [assessmentOptions, setAssessmentOptions] = useState<SelectOption[]>(
     [],
   );
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingAssessments, setIsLoadingAssessments] = useState(true);
+  const [isLoading, setIsLoading] = useState(canViewStatus);
+  const [isLoadingAssessments, setIsLoadingAssessments] = useState(
+    canDiscoverAssessments,
+  );
   const [isLinking, setIsLinking] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
   const loadStatus = useCallback(async () => {
-    if (!canView) return;
+    if (!canViewStatus) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       const nextStatus = await getHomeworkGradeSyncStatus(homeworkId);
@@ -70,33 +75,28 @@ export default function HomeworkGradeSyncPanel({
     } finally {
       setIsLoading(false);
     }
-  }, [canView, homeworkId, showError, t, tHomeworkError]);
+  }, [canViewStatus, homeworkId, showError, t, tHomeworkError]);
 
   useEffect(() => {
     void Promise.resolve().then(loadStatus);
   }, [loadStatus]);
 
   const loadAssessments = useCallback(async () => {
-    if (!canView || !homework.academicYearId || !homework.termId) {
+    if (
+      !canDiscoverAssessments ||
+      !homework.academicYearId ||
+      !homework.termId ||
+      !homework.subjectId
+    ) {
       setAssessmentOptions([]);
       setIsLoadingAssessments(false);
       return;
     }
     setIsLoadingAssessments(true);
     try {
-      const assessments = await fetchAssessments(
-        homework.academicYearId,
-        homework.termId,
-        {
-          scopeType: homework.classroomId ? "classroom" : "school",
-          scopeId: homework.classroomId,
-          subjectId: homework.subjectId,
-        },
-      );
+      const assessments = await discoverHomeworkGradeSyncCandidates(homework);
       setAssessmentOptions(
-        assessments
-          .filter(isHomeworkSyncCompatibleAssessment)
-          .map((assessment) => assessmentToOption(assessment, locale)),
+        assessments.map((assessment) => assessmentToOption(assessment, locale)),
       );
     } catch (error) {
       showError(
@@ -106,7 +106,7 @@ export default function HomeworkGradeSyncPanel({
       setIsLoadingAssessments(false);
     }
   }, [
-    canView,
+    canDiscoverAssessments,
     homework.academicYearId,
     homework.classroomId,
     homework.subjectId,
@@ -122,9 +122,16 @@ export default function HomeworkGradeSyncPanel({
   }, [loadAssessments]);
 
   const selectOptions = linkedAssessmentOption(status, assessmentOptions);
+  const isLifecycleBlocked = ["cancelled", "archived"].includes(
+    homework.status.toLowerCase(),
+  );
+  const canCreateLink =
+    canLink &&
+    !isLifecycleBlocked &&
+    status?.linked !== true;
 
   const linkAssessment = async () => {
-    if (!canLink || !gradeAssessmentId.trim()) return;
+    if (!canCreateLink || !gradeAssessmentId.trim()) return;
     setIsLinking(true);
     try {
       const nextStatus = await linkHomeworkGradeSync(
@@ -154,14 +161,6 @@ export default function HomeworkGradeSyncPanel({
     }
   };
 
-  if (!canView) {
-    return (
-      <div className="flex min-h-[420px] items-center justify-center p-6">
-        <AccessDenied className="max-w-md" />
-      </div>
-    );
-  }
-
   return (
     <div className="p-4 lg:p-6">
       <div className="mx-auto max-w-5xl space-y-4">
@@ -175,15 +174,17 @@ export default function HomeworkGradeSyncPanel({
                 {isGraded ? t("description") : t("notGraded")}
               </p>
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void loadStatus()}
-              loading={isLoading}
-              leftIcon={<RefreshCcw className="h-4 w-4" />}
-            >
-              {t("actions.refresh")}
-            </Button>
+            {canViewStatus && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void loadStatus()}
+                loading={isLoading}
+                leftIcon={<RefreshCcw className="h-4 w-4" />}
+              >
+                {t("actions.refresh")}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -210,39 +211,55 @@ export default function HomeworkGradeSyncPanel({
                     : t("link.noAssessments")
                 }
                 noResultsText={t("link.noResults")}
-                disabled={!canLink || isLoadingAssessments}
+                disabled={!canCreateLink || isLoadingAssessments}
               />
-              {canLink && (
+              {canCreateLink && canDiscoverAssessments && (
                 <Button
                   onClick={() => void linkAssessment()}
                   loading={isLinking}
-                  disabled={!gradeAssessmentId.trim()}
+                  disabled={!gradeAssessmentId.trim() || isLoadingAssessments}
                   leftIcon={<Link2 className="h-4 w-4" />}
                 >
                   {t("actions.link")}
                 </Button>
               )}
             </div>
+            {canLink && !canDiscoverAssessments && (
+              <p className="mt-3 text-sm text-amber-700">
+                {t("link.discoveryPermissionRequired")}
+              </p>
+            )}
+            {isLifecycleBlocked && (
+              <p className="mt-3 text-sm text-gray-500">
+                {t("link.lifecycleBlocked")}
+              </p>
+            )}
           </section>
 
           <section className="rounded-lg border border-border bg-white p-4">
             <h3 className="text-sm font-semibold text-gray-900">
               {t("status.title")}
             </h3>
-            <div className="mt-4 space-y-3">
-              <StatusRow
-                label={t("status.linked")}
-                value={status?.linked ? t("status.yes") : t("status.no")}
-              />
-              <StatusRow
-                label={t("status.assessment")}
-                value={
-                  status?.gradeAssessment?.title ||
-                  status?.gradeAssessment?.id ||
-                  "-"
-                }
-              />
-            </div>
+            {canViewStatus ? (
+              <div className="mt-4 space-y-3">
+                <StatusRow
+                  label={t("status.linked")}
+                  value={status?.linked ? t("status.yes") : t("status.no")}
+                />
+                <StatusRow
+                  label={t("status.assessment")}
+                  value={
+                    status?.gradeAssessment?.title ||
+                    status?.gradeAssessment?.id ||
+                    "-"
+                  }
+                />
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-gray-500">
+                {t("status.permissionRequired")}
+              </p>
+            )}
           </section>
         </div>
 
@@ -260,7 +277,7 @@ export default function HomeworkGradeSyncPanel({
               <Button
                 onClick={() => void syncAll()}
                 loading={isSyncing}
-                disabled={!status?.linked}
+                disabled={canViewStatus && !status?.linked}
                 leftIcon={<Send className="h-4 w-4" />}
               >
                 {t("actions.syncAll")}
@@ -277,7 +294,7 @@ export default function HomeworkGradeSyncPanel({
               value={status?.syncSummary?.synced}
             />
             <Metric
-              label={t("summary.skipped")}
+              label={t("summary.pending")}
               value={status?.syncSummary?.pending}
             />
             <Metric
@@ -311,14 +328,6 @@ function StatusRow({ label, value }: { label: string; value: string }) {
       <span className="text-gray-500">{label}</span>
       <span className="text-right font-medium text-gray-900">{value}</span>
     </div>
-  );
-}
-
-function isHomeworkSyncCompatibleAssessment(assessment: Assessment) {
-  return (
-    assessment.type === "ASSIGNMENT" &&
-    assessment.approvalStatus === "published" &&
-    !assessment.isLocked
   );
 }
 

@@ -195,6 +195,7 @@ export interface BackendAssessmentRosterItem {
 // Assessment list response (GET /grades/assessments)
 export interface BackendAssessmentResponse {
   id: string;
+  academicYearId?: string;
   termId?: string;
   subjectId?: string;
   subject?: BackendNamedEntity | null;

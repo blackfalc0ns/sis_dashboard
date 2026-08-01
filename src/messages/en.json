@@ -5750,14 +5750,17 @@
           "searchPlaceholder": "Search assessments",
           "loading": "Loading assessments...",
           "noAssessments": "No assessments found for this homework context.",
-          "noResults": "No matching assessments."
+          "noResults": "No matching assessments.",
+          "discoveryPermissionRequired": "Assessment view permission is required to discover link candidates.",
+          "lifecycleBlocked": "Cancelled or archived homework cannot be linked to an assessment."
         },
         "status": {
           "title": "Current status",
           "linked": "Linked",
           "assessment": "Assessment",
           "yes": "Yes",
-          "no": "No"
+          "no": "No",
+          "permissionRequired": "Grade-item view permission is required to display link and sync status."
         },
         "sync": {
           "title": "Sync reviewed submissions",

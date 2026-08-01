@@ -28,10 +28,14 @@ export type AssessmentCorrectionStatus = "pending" | "corrected";
 
 export interface Assessment {
   id: string;
+  academicYearId?: string;
   termId: string;
   subjectId: string;
   scopeType: ExamScopeType;
   scopeId: string;
+  scopeKey?: string;
+  stageId?: string;
+  gradeId?: string;
   sectionId?: string;
   classroomId?: string;
   title: string;

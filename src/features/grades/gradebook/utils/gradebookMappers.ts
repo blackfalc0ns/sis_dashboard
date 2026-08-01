@@ -222,10 +222,14 @@ export function mapBackendAssessmentToAssessment(item: BackendAssessmentResponse
 
   return {
     id: item.id,
+    academicYearId: item.academicYearId,
     termId: item.termId ?? "",
     subjectId: item.subjectId ?? item.subject?.id ?? "",
     scopeType: item.scopeType ?? "school",
     scopeId: (item.scopeType ?? "school") === "school" ? "" : item.scopeId ?? "",
+    scopeKey: item.scopeKey,
+    stageId: item.stageId ?? undefined,
+    gradeId: item.gradeId ?? undefined,
     sectionId: item.sectionId ?? undefined,
     classroomId: item.classroomId ?? undefined,
     title: names.nameEn || names.name,

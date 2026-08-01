@@ -55,4 +55,29 @@ describe("gradebook assessment contract mappers", () => {
 
     expect(assessment.scopeId).toBe("grade-uuid");
   });
+
+  it("preserves assessment academic and hierarchy identifiers", () => {
+    const assessment = mapBackendAssessmentToAssessment({
+      id: "assessment-1",
+      academicYearId: "year-1",
+      termId: "term-1",
+      subjectId: "subject-1",
+      scopeType: "classroom",
+      scopeKey: "classroom:classroom-1",
+      scopeId: "classroom-1",
+      stageId: "stage-1",
+      gradeId: "grade-1",
+      sectionId: "section-1",
+      classroomId: "classroom-1",
+    });
+
+    expect(assessment).toEqual(
+      expect.objectContaining({
+        academicYearId: "year-1",
+        scopeKey: "classroom:classroom-1",
+        stageId: "stage-1",
+        gradeId: "grade-1",
+      }),
+    );
+  });
 });
