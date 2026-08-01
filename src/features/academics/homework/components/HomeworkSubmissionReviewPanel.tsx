@@ -77,8 +77,8 @@ function formatMaybeDate(value: string | null | undefined, locale: string) {
   return new Date(value).toLocaleString(locale);
 }
 
-function scoreText(score?: number, maxScore?: number) {
-  if (score === undefined && maxScore === undefined) return "-";
+function scoreText(score?: number | null, maxScore?: number) {
+  if (score == null && maxScore === undefined) return "-";
   if (maxScore === undefined) return String(score ?? "-");
   return `${score ?? "-"} / ${maxScore}`;
 }
@@ -87,8 +87,8 @@ function normalizeStatus(status: string | undefined) {
   return status?.toLowerCase() ?? "submitted";
 }
 
-function scoreDraftValue(value: number | undefined) {
-  return value === undefined ? "" : String(value);
+function scoreDraftValue(value: number | null | undefined) {
+  return value == null ? "" : String(value);
 }
 
 export default function HomeworkSubmissionReviewPanel({

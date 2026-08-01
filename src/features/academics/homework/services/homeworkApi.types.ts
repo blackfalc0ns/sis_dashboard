@@ -461,7 +461,7 @@ export interface HomeworkSubmissionAnswerUiModel {
   prompt: string;
   questionType?: string;
   answerText: string;
-  score?: number;
+  score?: number | null;
   maxScore?: number;
   feedback?: string | null;
   isCorrect?: boolean | null;
@@ -482,7 +482,7 @@ export interface HomeworkSubmissionAttachmentUiModel {
 }
 
 export interface HomeworkAnswerReviewRequest {
-  score?: number;
+  score?: number | null;
   feedback?: string;
   isCorrect?: boolean;
 }
