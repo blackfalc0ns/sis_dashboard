@@ -18,6 +18,7 @@ import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
 import FilePreviewModal, {
+  FilePreviewThumbnail,
   type PreviewAttachment,
 } from "@/components/ui/file-preview-modal";
 import { AccessDenied, ConfirmDialog } from "@/components/ui";
@@ -1653,7 +1654,14 @@ export default function HomeworkSubmissionReviewPanel({
                           }
                           className="flex items-start gap-3 rounded-lg border border-border p-3 text-left text-sm transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          <FileText className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                          {canDownloadFiles && attachment.fileId ? (
+                            <FilePreviewThumbnail
+                              alt={attachment.title}
+                              fileId={attachment.fileId}
+                            />
+                          ) : (
+                            <FileText className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                          )}
                           <span className="min-w-0">
                             <span className="block truncate font-medium text-gray-900">
                               {attachment.title}

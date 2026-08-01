@@ -56,6 +56,9 @@ vi.mock("@/components/ui/file-preview-modal", () => ({
     attachment: { id: string; name: string } | null;
     isOpen: boolean;
   }) => isOpen ? <div data-testid="file-preview">{`${attachment?.id}:${attachment?.name}`}</div> : null,
+  FilePreviewThumbnail: ({ alt, fileId }: { alt: string; fileId: string }) => (
+    <div data-testid="file-preview-thumbnail">{`${fileId}:${alt}`}</div>
+  ),
 }));
 
 vi.mock("../../services/homeworkService", () => ({
@@ -213,7 +216,10 @@ describe("HomeworkSubmissionReviewPanel backend workflow", () => {
       />,
     );
 
-    fireEvent.click(await screen.findByText("Student work"));
+    expect(await screen.findByTestId("file-preview-thumbnail")).toHaveTextContent(
+      "submission/file-1:Student work",
+    );
+    fireEvent.click(screen.getByText("Student work"));
     expect(screen.getByTestId("file-preview")).toHaveTextContent(
       "submission/file-1:Student work",
     );
