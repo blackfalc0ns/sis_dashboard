@@ -166,6 +166,9 @@ export default function HomeworkSubmissionReviewPanel({
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [gradeSyncStatus, setGradeSyncStatus] =
     useState<HomeworkGradeSyncStatusUiModel | null>(null);
+  const visibleGradeSyncStatus = canViewGradeSyncStatus
+    ? gradeSyncStatus
+    : null;
 
   const selectedSubmission = useMemo(
     () =>
@@ -332,7 +335,7 @@ export default function HomeworkSubmissionReviewPanel({
   const canSaveSubmissionReview =
     canManage && finalReviewable && "request" in finalReviewResult;
   const selectedAwardedMarks = selectedSubmission?.awardedMarks;
-  const observableSyncMaximum = gradeSyncStatus?.gradeAssessment?.maxMarks;
+  const observableSyncMaximum = visibleGradeSyncStatus?.gradeAssessment?.maxMarks;
   const canSyncSelectedSubmission = Boolean(
     canSync &&
       selectedSubmission &&
@@ -342,7 +345,7 @@ export default function HomeworkSubmissionReviewPanel({
       selectedAwardedMarks >= 0 &&
       (effectiveTotalMarks == null || selectedAwardedMarks <= effectiveTotalMarks) &&
       (!canViewGradeSyncStatus ||
-        (gradeSyncStatus?.linked === true &&
+        (visibleGradeSyncStatus?.linked === true &&
           (observableSyncMaximum == null ||
             selectedAwardedMarks <= observableSyncMaximum))),
   );
@@ -463,10 +466,7 @@ export default function HomeworkSubmissionReviewPanel({
   }, [homeworkId]);
 
   useEffect(() => {
-    if (!canViewGradeSyncStatus) {
-      setGradeSyncStatus(null);
-      return;
-    }
+    if (!canViewGradeSyncStatus) return;
     let active = true;
     void getHomeworkGradeSyncStatus(homeworkId)
       .then((status) => {

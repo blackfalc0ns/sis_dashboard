@@ -107,10 +107,7 @@ export default function HomeworkGradeSyncPanel({
     }
   }, [
     canDiscoverAssessments,
-    homework.academicYearId,
-    homework.classroomId,
-    homework.subjectId,
-    homework.termId,
+    homework,
     locale,
     showError,
     t,
