@@ -51,6 +51,13 @@ vi.mock("@/components/ui/confirm-dialog/ConfirmDialog", () => ({
   default: () => null,
 }));
 
+vi.mock("@/components/ui/file-preview-modal", () => ({
+  default: ({ attachment, isOpen }: {
+    attachment: { id: string; name: string } | null;
+    isOpen: boolean;
+  }) => isOpen ? <div data-testid="file-preview">{`${attachment?.id}:${attachment?.name}`}</div> : null,
+}));
+
 vi.mock("../../services/homeworkService", () => ({
   listHomeworkSubmissions: vi.fn(),
   fetchHomeworkSubmission: vi.fn(),
@@ -183,6 +190,33 @@ describe("HomeworkSubmissionReviewPanel backend workflow", () => {
     expect(screen.getByRole("button", { name: "actions.closeStudents" })).toHaveFocus();
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByRole("dialog", { name: "actions.students" })).not.toBeInTheDocument();
+  });
+
+  it("opens a submission attachment in the shared file preview", async () => {
+    arrange();
+    vi.mocked(listHomeworkSubmissionAttachments).mockResolvedValue([
+      {
+        id: "attachment-1",
+        fileId: "submission/file-1",
+        title: "Student work",
+        filename: "work.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: "1024",
+      },
+    ]);
+    render(
+      <HomeworkSubmissionReviewPanel
+        homeworkId="homework-1"
+        totalMarks={10}
+        assignmentStatus="published"
+        isGraded
+      />,
+    );
+
+    fireEvent.click(await screen.findByText("Student work"));
+    expect(screen.getByTestId("file-preview")).toHaveTextContent(
+      "submission/file-1:Student work",
+    );
   });
 
   it("shows answer validation and does not send a score above question points", async () => {

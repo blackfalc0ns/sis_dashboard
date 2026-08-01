@@ -17,6 +17,9 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
 import TextArea from "@/components/ui/input/TextArea";
+import FilePreviewModal, {
+  type PreviewAttachment,
+} from "@/components/ui/file-preview-modal";
 import { AccessDenied, ConfirmDialog } from "@/components/ui";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useToast } from "@/components/ui/toast/Toast";
@@ -144,6 +147,8 @@ export default function HomeworkSubmissionReviewPanel({
   const [attachments, setAttachments] = useState<
     HomeworkSubmissionAttachmentUiModel[]
   >([]);
+  const [previewAttachment, setPreviewAttachment] =
+    useState<PreviewAttachment | null>(null);
   const [drafts, setDrafts] = useState<Record<string, ReviewDraft>>({});
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
@@ -1633,20 +1638,20 @@ export default function HomeworkSubmissionReviewPanel({
                     )}
                     <div className="grid gap-3 md:grid-cols-2">
                       {attachments.map((attachment) => (
-                        <a
+                        <button
                           key={attachment.id}
-                          href={
-                            canDownloadFiles && attachment.url
-                              ? attachment.url
-                              : undefined
+                          type="button"
+                          disabled={!canDownloadFiles || !attachment.fileId}
+                          onClick={() =>
+                            setPreviewAttachment({
+                              id: attachment.fileId ?? attachment.id,
+                              name: attachment.title,
+                              size: Number(attachment.sizeBytes) || 0,
+                              type: attachment.mimeType ?? "",
+                              url: attachment.url,
+                            })
                           }
-                          target={
-                            canDownloadFiles && attachment.url
-                              ? "_blank"
-                              : undefined
-                          }
-                          rel="noreferrer"
-                          className="flex items-start gap-3 rounded-lg border border-border p-3 text-sm hover:border-primary"
+                          className="flex items-start gap-3 rounded-lg border border-border p-3 text-left text-sm transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <FileText className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
                           <span className="min-w-0">
@@ -1659,7 +1664,7 @@ export default function HomeworkSubmissionReviewPanel({
                                 "-"}
                             </span>
                           </span>
-                        </a>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -1678,6 +1683,11 @@ export default function HomeworkSubmissionReviewPanel({
         confirmLabel={t("unsavedChanges.discard")}
         cancelLabel={t("unsavedChanges.stay")}
         severity="warning"
+      />
+      <FilePreviewModal
+        attachment={previewAttachment}
+        isOpen={previewAttachment !== null}
+        onClose={() => setPreviewAttachment(null)}
       />
       {/* Mobile Drawer Overlay */}
       {isMobileDrawerOpen && (
