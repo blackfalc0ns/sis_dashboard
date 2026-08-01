@@ -1,5 +1,4 @@
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api";
-import { isApiError } from "@/lib/api-error";
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import type {
   BackendHomeworkAssignmentDto,
@@ -273,7 +272,7 @@ function mapGradeSyncStatus(
       ? {
           total: summary.total ?? summary.totalReviewedSubmissions,
           synced: summary.synced ?? summary.syncedSubmissions,
-          skipped: summary.skipped ?? summary.pendingSyncSubmissions,
+          pending: summary.pendingSyncSubmissions,
           failed: summary.failed ?? summary.failedSyncSubmissions,
           lastSyncedAt: summary.lastSyncedAt,
         }
@@ -426,15 +425,10 @@ export const homeworkApiAdapter: HomeworkAdapter = {
   },
 
   async listQuestions(homeworkId: string) {
-    try {
-      const response = await apiGet<BackendHomeworkQuestionsResponse | BackendHomeworkQuestionDto[]>(
-        `${BASE_PATH}/${homeworkId}/questions`,
-      );
-      return extractQuestionList(response).map(mapBackendHomeworkQuestionToBuilder);
-    } catch (error) {
-      if (isApiError(error) && error.status === 404) return [];
-      throw error;
-    }
+    const response = await apiGet<BackendHomeworkQuestionsResponse | BackendHomeworkQuestionDto[]>(
+      `${BASE_PATH}/${homeworkId}/questions`,
+    );
+    return extractQuestionList(response).map(mapBackendHomeworkQuestionToBuilder);
   },
 
   async createQuestion(homeworkId: string, question: AssignmentQuestion) {
@@ -508,15 +502,10 @@ export const homeworkApiAdapter: HomeworkAdapter = {
   },
 
   async listAttachments(homeworkId: string) {
-    try {
-      const response = await apiGet<BackendHomeworkAttachmentsResponse>(
-        `${BASE_PATH}/${homeworkId}/attachments`,
-      );
-      return extractAttachmentList(response).map(mapBackendHomeworkAttachmentToBuilder);
-    } catch (error) {
-      if (isApiError(error) && error.status === 404) return [];
-      throw error;
-    }
+    const response = await apiGet<BackendHomeworkAttachmentsResponse>(
+      `${BASE_PATH}/${homeworkId}/attachments`,
+    );
+    return extractAttachmentList(response).map(mapBackendHomeworkAttachmentToBuilder);
   },
 
   async createAttachment(homeworkId: string, payload) {

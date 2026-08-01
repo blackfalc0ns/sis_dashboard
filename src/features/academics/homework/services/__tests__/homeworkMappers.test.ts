@@ -120,6 +120,35 @@ describe("homeworkMappers", () => {
     });
   });
 
+  it("preserves nullable marks and classroom hierarchy identifiers", () => {
+    const homework = mapBackendHomeworkAssignmentToUi({
+      id: "homework-null-marks",
+      title: "Ungraded practice",
+      totalMarks: null,
+      classroom: {
+        id: "classroom-1",
+        section: { id: "section-1" },
+        grade: { id: "grade-1" },
+      },
+    });
+
+    expect(homework).toEqual(expect.objectContaining({
+      totalMarks: null,
+      classroomSectionId: "section-1",
+      classroomGradeId: "grade-1",
+    }));
+
+    const builder = mapHomeworkUiToBuilderAssignment(homework);
+    expect(builder.maxScore).toBeNull();
+    expect(mapBuilderAssignmentToHomeworkUpdate({
+      ...builder,
+      titleEn: "Updated title",
+    })).toEqual(expect.objectContaining({
+      title: "Updated title",
+      totalMarks: null,
+    }));
+  });
+
   it("maps backend questions and options into the existing builder shape", () => {
     expect(
       mapBackendHomeworkQuestionToBuilder({
@@ -159,6 +188,25 @@ describe("homeworkMappers", () => {
         ],
       }),
     );
+  });
+
+  it("preserves optional questions in create and update payloads", () => {
+    const question = mapBackendHomeworkQuestionToBuilder({
+      questionId: "question-optional",
+      homeworkId: "homework-1",
+      prompt: "Optional explanation",
+      type: "short_text",
+      points: 2,
+      sortOrder: 0,
+      isRequired: false,
+      options: [],
+      createdAt: "",
+      updatedAt: "",
+    });
+
+    expect(question.isRequired).toBe(false);
+    expect(mapBuilderQuestionToHomeworkCreatePayload(question).isRequired).toBe(false);
+    expect(mapBuilderQuestionToHomeworkUpdatePayload(question).isRequired).toBe(false);
   });
 
   it("maps builder questions to backend create and update payloads", () => {

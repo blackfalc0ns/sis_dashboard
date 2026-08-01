@@ -49,7 +49,7 @@ const DEFAULT_PAGE_SIZE = 25;
 
 interface HomeworkSubmissionReviewPanelProps {
   homeworkId: string;
-  totalMarks: number;
+  totalMarks: number | null;
 }
 
 type ReviewDraft = {
@@ -202,7 +202,7 @@ export default function HomeworkSubmissionReviewPanel({
     if (!/^\d+(\.\d{1,2})?$/.test(raw)) {
       return t("validation.awardedMarksDecimals");
     }
-    const maxMarks = selectedSubmission?.totalMarks ?? totalMarks;
+    const maxMarks = selectedSubmission?.totalMarks ?? totalMarks ?? undefined;
     if (maxMarks !== undefined && parsed > maxMarks) {
       return t("validation.awardedMarksMax", { max: maxMarks });
     }
@@ -737,7 +737,7 @@ export default function HomeworkSubmissionReviewPanel({
               <div className="mt-2 text-xs text-gray-650">
                 {scoreText(
                   submission.awardedMarks,
-                  submission.totalMarks ?? totalMarks,
+                  submission.totalMarks ?? totalMarks ?? undefined,
                 )}
               </div>
               {submission.isLate && (
@@ -1152,7 +1152,7 @@ export default function HomeworkSubmissionReviewPanel({
                         label={t("submissionReview.awardedMarks")}
                         type="number"
                         min={0}
-                        max={selectedSubmission.totalMarks ?? totalMarks}
+                        max={selectedSubmission.totalMarks ?? totalMarks ?? undefined}
                         step="0.01"
                         value={submissionReviewDraft.awardedMarks}
                         error={awardedMarksError}

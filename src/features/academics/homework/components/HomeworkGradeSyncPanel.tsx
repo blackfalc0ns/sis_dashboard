@@ -278,7 +278,7 @@ export default function HomeworkGradeSyncPanel({
             />
             <Metric
               label={t("summary.skipped")}
-              value={status?.syncSummary?.skipped}
+              value={status?.syncSummary?.pending}
             />
             <Metric
               label={t("summary.failed")}

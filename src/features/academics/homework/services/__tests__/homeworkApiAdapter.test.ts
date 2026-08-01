@@ -178,13 +178,17 @@ describe("homeworkApiAdapter", () => {
     );
   });
 
-  it("treats missing question and attachment child collections as empty", async () => {
+  it("preserves question and attachment 404 errors", async () => {
     mockedApiGet
       .mockRejectedValueOnce(new ApiError("Questions not found", 404, "not_found"))
       .mockRejectedValueOnce(new ApiError("Attachments not found", 404, "not_found"));
 
-    await expect(homeworkApiAdapter.listQuestions("homework-1")).resolves.toEqual([]);
-    await expect(homeworkApiAdapter.listAttachments("homework-1")).resolves.toEqual([]);
+    await expect(homeworkApiAdapter.listQuestions("homework-1")).rejects.toThrow(
+      "Questions not found",
+    );
+    await expect(homeworkApiAdapter.listAttachments("homework-1")).rejects.toThrow(
+      "Attachments not found",
+    );
 
     expect(mockedApiGet).toHaveBeenCalledWith(
       "/homework/assignments/homework-1/questions",
@@ -599,6 +603,32 @@ describe("homeworkApiAdapter", () => {
     expect(mockedApiPost).toHaveBeenCalledWith(
       "/homework/assignments/homework-1/submissions/submission-1/grade-sync",
     );
+  });
+
+  it("maps pending grade sync submissions without relabeling them as skipped", async () => {
+    mockedApiGet.mockResolvedValueOnce({
+      homeworkId: "homework-1",
+      linked: true,
+      syncSummary: {
+        totalReviewedSubmissions: 5,
+        syncedSubmissions: 2,
+        pendingSyncSubmissions: 3,
+        failedSyncSubmissions: 0,
+        lastSyncedAt: null,
+      },
+      warnings: [],
+    });
+
+    const status = await homeworkApiAdapter.getGradeSyncStatus("homework-1");
+
+    expect(status.syncSummary).toEqual({
+      total: 5,
+      synced: 2,
+      pending: 3,
+      failed: 0,
+      lastSyncedAt: null,
+    });
+    expect(status.syncSummary).not.toHaveProperty("skipped");
   });
 
   it("gets one submission answer from the backend detail endpoint", async () => {

@@ -78,6 +78,8 @@ export function mapBackendHomeworkAssignmentToUi(
     academicYearId: dto.academicYearId ?? dto.academicYear?.id,
     termId: dto.termId ?? dto.term?.id,
     classroomId: dto.classroomId ?? dto.classroom?.id,
+    classroomSectionId: dto.classroom?.section?.id,
+    classroomGradeId: dto.classroom?.grade?.id,
     subjectId: dto.subjectId ?? dto.subject?.id,
     teacherSubjectAllocationId: dto.teacherSubjectAllocationId,
     teacherUserId: dto.teacherUserId ?? dto.teacher?.userId,
@@ -93,7 +95,7 @@ export function mapBackendHomeworkAssignmentToUi(
     publishedAt: dto.publishedAt,
     closedAt: dto.closedAt,
     estimatedMinutes: dto.estimatedMinutes ?? undefined,
-    totalMarks: dto.totalMarks ?? 0,
+    totalMarks: dto.totalMarks ?? null,
     isGraded: dto.isGraded ?? true,
     questionCount: dto.questionCount ?? dto.questions?.length ?? 0,
     attachmentCount:
@@ -172,6 +174,7 @@ export function mapBackendHomeworkQuestionToBuilder(
     questionTextEn: dto.prompt,
     questionType: toUiQuestionType(dto.type),
     points: dto.points,
+    isRequired: dto.isRequired,
     order: dto.sortOrder,
     options: dto.options.map(mapBackendHomeworkOptionToBuilder),
     correctAnswer: dto.type.toLowerCase() === "true_false"
@@ -203,7 +206,7 @@ export function mapBuilderQuestionToHomeworkCreatePayload(
     prompt: question.questionTextEn || question.questionTextAr,
     points: question.points,
     sortOrder: question.order,
-    isRequired: true,
+    isRequired: question.isRequired ?? true,
     instructions: question.instructions?.trim() || undefined,
     expectedAnswer: question.questionType === "SHORT_ANSWER"
       ? question.expectedAnswer?.trim() || undefined

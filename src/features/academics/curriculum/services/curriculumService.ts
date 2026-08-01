@@ -51,7 +51,7 @@ export interface Assignment {
   descriptionAr?: string;
   descriptionEn?: string;
   dueDate?: string;
-  maxScore?: number;
+  maxScore?: number | null;
   expectedTimeMinutes?: number;
   isPublished?: boolean;
   createdAt?: string;
@@ -102,6 +102,7 @@ export interface AssignmentQuestion {
     | "MATCHING"
     | "MEDIA";
   points: number;
+  isRequired?: boolean;
   order: number;
   options?: QuestionOption[];
   correctAnswer?: boolean;

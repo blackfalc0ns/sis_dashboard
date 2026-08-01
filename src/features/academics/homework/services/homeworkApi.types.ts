@@ -152,12 +152,12 @@ export interface CreateHomeworkAssignmentRequest {
   dueAt: string;
   timetableEntryId?: string;
   scheduleDate?: string;
-  description?: string;
+  description?: string | null;
   mode?: string;
   studentIds?: string[];
-  publishAt?: string;
-  estimatedMinutes?: number;
-  totalMarks?: number;
+  publishAt?: string | null;
+  estimatedMinutes?: number | null;
+  totalMarks?: number | null;
   isGraded?: boolean;
 }
 
@@ -250,6 +250,8 @@ export interface HomeworkAssignmentUiModel {
   academicYearId?: string;
   termId?: string;
   classroomId?: string;
+  classroomSectionId?: string;
+  classroomGradeId?: string;
   subjectId?: string;
   teacherSubjectAllocationId?: string;
   teacherUserId?: string;
@@ -265,7 +267,7 @@ export interface HomeworkAssignmentUiModel {
   publishedAt?: string | null;
   closedAt?: string | null;
   estimatedMinutes?: number;
-  totalMarks: number;
+  totalMarks: number | null;
   isGraded: boolean;
   questionCount: number;
   attachmentCount: number;
@@ -509,7 +511,7 @@ export interface HomeworkGradeSyncStatusUiModel {
   syncSummary?: {
     total?: number;
     synced?: number;
-    skipped?: number;
+    pending?: number;
     failed?: number;
     lastSyncedAt?: string | null;
   };
@@ -542,7 +544,6 @@ export interface BackendHomeworkGradeSyncStatusDto {
   syncSummary?: {
     total?: number;
     synced?: number;
-    skipped?: number;
     failed?: number;
     totalReviewedSubmissions?: number;
     syncedSubmissions?: number;
