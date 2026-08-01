@@ -50,13 +50,17 @@ Create and edit flows share these constraints:
 
 - title is trimmed, required, and at most 180 characters;
 - description is optional and at most 4,000 characters;
-- due date is required and must be a valid date-time;
-- total marks is optional or null, otherwise at least `0.01` with at most two
-  decimal places; and
+- due date is required, must be a valid future date-time, and must be later than
+  `publishAt` when scheduled publication is present;
+- graded homework requires total marks; when supplied, total marks must be at
+  least `0.01` with at most two decimal places;
+- ungraded homework may keep total marks null; and
 - estimated minutes is optional or null, otherwise an integer of at least `1`.
 
 The frontend must block requests that violate these rules and show localized
-field feedback. Existing assignments with nullable marks remain editable.
+field feedback. Existing ungraded assignments with nullable marks remain
+editable. A graded assignment cannot be saved without marks because the backend
+enforces that invariant.
 
 ## Submission Review Workflow
 
@@ -66,8 +70,14 @@ answer feedback, submission note, final mark, and all save actions. Any other
 unexpected non-reviewable status is also treated as read-only.
 
 Each answer score is optional or a finite number between zero and the question's
-points, inclusive, with at most two decimal places. Individual and bulk answer
-save actions are unavailable while their affected answers are invalid.
+points, inclusive, with at most two decimal places. Answer feedback is optional,
+trimmed, and limited to 2,000 characters. Individual and bulk answer save
+actions are unavailable while their affected answers are invalid.
+
+The Homework question model preserves the backend `isRequired` field. Required
+answer completion is determined from that field and the answer's `reviewedAt`
+value; a reviewed answer may still have a null score because the backend permits
+clearing awarded points.
 
 For homework with questions:
 
@@ -78,9 +88,17 @@ For homework with questions:
 - the frontend sends the optional review note but treats the backend as the
   authority for the calculated awarded mark.
 
-For homework without questions, the assignment-level awarded mark remains
+For graded homework without questions, the assignment-level awarded mark remains
 editable. It is optional, non-negative, limited to two decimal places, and must
-not exceed the assignment total marks when that total is present.
+not exceed the assignment total marks. For ungraded homework without questions,
+the awarded mark is read-only and omitted from the review request because the
+backend rejects manual marks for ungraded homework.
+
+The final-review action does not depend on the note or mark fields being dirty.
+A reviewable body-only submission may be finalized with an empty request, and a
+question-based submission may be finalized as soon as its required answer
+reviews are complete and saved. A supplied review note is trimmed, non-empty,
+and at most 2,000 characters.
 
 After final review succeeds, the returned `reviewed` status immediately locks
 the panel. Backend conflicts continue through the existing Homework error
@@ -97,13 +115,24 @@ Frontend permission gates exactly match the controller:
   `grades.items.manage`.
 
 Per-submission sync is available only for a reviewed submission and only when a
-grade assessment is linked.
+grade assessment is linked. Assessment linking is unavailable for cancelled or
+archived homework, matching the backend assignment-state guard. Linking is also
+unavailable after an assessment has already been linked because the backend
+rejects duplicate or replacement links and exposes no unlink operation. The
+linked assessment is displayed as read-only state.
 
 Assessment discovery includes backend-compatible school, stage, grade, section,
-and classroom scopes. Candidates must match the homework academic year, term,
-subject, assignment assessment type, and unlocked requirement. Results from
-multiple scope queries are deduplicated by assessment ID. An existing linked
-assessment remains visible even when it is no longer selectable.
+and classroom scopes. The assignment mapper retains classroom, section, and
+grade identifiers from the Homework response; the existing academic structure
+tree supplies the containing stage identifier. The panel issues one assessment
+query for each resolvable scope in that hierarchy.
+
+Candidates must match the homework academic year, term, subject, assignment
+assessment type, compatible placement, and unlocked requirement. Discovery does
+not restrict approval status because the Homework backend link contract does not
+require a particular assessment approval state. Results from multiple scope
+queries are deduplicated by assessment ID. An existing linked assessment remains
+visible even when it is no longer selectable.
 
 The UI preserves backend grade-sync terminology. In particular,
 `pendingSyncSubmissions` is represented and labeled as pending, not skipped.
@@ -141,14 +170,22 @@ the established toast messages.
 Regression coverage includes:
 
 - nullable total marks surviving response mapping and unrelated edits;
-- rejection of zero marks, zero duration, overlong text, invalid dates, and
-  excessive decimal precision before requests;
+- graded-marks requirements and ungraded nullable marks;
+- rejection of zero marks, zero duration, overlong text, past or invalid due
+  dates, due dates not later than `publishAt`, and excessive decimal precision
+  before requests;
 - read-only reviewed submissions;
 - answer score minimum, maximum, finiteness, and decimal precision;
+- answer feedback and final review-note limits;
+- preservation of `isRequired` and completion checks based on `reviewedAt`;
 - required-answer completion and answer-score rollup before final review;
-- manual final marks for homework without questions;
+- finalization without requiring an artificial dirty field;
+- manual final marks for graded homework without questions and omission of marks
+  for ungraded homework;
 - exact per-submission grade-sync permissions and reviewed-state gating;
-- multi-scope assessment discovery and deduplication;
+- cancelled/archived link gating;
+- duplicate-link prevention and read-only linked state;
+- multi-scope assessment discovery across approval states and deduplication;
 - pending grade-sync naming and mapping;
 - propagation of question and attachment loading errors; and
 - authoritative recovery after partial question mutation failure.
