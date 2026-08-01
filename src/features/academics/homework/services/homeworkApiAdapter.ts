@@ -107,6 +107,18 @@ function toNumber(value: number | string | null | undefined) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function toNullableNumber(
+  ...values: Array<number | string | null | undefined>
+): number | null | undefined {
+  for (const value of values) {
+    if (value === undefined || value === "") continue;
+    if (value === null) return null;
+    const parsed = toNumber(value);
+    if (parsed !== undefined) return parsed;
+  }
+  return undefined;
+}
+
 function firstText(...values: Array<string | null | undefined>) {
   return values.find((value) => !!value?.trim())?.trim();
 }
@@ -153,7 +165,11 @@ function mapSubmissionAnswerToUi(
     answerText:
       firstText(answer.answerText, answer.textAnswer, answer.text, stringifyAnswerValue(answer.value)) ??
       "",
-    score: toNumber(answer.score ?? answer.awardedMarks ?? answer.awardedPoints),
+    score: toNullableNumber(
+      answer.score,
+      answer.awardedMarks,
+      answer.awardedPoints,
+    ),
     maxScore: toNumber(
       answer.maxScore ?? answer.points ?? answerPromptPoints(answer) ?? question?.points,
     ),

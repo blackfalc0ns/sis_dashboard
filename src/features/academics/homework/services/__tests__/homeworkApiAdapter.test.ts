@@ -459,6 +459,12 @@ describe("homeworkApiAdapter", () => {
           selectedOptionIds: ["opt-1", "opt-2"],
           awardedPoints: 4,
           teacherComment: "Draft feedback",
+        }, {
+          answerId: "answer-2",
+          questionId: "question-2",
+          prompt: "Unreviewed",
+          textAnswer: "Pending answer",
+          awardedPoints: null,
         }],
       })
       .mockResolvedValueOnce({
@@ -531,6 +537,10 @@ describe("homeworkApiAdapter", () => {
         maxScore: 5,
         feedback: "Draft feedback",
         selectedOptionIds: ["opt-1", "opt-2"],
+      }),
+      expect.objectContaining({
+        id: "answer-2",
+        score: null,
       }),
     ]);
     await expect(
