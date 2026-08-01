@@ -5591,6 +5591,9 @@
         "errors": {
           "loadFailed": "فشل تحميل الواجب: {message}",
           "homeworkSaveFailed": "فشل حفظ الواجب: {message}",
+          "questionSavePartiallyApplied": "قد تكون بعض تغييرات الأسئلة قد حُفظت. تم إعادة تحميل أحدث بيانات الخادم. {message}",
+          "questionSaveRecoveryFailed": "قد تكون بعض تغييرات الأسئلة قد حُفظت، لكن تعذر إعادة تحميل أحدث بيانات الخادم. حدّث الصفحة قبل المتابعة. خطأ الحفظ: {saveMessage}. خطأ إعادة التحميل: {reloadMessage}.",
+          "fixAssignmentValidation": "أصلح أخطاء تحقق الواجب قبل الحفظ.",
           "fixQuestionValidation": "أصلح أخطاء تحقق السؤال قبل الحفظ.",
           "questionSaveFailed": "فشل حفظ السؤال: {message}",
           "questionDeleteFailed": "فشل حذف السؤال: {message}",
@@ -7615,6 +7618,18 @@
     "pointsUpdated": "تم تحديث الدرجات بنجاح"
   },
   "validation": {
+    "assignmentTitleRequired": "عنوان الواجب مطلوب.",
+    "assignmentTitleTooLong": "يجب ألا يتجاوز عنوان الواجب 180 حرفًا.",
+    "assignmentDescriptionTooLong": "يجب ألا يتجاوز وصف الواجب 4000 حرف.",
+    "assignmentDueAtInvalid": "أدخل تاريخ استحقاق صالحًا.",
+    "assignmentPublishAtInvalid": "أدخل تاريخ نشر صالحًا.",
+    "assignmentDueAtFuture": "يجب أن يكون تاريخ الاستحقاق في المستقبل.",
+    "assignmentDueAtAfterPublish": "يجب أن يكون تاريخ الاستحقاق بعد تاريخ النشر.",
+    "assignmentMarksRequired": "الدرجة الكلية مطلوبة للواجب المُقيّم.",
+    "assignmentMarksMin": "يجب ألا تقل الدرجة الكلية عن 0.01.",
+    "assignmentMarksDecimals": "يمكن أن تحتوي الدرجة الكلية على منزلتين عشريتين كحد أقصى.",
+    "assignmentMinutesMin": "يجب ألا تقل المدة المقدرة عن دقيقة واحدة.",
+    "assignmentMinutesInteger": "يجب أن تكون المدة المقدرة عددًا صحيحًا من الدقائق.",
     "required_fields": "يرجى ملء جميع الحقول المطلوبة",
     "required_ar": "العربي مطلوب",
     "required_en": "الإنجليزي مطلوب",

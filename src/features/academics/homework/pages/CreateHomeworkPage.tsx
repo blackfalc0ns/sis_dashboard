@@ -39,6 +39,8 @@ import type {
 import { createHomeworkAssignment } from "@/features/academics/homework/services/homeworkService";
 import type { CreateHomeworkAssignmentRequest } from "@/features/academics/homework/services/homeworkApi.types";
 import { getHomeworkErrorMessage } from "@/features/academics/homework/services/homeworkErrors";
+import { validateHomeworkAssignmentContract } from "@/features/academics/homework/utils/homeworkValidation";
+import type { ValidationErrors } from "@/features/academics/curriculum/types/types";
 import type { SelectOption } from "@/components/ui/input/Select";
 
 interface AllocationSelectOption extends SelectOption {
@@ -218,6 +220,7 @@ export default function CreateHomeworkPage() {
   const locale = useLocale();
   const t = useTranslations("academics.homework.create");
   const tHomeworkError = useTranslations("academics.homework.errorMessages");
+  const tValidation = useTranslations("validation");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showError, showSuccess } = useToast();
@@ -226,6 +229,7 @@ export default function CreateHomeworkPage() {
     useAcademicYearTermLayoutContext();
   const canManage = hasPermission("homework.assignments.manage");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [assignmentErrors, setAssignmentErrors] = useState<ValidationErrors>({});
   const [isLoadingAllocations, setIsLoadingAllocations] = useState(false);
   const [isLoadingEligibleStudents, setIsLoadingEligibleStudents] =
     useState(false);
@@ -477,12 +481,21 @@ export default function CreateHomeworkPage() {
       showError(t("errors.allocationRequired"));
       return;
     }
-    if (!effectiveDraft.title.trim()) {
-      showError(t("errors.titleRequired"));
-      return;
-    }
-    if (!effectiveDraft.dueAt) {
-      showError(t("errors.dueAtRequired"));
+    const contractErrors = validateHomeworkAssignmentContract({
+      title: effectiveDraft.title,
+      description: effectiveDraft.description,
+      dueAt: effectiveDraft.dueAt,
+      publishAt: effectiveDraft.publishAt,
+      isGraded: effectiveDraft.isGraded ?? false,
+      totalMarks: effectiveDraft.totalMarks,
+      estimatedMinutes: effectiveDraft.estimatedMinutes,
+    }, tValidation);
+    setAssignmentErrors(contractErrors);
+    const firstContractError = Object.values(contractErrors).find(
+      (error): error is string => typeof error === "string",
+    );
+    if (firstContractError) {
+      showError(firstContractError);
       return;
     }
     if (
@@ -512,6 +525,8 @@ export default function CreateHomeworkPage() {
     try {
       const payload: CreateHomeworkAssignmentRequest = {
         ...effectiveDraft,
+        title: effectiveDraft.title.trim(),
+        description: effectiveDraft.description?.trim() || undefined,
         studentIds:
           effectiveDraft.targetMode === "selected_students"
             ? effectiveDraft.studentIds
@@ -566,6 +581,8 @@ export default function CreateHomeworkPage() {
             <Input
               label={t("fields.title")}
               required
+              maxLength={180}
+              error={assignmentErrors.titleEn}
               value={draft.title}
               onChange={(event) =>
                 setDraft((current) => ({
@@ -641,6 +658,7 @@ export default function CreateHomeworkPage() {
             />
             <DatePicker
               label={t("fields.dueAt")}
+              error={assignmentErrors.dueDate}
               value={draft.dueAt ? new Date(draft.dueAt) : null}
               onChange={(date) =>
                 setDraft((current) => ({
@@ -698,12 +716,16 @@ export default function CreateHomeworkPage() {
             <Input
               label={t("fields.totalMarks")}
               type="number"
-              min={0}
-              value={draft.totalMarks ?? 0}
+              min={0.01}
+              step={0.01}
+              value={draft.totalMarks ?? ""}
+              error={assignmentErrors.maxScore}
               onChange={(event) =>
                 setDraft((current) => ({
                   ...current,
-                  totalMarks: Number(event.target.value),
+                  totalMarks: event.target.value
+                    ? Number(event.target.value)
+                    : null,
                 }))
               }
             />
@@ -711,7 +733,9 @@ export default function CreateHomeworkPage() {
               label={t("fields.estimatedMinutes")}
               type="number"
               min={1}
+              step={1}
               value={draft.estimatedMinutes ?? ""}
+              error={assignmentErrors.expectedTimeMinutes}
               onChange={(event) =>
                 setDraft((current) => ({
                   ...current,
@@ -723,7 +747,9 @@ export default function CreateHomeworkPage() {
             />
             <Input
               label={t("fields.description")}
+              maxLength={4000}
               value={draft.description ?? ""}
+              error={assignmentErrors.descriptionEn}
               onChange={(event) =>
                 setDraft((current) => ({
                   ...current,

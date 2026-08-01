@@ -16,6 +16,89 @@ const SUPPORTED_TYPES = new Set([
 ]);
 const CHOICE_TYPES = new Set(["MCQ_SINGLE", "MCQ_MULTI", "TRUE_FALSE"]);
 
+export interface HomeworkAssignmentContractInput {
+  title: string;
+  description?: string | null;
+  dueAt: string;
+  publishAt?: string | null;
+  isGraded: boolean;
+  totalMarks?: number | null;
+  estimatedMinutes?: number | null;
+}
+
+function hasAtMostTwoDecimals(number: number): boolean {
+  const scaled = number * 100;
+  return Math.abs(scaled - Math.round(scaled)) < 1e-8;
+}
+
+function validateAssignmentText(
+  input: HomeworkAssignmentContractInput,
+  t: (key: string) => string,
+): ValidationErrors {
+  const errors: ValidationErrors = {};
+  const title = input.title.trim();
+  if (!title) errors.titleEn = t("assignmentTitleRequired");
+  else if (title.length > 180) errors.titleEn = t("assignmentTitleTooLong");
+  if ((input.description?.trim().length ?? 0) > 4000) {
+    errors.descriptionEn = t("assignmentDescriptionTooLong");
+  }
+  return errors;
+}
+
+function validateAssignmentDates(
+  input: HomeworkAssignmentContractInput,
+  t: (key: string) => string,
+  now: Date,
+): ValidationErrors {
+  const dueAt = new Date(input.dueAt);
+  if (Number.isNaN(dueAt.getTime())) return { dueDate: t("assignmentDueAtInvalid") };
+  if (dueAt.getTime() <= now.getTime()) return { dueDate: t("assignmentDueAtFuture") };
+  if (!input.publishAt) return {};
+  const publishAt = new Date(input.publishAt);
+  if (Number.isNaN(publishAt.getTime())) return { dueDate: t("assignmentPublishAtInvalid") };
+  return dueAt.getTime() <= publishAt.getTime()
+    ? { dueDate: t("assignmentDueAtAfterPublish") }
+    : {};
+}
+
+function validateAssignmentMarks(
+  input: HomeworkAssignmentContractInput,
+  t: (key: string) => string,
+): ValidationErrors {
+  const marks = input.totalMarks;
+  if (input.isGraded && marks == null) return { maxScore: t("assignmentMarksRequired") };
+  if (marks == null) return {};
+  if (!Number.isFinite(marks) || marks < 0.01) return { maxScore: t("assignmentMarksMin") };
+  return hasAtMostTwoDecimals(marks)
+    ? {}
+    : { maxScore: t("assignmentMarksDecimals") };
+}
+
+function validateAssignmentMinutes(
+  input: HomeworkAssignmentContractInput,
+  t: (key: string) => string,
+): ValidationErrors {
+  const minutes = input.estimatedMinutes;
+  if (minutes == null) return {};
+  if (!Number.isInteger(minutes)) return { expectedTimeMinutes: t("assignmentMinutesInteger") };
+  return minutes < 1
+    ? { expectedTimeMinutes: t("assignmentMinutesMin") }
+    : {};
+}
+
+export function validateHomeworkAssignmentContract(
+  input: HomeworkAssignmentContractInput,
+  t: (key: string) => string,
+  now: Date = new Date(),
+): ValidationErrors {
+  return {
+    ...validateAssignmentText(input, t),
+    ...validateAssignmentDates(input, t, now),
+    ...validateAssignmentMarks(input, t),
+    ...validateAssignmentMinutes(input, t),
+  };
+}
+
 function validatePromptAndPoints(
   question: AssignmentQuestion,
   t: (key: string) => string,
@@ -76,19 +159,17 @@ export function validateHomeworkAssignment(
   assignment: Assignment,
   questions: AssignmentQuestion[],
   t: (key: string) => string,
+  context: { isGraded: boolean; publishAt?: string | null },
 ): ValidationErrors {
-  const errors: ValidationErrors = {};
-  if (!assignment.titleAr?.trim() && !assignment.titleEn?.trim()) {
-    errors.titleEn = t("question_text_required");
-  }
-  if (typeof assignment.maxScore !== "number" ||
-      !Number.isFinite(assignment.maxScore) || assignment.maxScore < 0) {
-    errors.maxScore = t("invalid_max_score");
-  }
-  if (assignment.expectedTimeMinutes != null &&
-      (!Number.isFinite(assignment.expectedTimeMinutes) || assignment.expectedTimeMinutes < 0)) {
-    errors.expectedTimeMinutes = t("invalid_expected_time");
-  }
+  const errors = validateHomeworkAssignmentContract({
+    title: assignment.titleEn || assignment.titleAr,
+    description: assignment.descriptionEn || assignment.descriptionAr,
+    dueAt: assignment.dueDate ?? "",
+    publishAt: context.publishAt,
+    isGraded: context.isGraded,
+    totalMarks: assignment.maxScore,
+    estimatedMinutes: assignment.expectedTimeMinutes,
+  }, t);
   const questionErrors = Object.fromEntries(
     questions
       .map((question) => [question.id, validateHomeworkQuestion(question, t)])

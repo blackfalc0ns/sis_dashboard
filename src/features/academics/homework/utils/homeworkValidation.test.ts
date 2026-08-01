@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { validateHomeworkAssignment, validateHomeworkQuestion } from "./homeworkValidation";
+import {
+  validateHomeworkAssignmentContract,
+  validateHomeworkQuestion,
+} from "./homeworkValidation";
 
 const t = (key: string) => key;
 
@@ -48,14 +51,6 @@ describe("validateHomeworkQuestion", () => {
     ] }), t)).toEqual(expect.objectContaining({ options: "textQuestionOptionsForbidden" }));
   });
 
-  it("allows zero total marks and no questions like the backend", () => {
-    const assignment = {
-      id: "homework-1", lessonId: "homework", titleAr: "Title", titleEn: "Title",
-      maxScore: 0, isPublished: false,
-    };
-    expect(validateHomeworkAssignment(assignment, [], t)).toEqual({});
-  });
-
   it("enforces backend instructions and expected answer limits", () => {
     expect(validateHomeworkQuestion(question({ instructions: "x".repeat(4001) }), t))
       .toEqual(expect.objectContaining({ instructions: "instructionsTooLong" }));
@@ -66,5 +61,59 @@ describe("validateHomeworkQuestion", () => {
   it("rejects question types unsupported by homework", () => {
     expect(validateHomeworkQuestion(question({ questionType: "MATCHING" }), t))
       .toEqual(expect.objectContaining({ general: "unsupportedQuestionType" }));
+  });
+});
+
+describe("validateHomeworkAssignmentContract", () => {
+  const now = new Date("2026-08-01T10:00:00.000Z");
+  const validInput = {
+    title: "Practice",
+    description: "Review chapter one",
+    dueAt: "2026-08-02T10:00:00.000Z",
+    publishAt: null,
+    isGraded: true,
+    totalMarks: 10,
+    estimatedMinutes: 30,
+  };
+
+  it.each([
+    [{ title: "" }, "titleEn", "assignmentTitleRequired"],
+    [{ title: "x".repeat(181) }, "titleEn", "assignmentTitleTooLong"],
+    [{ description: "x".repeat(4001) }, "descriptionEn", "assignmentDescriptionTooLong"],
+    [{ dueAt: "not-a-date" }, "dueDate", "assignmentDueAtInvalid"],
+    [{ publishAt: "not-a-date" }, "dueDate", "assignmentPublishAtInvalid"],
+    [{ dueAt: now.toISOString() }, "dueDate", "assignmentDueAtFuture"],
+    [{ dueAt: "2026-08-01T09:59:59.000Z" }, "dueDate", "assignmentDueAtFuture"],
+    [{ publishAt: "2026-08-03T10:00:00.000Z" }, "dueDate", "assignmentDueAtAfterPublish"],
+    [{ totalMarks: null }, "maxScore", "assignmentMarksRequired"],
+    [{ totalMarks: 0 }, "maxScore", "assignmentMarksMin"],
+    [{ totalMarks: 1.001 }, "maxScore", "assignmentMarksDecimals"],
+    [{ totalMarks: Number.POSITIVE_INFINITY }, "maxScore", "assignmentMarksMin"],
+    [{ estimatedMinutes: 0 }, "expectedTimeMinutes", "assignmentMinutesMin"],
+    [{ estimatedMinutes: 1.5 }, "expectedTimeMinutes", "assignmentMinutesInteger"],
+    [{ estimatedMinutes: Number.POSITIVE_INFINITY }, "expectedTimeMinutes", "assignmentMinutesInteger"],
+  ])("rejects invalid assignment contract field %#", (overrides, field, errorKey) => {
+    expect(validateHomeworkAssignmentContract(
+      { ...validInput, ...overrides },
+      t,
+      now,
+    )).toEqual(expect.objectContaining({ [field]: errorKey }));
+  });
+
+  it("accepts nullable marks for ungraded homework and nullable duration", () => {
+    expect(validateHomeworkAssignmentContract({
+      ...validInput,
+      isGraded: false,
+      totalMarks: null,
+      estimatedMinutes: null,
+    }, t, now)).toEqual({});
+  });
+
+  it("accepts the minimum marks and one minute boundaries", () => {
+    expect(validateHomeworkAssignmentContract({
+      ...validInput,
+      totalMarks: 0.01,
+      estimatedMinutes: 1,
+    }, t, now)).toEqual({});
   });
 });

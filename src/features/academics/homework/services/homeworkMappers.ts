@@ -141,8 +141,9 @@ export function mapBuilderAssignmentToHomeworkUpdate(
   assignment: Assignment,
 ): UpdateHomeworkAssignmentRequest {
   return {
-    title: assignment.titleEn || assignment.titleAr,
-    description: assignment.descriptionEn || assignment.descriptionAr || undefined,
+    title: (assignment.titleEn || assignment.titleAr).trim(),
+    description:
+      (assignment.descriptionEn || assignment.descriptionAr)?.trim() || undefined,
     dueAt: assignment.dueDate,
     totalMarks: assignment.maxScore,
     estimatedMinutes: assignment.expectedTimeMinutes,

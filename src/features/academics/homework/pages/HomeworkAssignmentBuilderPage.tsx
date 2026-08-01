@@ -147,14 +147,12 @@ export default function HomeworkAssignmentBuilderPage({
   const canRunLifecycleAction = termStatus !== "closed" && canManage;
   const isReadOnly = !canRunLifecycleAction || !lifecycle?.isEditable;
 
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const [nextHomework, nextQuestions, nextAttachments] = await Promise.all([
-        fetchHomeworkAssignment(homeworkId),
-        listHomeworkQuestions(homeworkId),
-        listHomeworkAttachments(homeworkId),
-      ]);
+  const applyReloadedHomework = useCallback(
+    (
+      nextHomework: HomeworkAssignmentUiModel,
+      nextQuestions: AssignmentQuestion[],
+      nextAttachments: AssignmentAttachment[],
+    ) => {
       const nextAssignment = mapHomeworkUiToBuilderAssignment(nextHomework);
       setHomework(nextHomework);
       setAssignmentDraft(nextAssignment);
@@ -176,6 +174,23 @@ export default function HomeworkAssignmentBuilderPage({
           ? current
           : nextQuestions[0]?.id || null,
       );
+    },
+    [],
+  );
+
+  const reloadHomework = useCallback(async () => {
+    const [nextHomework, nextQuestions, nextAttachments] = await Promise.all([
+      fetchHomeworkAssignment(homeworkId),
+      listHomeworkQuestions(homeworkId),
+      listHomeworkAttachments(homeworkId),
+    ]);
+    applyReloadedHomework(nextHomework, nextQuestions, nextAttachments);
+  }, [applyReloadedHomework, homeworkId]);
+
+  const refresh = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await reloadHomework();
     } catch (error) {
       showError(
         tHomework("errors.loadFailed", {
@@ -185,7 +200,7 @@ export default function HomeworkAssignmentBuilderPage({
     } finally {
       setIsLoading(false);
     }
-  }, [homeworkId, showError, tHomework, tHomeworkError]);
+  }, [reloadHomework, showError, tHomework, tHomeworkError]);
 
   useEffect(() => {
     if (!canView) return;
@@ -203,13 +218,16 @@ export default function HomeworkAssignmentBuilderPage({
   }, [questions, selectedQuestionId]);
 
   useEffect(() => {
-    if (!assignmentDraft) return;
+    if (!assignmentDraft || !homework) return;
     void Promise.resolve().then(() => {
       setValidationErrors(
-        validateHomeworkAssignment(assignmentDraft, questions, tValidation),
+        validateHomeworkAssignment(assignmentDraft, questions, tValidation, {
+          isGraded: homework.isGraded,
+          publishAt: homework.publishAt,
+        }),
       );
     });
-  }, [assignmentDraft, questions, tValidation]);
+  }, [assignmentDraft, homework, questions, tValidation]);
 
   const isAssignmentDirty = useMemo(() => {
     if (!assignmentDraft || !lastSavedAssignment) return false;
@@ -288,7 +306,19 @@ export default function HomeworkAssignmentBuilderPage({
   };
 
   const handleSaveAssignment = async () => {
-    if (!assignmentDraft || isReadOnly || !isDirty) return;
+    if (!assignmentDraft || !homework || isReadOnly || !isDirty) return;
+
+    const nextAssignmentErrors = validateHomeworkAssignment(
+      assignmentDraft,
+      questions,
+      tValidation,
+      { isGraded: homework.isGraded, publishAt: homework.publishAt },
+    );
+    if (Object.keys(nextAssignmentErrors).length > 0) {
+      setValidationErrors(nextAssignmentErrors);
+      showError(tHomework("errors.fixAssignmentValidation"));
+      return;
+    }
 
     const nextQuestionErrors: NonNullable<ValidationErrors["questions"]> = {};
     dirtyQuestions.forEach((question) => {
@@ -311,10 +341,12 @@ export default function HomeworkAssignmentBuilderPage({
     }
 
     setIsAssignmentSaving(true);
+    let hasStartedQuestionMutation = false;
     try {
       let savedQuestions = [...questions];
 
       for (const questionId of deletedQuestionIds) {
+        hasStartedQuestionMutation = true;
         await deleteHomeworkQuestion(homeworkId, questionId);
       }
 
@@ -330,6 +362,7 @@ export default function HomeworkAssignmentBuilderPage({
       }
 
       for (const question of dirtyQuestions) {
+        hasStartedQuestionMutation = true;
         const saved = isTemporaryQuestion(question.id)
           ? await createHomeworkQuestion(homeworkId, question)
           : await updateHomeworkQuestion(homeworkId, question.id, question);
@@ -355,6 +388,7 @@ export default function HomeworkAssignmentBuilderPage({
             lastSavedQuestionOrder[question.id] !== question.order,
         );
         for (const question of changedQuestions) {
+          hasStartedQuestionMutation = true;
           await reorderHomeworkQuestion(
             homeworkId,
             question.id,
@@ -379,10 +413,29 @@ export default function HomeworkAssignmentBuilderPage({
           assignmentDraft,
           savedQuestions,
           tValidation,
+          { isGraded: homework.isGraded, publishAt: homework.publishAt },
         ),
       );
       showSuccess(tHomework("messages.homeworkSaved"));
     } catch (error) {
+      if (hasStartedQuestionMutation) {
+        try {
+          await reloadHomework();
+          showError(
+            tHomework("errors.questionSavePartiallyApplied", {
+              message: getHomeworkErrorMessage(error, tHomeworkError),
+            }),
+          );
+        } catch (reloadError) {
+          showError(
+            tHomework("errors.questionSaveRecoveryFailed", {
+              saveMessage: getHomeworkErrorMessage(error, tHomeworkError),
+              reloadMessage: getHomeworkErrorMessage(reloadError, tHomeworkError),
+            }),
+          );
+        }
+        return;
+      }
       showError(
         tHomework("errors.homeworkSaveFailed", {
           message: getHomeworkErrorMessage(error, tHomeworkError),

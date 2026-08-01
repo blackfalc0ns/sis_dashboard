@@ -62,6 +62,7 @@ export default function AssignmentSettingsPanel({
                   en: event.target.value,
                 })}
                 onBlur={onBlur}
+                maxLength={180}
                 required
                 disabled={isReadOnly}
                 placeholder={tQuestions("assignment_title")}
@@ -105,6 +106,7 @@ export default function AssignmentSettingsPanel({
                   en: event.target.value,
                 })}
                 onBlur={onBlur}
+                maxLength={4000}
                 disabled={isReadOnly}
                 placeholder={tQuestions("description")}
               />
@@ -149,11 +151,14 @@ export default function AssignmentSettingsPanel({
             <Input
               label={tQuestions("max_score")}
               type="number"
-              value={assignment.maxScore ?? 0}
-              onChange={(e) => onUpdate({ maxScore: Number(e.target.value) })}
+              value={assignment.maxScore ?? ""}
+              onChange={(e) => onUpdate({
+                maxScore: e.target.value === "" ? null : Number(e.target.value),
+              })}
               onBlur={onBlur}
               disabled={isReadOnly}
-              min={0}
+              min={0.01}
+              step={0.01}
               required
             />
             {validationErrors?.maxScore && (
@@ -177,7 +182,8 @@ export default function AssignmentSettingsPanel({
               }
               onBlur={onBlur}
               disabled={isReadOnly}
-              min={0}
+              min={1}
+              step={1}
               placeholder="30"
             />
             {validationErrors?.expectedTimeMinutes && (

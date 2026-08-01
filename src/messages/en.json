@@ -5590,6 +5590,9 @@
         "errors": {
           "loadFailed": "Failed to load homework: {message}",
           "homeworkSaveFailed": "Failed to save homework: {message}",
+          "questionSavePartiallyApplied": "Some question changes may have been saved. The latest server data has been reloaded. {message}",
+          "questionSaveRecoveryFailed": "Some question changes may have been saved, but the latest server data could not be reloaded. Refresh the page before continuing. Save error: {saveMessage}. Reload error: {reloadMessage}.",
+          "fixAssignmentValidation": "Fix assignment validation errors before saving.",
           "fixQuestionValidation": "Fix question validation errors before saving.",
           "questionSaveFailed": "Failed to save question: {message}",
           "questionDeleteFailed": "Failed to delete question: {message}",
@@ -7614,6 +7617,18 @@
     "pointsUpdated": "Points updated successfully"
   },
   "validation": {
+    "assignmentTitleRequired": "Homework title is required.",
+    "assignmentTitleTooLong": "Homework title cannot exceed 180 characters.",
+    "assignmentDescriptionTooLong": "Homework description cannot exceed 4000 characters.",
+    "assignmentDueAtInvalid": "Enter a valid due date.",
+    "assignmentPublishAtInvalid": "Enter a valid publish date.",
+    "assignmentDueAtFuture": "The due date must be in the future.",
+    "assignmentDueAtAfterPublish": "The due date must be after the publish date.",
+    "assignmentMarksRequired": "Total marks are required for graded homework.",
+    "assignmentMarksMin": "Total marks must be at least 0.01.",
+    "assignmentMarksDecimals": "Total marks can have at most two decimal places.",
+    "assignmentMinutesMin": "Estimated duration must be at least one minute.",
+    "assignmentMinutesInteger": "Estimated duration must be a whole number of minutes.",
     "invalid_expected_time": "Expected time must be greater than 0",
     "required_fields": "Please fill in all required fields",
     "required_ar": "Arabic is required",

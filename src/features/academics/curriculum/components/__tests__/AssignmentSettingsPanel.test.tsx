@@ -46,4 +46,60 @@ describe("AssignmentSettingsPanel", () => {
       descriptionEn: "Updated description",
     });
   });
+
+  it("keeps nullable marks empty and exposes backend numeric and text limits", () => {
+    const onUpdate = vi.fn();
+    const rendered = render(
+      <AssignmentSettingsPanel
+        assignment={{
+          id: "homework-1",
+          lessonId: "homework",
+          titleAr: "Homework title",
+          titleEn: "Homework title",
+          descriptionAr: "",
+          descriptionEn: "",
+          maxScore: null,
+        }}
+        pointsSummary={{ maxScore: 0, totalPoints: 0, difference: 0, isMatch: true }}
+        validationErrors={{}}
+        isReadOnly={false}
+        detailsInputMode="single"
+        onUpdate={onUpdate}
+        onAutoDistributePoints={vi.fn()}
+      />,
+    );
+
+    const title = screen.getByLabelText(/assignment_title/);
+    const description = screen.getByLabelText("description");
+    const marks = screen.getByLabelText(/max_score/);
+    const minutes = screen.getByLabelText("expected_time_minutes");
+
+    expect(title).toHaveAttribute("maxlength", "180");
+    expect(description).toHaveAttribute("maxlength", "4000");
+    expect(marks).toHaveValue(null);
+    expect(marks).toHaveAttribute("min", "0.01");
+    expect(marks).toHaveAttribute("step", "0.01");
+    expect(minutes).toHaveAttribute("min", "1");
+    expect(minutes).toHaveAttribute("step", "1");
+
+    rendered.rerender(
+      <AssignmentSettingsPanel
+        assignment={{
+          id: "homework-1",
+          lessonId: "homework",
+          titleAr: "Homework title",
+          titleEn: "Homework title",
+          maxScore: 2,
+        }}
+        pointsSummary={{ maxScore: 2, totalPoints: 0, difference: -2, isMatch: false }}
+        validationErrors={{}}
+        isReadOnly={false}
+        detailsInputMode="single"
+        onUpdate={onUpdate}
+        onAutoDistributePoints={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText(/max_score/), { target: { value: "" } });
+    expect(onUpdate).toHaveBeenLastCalledWith({ maxScore: null });
+  });
 });
