@@ -1,15 +1,7 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
-import {
-  afterAll,
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CropPixels } from "../cropImage";
 import {
   SchoolLogoCropDialog,
@@ -19,32 +11,13 @@ import {
 const completedCrop: CropPixels = { height: 128, width: 128, x: 10, y: 10 };
 const file = new File(["logo"], "school-logo.png", { type: "image/png" });
 const copy: SchoolLogoCropDialogCopy = {
-  adjustments: "Adjustments",
-  background: "Background",
-  backgroundCustom: "Custom color",
-  backgroundTransparent: "Transparent",
-  backgroundWhite: "White",
-  borderColor: "Border color",
-  borderWidth: "Border width",
-  brightness: "Brightness",
   cancel: "Cancel",
   confirm: "Use logo",
-  contrast: "Contrast",
-  filter: "Filter",
-  filterCool: "Cool",
-  filterGrayscale: "Grayscale",
-  filterOriginal: "Original",
-  filterWarm: "Warm",
-  frame: "Frame",
-  frameCircle: "Circle",
-  frameSquare: "Square",
   instruction: "Move, zoom, or rotate the logo before uploading it.",
   preparationFailed: "Could not prepare the selected logo.",
   preparing: "Preparing logo…",
-  reset: "Reset",
   rotate: "Rotate",
   rotation: (degrees) => `Rotation: ${degrees}°`,
-  saturation: "Saturation",
   title: "Crop school logo",
   zoom: "Zoom",
 };
@@ -91,19 +64,8 @@ describe("SchoolLogoCropDialog", () => {
       revokeObjectURL: vi.fn(),
     });
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
-      arc: vi.fn(),
-      beginPath: vi.fn(),
-      clip: vi.fn(),
       drawImage: vi.fn(),
-      fillRect: vi.fn(),
-      filter: "",
-      fillStyle: "",
       rotate: vi.fn(),
-      restore: vi.fn(),
-      save: vi.fn(),
-      stroke: vi.fn(),
-      strokeRect: vi.fn(),
-      strokeStyle: "",
       translate: vi.fn(),
     } as unknown as CanvasRenderingContext2D);
     vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(
@@ -140,10 +102,7 @@ describe("SchoolLogoCropDialog", () => {
     await user.click(screen.getByRole("button", { name: copy.confirm }));
 
     expect(onConfirm).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: "school-logo-cropped.png",
-        type: "image/png",
-      }),
+      expect.objectContaining({ name: "school-logo-cropped.png", type: "image/png" }),
     );
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -213,38 +172,6 @@ describe("SchoolLogoCropDialog", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Could not read the selected logo",
     );
-  });
-
-  it("restores logo customization controls to their defaults", async () => {
-    const user = userEvent.setup();
-
-    render(
-      <SchoolLogoCropDialog
-        copy={copy}
-        file={file}
-        isOpen
-        isUploading={false}
-        onClose={vi.fn()}
-        onConfirm={vi.fn()}
-        uploadError=""
-      />,
-    );
-
-    await user.selectOptions(screen.getByLabelText(copy.filter), "grayscale");
-    await user.selectOptions(screen.getByLabelText(copy.background), "custom");
-    await user.selectOptions(screen.getByLabelText(copy.frame), "circle");
-    fireEvent.change(screen.getByLabelText(copy.brightness), {
-      target: { value: "125" },
-    });
-    fireEvent.change(screen.getByLabelText(copy.borderColor), {
-      target: { value: "#2563eb" },
-    });
-    await user.click(screen.getByRole("button", { name: copy.reset }));
-
-    expect(screen.getByLabelText(copy.brightness)).toHaveValue("100");
-    expect(screen.getByLabelText(copy.filter)).toHaveValue("original");
-    expect(screen.getByLabelText(copy.background)).toHaveValue("transparent");
-    expect(screen.getByLabelText(copy.frame)).toHaveValue("square");
   });
 
   it("keeps the active crop source valid through Strict Mode effect replay", async () => {
