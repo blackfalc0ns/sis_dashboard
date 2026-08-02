@@ -8,6 +8,23 @@ vi.mock("@/features/settings/components/SchoolLocationPickerModal", () => ({
   default: () => null,
 }));
 
+vi.mock("@/components/ui/school-logo-crop-dialog", () => ({
+  SchoolLogoCropDialog: ({
+    copy: cropCopy,
+    isOpen,
+    onClose,
+  }: {
+    copy: { title: string };
+    isOpen: boolean;
+    onClose(): void;
+  }) =>
+    isOpen ? (
+      <div aria-label={cropCopy.title} role="dialog">
+        <button onClick={onClose} type="button">Cancel crop</button>
+      </div>
+    ) : null,
+}));
+
 vi.mock("@/features/settings/services/brandingService", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@/features/settings/services/brandingService")>();
@@ -59,6 +76,17 @@ const copy = {
     locationStale: "Pick the school location again after editing the address.",
     coordinates: (lat: string, lng: string) => `${lat}, ${lng}`,
     logoUploadFailed: "Could not read the selected logo",
+    logoCrop: {
+      cancel: "Cancel crop",
+      confirm: "Confirm crop",
+      instruction: "Crop the logo",
+      preparationFailed: "Crop failed",
+      preparing: "Preparing logo",
+      rotate: "Rotate",
+      rotation: (degrees: number) => `${degrees} degrees`,
+      title: "Crop school logo",
+      zoom: "Zoom",
+    },
     validation: {
       schoolName: "School name is required",
       shortName: "Short name is required",
@@ -138,5 +166,24 @@ describe("OrganizationSetupStep", () => {
     expect(screen.getByText(copy.summary)).toBeVisible();
     expect(screen.getByLabelText(copy.editor.schoolName)).toHaveValue("");
     expect(screen.queryByRole("heading", { name: copy.savedData })).not.toBeInTheDocument();
+  });
+
+  it("opens crop editing without replacing the saved onboarding logo", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <OrganizationSetupStep copy={copy} profile={profile} refreshStep={vi.fn()} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: copy.editBranding }));
+    const input = container.querySelector('input[type="file"]');
+
+    await user.upload(
+      input as HTMLInputElement,
+      new File(["source"], "logo.png", { type: "image/png" }),
+    );
+
+    expect(screen.getByRole("dialog", { name: copy.editor.logoCrop.title })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Cancel crop" }));
+    expect(updateBrandingProfile).not.toHaveBeenCalled();
   });
 });

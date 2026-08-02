@@ -9042,6 +9042,16 @@
       "upload_placeholder": "رفع شعار المدرسة",
       "upload_hint": "PNG أو JPEG، حتى 5 ميجابايت. استبدال الشعار يحدّثه في جميع مواضع استخدامه.",
       "upload_button": "اختيار شعار",
+      "crop_dialog": {
+        "title": "قص شعار المدرسة",
+        "instruction": "حرّك الشعار أو كبّره أو دوّره قبل رفعه.",
+        "zoom": "تكبير/تصغير",
+        "rotate": "تدوير",
+        "rotation": "التدوير: {degrees}°",
+        "confirm": "استخدام الشعار",
+        "preparing": "جارٍ تجهيز الشعار…",
+        "preparation_failed": "تعذر تجهيز الشعار المحدد."
+      },
       "remove_logo": "إزالة الشعار",
       "remove_logo_dialog": {
         "title": "إزالة شعار المدرسة؟",
@@ -13423,6 +13433,17 @@
         "footerSignature": "توقيع التذييل",
         "uploadLogo": "رفع الشعار",
         "uploadHint": "PNG أو JPEG، حتى 5 ميجابايت",
+        "logoCrop": {
+          "title": "قص شعار المدرسة",
+          "instruction": "حرّك الشعار أو كبّره أو دوّره قبل رفعه.",
+          "zoom": "تكبير/تصغير",
+          "rotate": "تدوير",
+          "rotation": "التدوير: {degrees}°",
+          "cancel": "إلغاء",
+          "confirm": "استخدام الشعار",
+          "preparing": "جارٍ تجهيز الشعار…",
+          "preparationFailed": "تعذر تجهيز الشعار المحدد."
+        },
         "removeLogo": "إزالة الشعار",
         "removeLogoTitle": "إزالة شعار المدرسة؟",
         "removeLogoDescription": "سيؤدي ذلك إلى إزالة الشعار الحالي من ملف المدرسة وجميع الاستخدامات المستقبلية.",

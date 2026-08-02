@@ -7,6 +7,10 @@ import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import DragDropUploadArea from "@/components/ui/drag-drop-upload/DragDropUploadArea";
 import Input from "@/components/ui/input/Input";
 import Select from "@/components/ui/input/Select";
+import {
+  SchoolLogoCropDialog,
+  type SchoolLogoCropDialogCopy,
+} from "@/components/ui/school-logo-crop-dialog";
 import { timezones } from "../../constants/timezones";
 import SchoolLocationPickerModal from "../../components/SchoolLocationPickerModal";
 import type {
@@ -36,6 +40,7 @@ export interface SchoolBrandingFormCopy extends SchoolBrandingEditorCopy {
   pickFromMap: string;
   clearLocation: string;
   selectedLocation: string;
+  logoCrop: SchoolLogoCropDialogCopy;
   noLocation: string;
   locationStale: string;
   coordinates(lat: string, lng: string): string;
@@ -79,10 +84,25 @@ export function SchoolBrandingEditor({
   disabled = false,
 }: SchoolBrandingEditorProps) {
   const { profile, errors } = editor;
+  const [isLogoCropDialogOpen, setIsLogoCropDialogOpen] = useState(false);
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+  const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
 
   const confirmLogoRemoval = async () => {
     if (await editor.deleteLogo()) setIsRemoveDialogOpen(false);
+  };
+
+  const openLogoCropDialog = (files: File[]) => {
+    const [file] = files;
+    if (!file) return;
+
+    setSelectedLogoFile(file);
+    setIsLogoCropDialogOpen(true);
+  };
+
+  const closeLogoCropDialog = () => {
+    setIsLogoCropDialogOpen(false);
+    setSelectedLogoFile(null);
   };
 
   return (
@@ -122,11 +142,11 @@ export function SchoolBrandingEditor({
         <DragDropUploadArea
           accept="image/png,image/jpeg"
           buttonLabel={copy.uploadLogo}
-          disabled={disabled || editor.isUploadingLogo}
+          disabled={disabled || editor.isUploadingLogo || isLogoCropDialogOpen}
           helperText={copy.uploadHint}
           maxSizeBytes={5 * 1024 * 1024}
           multiple={false}
-          onFilesSelected={editor.uploadLogo}
+          onFilesSelected={openLogoCropDialog}
           subtitle={copy.uploadHint}
           title={copy.uploadLogo}
           isUploading={editor.isUploadingLogo}
@@ -267,6 +287,15 @@ export function SchoolBrandingEditor({
         isOpen={editor.isLocationModalOpen}
         onClose={editor.closeLocationModal}
         onConfirm={editor.confirmLocation}
+      />
+      <SchoolLogoCropDialog
+        copy={copy.logoCrop}
+        file={selectedLogoFile}
+        isOpen={isLogoCropDialogOpen}
+        isUploading={editor.isUploadingLogo}
+        onClose={closeLogoCropDialog}
+        onConfirm={(processedFile) => editor.uploadLogo([processedFile])}
+        uploadError={editor.logoError}
       />
       <ConfirmDialog
         cancelLabel={copy.cancel}

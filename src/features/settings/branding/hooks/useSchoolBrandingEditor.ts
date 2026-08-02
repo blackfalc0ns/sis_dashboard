@@ -165,9 +165,9 @@ export function useSchoolBrandingEditor({
     setIsUploadingLogo(false);
   };
 
-  const uploadLogo = async (files: File[]) => {
+  const uploadLogo = async (files: File[]): Promise<boolean> => {
     const [file] = files;
-    if (!file) return;
+    if (!file) return false;
 
     setIsUploadingLogo(true);
     setLogoError("");
@@ -178,8 +178,10 @@ export function useSchoolBrandingEditor({
       setSavedProfile(uploadedProfile);
       setErrors((current) => ({ ...current, logoUrl: undefined }));
       setLogoStatus(copy.logoUploaded);
+      return true;
     } catch {
       setLogoError(copy.logoUploadFailed);
+      return false;
     } finally {
       setIsUploadingLogo(false);
     }

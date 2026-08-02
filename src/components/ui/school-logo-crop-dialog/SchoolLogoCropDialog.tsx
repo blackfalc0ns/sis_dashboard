@@ -28,6 +28,10 @@ export interface SchoolLogoCropDialogProps {
   uploadError: string;
 }
 
+type CropSessionProps = Omit<SchoolLogoCropDialogProps, "file" | "isOpen"> & {
+  file: File;
+};
+
 const INITIAL_CROP: Point = { x: 0, y: 0 };
 
 export function SchoolLogoCropDialog({
@@ -39,6 +43,28 @@ export function SchoolLogoCropDialog({
   onConfirm,
   uploadError,
 }: SchoolLogoCropDialogProps) {
+  if (!isOpen || !file) return null;
+
+  return (
+    <CropSession
+      copy={copy}
+      file={file}
+      isUploading={isUploading}
+      onClose={onClose}
+      onConfirm={onConfirm}
+      uploadError={uploadError}
+    />
+  );
+}
+
+function CropSession({
+  copy,
+  file,
+  isUploading,
+  onClose,
+  onConfirm,
+  uploadError,
+}: CropSessionProps) {
   const [crop, setCrop] = useState<Point>(INITIAL_CROP);
   const [cropPixels, setCropPixels] = useState<CropPixels | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
@@ -48,24 +74,18 @@ export function SchoolLogoCropDialog({
   const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
-    if (!file || !isOpen) {
-      setPreviewUrl(null);
-      return;
-    }
-
+    let active = true;
     const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
 
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [file, isOpen]);
+    void Promise.resolve().then(() => {
+      if (active) setPreviewUrl(objectUrl);
+    });
 
-  useEffect(() => {
-    setCrop(INITIAL_CROP);
-    setCropPixels(null);
-    setPreparationError("");
-    setRotation(0);
-    setZoom(1);
-  }, [file, isOpen]);
+    return () => {
+      active = false;
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [file]);
 
   const isBusy = isPreparing || isUploading;
   const error = preparationError || uploadError;
@@ -79,7 +99,7 @@ export function SchoolLogoCropDialog({
   };
 
   const confirmCrop = async () => {
-    if (!file || !cropPixels || isBusy) return;
+    if (!cropPixels || isBusy) return;
 
     setIsPreparing(true);
     setPreparationError("");
@@ -117,7 +137,7 @@ export function SchoolLogoCropDialog({
           </Button>
         </>
       }
-      isOpen={isOpen}
+      isOpen
       onClose={closeDialog}
       showCloseButton={!isBusy}
       size="xl"
