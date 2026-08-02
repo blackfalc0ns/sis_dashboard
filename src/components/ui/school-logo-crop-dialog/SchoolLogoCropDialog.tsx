@@ -28,10 +28,6 @@ export interface SchoolLogoCropDialogProps {
   uploadError: string;
 }
 
-type CropSessionProps = Omit<SchoolLogoCropDialogProps, "file" | "isOpen"> & {
-  file: File;
-};
-
 const INITIAL_CROP: Point = { x: 0, y: 0 };
 
 export function SchoolLogoCropDialog({
@@ -43,28 +39,6 @@ export function SchoolLogoCropDialog({
   onConfirm,
   uploadError,
 }: SchoolLogoCropDialogProps) {
-  if (!isOpen || !file) return null;
-
-  return (
-    <CropSession
-      copy={copy}
-      file={file}
-      isUploading={isUploading}
-      onClose={onClose}
-      onConfirm={onConfirm}
-      uploadError={uploadError}
-    />
-  );
-}
-
-function CropSession({
-  copy,
-  file,
-  isUploading,
-  onClose,
-  onConfirm,
-  uploadError,
-}: CropSessionProps) {
   const [crop, setCrop] = useState<Point>(INITIAL_CROP);
   const [cropPixels, setCropPixels] = useState<CropPixels | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
@@ -74,18 +48,24 @@ function CropSession({
   const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
-    let active = true;
+    if (!file || !isOpen) {
+      setPreviewUrl(null);
+      return;
+    }
+
     const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
 
-    void Promise.resolve().then(() => {
-      if (active) setPreviewUrl(objectUrl);
-    });
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file, isOpen]);
 
-    return () => {
-      active = false;
-      URL.revokeObjectURL(objectUrl);
-    };
-  }, [file]);
+  useEffect(() => {
+    setCrop(INITIAL_CROP);
+    setCropPixels(null);
+    setPreparationError("");
+    setRotation(0);
+    setZoom(1);
+  }, [file, isOpen]);
 
   const isBusy = isPreparing || isUploading;
   const error = preparationError || uploadError;
@@ -99,7 +79,7 @@ function CropSession({
   };
 
   const confirmCrop = async () => {
-    if (!cropPixels || isBusy) return;
+    if (!file || !cropPixels || isBusy) return;
 
     setIsPreparing(true);
     setPreparationError("");
@@ -137,7 +117,7 @@ function CropSession({
           </Button>
         </>
       }
-      isOpen
+      isOpen={isOpen}
       onClose={closeDialog}
       showCloseButton={!isBusy}
       size="xl"

@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   SchoolBrandingEditor,
   type SchoolBrandingFormCopy,
@@ -10,46 +10,6 @@ import type { SchoolProfileSettings } from "../../types";
 
 vi.mock("../../components/SchoolLocationPickerModal", () => ({
   default: () => null,
-}));
-
-const brandingMocks = vi.hoisted(() => ({
-  uploadBrandingLogo: vi.fn(),
-}));
-
-const croppedLogo = new File(["cropped"], "cropped-logo.png", {
-  type: "image/png",
-});
-
-vi.mock("@/features/settings/services/brandingService", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("@/features/settings/services/brandingService")>();
-  return {
-    ...actual,
-    uploadBrandingLogo: brandingMocks.uploadBrandingLogo,
-  };
-});
-
-vi.mock("@/components/ui/school-logo-crop-dialog", () => ({
-  SchoolLogoCropDialog: ({
-    isOpen,
-    onClose,
-    onConfirm,
-  }: {
-    isOpen: boolean;
-    onClose(): void;
-    onConfirm(file: File): Promise<boolean>;
-  }) =>
-    isOpen ? (
-      <div>
-        <p>Crop dialog</p>
-        <button onClick={() => void onConfirm(croppedLogo)} type="button">
-          Confirm crop
-        </button>
-        <button onClick={onClose} type="button">
-          Cancel crop
-        </button>
-      </div>
-    ) : null,
 }));
 
 const profile: SchoolProfileSettings = {
@@ -84,17 +44,6 @@ const copy: SchoolBrandingFormCopy = {
   locationStale: "Select the edited address on the map",
   coordinates: (lat, lng) => `${lat}, ${lng}`,
   logoUploadFailed: "Logo failed",
-  logoCrop: {
-    cancel: "Cancel crop",
-    confirm: "Confirm crop",
-    instruction: "Crop the logo",
-    preparationFailed: "Crop failed",
-    preparing: "Preparing logo",
-    rotate: "Rotate",
-    rotation: (degrees) => `${degrees} degrees`,
-    title: "Crop logo",
-    zoom: "Zoom",
-  },
   validation: {},
 };
 
@@ -108,10 +57,6 @@ function TestEditor() {
 }
 
 describe("SchoolBrandingEditor", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    brandingMocks.uploadBrandingLogo.mockResolvedValue(profile);
-  });
   it("renders the complete saved branding profile", () => {
     render(<TestEditor />);
 
@@ -141,44 +86,5 @@ describe("SchoolBrandingEditor", () => {
 
     await user.click(screen.getByRole("button", { name: copy.clearLocation }));
     expect(screen.getByText(copy.noLocation)).toBeVisible();
-  });
-
-  it("waits for crop confirmation before uploading a selected logo", async () => {
-    const user = userEvent.setup();
-    const { container } = render(<TestEditor />);
-    const input = container.querySelector('input[type="file"]');
-
-    expect(input).not.toBeNull();
-    await user.upload(
-      input as HTMLInputElement,
-      new File(["source"], "logo.png", { type: "image/png" }),
-    );
-
-    expect(screen.getByText("Crop dialog")).toBeVisible();
-    expect(brandingMocks.uploadBrandingLogo).not.toHaveBeenCalled();
-
-    await user.click(screen.getByRole("button", { name: "Confirm crop" }));
-
-    await waitFor(() =>
-      expect(brandingMocks.uploadBrandingLogo).toHaveBeenCalledWith(croppedLogo),
-    );
-  });
-
-  it("does not upload a selected logo when crop editing is cancelled", async () => {
-    const user = userEvent.setup();
-    const { container } = render(<TestEditor />);
-    const input = container.querySelector('input[type="file"]');
-
-    await user.upload(
-      input as HTMLInputElement,
-      new File(["source"], "logo.png", { type: "image/png" }),
-    );
-    await user.click(screen.getByRole("button", { name: "Cancel crop" }));
-
-    expect(brandingMocks.uploadBrandingLogo).not.toHaveBeenCalled();
-    expect(screen.getByAltText(profile.schoolName)).toHaveAttribute(
-      "src",
-      profile.logoUrl,
-    );
   });
 });

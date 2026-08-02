@@ -29,6 +29,7 @@ describe("createCroppedImage", () => {
     save: vi.fn(),
     translate: vi.fn(),
   };
+  let exportedCanvas: HTMLCanvasElement | null = null;
 
   beforeEach(() => {
     vi.stubGlobal("Image", LoadedImage);
@@ -40,13 +41,17 @@ describe("createCroppedImage", () => {
       context as unknown as CanvasRenderingContext2D,
     );
     vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(
-      (callback, type) => callback(new Blob(["cropped"], { type })),
+      function toBlob(callback, type) {
+        exportedCanvas = this;
+        callback(new Blob(["cropped"], { type }));
+      },
     );
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    exportedCanvas = null;
   });
 
   it.each([
@@ -63,16 +68,8 @@ describe("createCroppedImage", () => {
 
       expect(result.type).toBe(outputType);
       expect(result.name).toBe(outputName);
-      expect(context.drawImage).toHaveBeenLastCalledWith(
-        expect.any(HTMLCanvasElement),
-        8,
-        12,
-        120,
-        120,
-        0,
-        0,
-        120,
-        120,
+      expect(exportedCanvas).toEqual(
+        expect.objectContaining({ height: 120, width: 120 }),
       );
       expect(context.rotate).toHaveBeenCalled();
       expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:school-logo");

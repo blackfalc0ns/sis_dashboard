@@ -177,18 +177,6 @@ export function SetupGuideContent({ result, title }: SetupGuideContentProps) {
         footerSignature: t("steps.organization.footerSignature"),
         uploadLogo: t("steps.organization.uploadLogo"),
         uploadHint: t("steps.organization.uploadHint"),
-        logoCrop: {
-          title: t("steps.organization.logoCrop.title"),
-          instruction: t("steps.organization.logoCrop.instruction"),
-          zoom: t("steps.organization.logoCrop.zoom"),
-          rotate: t("steps.organization.logoCrop.rotate"),
-          rotation: (degrees) =>
-            t("steps.organization.logoCrop.rotation", { degrees }),
-          cancel: t("steps.organization.logoCrop.cancel"),
-          confirm: t("steps.organization.logoCrop.confirm"),
-          preparing: t("steps.organization.logoCrop.preparing"),
-          preparationFailed: t("steps.organization.logoCrop.preparationFailed"),
-        },
         removeLogo: t("steps.organization.removeLogo"),
         removeLogoTitle: t("steps.organization.removeLogoTitle"),
         removeLogoDescription: t("steps.organization.removeLogoDescription"),

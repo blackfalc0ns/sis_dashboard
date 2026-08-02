@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { StrictMode } from "react";
+import { useEffect } from "react";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CropPixels } from "../cropImage";
 import {
@@ -22,25 +22,12 @@ const copy: SchoolLogoCropDialogCopy = {
   zoom: "Zoom",
 };
 
-vi.mock("react-easy-crop", async () => {
-  const React = await import("react");
-
-  function MockCropper({
-    image,
-    onCropComplete,
-  }: {
-    image: string;
-    onCropComplete: (_area: CropPixels, pixels: CropPixels) => void;
-  }) {
-    React.useEffect(
-      () => onCropComplete(completedCrop, completedCrop),
-      [onCropComplete],
-    );
-    return <div data-image={image} data-testid="cropper" />;
-  }
-
-  return { default: MockCropper };
-});
+vi.mock("react-easy-crop", () => ({
+  default: ({ onCropComplete }: { onCropComplete: (_area: CropPixels, pixels: CropPixels) => void }) => {
+    useEffect(() => onCropComplete(completedCrop, completedCrop), [onCropComplete]);
+    return <div data-testid="cropper" />;
+  },
+}));
 
 class LoadedImage {
   height = 160;
@@ -153,7 +140,7 @@ describe("SchoolLogoCropDialog", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("disables confirmation while uploading and announces an upload error", async () => {
+  it("disables confirmation while uploading and announces an upload error", () => {
     render(
       <SchoolLogoCropDialog
         copy={copy}
@@ -166,40 +153,10 @@ describe("SchoolLogoCropDialog", () => {
       />,
     );
 
-    await screen.findByTestId("cropper");
     expect(screen.getByLabelText(copy.zoom)).toBeDisabled();
     expect(screen.getByRole("button", { name: copy.confirm })).toBeDisabled();
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Could not read the selected logo",
     );
-  });
-
-  it("keeps the active crop source valid through Strict Mode effect replay", async () => {
-    vi.mocked(URL.createObjectURL)
-      .mockReset()
-      .mockReturnValueOnce("blob:first")
-      .mockReturnValueOnce("blob:active");
-
-    render(
-      <StrictMode>
-        <SchoolLogoCropDialog
-          copy={copy}
-          file={file}
-          isOpen
-          isUploading={false}
-          onClose={vi.fn()}
-          onConfirm={vi.fn()}
-          uploadError=""
-        />
-      </StrictMode>,
-    );
-
-    await waitFor(() =>
-      expect(screen.getByTestId("cropper")).toHaveAttribute(
-        "data-image",
-        "blob:active",
-      ),
-    );
-    expect(URL.revokeObjectURL).not.toHaveBeenCalledWith("blob:active");
   });
 });

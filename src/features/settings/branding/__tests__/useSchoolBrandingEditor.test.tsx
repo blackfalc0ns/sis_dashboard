@@ -203,12 +203,10 @@ describe("useSchoolBrandingEditor", () => {
     );
     const file = new File(["logo"], "logo.png", { type: "image/png" });
 
-    let uploaded = false;
     await act(async () => {
-      uploaded = await result.current.uploadLogo([file]);
+      await result.current.uploadLogo([file]);
     });
 
-    expect(uploaded).toBe(true);
     expect(result.current.profile.logoUrl).toBe(
       "https://api.example.test/api/v1/public/schools/school-1/branding/logo?v=1",
     );
@@ -226,12 +224,10 @@ describe("useSchoolBrandingEditor", () => {
     );
     const file = new File(["logo"], "logo.png", { type: "image/png" });
 
-    let uploaded = true;
     await act(async () => {
-      uploaded = await result.current.uploadLogo([file]);
+      await result.current.uploadLogo([file]);
     });
 
-    expect(uploaded).toBe(false);
     expect(result.current.logoError).toBe("Logo failed");
   });
 

@@ -9077,16 +9077,6 @@
       "upload_placeholder": "Upload school logo",
       "upload_hint": "PNG or JPEG, up to 5 MB. Replacing a logo updates it everywhere it is used.",
       "upload_button": "Choose logo",
-      "crop_dialog": {
-        "title": "Crop school logo",
-        "instruction": "Move, zoom, or rotate the logo before uploading it.",
-        "zoom": "Zoom",
-        "rotate": "Rotate",
-        "rotation": "Rotation: {degrees}°",
-        "confirm": "Use logo",
-        "preparing": "Preparing logo…",
-        "preparation_failed": "Could not prepare the selected logo."
-      },
       "remove_logo": "Remove logo",
       "remove_logo_dialog": {
         "title": "Remove school logo?",
@@ -13497,17 +13487,6 @@
         "footerSignature": "Footer signature",
         "uploadLogo": "Upload logo",
         "uploadHint": "PNG or JPEG, up to 5 MB",
-        "logoCrop": {
-          "title": "Crop school logo",
-          "instruction": "Move, zoom, or rotate the logo before uploading it.",
-          "zoom": "Zoom",
-          "rotate": "Rotate",
-          "rotation": "Rotation: {degrees}°",
-          "cancel": "Cancel",
-          "confirm": "Use logo",
-          "preparing": "Preparing logo…",
-          "preparationFailed": "Could not prepare the selected logo."
-        },
         "removeLogo": "Remove logo",
         "removeLogoTitle": "Remove school logo?",
         "removeLogoDescription": "This removes the current logo from the school profile and all future uses.",
