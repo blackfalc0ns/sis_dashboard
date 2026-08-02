@@ -37,6 +37,7 @@ import {
 } from "@/features/academics/timetable/services/timetableErrorHandling";
 import { subjectOptionsForGradeAllocations } from "@/features/academics/timetable/services/timetableSlotEditing";
 import { hasBlockingValidation } from "@/features/academics/timetable/services/timetableValidationSummary";
+import { createTimetablePublishFingerprint } from "@/features/academics/timetable/services/timetablePublishFingerprint";
 import {
   getDefaultRoomSuggestion as getSuggestedDefaultRoom,
   getRoomSource as resolveRoomSource,
@@ -167,6 +168,7 @@ export default function TimetableView({
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   const [publishWithErrors, setPublishWithErrors] = useState(false);
+  const [publishFingerprint, setPublishFingerprint] = useState<string | null>(null);
 
   // We need to fetch dependencies before we can normalize.
   // We can pass a preliminary normalized state to useTimetableData to prevent premature timetable loading.
@@ -279,6 +281,30 @@ export default function TimetableView({
     translateErrorCode: translateTimetableError,
     messages: timetableMessages,
   });
+
+  const currentPublishFingerprint = useMemo(
+    () =>
+      config
+        ? createTimetablePublishFingerprint({
+            configId: config.id,
+            scope: {
+              gradeId: config.gradeId,
+              sectionId: config.sectionId,
+              classroomId: config.classroomId,
+            },
+            activeDays: config.activeDays,
+            periods,
+            entries: timetableEntries,
+          })
+        : null,
+    [config, periods, timetableEntries],
+  );
+
+  const configGuardEntries = useMemo(() => {
+    const entriesById = new Map(allTermEntries.map((entry) => [entry.id, entry]));
+    timetableEntries.forEach((entry) => entriesById.set(entry.id, entry));
+    return [...entriesById.values()];
+  }, [allTermEntries, timetableEntries]);
 
   // Sync internal refs for normalization
   useEffect(() => {
@@ -545,6 +571,7 @@ export default function TimetableView({
         return;
       }
       setPublishWithErrors(nextValidation.warnings.length > 0);
+      setPublishFingerprint(currentPublishFingerprint);
       setPublishConfirmOpen(true);
     } catch (error) {
       console.error("Failed to check timetable publication readiness:", error);
@@ -569,9 +596,18 @@ export default function TimetableView({
   const confirmPublish = async () => {
     if (!hasTimetableScope || !canWriteTimetable) return;
 
+    if (!publishFingerprint || publishFingerprint !== currentPublishFingerprint) {
+      setPublishConfirmOpen(false);
+      showToast(t("publish.unsavedChanges"), "error");
+      return;
+    }
+
     setIsPublishing(true);
     try {
-      const publishResult = await publishCurrentTimetable(timetableEntries);
+      const publishResult = await publishCurrentTimetable(
+        timetableEntries,
+        validationSummary,
+      );
       if (!publishResult.ok) {
         if (publishResult.hasConflicts) {
           setValidationPanelOpen(true);
@@ -593,6 +629,7 @@ export default function TimetableView({
     } finally {
       setIsPublishing(false);
       setPublishConfirmOpen(false);
+      setPublishFingerprint(null);
     }
   };
 
@@ -1374,7 +1411,10 @@ export default function TimetableView({
                     <Button
                       onClick={handleUnpublish}
                       disabled={
-                        !canWriteTimetable || isDirty || !resolvedConfig
+                        !canWriteTimetable ||
+                        isDirty ||
+                        !resolvedConfig ||
+                        config?.scopeType.toUpperCase() === "SECTION"
                       }
                       variant="secondary"
                       loading={isUnpublishing}
@@ -1500,7 +1540,10 @@ export default function TimetableView({
                     <Button
                       onClick={handleUnpublish}
                       disabled={
-                        !canWriteTimetable || isDirty || !resolvedConfig
+                        !canWriteTimetable ||
+                        isDirty ||
+                        !resolvedConfig ||
+                        config?.scopeType.toUpperCase() === "SECTION"
                       }
                       variant="secondary"
                       loading={isUnpublishing}
@@ -1792,7 +1835,7 @@ export default function TimetableView({
           termId={termId}
           config={config}
           periods={periods}
-          entries={timetableEntries}
+          entries={configGuardEntries}
           selectedGradeId={selectedGradeId}
           selectedSectionId={selectedSectionId}
           selectedClassroomId={selectedClassroomId}
@@ -1813,7 +1856,7 @@ export default function TimetableView({
           termId={termId}
           config={config}
           periods={periods}
-          entries={timetableEntries}
+          entries={configGuardEntries}
           selectedGradeId={selectedGradeId}
           selectedSectionId={selectedSectionId}
           selectedClassroomId={selectedClassroomId}

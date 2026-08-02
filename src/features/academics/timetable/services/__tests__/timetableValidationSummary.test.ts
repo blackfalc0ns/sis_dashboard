@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   conflictsFromResponse,
   hasBlockingValidation,
+  normalizeConflictCheckResponse,
+  normalizePersistedConflicts,
   validationIssueText,
   validationSummaryFromResponse,
 } from "@/features/academics/timetable/services/timetableValidationSummary";
@@ -9,6 +11,8 @@ import {
 describe("timetableValidationSummary", () => {
   it("normalizes backend validation buckets for the validation panel", () => {
     const summary = validationSummaryFromResponse({
+      termId: "term-1",
+      academicYearId: "year-1",
       summary: {
         classroomsChecked: 1,
         expectedWeeklySlots: 4,
@@ -50,8 +54,6 @@ describe("timetableValidationSummary", () => {
           ],
         },
       ],
-      warnings: [{ code: "room_optional", message: "Room is optional" }],
-      roomConflicts: [{ message: "Room A is double booked" }],
     });
 
     expect(summary.canPublish).toBe(false);
@@ -66,7 +68,7 @@ describe("timetableValidationSummary", () => {
     expect(summary.blockingReasons).toEqual([
       "Resolve timetable validation issues before publishing.",
     ]);
-    expect(summary.warnings).toEqual(["Room is optional"]);
+    expect(summary.warnings).toEqual([]);
     expect(summary.missingTeacherAllocations).toEqual([
       expect.objectContaining({
         subjectName: "Math",
@@ -76,9 +78,7 @@ describe("timetableValidationSummary", () => {
     expect(summary.underScheduledSubjects).toEqual([
       expect.objectContaining({ subjectName: "Math", actual: 2, expected: 4 }),
     ]);
-    expect(summary.roomConflicts).toEqual([
-      { message: "Room A is double booked" },
-    ]);
+    expect(summary.roomConflicts).toEqual([]);
     expect(hasBlockingValidation(summary)).toBe(true);
   });
 
@@ -106,5 +106,29 @@ describe("timetableValidationSummary", () => {
     ]);
     expect(conflictsFromResponse({ items: [conflict] })).toEqual([conflict]);
     expect(conflictsFromResponse([conflict])).toEqual([conflict]);
+  });
+
+  it("preserves the source-specific conflict category", () => {
+    expect(
+      normalizeConflictCheckResponse({
+        conflicts: [
+          { code: "classroom_conflict", message: "Classroom is occupied" },
+        ],
+      }).conflicts[0],
+    ).toMatchObject({ type: "CLASSROOM", code: "classroom_conflict" });
+
+    expect(
+      normalizePersistedConflicts({
+        conflicts: [
+          { type: "CLASSROOM_SLOT", message: "Classroom is occupied" },
+        ],
+      }).conflicts[0],
+    ).toMatchObject({ type: "CLASSROOM", code: "CLASSROOM_SLOT" });
+
+    expect(
+      normalizeConflictCheckResponse({
+        conflicts: [{ code: "future_conflict", message: "Backend detail" }],
+      }).conflicts[0],
+    ).toMatchObject({ type: "UNKNOWN", code: "future_conflict" });
   });
 });

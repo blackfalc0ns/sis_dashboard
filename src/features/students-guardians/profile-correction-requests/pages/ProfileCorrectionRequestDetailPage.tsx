@@ -16,6 +16,25 @@ import { useTranslations } from "next-intl";
 import ProfileCorrectionStatusBadge from "@/features/students-guardians/profile-correction-requests/components/ProfileCorrectionStatusBadge";
 import { formatDateTime } from "@/utils/formatters/dateTime";
 
+const profileCorrectionFieldTranslationKeys: Record<string, string> = {
+  firstName: "field_firstName",
+  fatherNameEn: "field_fatherNameEn",
+  grandfatherNameEn: "field_grandfatherNameEn",
+  lastName: "field_lastName",
+  firstNameAr: "field_firstNameAr",
+  fatherNameAr: "field_fatherNameAr",
+  grandfatherNameAr: "field_grandfatherNameAr",
+  familyNameAr: "field_familyNameAr",
+  gender: "field_gender",
+  birthDate: "field_birthDate",
+  nationality: "field_nationality",
+  studentPhone: "field_studentPhone",
+  studentEmail: "field_studentEmail",
+  addressLine: "field_addressLine",
+  city: "field_city",
+  district: "field_district",
+};
+
 interface ProfileCorrectionRequestDetailPageProps {
   requestId: string;
 }
@@ -237,7 +256,9 @@ export default function ProfileCorrectionRequestDetailPage({
                   {request.changes.map((change) => (
                     <tr key={change.field}>
                       <td className="px-4 py-3 font-medium text-gray-900">
-                        {change.label}
+                        {profileCorrectionFieldTranslationKeys[change.field]
+                          ? t(profileCorrectionFieldTranslationKeys[change.field])
+                          : change.label}
                       </td>
                       <td className="bg-red-50/40 px-4 py-3 text-gray-600">
                         {change.currentValue}

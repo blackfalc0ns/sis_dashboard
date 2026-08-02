@@ -19,10 +19,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/features/communication/hooks/useNotifications";
 import type { MeResponse } from "@/types/user";
 import TopNavNotificationDropdown from "./TopNavNotificationDropdown";
-import {
-  getPasswordPolicyApiFailures,
-  getPasswordPolicyFailures,
-} from "@/utils/validation/passwordPolicy";
+import { getPasswordPolicyApiFailures } from "@/utils/validation/passwordPolicy";
 
 type NotificationTab = "all" | "chat" | "announcements";
 
@@ -554,14 +551,6 @@ function ChangePasswordDialog({
       setError(t("passwords_do_not_match") || "Passwords do not match");
       return;
     }
-    const policyFailures = getPasswordPolicyFailures(newPassword);
-    if (policyFailures.length > 0) {
-      setError(
-        policyFailures.map((reason) => tPasswordPolicy(reason)).join(" "),
-      );
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       await changePassword({ currentPassword, newPassword });

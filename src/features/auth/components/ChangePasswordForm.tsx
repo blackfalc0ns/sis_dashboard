@@ -9,10 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast/Toast";
 import { isApiError } from "@/lib/api-error";
 import { getValidationFieldErrors } from "@/lib/validation-errors";
-import {
-  getPasswordPolicyApiFailures,
-  getPasswordPolicyFailures,
-} from "@/utils/validation/passwordPolicy";
+import { getPasswordPolicyApiFailures } from "@/utils/validation/passwordPolicy";
 
 interface ChangePasswordFormProps {
   currentYear: number;
@@ -62,13 +59,8 @@ export function ChangePasswordForm({ currentYear }: ChangePasswordFormProps) {
     if (!nextValues.currentPassword.trim()) {
       nextErrors.currentPassword = t("errors.currentRequired");
     }
-    const policyFailures = getPasswordPolicyFailures(nextValues.newPassword);
     if (!nextValues.newPassword.trim()) {
       nextErrors.newPassword = t("errors.newRequired");
-    } else if (policyFailures.length > 0) {
-      nextErrors.newPassword = policyFailures
-        .map((reason) => tPasswordPolicy(reason))
-        .join(" ");
     } else if (nextValues.newPassword === nextValues.currentPassword) {
       nextErrors.newPassword = t("errors.newDifferent");
     }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { generateUserCredential } from "@/features/settings/credentials/services/credentialsService";
+import type { OneTimeCredentialResponse } from "@/features/settings/credentials/types";
 import { teacherApi } from "@/features/teachers/services/teacherApi";
 import type {
   ChangeTeacherEmploymentStatusRequest,
@@ -15,6 +17,11 @@ export type TeacherAction =
   | "employment"
   | "archive"
   | "rehire";
+
+export interface CreateTeacherWorkflowResult {
+  teacher: Awaited<ReturnType<typeof teacherApi.create>>;
+  credential: OneTimeCredentialResponse;
+}
 
 export function useTeacherActions() {
   const [activeAction, setActiveAction] = useState<TeacherAction | null>(null);
@@ -34,7 +41,14 @@ export function useTeacherActions() {
   return {
     activeAction,
     createTeacher: (input: CreateTeacherRequest) =>
-      runAction("create", () => teacherApi.create(input)),
+      runAction<CreateTeacherWorkflowResult>("create", async () => {
+        const teacher = await teacherApi.create({ ...input, employmentStatus: "ACTIVE" });
+        const credential = await generateUserCredential(teacher.userId);
+        await teacherApi.changeEmploymentStatus(teacher.id, { employmentStatus: "INACTIVE" });
+        await teacherApi.changeEmploymentStatus(teacher.id, { employmentStatus: "ACTIVE" });
+
+        return { teacher, credential };
+      }),
     updateTeacher: (teacherId: string, input: UpdateTeacherRequest) =>
       runAction("update", () => teacherApi.update(teacherId, input)),
     changeEmploymentStatus: (

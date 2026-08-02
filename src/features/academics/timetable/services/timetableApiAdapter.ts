@@ -7,9 +7,12 @@ import type {
   CreateEntryRequest,
   CreatePeriodRequest,
   ListResponse,
+  PublicationResponse,
+  TimetableConflictCheckResponse,
   TimetableDashboardAllResponseDto,
   TimetableScopeType,
   TimetableValidationResponse,
+  TimetableUnpublishResponse,
   UpdateEntryRequest,
   UpdatePeriodRequest,
   UpsertConfigRequest,
@@ -65,8 +68,7 @@ type ValidateParams = {
 
 export type TimetablePreviewResponse = unknown;
 export type TimetableConflictsResponse = unknown;
-export type TimetablePublicationResponse = unknown;
-export type TimetableConflictCheckResponse = unknown;
+export type TimetablePublicationResponse = PublicationResponse;
 
 const definedParams = <T extends Record<string, QueryParamValue>>(
   params: T,
@@ -215,13 +217,13 @@ export const getPublication = (
     timetableConfigParams(timetableConfigId),
   ).then(unwrap);
 
-export const publish = (timetableConfigId: string): Promise<void> =>
-  apiPost<void>(`${BASE}/publish`, {
+export const publish = (timetableConfigId: string): Promise<PublicationResponse> =>
+  apiPost<PublicationResponse>(`${BASE}/publish`, {
     timetableConfigId: timetableConfigId,
   }).then(unwrap);
 
-export const unpublish = (payload: UnpublishRequest): Promise<void> =>
-  apiPost<void>(`${BASE}/unpublish`, payload).then(unwrap);
+export const unpublish = (payload: UnpublishRequest): Promise<TimetableUnpublishResponse> =>
+  apiPost<TimetableUnpublishResponse>(`${BASE}/unpublish`, payload).then(unwrap);
 
 export const validate = (
   params: ValidateParams,

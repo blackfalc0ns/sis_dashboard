@@ -28,6 +28,24 @@ export interface BuildBulkSaveRequestResult {
 export const TEACHER_ALLOCATION_MISSING_MESSAGE =
   "Teacher allocation is missing for this subject/classroom.";
 
+export const BULK_TIMETABLE_ITEM_LIMIT = 1000;
+
+export function assertBulkPayloadSize(
+  items: BulkSaveTimetableRequest["items"],
+  operation: "save" | "conflict-check",
+): void {
+  if (items.length === 0) {
+    throw new Error(
+      `Timetable ${operation} requires at least one mapped entry.`,
+    );
+  }
+  if (items.length > BULK_TIMETABLE_ITEM_LIMIT) {
+    throw new Error(
+      `Timetable ${operation} cannot exceed 1,000 mapped entries.`,
+    );
+  }
+}
+
 export function buildBulkSaveTimetableRequest({
   termId,
   entries,

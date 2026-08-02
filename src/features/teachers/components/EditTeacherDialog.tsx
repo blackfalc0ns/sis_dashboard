@@ -61,7 +61,7 @@ export default function EditTeacherDialog(props: EditTeacherDialogProps) {
     <Modal isOpen={props.isOpen} onClose={props.onClose} title={t("dialog.edit_title")} size="xl" footer={<><Button variant="secondary" onClick={props.onClose} disabled={props.isSubmitting}>{t("actions.cancel")}</Button><Button onClick={() => void submit()} loading={props.isSubmitting}>{t("dialog.save_action")}</Button></>}>
       <div className="space-y-4">
         {errors.form ? <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errors.form}</p> : null}
-        <TeacherFormSections form={form} errors={errors} onChange={setForm} />
+        <TeacherFormSections form={form} errors={errors} onChange={setForm} loginIdentityReadOnly />
       </div>
     </Modal>
   );

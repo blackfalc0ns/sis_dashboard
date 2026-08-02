@@ -91,8 +91,33 @@ describe("teacher form dialogs", () => {
     await user.click(screen.getByRole("button", { name: "gender.female" }));
     await user.click(screen.getByRole("button", { name: "dialog.create_action" }));
 
-    expect(await screen.findByText("identity.username_invalid")).toBeVisible();
+    expect((await screen.findAllByText("identity.username_invalid")).length).toBeGreaterThan(0);
     expect(screen.queryByText("Username is invalid")).not.toBeInTheDocument();
+  });
+
+  it("keeps an identity-conflict message visible for the selected identity mode", async () => {
+    const user = userEvent.setup();
+    checkUsernameAvailability.mockResolvedValue({
+      username: "nour",
+      available: true,
+    });
+    const onSubmit = vi.fn().mockRejectedValue(
+      new ApiError("This identity is already in use", 409, "teachers.account.identity_conflict"),
+    );
+    render(<CreateTeacherDialog isOpen isSubmitting={false} onClose={vi.fn()} onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText(/fields\.username/), "nour");
+    fireEvent.change(screen.getByLabelText(/fields\.code/), { target: { value: "TCH001" } });
+    fireEvent.change(screen.getByLabelText(/fields\.first_name \(arabic\)/), { target: { value: "Ù†ÙˆØ±" } });
+    fireEvent.change(screen.getByLabelText(/fields\.first_name \(english\)/), { target: { value: "Nour" } });
+    fireEvent.change(screen.getByLabelText(/fields\.last_name \(arabic\)/), { target: { value: "Ø¹Ù„ÙŠ" } });
+    fireEvent.change(screen.getByLabelText(/fields\.last_name \(english\)/), { target: { value: "Ali" } });
+    await user.click(screen.getByLabelText(/fields\.gender/));
+    await user.click(screen.getByRole("button", { name: "gender.female" }));
+    await user.click(screen.getByRole("button", { name: "dialog.create_action" }));
+
+    const alerts = await screen.findAllByRole("alert");
+    expect(alerts.some((alert) => alert.textContent?.includes("errors.username_conflict"))).toBe(true);
   });
 
   it("prevents an empty edit patch", async () => {
@@ -103,5 +128,14 @@ describe("teacher form dialogs", () => {
     await user.click(screen.getByRole("button", { name: "dialog.save_action" }));
     expect(await screen.findByText("validation.no_changes")).toBeVisible();
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("shows login identity as read-only while editing a teacher", () => {
+    render(<EditTeacherDialog isOpen teacher={teacherFixture} isSubmitting={false} onClose={vi.fn()} onSubmit={vi.fn()} />);
+
+    expect(screen.getByLabelText(/fields\.username/)).toBeDisabled();
+    expect(screen.getByLabelText(/fields\.login_email/)).toBeDisabled();
+    expect(screen.queryByLabelText("form.identity_modes.username")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("form.identity_modes.loginEmail")).not.toBeInTheDocument();
   });
 });

@@ -39,6 +39,7 @@ import {
 } from "@/features/academics/homework/services/homeworkService";
 import type {
   HomeworkAssignmentStatus,
+  BackendHomeworkCounters,
   HomeworkGradeSyncStatusUiModel,
   HomeworkSubmissionAnswerUiModel,
   HomeworkSubmissionAttachmentUiModel,
@@ -46,9 +47,7 @@ import type {
   HomeworkSubmissionsPaginationUiModel,
   HomeworkSubmissionUiModel,
 } from "@/features/academics/homework/services/homeworkApi.types";
-import type {
-  AssignmentQuestion,
-} from "@/features/academics/curriculum/services/curriculumService";
+import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import {
   buildHomeworkSubmissionReviewRequest,
   calculateAnswerScoreRollup,
@@ -70,6 +69,7 @@ interface HomeworkSubmissionReviewPanelProps {
   totalMarks: number | null;
   assignmentStatus: HomeworkAssignmentStatus;
   isGraded: boolean;
+  counters?: BackendHomeworkCounters;
 }
 
 type ReviewDraft = {
@@ -82,7 +82,9 @@ type SubmissionReviewDraft = {
   reviewNote: string;
 };
 
-type SubmissionStatusFilter = "all" | NonNullable<HomeworkSubmissionListFilters["status"]>;
+type SubmissionStatusFilter =
+  | "all"
+  | NonNullable<HomeworkSubmissionListFilters["status"]>;
 
 function statusClass(status: string) {
   if (status === "reviewed") return "bg-green-100 text-green-700";
@@ -124,6 +126,7 @@ export default function HomeworkSubmissionReviewPanel({
   totalMarks,
   assignmentStatus,
   isGraded,
+  counters,
 }: HomeworkSubmissionReviewPanelProps) {
   const locale = useLocale();
   const t = useTranslations("academics.homework.review");
@@ -158,7 +161,9 @@ export default function HomeworkSubmissionReviewPanel({
   const [isSavingSubmissionReview, setIsSavingSubmissionReview] =
     useState(false);
   const [isSyncingSubmission, setIsSyncingSubmission] = useState(false);
-  const [pendingSubmissionId, setPendingSubmissionId] = useState<string | null>(null);
+  const [pendingSubmissionId, setPendingSubmissionId] = useState<string | null>(
+    null,
+  );
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [submissionReviewDraft, setSubmissionReviewDraft] =
     useState<SubmissionReviewDraft>({
@@ -166,7 +171,7 @@ export default function HomeworkSubmissionReviewPanel({
       reviewNote: "",
     });
   const [statusFilter, setStatusFilter] =
-    useState<SubmissionStatusFilter>("pending_review");
+    useState<SubmissionStatusFilter>("all");
   const [searchDraft, setSearchDraft] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -237,22 +242,27 @@ export default function HomeworkSubmissionReviewPanel({
   );
   const answerReviewable = Boolean(
     selectedSubmission &&
-      isHomeworkAnswerReviewable(assignmentStatus, selectedSubmission.status),
+    isHomeworkAnswerReviewable(assignmentStatus, selectedSubmission.status),
   );
   const finalReviewable = Boolean(
     selectedSubmission &&
-      isHomeworkFinalReviewable(assignmentStatus, selectedSubmission.status),
+    isHomeworkFinalReviewable(assignmentStatus, selectedSubmission.status),
   );
   const requiredReviewsAreComplete = useMemo(
     () => requiredAnswerReviewsComplete(questions, answers),
     [answers, questions],
   );
   const requiredAnswerProgress = useMemo(() => {
-    const requiredQuestions = questions.filter((question) => question.isRequired);
+    const requiredQuestions = questions.filter(
+      (question) => question.isRequired,
+    );
     return {
       total: requiredQuestions.length,
       reviewed: requiredQuestions.filter((question) =>
-        answers.some((answer) => answer.questionId === question.id && Boolean(answer.reviewedAt)),
+        answers.some(
+          (answer) =>
+            answer.questionId === question.id && Boolean(answer.reviewedAt),
+        ),
       ).length,
     };
   }, [answers, questions]);
@@ -312,8 +322,10 @@ export default function HomeworkSubmissionReviewPanel({
 
   const isSubmissionReviewDirty =
     selectedSubmission !== null &&
-    (submissionReviewDraft.awardedMarks !== scoreDraftValue(selectedSubmission.awardedMarks) ||
-      submissionReviewDraft.reviewNote !== (selectedSubmission.reviewNote ?? ""));
+    (submissionReviewDraft.awardedMarks !==
+      scoreDraftValue(selectedSubmission.awardedMarks) ||
+      submissionReviewDraft.reviewNote !==
+        (selectedSubmission.reviewNote ?? ""));
 
   const isAnswerReviewDirty = useCallback(
     (answer: HomeworkSubmissionAnswerUiModel) => {
@@ -337,7 +349,10 @@ export default function HomeworkSubmissionReviewPanel({
       Object.fromEntries(
         answers.map((answer) => [
           answer.id,
-          { score: scoreDraftValue(answer.score), feedback: answer.feedback ?? "" },
+          {
+            score: scoreDraftValue(answer.score),
+            feedback: answer.feedback ?? "",
+          },
         ]),
       ),
     );
@@ -368,11 +383,15 @@ export default function HomeworkSubmissionReviewPanel({
       const focusableElements = drawerFocusableElements(drawerPanelRef.current);
       if (focusableElements.length === 0) return;
       const firstFocusableElement = focusableElements[0];
-      const lastFocusableElement = focusableElements[focusableElements.length - 1];
+      const lastFocusableElement =
+        focusableElements[focusableElements.length - 1];
       if (event.shiftKey && document.activeElement === firstFocusableElement) {
         event.preventDefault();
         lastFocusableElement.focus();
-      } else if (!event.shiftKey && document.activeElement === lastFocusableElement) {
+      } else if (
+        !event.shiftKey &&
+        document.activeElement === lastFocusableElement
+      ) {
         event.preventDefault();
         firstFocusableElement.focus();
       }
@@ -401,7 +420,9 @@ export default function HomeworkSubmissionReviewPanel({
   const finalReviewErrors =
     "errors" in finalReviewResult ? finalReviewResult.errors : {};
   const reviewNoteError = finalReviewErrors.reviewNote
-    ? t(`validation.${finalReviewErrors.reviewNote}`, { max: REVIEW_NOTE_MAX_LENGTH })
+    ? t(`validation.${finalReviewErrors.reviewNote}`, {
+        max: REVIEW_NOTE_MAX_LENGTH,
+      })
     : undefined;
   const awardedMarksError = finalReviewErrors.awardedMarks
     ? t(`validation.${finalReviewErrors.awardedMarks}`, {
@@ -411,22 +432,26 @@ export default function HomeworkSubmissionReviewPanel({
   const canSaveSubmissionReview =
     canManage && finalReviewable && "request" in finalReviewResult;
   const selectedAwardedMarks = selectedSubmission?.awardedMarks;
-  const observableSyncMaximum = visibleGradeSyncStatus?.gradeAssessment?.maxMarks;
+  const observableSyncMaximum =
+    visibleGradeSyncStatus?.gradeAssessment?.maxMarks;
+  const hasValidAwardedMarks =
+    typeof selectedAwardedMarks === "number" &&
+    Number.isFinite(selectedAwardedMarks) &&
+    selectedAwardedMarks >= 0 &&
+    (effectiveTotalMarks == null || selectedAwardedMarks <= effectiveTotalMarks);
+  const needsGradeAssessmentLink =
+    canViewGradeSyncStatus && visibleGradeSyncStatus?.linked !== true;
   const canSyncSelectedSubmission = Boolean(
     canSync &&
-      selectedSubmission &&
-      normalizeStatus(selectedSubmission.status) === "reviewed" &&
-      typeof selectedAwardedMarks === "number" &&
-      Number.isFinite(selectedAwardedMarks) &&
-      selectedAwardedMarks >= 0 &&
-      (effectiveTotalMarks == null || selectedAwardedMarks <= effectiveTotalMarks) &&
-      (!canViewGradeSyncStatus ||
-        (visibleGradeSyncStatus?.linked === true &&
-          (observableSyncMaximum == null ||
-            selectedAwardedMarks <= observableSyncMaximum))),
+    selectedSubmission &&
+    normalizeStatus(selectedSubmission.status) === "reviewed" &&
+    hasValidAwardedMarks &&
+    (!needsGradeAssessmentLink &&
+        (observableSyncMaximum == null ||
+          selectedAwardedMarks <= observableSyncMaximum)),
   );
 
-  const submissionSummary = useMemo(() => {
+  const visibleSubmissionSummary = useMemo(() => {
     return submissions.reduce(
       (summary, submission) => {
         const status = normalizeStatus(submission.status);
@@ -439,6 +464,17 @@ export default function HomeworkSubmissionReviewPanel({
       { total: 0, pending: 0, late: 0, reviewed: 0 },
     );
   }, [submissions]);
+  const submissionSummary = counters
+    ? {
+        total:
+          (counters.submitted ?? 0) +
+          (counters.late ?? 0) +
+          (counters.reviewed ?? 0),
+        pending: (counters.submitted ?? 0) + (counters.late ?? 0),
+        late: counters.late ?? 0,
+        reviewed: counters.reviewed ?? 0,
+      }
+    : visibleSubmissionSummary;
 
   const updateSelectedSubmission = useCallback(
     (updated: HomeworkSubmissionUiModel) => {
@@ -449,7 +485,9 @@ export default function HomeworkSubmissionReviewPanel({
       );
       setSubmissionReviewDraft({
         awardedMarks:
-          updated.awardedMarks === undefined ? "" : String(updated.awardedMarks),
+          updated.awardedMarks === undefined
+            ? ""
+            : String(updated.awardedMarks),
         reviewNote: updated.reviewNote ?? "",
       });
     },
@@ -478,13 +516,25 @@ export default function HomeworkSubmissionReviewPanel({
       );
     } catch (error) {
       showError(
-        t("errors.loadSubmissions", { message: getHomeworkErrorMessage(error, tHomeworkError) }),
+        t("errors.loadSubmissions", {
+          message: getHomeworkErrorMessage(error, tHomeworkError),
+        }),
       );
       setPagination({ page, limit, total: 0 });
     } finally {
       setIsLoadingSubmissions(false);
     }
-  }, [appliedSearch, canView, homeworkId, limit, page, showError, statusFilter, t, tHomeworkError]);
+  }, [
+    appliedSearch,
+    canView,
+    homeworkId,
+    limit,
+    page,
+    showError,
+    statusFilter,
+    t,
+    tHomeworkError,
+  ]);
 
   const loadSubmissionDetail = useCallback(
     async (submissionId: string) => {
@@ -510,8 +560,12 @@ export default function HomeworkSubmissionReviewPanel({
             ]),
           ),
         );
-    } catch (error) {
-        showError(t("errors.loadDetail", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
+      } catch (error) {
+        showError(
+          t("errors.loadDetail", {
+            message: getHomeworkErrorMessage(error, tHomeworkError),
+          }),
+        );
       } finally {
         setIsLoadingDetail(false);
       }
@@ -558,7 +612,9 @@ export default function HomeworkSubmissionReviewPanel({
 
   useEffect(() => {
     if (!selectedSubmissionId || !canView) return;
-    void Promise.resolve().then(() => loadSubmissionDetail(selectedSubmissionId));
+    void Promise.resolve().then(() =>
+      loadSubmissionDetail(selectedSubmissionId),
+    );
   }, [canView, loadSubmissionDetail, selectedSubmissionId]);
 
   const getQuestionTypeLabel = useCallback(
@@ -584,7 +640,7 @@ export default function HomeworkSubmissionReviewPanel({
   const renderAnswerContent = useCallback(
     (answer: HomeworkSubmissionAnswerUiModel) => {
       const question = questions.find((q) => q.id === answer.questionId);
-      
+
       if (!question) {
         return (
           <div className="mt-2 whitespace-pre-wrap rounded-lg bg-gray-50 p-3 text-sm text-gray-700 border border-gray-100">
@@ -609,7 +665,8 @@ export default function HomeworkSubmissionReviewPanel({
                 const isSelected = selectedOptionIds.includes(option.id);
                 const isCorrect = option.isCorrect;
 
-                let boxClass = "flex items-center gap-3 rounded-lg border p-3 text-sm transition ";
+                let boxClass =
+                  "flex items-center gap-3 rounded-lg border p-3 text-sm transition ";
 
                 if (isSelected) {
                   if (isCorrect) {
@@ -619,9 +676,11 @@ export default function HomeworkSubmissionReviewPanel({
                   }
                 } else {
                   if (isCorrect) {
-                    boxClass += "border-dashed border-green-300 bg-white text-green-800";
+                    boxClass +=
+                      "border-dashed border-green-300 bg-white text-green-800";
                   } else {
-                    boxClass += "border-gray-200 bg-white text-gray-700 hover:bg-gray-50";
+                    boxClass +=
+                      "border-gray-200 bg-white text-gray-700 hover:bg-gray-50";
                   }
                 }
 
@@ -635,14 +694,12 @@ export default function HomeworkSubmissionReviewPanel({
                       ) : (
                         <div className="h-4 w-4 rounded border-2 border-gray-300 bg-white shrink-0" />
                       )
+                    ) : isSelected ? (
+                      <div className="flex h-4 w-4 items-center justify-center rounded-full bg-green-600 text-white shrink-0">
+                        <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                      </div>
                     ) : (
-                      isSelected ? (
-                        <div className="flex h-4 w-4 items-center justify-center rounded-full bg-green-600 text-white shrink-0">
-                          <div className="h-1.5 w-1.5 rounded-full bg-white" />
-                        </div>
-                      ) : (
-                        <div className="h-4 w-4 rounded-full border-2 border-gray-300 bg-white shrink-0" />
-                      )
+                      <div className="h-4 w-4 rounded-full border-2 border-gray-300 bg-white shrink-0" />
                     )}
 
                     <span className="flex-1 font-medium">
@@ -859,7 +916,10 @@ export default function HomeworkSubmissionReviewPanel({
             )}
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-2" aria-busy={isLoadingSubmissions}>
+        <div
+          className="flex-1 overflow-y-auto p-2"
+          aria-busy={isLoadingSubmissions}
+        >
           {isLoadingSubmissions && (
             <div className="space-y-2 p-1" role="status" aria-live="polite">
               <span className="sr-only">{t("submissions.loading")}</span>
@@ -882,66 +942,71 @@ export default function HomeworkSubmissionReviewPanel({
                 : t("submissions.empty")}
             </div>
           )}
-          {!isLoadingSubmissions && submissions.map((submission) => (
-            <button
-              key={submission.id}
-              type="button"
-              onClick={() => {
-                requestSubmissionSelection(submission.id);
-                if (isDrawer) {
-                  closeMobileDrawer();
+          {!isLoadingSubmissions &&
+            submissions.map((submission) => (
+              <button
+                key={submission.id}
+                type="button"
+                onClick={() => {
+                  requestSubmissionSelection(submission.id);
+                  if (isDrawer) {
+                    closeMobileDrawer();
+                  }
+                }}
+                aria-current={
+                  selectedSubmissionId === submission.id ? "true" : undefined
                 }
-              }}
-              aria-current={selectedSubmissionId === submission.id ? "true" : undefined}
-              className={`mb-2 w-full cursor-pointer rounded-lg border border-border p-3 text-left transition-colors duration-200 hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                selectedSubmissionId === submission.id
-                  ? "border-primary bg-primary/5"
-                  : "border-gray-200 bg-white"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium text-gray-900">
-                    {submission.studentName}
-                  </div>
-                  <div className="mt-1 text-xs text-gray-500">
-                    {formatMaybeDate(submission.submittedAt, locale)}
-                  </div>
-                  {submission.studentNumber && (
-                    <div className="mt-1 text-xs text-gray-400">
-                      {submission.studentNumber}
+                className={`mb-2 w-full cursor-pointer rounded-lg border border-border p-3 text-left transition-colors duration-200 hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                  selectedSubmissionId === submission.id
+                    ? "border-primary bg-primary/5"
+                    : "border-gray-200 bg-white"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium text-gray-900">
+                      {submission.studentName}
                     </div>
+                    <div className="mt-1 text-xs text-gray-500">
+                      {formatMaybeDate(submission.submittedAt, locale)}
+                    </div>
+                    {submission.studentNumber && (
+                      <div className="mt-1 text-xs text-gray-400">
+                        {submission.studentNumber}
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${statusClass(
+                      submission.status,
+                    )}`}
+                  >
+                    {submissionStatusLabel(submission.status)}
+                  </span>
+                </div>
+                <div className="mt-2 text-xs text-gray-600">
+                  {scoreText(
+                    submission.awardedMarks,
+                    submission.totalMarks ?? totalMarks ?? undefined,
                   )}
                 </div>
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${statusClass(
-                    submission.status,
-                  )}`}
-                >
-                  {submissionStatusLabel(submission.status)}
-                </span>
-              </div>
-              <div className="mt-2 text-xs text-gray-600">
-                {scoreText(
-                  submission.awardedMarks,
-                  submission.totalMarks ?? totalMarks ?? undefined,
+                {submission.isLate && (
+                  <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                    <Clock className="h-3 w-3" />
+                    {t("submissions.late")}
+                  </div>
                 )}
-              </div>
-              {submission.isLate && (
-                <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-                  <Clock className="h-3 w-3" />
-                  {t("submissions.late")}
-                </div>
-              )}
-            </button>
-          ))}
+              </button>
+            ))}
         </div>
         <div className="flex items-center justify-between gap-2 border-t border-border p-3 bg-white">
           <Button
             type="button"
             variant="secondary"
             size="sm"
-            disabled={pagination.page <= 1 || isLoadingSubmissions || hasUnsavedChanges}
+            disabled={
+              pagination.page <= 1 || isLoadingSubmissions || hasUnsavedChanges
+            }
             onClick={() => setPage((current) => Math.max(1, current - 1))}
           >
             {t("pagination.previous")}
@@ -956,7 +1021,11 @@ export default function HomeworkSubmissionReviewPanel({
             type="button"
             variant="secondary"
             size="sm"
-            disabled={pagination.page >= totalPages || isLoadingSubmissions || hasUnsavedChanges}
+            disabled={
+              pagination.page >= totalPages ||
+              isLoadingSubmissions ||
+              hasUnsavedChanges
+            }
             onClick={() =>
               setPage((current) => Math.min(totalPages, current + 1))
             }
@@ -1024,7 +1093,9 @@ export default function HomeworkSubmissionReviewPanel({
       effectiveTotalMarks,
     );
     if (errors.score || errors.feedback || rollupError) {
-      showError(t(`validation.${errors.score ?? errors.feedback ?? rollupError}`));
+      showError(
+        t(`validation.${errors.score ?? errors.feedback ?? rollupError}`),
+      );
       return;
     }
     setPendingAnswerId(answerId);
@@ -1050,14 +1121,24 @@ export default function HomeworkSubmissionReviewPanel({
       }));
       showSuccess(t("messages.answerSaved"));
     } catch (error) {
-      showError(t("errors.saveAnswer", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
+      showError(
+        t("errors.saveAnswer", {
+          message: getHomeworkErrorMessage(error, tHomeworkError),
+        }),
+      );
     } finally {
       setPendingAnswerId(null);
     }
   };
 
   const saveAllReviews = async () => {
-    if (!selectedSubmissionId || !canManage || !answerReviewable || dirtyAnswerCount === 0) return;
+    if (
+      !selectedSubmissionId ||
+      !canManage ||
+      !answerReviewable ||
+      dirtyAnswerCount === 0
+    )
+      return;
     const reviewItems = answers.filter(isAnswerReviewDirty).map((answer) => {
       const draft = drafts[answer.id];
       const parsedScore = draft?.score.trim() ? Number(draft.score) : null;
@@ -1067,16 +1148,16 @@ export default function HomeworkSubmissionReviewPanel({
         feedback: draft?.feedback.trim() || null,
       };
     });
-    const firstInvalid = answers
-      .filter(isAnswerReviewDirty)
-      .find((answer) => {
-        const errors = answerErrors[answer.id];
-        return errors?.score || errors?.feedback;
-      });
+    const firstInvalid = answers.filter(isAnswerReviewDirty).find((answer) => {
+      const errors = answerErrors[answer.id];
+      return errors?.score || errors?.feedback;
+    });
     if (firstInvalid || prospectiveRollupError) {
       const errors = firstInvalid ? answerErrors[firstInvalid.id] : undefined;
       showError(
-        t(`validation.${errors?.score ?? errors?.feedback ?? prospectiveRollupError}`),
+        t(
+          `validation.${errors?.score ?? errors?.feedback ?? prospectiveRollupError}`,
+        ),
       );
       return;
     }
@@ -1141,13 +1222,20 @@ export default function HomeworkSubmissionReviewPanel({
           showError(
             t("errors.saveAllRecoveryFailed", {
               saveMessage: getHomeworkErrorMessage(error, tHomeworkError),
-              reloadMessage: getHomeworkErrorMessage(reloadError, tHomeworkError),
+              reloadMessage: getHomeworkErrorMessage(
+                reloadError,
+                tHomeworkError,
+              ),
             }),
           );
           return;
         }
       }
-      showError(t("errors.saveAll", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
+      showError(
+        t("errors.saveAll", {
+          message: getHomeworkErrorMessage(error, tHomeworkError),
+        }),
+      );
     } finally {
       setIsBulkSaving(false);
     }
@@ -1158,7 +1246,8 @@ export default function HomeworkSubmissionReviewPanel({
       !selectedSubmissionId ||
       !canSaveSubmissionReview ||
       !("request" in finalReviewResult)
-    ) return;
+    )
+      return;
     setIsSavingSubmissionReview(true);
     try {
       const updated = await reviewHomeworkSubmission(
@@ -1170,7 +1259,9 @@ export default function HomeworkSubmissionReviewPanel({
       showSuccess(t("messages.submissionSaved"));
     } catch (error) {
       showError(
-        t("errors.saveSubmission", { message: getHomeworkErrorMessage(error, tHomeworkError) }),
+        t("errors.saveSubmission", {
+          message: getHomeworkErrorMessage(error, tHomeworkError),
+        }),
       );
     } finally {
       setIsSavingSubmissionReview(false);
@@ -1185,7 +1276,11 @@ export default function HomeworkSubmissionReviewPanel({
       showSuccess(t("messages.synced"));
       await loadSubmissions();
     } catch (error) {
-      showError(t("errors.sync", { message: getHomeworkErrorMessage(error, tHomeworkError) }));
+      showError(
+        t("errors.sync", {
+          message: getHomeworkErrorMessage(error, tHomeworkError),
+        }),
+      );
     } finally {
       setIsSyncingSubmission(false);
     }
@@ -1202,10 +1297,19 @@ export default function HomeworkSubmissionReviewPanel({
   return (
     <div className="space-y-4 p-4 lg:p-6">
       <div className="grid gap-3 md:grid-cols-4">
-        <SummaryCard label={t("summary.visible")} value={submissionSummary.total} />
-        <SummaryCard label={t("summary.pending")} value={submissionSummary.pending} />
+        <SummaryCard
+          label={t("summary.total")}
+          value={submissionSummary.total}
+        />
+        <SummaryCard
+          label={t("summary.pending")}
+          value={submissionSummary.pending}
+        />
         <SummaryCard label={t("summary.late")} value={submissionSummary.late} />
-        <SummaryCard label={t("summary.reviewed")} value={submissionSummary.reviewed} />
+        <SummaryCard
+          label={t("summary.reviewed")}
+          value={submissionSummary.reviewed}
+        />
       </div>
 
       {hasUnsavedChanges && (
@@ -1214,7 +1318,9 @@ export default function HomeworkSubmissionReviewPanel({
           role="status"
           aria-live="polite"
         >
-          <span>{t("messages.unsavedChanges", { count: dirtyAnswerCount })}</span>
+          <span>
+            {t("messages.unsavedChanges", { count: dirtyAnswerCount })}
+          </span>
           <div className="flex shrink-0 items-center gap-2">
             {dirtyAnswerCount > 0 && (
               <Button
@@ -1236,7 +1342,11 @@ export default function HomeworkSubmissionReviewPanel({
                 {t("actions.saveChanges")}
               </Button>
             )}
-            <Button variant="secondary" size="sm" onClick={discardReviewChanges}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={discardReviewChanges}
+            >
               {t("actions.discardChanges")}
             </Button>
           </div>
@@ -1281,459 +1391,508 @@ export default function HomeworkSubmissionReviewPanel({
                       <h2 className="text-base font-semibold text-gray-900">
                         {selectedSubmission.studentName}
                       </h2>
-                  <p className="text-sm text-gray-500">
-                    {t("detail.submittedAt", {
-                      date: formatMaybeDate(
-                        selectedSubmission.submittedAt,
-                        locale,
-                      ),
-                    })}
-                  </p>
-                  {selectedSubmission.studentNumber && (
-                    <p className="text-xs text-gray-400">
-                      {selectedSubmission.studentNumber}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                  {canManage && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => void saveAllReviews()}
-                      loading={isBulkSaving}
-                      disabled={
-                        !answerReviewable ||
-                        dirtyAnswerCount === 0 ||
-                        Boolean(prospectiveRollupError)
-                      }
-                      leftIcon={<Save className="h-4 w-4" />}
-                    >
-                      {t("actions.saveAll")}
-                    </Button>
-                  )}
-                  {canSync && (
-                    <div className="flex flex-col items-end gap-1">
-                      <Button
-                        size="sm"
-                        onClick={() => void syncSelectedSubmission()}
-                        loading={isSyncingSubmission}
-                        disabled={!canSyncSelectedSubmission}
-                        leftIcon={<CheckCircle2 className="h-4 w-4" />}
-                      >
-                        {t("actions.syncSubmission")}
-                      </Button>
-                      {!canSyncSelectedSubmission && (
-                        <span className="text-xs text-gray-500">
-                          {t("guidance.syncUnavailable")}
-                        </span>
+                      <p className="text-sm text-gray-500">
+                        {t("detail.submittedAt", {
+                          date: formatMaybeDate(
+                            selectedSubmission.submittedAt,
+                            locale,
+                          ),
+                        })}
+                      </p>
+                      {selectedSubmission.studentNumber && (
+                        <p className="text-xs text-gray-400">
+                          {selectedSubmission.studentNumber}
+                        </p>
                       )}
                     </div>
-                  )}
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="flex flex-wrap gap-2">
+                      {canManage && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => void saveAllReviews()}
+                          loading={isBulkSaving}
+                          disabled={
+                            !answerReviewable ||
+                            dirtyAnswerCount === 0 ||
+                            Boolean(prospectiveRollupError)
+                          }
+                          leftIcon={<Save className="h-4 w-4" />}
+                        >
+                          {t("actions.saveAll")}
+                        </Button>
+                      )}
+                      {canSync && (
+                        <div className="flex flex-col items-end gap-1">
+                          <Button
+                            size="sm"
+                            onClick={() => void syncSelectedSubmission()}
+                            loading={isSyncingSubmission}
+                            disabled={!canSyncSelectedSubmission}
+                            leftIcon={<CheckCircle2 className="h-4 w-4" />}
+                          >
+                            {t("actions.syncSubmission")}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    {!canSyncSelectedSubmission && (
+                      <ul className="space-y-1 text-xs text-gray-500">
+                        {normalizeStatus(selectedSubmission?.status) !== "reviewed" && (
+                          <li>{t("guidance.syncUnavailable")}</li>
+                        )}
+                        {!hasValidAwardedMarks && (
+                          <li>{t("guidance.validAwardedScore")}</li>
+                        )}
+                        {needsGradeAssessmentLink && (
+                          <li>{t("guidance.gradeAssessmentLinkRequired")}</li>
+                        )}
+                      </ul>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-4 p-4">
-              {isLoadingDetail ? (
-                <div className="space-y-4 p-1" role="status" aria-live="polite">
-                  <span className="sr-only">{t("detail.loading")}</span>
-                  <div className="grid gap-3 sm:grid-cols-3">
+              <div className="space-y-4 p-4">
+                {isLoadingDetail ? (
+                  <div
+                    className="space-y-4 p-1"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <span className="sr-only">{t("detail.loading")}</span>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      {Array.from({ length: 3 }, (_, index) => (
+                        <div
+                          key={index}
+                          className="animate-pulse rounded-lg border border-gray-100 bg-gray-50 p-4"
+                        >
+                          <div className="h-3 w-1/2 rounded bg-gray-200" />
+                          <div className="mt-4 h-6 w-2/3 rounded bg-gray-100" />
+                        </div>
+                      ))}
+                    </div>
                     {Array.from({ length: 3 }, (_, index) => (
                       <div
                         key={index}
-                        className="animate-pulse rounded-lg border border-gray-100 bg-gray-50 p-4"
+                        className="animate-pulse rounded-lg border border-gray-100 p-4"
                       >
-                        <div className="h-3 w-1/2 rounded bg-gray-200" />
-                        <div className="mt-4 h-6 w-2/3 rounded bg-gray-100" />
+                        <div className="h-4 w-1/3 rounded bg-gray-200" />
+                        <div className="mt-3 h-20 rounded bg-gray-100" />
                       </div>
                     ))}
                   </div>
-                  {Array.from({ length: 3 }, (_, index) => (
-                    <div
-                      key={index}
-                      className="animate-pulse rounded-lg border border-gray-100 p-4"
-                    >
-                      <div className="h-4 w-1/3 rounded bg-gray-200" />
-                      <div className="mt-3 h-20 rounded bg-gray-100" />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {/* Status Card */}
-                    <div className="rounded-lg border border-border bg-gray-50 p-4 flex flex-col justify-between">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                        {t("detail.status")}
-                      </span>
-                      <div className="mt-2">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold border border-transparent ${statusClass(selectedSubmission.status)}`}>
-                          {submissionStatusLabel(selectedSubmission.status)}
+                ) : (
+                  <>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      {/* Status Card */}
+                      <div className="rounded-lg border border-border bg-gray-50 p-4 flex flex-col justify-between">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                          {t("detail.status")}
                         </span>
+                        <div className="mt-2">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold border border-transparent ${statusClass(selectedSubmission.status)}`}
+                          >
+                            {submissionStatusLabel(selectedSubmission.status)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Reviewed At Card */}
+                      <div className="rounded-lg border border-border bg-gray-50 p-4 flex flex-col justify-between">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                          {t("detail.reviewedAt")}
+                        </span>
+                        <div className="mt-2 text-sm font-semibold text-gray-800">
+                          {selectedSubmission.reviewedAt ? (
+                            <span className="flex items-center gap-1.5 text-green-700">
+                              <CheckCircle2 className="h-4 w-4" />
+                              {formatMaybeDate(
+                                selectedSubmission.reviewedAt,
+                                locale,
+                              )}
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5 text-gray-500">
+                              <Clock className="h-4 w-4" />
+                              {t("detail.pendingReview")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Score Card */}
+                      <div className="rounded-lg border border-border bg-gray-50 p-4 flex flex-col justify-between">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                          {t("detail.score")}
+                        </span>
+                        <div className="mt-2 flex items-baseline gap-1 text-sm font-bold text-gray-900">
+                          <span className="text-lg text-primary">
+                            {selectedSubmission.awardedMarks !== undefined &&
+                            selectedSubmission.awardedMarks !== null
+                              ? selectedSubmission.awardedMarks
+                              : "-"}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            / {selectedSubmission.totalMarks ?? totalMarks}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Reviewed At Card */}
-                    <div className="rounded-lg border border-border bg-gray-50 p-4 flex flex-col justify-between">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                        {t("detail.reviewedAt")}
-                      </span>
-                      <div className="mt-2 text-sm font-semibold text-gray-800">
-                        {selectedSubmission.reviewedAt ? (
-                          <span className="flex items-center gap-1.5 text-green-700">
-                            <CheckCircle2 className="h-4 w-4" />
-                            {formatMaybeDate(selectedSubmission.reviewedAt, locale)}
+                    {selectedSubmission.bodyText && (
+                      <div className="rounded-lg border border-border bg-slate-50/50 p-4 shadow-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
+                            {selectedSubmission.studentName
+                              .slice(0, 2)
+                              .toUpperCase()}
+                          </div>
+                          <span className="text-xs font-bold text-gray-700">
+                            {selectedSubmission.studentName}
                           </span>
-                        ) : (
-                          <span className="flex items-center gap-1.5 text-gray-500">
-                            <Clock className="h-4 w-4" />
-                            {t("detail.pendingReview")}
+                          <span className="text-xs text-gray-400">
+                            • {t("detail.bodyText")}
                           </span>
+                        </div>
+                        <p className="whitespace-pre-wrap rounded-lg border border-gray-200 bg-white p-3 text-sm font-medium leading-relaxed text-gray-700">
+                          {selectedSubmission.bodyText}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="rounded-lg border border-border p-4">
+                      <div className="mb-3 flex flex-col gap-1">
+                        <h3 className="text-sm font-semibold text-gray-900">
+                          {t("submissionReview.title")}
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          {t("submissionReview.description")}
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        <Input
+                          label={t("submissionReview.awardedMarks")}
+                          type="number"
+                          min={0}
+                          max={
+                            selectedSubmission.totalMarks ??
+                            totalMarks ??
+                            undefined
+                          }
+                          step="0.01"
+                          value={
+                            hasQuestions
+                              ? answerScoreRollup
+                              : submissionReviewDraft.awardedMarks
+                          }
+                          error={awardedMarksError}
+                          onChange={(event) =>
+                            setSubmissionReviewDraft((current) => ({
+                              ...current,
+                              awardedMarks: event.target.value,
+                            }))
+                          }
+                          disabled={
+                            !canManage ||
+                            !finalReviewable ||
+                            hasQuestions ||
+                            !isGraded
+                          }
+                        />
+                        <TextArea
+                          label={t("submissionReview.reviewNote")}
+                          value={submissionReviewDraft.reviewNote}
+                          rows={2}
+                          maxLength={REVIEW_NOTE_MAX_LENGTH + 1}
+                          resize="vertical"
+                          error={reviewNoteError}
+                          helperText={t("submissionReview.reviewNoteLimit", {
+                            count: reviewNoteLength,
+                            max: REVIEW_NOTE_MAX_LENGTH,
+                          })}
+                          onChange={(event) =>
+                            setSubmissionReviewDraft((current) => ({
+                              ...current,
+                              reviewNote: event.target.value,
+                            }))
+                          }
+                          disabled={!canManage || !finalReviewable}
+                        />
+                        {canManage && (
+                          <Button
+                            onClick={() => void saveSubmissionReview()}
+                            loading={isSavingSubmissionReview}
+                            disabled={!canSaveSubmissionReview}
+                            leftIcon={<Save className="h-4 w-4" />}
+                          >
+                            {t("actions.saveSubmission")}
+                          </Button>
                         )}
                       </div>
-                    </div>
-
-                    {/* Score Card */}
-                    <div className="rounded-lg border border-border bg-gray-50 p-4 flex flex-col justify-between">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                        {t("detail.score")}
-                      </span>
-                      <div className="mt-2 flex items-baseline gap-1 text-sm font-bold text-gray-900">
-                        <span className="text-lg text-primary">
-                          {selectedSubmission.awardedMarks !== undefined && selectedSubmission.awardedMarks !== null ? selectedSubmission.awardedMarks : "-"}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          / {selectedSubmission.totalMarks ?? totalMarks}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {selectedSubmission.bodyText && (
-                    <div className="rounded-lg border border-border bg-slate-50/50 p-4 shadow-sm">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-bold">
-                          {selectedSubmission.studentName.slice(0, 2).toUpperCase()}
-                        </div>
-                        <span className="text-xs font-bold text-gray-700">
-                          {selectedSubmission.studentName}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          • {t("detail.bodyText")}
-                        </span>
-                      </div>
-                      <p className="whitespace-pre-wrap rounded-lg border border-gray-200 bg-white p-3 text-sm font-medium leading-relaxed text-gray-700">
-                        {selectedSubmission.bodyText}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="rounded-lg border border-border p-4">
-                    <div className="mb-3 flex flex-col gap-1">
-                      <h3 className="text-sm font-semibold text-gray-900">
-                        {t("submissionReview.title")}
-                      </h3>
-                      <p className="text-xs text-gray-500">
-                        {t("submissionReview.description")}
-                      </p>
-                    </div>
-                    <div className="grid gap-3 lg:grid-cols-[180px_minmax(0,1fr)_auto] lg:items-end">
-                      <Input
-                        label={t("submissionReview.awardedMarks")}
-                        type="number"
-                        min={0}
-                        max={selectedSubmission.totalMarks ?? totalMarks ?? undefined}
-                        step="0.01"
-                        value={
-                          hasQuestions
-                            ? answerScoreRollup
-                            : submissionReviewDraft.awardedMarks
-                        }
-                        error={awardedMarksError}
-                        onChange={(event) =>
-                          setSubmissionReviewDraft((current) => ({
-                            ...current,
-                            awardedMarks: event.target.value,
-                          }))
-                        }
-                        disabled={
-                          !canManage ||
-                          !finalReviewable ||
-                          hasQuestions ||
-                          !isGraded
-                        }
-                      />
-                      <TextArea
-                        label={t("submissionReview.reviewNote")}
-                        value={submissionReviewDraft.reviewNote}
-                        rows={2}
-                        maxLength={REVIEW_NOTE_MAX_LENGTH + 1}
-                        resize="vertical"
-                        error={reviewNoteError}
-                        helperText={t("submissionReview.reviewNoteLimit", {
-                          count: reviewNoteLength,
-                          max: REVIEW_NOTE_MAX_LENGTH,
-                        })}
-                        onChange={(event) =>
-                          setSubmissionReviewDraft((current) => ({
-                            ...current,
-                            reviewNote: event.target.value,
-                          }))
-                        }
-                        disabled={!canManage || !finalReviewable}
-                      />
-                      {canManage && (
-                        <Button
-                          onClick={() => void saveSubmissionReview()}
-                          loading={isSavingSubmissionReview}
-                          disabled={!canSaveSubmissionReview}
-                          leftIcon={<Save className="h-4 w-4" />}
-                        >
-                          {t("actions.saveSubmission")}
-                        </Button>
+                      {finalReviewErrors.answers && (
+                        <p className="mt-2 text-sm text-red-600">
+                          {t(`validation.${finalReviewErrors.answers}`)}
+                        </p>
+                      )}
+                      {!finalReviewable && (
+                        <p className="mt-2 text-sm text-gray-500">
+                          {t("validation.readOnly")}
+                        </p>
                       )}
                     </div>
-                    {finalReviewErrors.answers && (
-                      <p className="mt-2 text-sm text-red-600">
-                        {t(`validation.${finalReviewErrors.answers}`)}
-                      </p>
-                    )}
-                    {!finalReviewable && (
-                      <p className="mt-2 text-sm text-gray-500">
-                        {t("validation.readOnly")}
-                      </p>
-                    )}
-                  </div>
 
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-900">
-                      {t("answers.title")}
-                    </h3>
-                    {requiredAnswerProgress.total > 0 && (
-                      <p className="text-sm text-gray-600">
-                        {t("guidance.requiredProgress", requiredAnswerProgress)}
-                      </p>
-                    )}
-                    {answers.length === 0 && (
-                      <div className="rounded-lg border border-dashed p-6 text-center text-sm text-gray-500">
-                        {t("answers.empty")}
-                      </div>
-                    )}
-                    {answers.map((answer) => {
-                      const question = questions.find((q) => q.id === answer.questionId);
-                      return (
-                        <article
-                          key={answer.id}
-                          className="rounded-lg border border-border p-4 bg-white shadow-sm"
-                        >
-                          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between border-b border-gray-100 pb-3 mb-3">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2 mb-2">
-                                {question && (
-                                  <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
-                                    {getQuestionTypeLabel(question.questionType)}
-                                  </span>
-                                )}
-                                {answer.isCorrect === true && (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-bold text-green-700 border border-green-200">
-                                    <Check className="h-3 w-3 stroke-[3]" />
-                                    {t("answers.correct")}
-                                  </span>
-                                )}
-                                {answer.isCorrect === false && (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-700 border border-red-200">
-                                    <X className="h-3 w-3 stroke-[3]" />
-                                    {t("answers.incorrect")}
-                                  </span>
-                                )}
-                              </div>
-                              <h4 className="text-sm font-semibold text-gray-900 leading-snug">
-                                {answer.prompt}
-                              </h4>
-                            </div>
-                            <div className="shrink-0 flex items-center gap-1 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-700">
-                              {scoreText(answer.score, answer.maxScore)}
-                            </div>
-                          </div>
-                          
-                          {renderAnswerContent(answer)}
-                        <div className="mt-4 grid gap-3 lg:grid-cols-[160px_minmax(0,1fr)_auto] lg:items-end">
-                          <Input
-                            label={t("answers.score")}
-                            type="number"
-                            min={0}
-                            max={answer.maxScore}
-                            step={0.01}
-                            value={drafts[answer.id]?.score ?? ""}
-                            error={
-                              answerErrors[answer.id]?.score
-                                ? t(`validation.${answerErrors[answer.id].score}`, {
-                                    max: answer.maxScore ?? "-",
-                                  })
-                                : prospectiveRollupError && isAnswerReviewDirty(answer)
-                                  ? t(`validation.${prospectiveRollupError}`, {
-                                      max: effectiveTotalMarks ?? "-",
-                                    })
-                                  : undefined
-                            }
-                            onChange={(event) =>
-                              updateDraft(answer.id, {
-                                score: event.target.value,
-                              })
-                            }
-                            disabled={!canManage || !answerReviewable}
-                          />
-                          <TextArea
-                            label={t("answers.feedback")}
-                            value={drafts[answer.id]?.feedback ?? ""}
-                            rows={2}
-                            maxLength={REVIEW_NOTE_MAX_LENGTH + 1}
-                            resize="vertical"
-                            error={
-                              answerErrors[answer.id]?.feedback
-                                ? t(`validation.${answerErrors[answer.id].feedback}`, {
-                                    max: REVIEW_NOTE_MAX_LENGTH,
-                                  })
-                                : undefined
-                            }
-                            onChange={(event) =>
-                              updateDraft(answer.id, {
-                                feedback: event.target.value,
-                              })
-                            }
-                            disabled={!canManage || !answerReviewable}
-                          />
-                          {canManage && (
-                            <Button
-                              variant="secondary"
-                              onClick={() => void saveAnswerReview(answer.id)}
-                              loading={pendingAnswerId === answer.id}
-                              disabled={
-                                !answerReviewable ||
-                                !isAnswerReviewDirty(answer) ||
-                                Boolean(answerErrors[answer.id]?.score) ||
-                                Boolean(answerErrors[answer.id]?.feedback) ||
-                                Boolean(prospectiveRollupError)
-                              }
-                              leftIcon={<Save className="h-4 w-4" />}
-                            >
-                              {t("actions.saveAnswer")}
-                            </Button>
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-gray-900">
+                        {t("answers.title")}
+                      </h3>
+                      {requiredAnswerProgress.total > 0 && (
+                        <p className="text-sm text-gray-600">
+                          {t(
+                            "guidance.requiredProgress",
+                            requiredAnswerProgress,
                           )}
+                        </p>
+                      )}
+                      {answers.length === 0 && (
+                        <div className="rounded-lg border border-dashed p-6 text-center text-sm text-gray-500">
+                          {t("answers.empty")}
                         </div>
-                      </article>
-                    );
-                  })}
-                  </div>
+                      )}
+                      {answers.map((answer) => {
+                        const question = questions.find(
+                          (q) => q.id === answer.questionId,
+                        );
+                        return (
+                          <article
+                            key={answer.id}
+                            className="rounded-lg border border-border p-4 bg-white shadow-sm"
+                          >
+                            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between border-b border-gray-100 pb-3 mb-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2 mb-2">
+                                  {question && (
+                                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+                                      {getQuestionTypeLabel(
+                                        question.questionType,
+                                      )}
+                                    </span>
+                                  )}
+                                  {answer.isCorrect === true && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-bold text-green-700 border border-green-200">
+                                      <Check className="h-3 w-3 stroke-[3]" />
+                                      {t("answers.correct")}
+                                    </span>
+                                  )}
+                                  {answer.isCorrect === false && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-700 border border-red-200">
+                                      <X className="h-3 w-3 stroke-[3]" />
+                                      {t("answers.incorrect")}
+                                    </span>
+                                  )}
+                                </div>
+                                <h4 className="text-sm font-semibold text-gray-900 leading-snug">
+                                  {answer.prompt}
+                                </h4>
+                              </div>
+                              <div className="shrink-0 flex items-center gap-1 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-700">
+                                {scoreText(answer.score, answer.maxScore)}
+                              </div>
+                            </div>
 
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-900">
-                      {t("attachments.title")}
-                    </h3>
-                    {attachments.length === 0 && (
-                      <div className="rounded-lg border border-dashed p-6 text-center text-sm text-gray-500">
-                        {t("attachments.empty")}
-                      </div>
-                    )}
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {attachments.map((attachment) => (
-                        <button
-                          key={attachment.id}
-                          type="button"
-                          disabled={!canDownloadFiles || !attachment.fileId}
-                          onClick={() =>
-                            setPreviewAttachment({
-                              id: attachment.fileId ?? attachment.id,
-                              name: attachment.title,
-                              size: Number(attachment.sizeBytes) || 0,
-                              type: attachment.mimeType ?? "",
-                              url: attachment.url,
-                            })
-                          }
-                          className="flex items-start gap-3 rounded-lg border border-border p-3 text-left text-sm transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {canDownloadFiles && attachment.fileId ? (
-                            <FilePreviewThumbnail
-                              alt={attachment.title}
-                              fileId={attachment.fileId}
-                            />
-                          ) : (
-                            <FileText className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
-                          )}
-                          <span className="min-w-0">
-                            <span className="block truncate font-medium text-gray-900">
-                              {attachment.title}
-                            </span>
-                            <span className="block truncate text-xs text-gray-500">
-                              {attachment.filename ||
-                                attachment.mimeType ||
-                                "-"}
-                            </span>
-                          </span>
-                        </button>
-                      ))}
+                            {renderAnswerContent(answer)}
+                            <div className="flex flex-col gap-3 mt-3">
+                              <Input
+                                label={t("answers.score")}
+                                type="number"
+                                min={0}
+                                max={answer.maxScore}
+                                step={0.01}
+                                value={drafts[answer.id]?.score ?? ""}
+                                error={
+                                  answerErrors[answer.id]?.score
+                                    ? t(
+                                        `validation.${answerErrors[answer.id].score}`,
+                                        {
+                                          max: answer.maxScore ?? "-",
+                                        },
+                                      )
+                                    : prospectiveRollupError &&
+                                        isAnswerReviewDirty(answer)
+                                      ? t(
+                                          `validation.${prospectiveRollupError}`,
+                                          {
+                                            max: effectiveTotalMarks ?? "-",
+                                          },
+                                        )
+                                      : undefined
+                                }
+                                onChange={(event) =>
+                                  updateDraft(answer.id, {
+                                    score: event.target.value,
+                                  })
+                                }
+                                disabled={!canManage || !answerReviewable}
+                              />
+                              <TextArea
+                                label={t("answers.feedback")}
+                                value={drafts[answer.id]?.feedback ?? ""}
+                                rows={2}
+                                maxLength={REVIEW_NOTE_MAX_LENGTH + 1}
+                                resize="vertical"
+                                error={
+                                  answerErrors[answer.id]?.feedback
+                                    ? t(
+                                        `validation.${answerErrors[answer.id].feedback}`,
+                                        {
+                                          max: REVIEW_NOTE_MAX_LENGTH,
+                                        },
+                                      )
+                                    : undefined
+                                }
+                                onChange={(event) =>
+                                  updateDraft(answer.id, {
+                                    feedback: event.target.value,
+                                  })
+                                }
+                                disabled={!canManage || !answerReviewable}
+                              />
+                              {canManage && (
+                                <Button
+                                  variant="secondary"
+                                  onClick={() =>
+                                    void saveAnswerReview(answer.id)
+                                  }
+                                  loading={pendingAnswerId === answer.id}
+                                  disabled={
+                                    !answerReviewable ||
+                                    !isAnswerReviewDirty(answer) ||
+                                    Boolean(answerErrors[answer.id]?.score) ||
+                                    Boolean(
+                                      answerErrors[answer.id]?.feedback,
+                                    ) ||
+                                    Boolean(prospectiveRollupError)
+                                  }
+                                  leftIcon={<Save className="h-4 w-4" />}
+                                >
+                                  {t("actions.saveAnswer")}
+                                </Button>
+                              )}
+                            </div>
+                          </article>
+                        );
+                      })}
                     </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </>
-        )}
-      </section>
-      <ConfirmDialog
-        isOpen={showDiscardDialog}
-        onClose={closeDiscardDialog}
-        onConfirm={discardAndSelectSubmission}
-        title={t("unsavedChanges.title")}
-        description={t("unsavedChanges.description")}
-        confirmLabel={t("unsavedChanges.discard")}
-        cancelLabel={t("unsavedChanges.stay")}
-        severity="warning"
-      />
-      <FilePreviewModal
-        attachment={previewAttachment}
-        isOpen={previewAttachment !== null}
-        onClose={() => setPreviewAttachment(null)}
-      />
-      {/* Mobile Drawer Overlay */}
-      {isMobileDrawerOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-300"
-            onClick={closeMobileDrawer}
-          />
-          {/* Drawer Panel */}
-          <div
-            ref={drawerPanelRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label={t("actions.students")}
-            className={`fixed inset-y-0 w-full max-w-[345px] bg-white shadow-2xl transition-transform duration-300 flex flex-col
+
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold text-gray-900">
+                        {t("attachments.title")}
+                      </h3>
+                      {attachments.length === 0 && (
+                        <div className="rounded-lg border border-dashed p-6 text-center text-sm text-gray-500">
+                          {t("attachments.empty")}
+                        </div>
+                      )}
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {attachments.map((attachment) => (
+                          <button
+                            key={attachment.id}
+                            type="button"
+                            disabled={!canDownloadFiles || !attachment.fileId}
+                            onClick={() =>
+                              setPreviewAttachment({
+                                id: attachment.fileId ?? attachment.id,
+                                name: attachment.title,
+                                size: Number(attachment.sizeBytes) || 0,
+                                type: attachment.mimeType ?? "",
+                                url: attachment.url,
+                              })
+                            }
+                            className="flex items-start gap-3 rounded-lg border border-border p-3 text-sm transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {canDownloadFiles && attachment.fileId ? (
+                              <FilePreviewThumbnail
+                                alt={attachment.title}
+                                fileId={attachment.fileId}
+                              />
+                            ) : (
+                              <FileText className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                            )}
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate font-medium text-gray-900">
+                                {attachment.title}
+                              </span>
+                              <span className="block truncate text-xs text-gray-500">
+                                {attachment.filename ||
+                                  attachment.mimeType ||
+                                  "-"}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </section>
+        <ConfirmDialog
+          isOpen={showDiscardDialog}
+          onClose={closeDiscardDialog}
+          onConfirm={discardAndSelectSubmission}
+          title={t("unsavedChanges.title")}
+          description={t("unsavedChanges.description")}
+          confirmLabel={t("unsavedChanges.discard")}
+          cancelLabel={t("unsavedChanges.stay")}
+          severity="warning"
+        />
+        <FilePreviewModal
+          attachment={previewAttachment}
+          isOpen={previewAttachment !== null}
+          onClose={() => setPreviewAttachment(null)}
+        />
+        {/* Mobile Drawer Overlay */}
+        {isMobileDrawerOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity duration-300"
+              onClick={closeMobileDrawer}
+            />
+            {/* Drawer Panel */}
+            <div
+              ref={drawerPanelRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={t("actions.students")}
+              className={`fixed inset-y-0 w-full max-w-[345px] bg-white shadow-2xl transition-transform duration-300 flex flex-col
               ${locale === "ar" ? "right-0 border-l border-border" : "left-0 border-r border-border"}`}
-          >
-            <div className="flex items-center justify-between border-b border-border p-4 bg-slate-50">
-              <span className="font-bold text-gray-900 text-sm">
-                {t("submissions.title")}
-              </span>
-              <button
-                type="button"
-                ref={drawerCloseButtonRef}
-                aria-label={t("actions.closeStudents")}
-                className="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-                onClick={closeMobileDrawer}
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto min-h-0 bg-white">
-              {renderSidebarContent(true)}
+            >
+              <div className="flex items-center justify-between border-b border-border p-4 bg-slate-50">
+                <span className="font-bold text-gray-900 text-sm">
+                  {t("submissions.title")}
+                </span>
+                <button
+                  type="button"
+                  ref={drawerCloseButtonRef}
+                  aria-label={t("actions.closeStudents")}
+                  className="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+                  onClick={closeMobileDrawer}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto min-h-0 bg-white">
+                {renderSidebarContent(true)}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );

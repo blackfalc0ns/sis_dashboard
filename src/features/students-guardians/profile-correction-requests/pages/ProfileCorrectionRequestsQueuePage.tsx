@@ -115,8 +115,9 @@ export default function ProfileCorrectionRequestsQueuePage() {
   }, [allRequests, requests, t]);
 
   const pendingCount = useMemo(
-    () => requests.filter((request) => request.status === "PENDING").length,
-    [requests],
+    () =>
+      allRequests.filter((request) => request.status === "PENDING").length,
+    [allRequests],
   );
 
   const columns: Column<

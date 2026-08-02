@@ -13,6 +13,7 @@ import AttachmentsPanel from "./AttachmentsPanel";
 import EmptyQuestionState from "./EmptyQuestionState";
 import QuestionEditor from "@/features/academics/curriculum/components/QuestionEditor";
 import type { QuestionType } from "../types/types";
+import type { ReactNode } from "react";
 
 interface MobileLayoutProps {
   questions: AssignmentQuestion[];
@@ -31,6 +32,7 @@ interface MobileLayoutProps {
   showHomeworkFields?: boolean;
   showAttachmentLinks?: boolean;
   detailsInputMode?: "bilingual" | "single";
+  sidebarDetails?: ReactNode;
   onSelectQuestion: (questionId: string) => void;
   onAddQuestion: () => void;
   onUpdateQuestion: (questionId: string, updates: Partial<AssignmentQuestion>) => void;
@@ -61,6 +63,7 @@ export default function MobileLayout({
   showHomeworkFields = false,
   showAttachmentLinks = true,
   detailsInputMode = "bilingual",
+  sidebarDetails,
   onSelectQuestion,
   onAddQuestion,
   onUpdateQuestion,
@@ -144,6 +147,7 @@ export default function MobileLayout({
 
         {mobileTab === "settings" && (
           <div className="p-4">
+            {sidebarDetails}
             <AssignmentSettingsPanel
               assignment={assignment}
               pointsSummary={pointsSummary}

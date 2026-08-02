@@ -25,6 +25,7 @@ export default function TeacherDetailSections({ teacher }: { teacher: TeacherDir
         <DetailField label={t("fields.phone")} text={teacher.phone} />
         <DetailField label={t("details.full_name_ar")} text={[teacher.firstNameAr, teacher.lastNameAr].filter(Boolean).join(" ") || null} />
         <DetailField label={t("details.full_name_en")} text={[teacher.firstNameEn, teacher.lastNameEn].filter(Boolean).join(" ") || null} />
+        <DetailField label={t("fields.gender")} text={teacher.gender ? t(`gender.${teacher.gender.toLowerCase()}`) : null} />
       </DetailCard>
       <DetailCard title={t("details.employment")}>
         <DetailField label={t("fields.department")} text={teacher.department} />
@@ -32,6 +33,7 @@ export default function TeacherDetailSections({ teacher }: { teacher: TeacherDir
         <DetailField label={t("fields.employment_type")} text={teacher.employmentType ? t(`employment_types.${teacher.employmentType.toLowerCase()}`) : null} />
         <DetailField label={t("fields.experience_years")} text={teacher.experienceYears} />
         <DetailField label={t("fields.hire_date")} text={teacher.hireDate ? formatDate(teacher.hireDate) : null} />
+        <DetailField label={t("details.membership_ended_at")} text={teacher.membershipEndedAt ? formatDate(teacher.membershipEndedAt) : null} />
       </DetailCard>
       <DetailCard title={t("details.schedule")}>
         <DetailField label={t("details.working_days")} text={teacher.workingDays.length ? teacher.workingDays.map((day) => t(`work_days.${day.toLowerCase()}`)).join(", ") : null} />

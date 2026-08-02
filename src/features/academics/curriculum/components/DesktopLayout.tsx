@@ -11,6 +11,7 @@ import AttachmentsPanel from "@/features/academics/curriculum/components/Attachm
 import EmptyQuestionState from "@/features/academics/curriculum/components/EmptyQuestionState";
 import QuestionEditor from "@/features/academics/curriculum/components/QuestionEditor";
 import type { QuestionType } from "../types/types";
+import type { ReactNode } from "react";
 
 interface DesktopLayoutProps {
   questions: AssignmentQuestion[];
@@ -29,6 +30,7 @@ interface DesktopLayoutProps {
   showHomeworkFields?: boolean;
   showAttachmentLinks?: boolean;
   detailsInputMode?: "bilingual" | "single";
+  sidebarDetails?: ReactNode;
   onSelectQuestion: (questionId: string) => void;
   onAddQuestion: () => void;
   onUpdateQuestion: (questionId: string, updates: Partial<AssignmentQuestion>) => void;
@@ -59,6 +61,7 @@ export default function DesktopLayout({
   showHomeworkFields = false,
   showAttachmentLinks = true,
   detailsInputMode = "bilingual",
+  sidebarDetails,
   onSelectQuestion,
   onAddQuestion,
   onUpdateQuestion,
@@ -133,6 +136,7 @@ export default function DesktopLayout({
       {/* Right Panel - Settings + Attachments */}
       <div className="w-96 border-l border-gray-200 bg-white overflow-y-auto">
         <div className="p-6 space-y-6">
+          {sidebarDetails}
           {/* Assignment Settings */}
           <AssignmentSettingsPanel
             assignment={assignment}

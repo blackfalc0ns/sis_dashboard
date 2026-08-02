@@ -24,6 +24,15 @@ describe("teacher form mapping", () => {
     expect(detailToEditForm(teacherFixture, "AR").profile.preferredDisplayLanguage).toBe("AR");
   });
 
+  it("does not submit username or login email changes from the edit form", () => {
+    const form = detailToEditForm(teacherFixture, "EN");
+    form.identity.username = "different.username";
+    form.identity.loginEmail = "different@school.example";
+
+    expect(editFormToRequest(form)).not.toHaveProperty("username");
+    expect(editFormToRequest(form)).not.toHaveProperty("loginEmail");
+  });
+
   it("builds rehire data without identity or lifecycle fields", () => {
     const request = editFormToRehireRequest(detailToEditForm(teacherFixture, "EN"));
 

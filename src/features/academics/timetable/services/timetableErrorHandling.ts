@@ -116,6 +116,17 @@ export function timetableErrorCode(error: unknown): string | undefined {
   return backendErrorPayload(error)?.code;
 }
 
+export function publicationBlockingReason(error: unknown): string | undefined {
+  const details = timetableErrorDetails(error);
+  if (!isRecord(details) || !Array.isArray(details.blockingReasons)) {
+    return undefined;
+  }
+  const firstReason = details.blockingReasons.find(isRecord);
+  return typeof firstReason?.message === "string"
+    ? firstReason.message
+    : undefined;
+}
+
 export function isTimetableErrorCode(
   error: unknown,
   code: TimetableErrorCode,

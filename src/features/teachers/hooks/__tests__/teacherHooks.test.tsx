@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { teacherApi } from "@/features/teachers/services/teacherApi";
+import { generateUserCredential } from "@/features/settings/credentials/services/credentialsService";
 import { teacherFixture } from "@/features/teachers/__tests__/fixtures";
 import { detailToEditForm, editFormToRehireRequest } from "@/features/teachers/utils/teacherFormMappers";
 import { useTeacherActions } from "../useTeacherActions";
@@ -17,6 +18,10 @@ vi.mock("@/features/teachers/services/teacherApi", () => ({
     archive: vi.fn(),
     rehire: vi.fn(),
   },
+}));
+
+vi.mock("@/features/settings/credentials/services/credentialsService", () => ({
+  generateUserCredential: vi.fn(),
 }));
 
 const listResponse = (search: string) => ({
@@ -81,5 +86,40 @@ describe("teacher data hooks", () => {
     await expect(act(() => result.current.rehireTeacher("teacher-1", input))).resolves.toEqual(teacherFixture);
     expect(teacherApi.rehire).toHaveBeenCalledWith("teacher-1", input);
     expect(result.current.activeAction).toBeNull();
+  });
+
+  it("sets a newly created teacher inactive and then active through lifecycle endpoints", async () => {
+    vi.mocked(teacherApi.create).mockResolvedValue(teacherFixture);
+    vi.mocked(teacherApi.changeEmploymentStatus).mockResolvedValue({} as never);
+    vi.mocked(generateUserCredential).mockResolvedValue({
+      userId: teacherFixture.userId,
+      temporaryPassword: "one-time-password",
+      mustChangePassword: true,
+    });
+    const { result } = renderHook(() => useTeacherActions());
+    const input = {
+      teacherCode: "TCH-001",
+      firstNameAr: "نور",
+      lastNameAr: "علي",
+      firstNameEn: "Nour",
+      lastNameEn: "Ali",
+      preferredDisplayLanguage: "EN" as const,
+      gender: "FEMALE" as const,
+      employmentStatus: "ACTIVE" as const,
+    };
+
+    let creationResult: Awaited<ReturnType<typeof result.current.createTeacher>>;
+    await act(async () => {
+      creationResult = await result.current.createTeacher(input);
+    });
+    expect(creationResult.teacher).toEqual(teacherFixture);
+    expect(teacherApi.create).toHaveBeenCalledWith({ ...input, employmentStatus: "ACTIVE" });
+    expect(generateUserCredential).toHaveBeenCalledWith(teacherFixture.userId);
+    expect(teacherApi.changeEmploymentStatus).toHaveBeenNthCalledWith(1, teacherFixture.id, {
+      employmentStatus: "INACTIVE",
+    });
+    expect(teacherApi.changeEmploymentStatus).toHaveBeenNthCalledWith(2, teacherFixture.id, {
+      employmentStatus: "ACTIVE",
+    });
   });
 });

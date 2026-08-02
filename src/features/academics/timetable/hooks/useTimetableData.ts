@@ -48,13 +48,15 @@ import type {
 } from "@/features/academics/timetable/services/timetableApiTypes";
 import { mapBackendEntriesToUi } from "@/features/academics/timetable/services/timetableMappers";
 import {
+  assertBulkPayloadSize,
   buildBulkSaveTimetableRequest,
   TEACHER_ALLOCATION_MISSING_MESSAGE,
 } from "@/features/academics/timetable/services/timetableSaveMapper";
 import {
-  conflictsFromResponse,
   emptyValidationSummary,
   hasBlockingValidation,
+  normalizeConflictCheckResponse,
+  normalizePersistedConflicts,
   type TimetableValidationSummary,
   validationSummaryFromResponse,
 } from "@/features/academics/timetable/services/timetableValidationSummary";
@@ -62,6 +64,7 @@ import {
   conflictFromTimetableError,
   isTimetableConfigNotFound,
   timetableErrorMessage,
+  publicationBlockingReason,
   type TimetableErrorTranslator,
 } from "@/features/academics/timetable/services/timetableErrorHandling";
 import {
@@ -111,6 +114,7 @@ type SaveTimetableResult =
       error?: string;
       hasConflicts?: boolean;
       changesWereNotSaved?: boolean;
+      partialMutation?: boolean;
     };
 
 type ScopeSelection = {
@@ -488,13 +492,14 @@ export function useTimetableData({
       if (requestId !== timetableRequestIdRef.current) return;
 
       const configId = nextConfig.id || nextConfig.timetableConfigId || "";
-      const [periodsResponse, entriesResponse, publicationResponse] =
+      const [periodsResponse, entriesResponse, allEntriesResponse, publicationResponse] =
         await Promise.all([
           listPeriods(configId),
           listEntries({
             timetableConfigId: configId,
             classroomId: selectedClassroomId || undefined,
           }),
+          listEntries({ timetableConfigId: configId }),
           getPublication(configId) as Promise<PublicationResponse>,
         ]);
 
@@ -505,6 +510,9 @@ export function useTimetableData({
       const nextEntries =
         listResponseItems<BackendTimetableEntryDto>(entriesResponse);
       const mappedEntries = mapBackendEntriesToUi(nextEntries);
+      const allMappedEntries = mapBackendEntriesToUi(
+        listResponseItems<BackendTimetableEntryDto>(allEntriesResponse),
+      );
       const nextConfigModel = configDtoToUi(nextConfig, nextPeriods);
 
       setConfig(nextConfig);
@@ -513,7 +521,7 @@ export function useTimetableData({
       setConflicts([]);
       setValidationSummary(emptyValidationSummary());
       setTimetableEntries(mappedEntries.entries);
-      setAllTermEntries(mappedEntries.entries);
+      setAllTermEntries(allMappedEntries.entries);
       setConfigs([nextConfigModel]);
       setResolvedConfig(configDtoToResolvedConfig(nextConfig, nextPeriods));
     } catch (error) {
@@ -562,7 +570,7 @@ export function useTimetableData({
       return [];
     }
     const response = await getConflicts(config.id);
-    const nextConflicts = conflictsFromResponse(response);
+    const nextConflicts = normalizePersistedConflicts(response).conflicts;
     setConflicts(nextConflicts);
     return nextConflicts;
   }, [config]);
@@ -598,6 +606,7 @@ export function useTimetableData({
         return { ok: false };
       }
 
+      let deletionStarted = false;
       setIsSaving(true);
       try {
         // Identify cleared entries that need to be deleted from the backend.
@@ -618,11 +627,7 @@ export function useTimetableData({
           selectedClassroomId: selectedClassroomId || undefined,
         });
 
-        if (
-          bulkSaveRequest.skippedSlots.some(
-            (slot) => slot.reason === "MISSING_TEACHER_ALLOCATION",
-          )
-        ) {
+        if (bulkSaveRequest.skippedSlots.length > 0) {
           const message =
             messages?.missingTeacherAllocation ??
             TEACHER_ALLOCATION_MISSING_MESSAGE;
@@ -649,8 +654,9 @@ export function useTimetableData({
 
         // Only run bulk save + conflict check if there are items to save
         if (bulkSaveRequest.payload.items.length > 0) {
+          assertBulkPayloadSize(bulkSaveRequest.payload.items, "conflict-check");
           const conflictResponse = await checkConflicts(bulkSaveRequest.payload);
-          const nextConflicts = conflictsFromResponse(conflictResponse);
+          const nextConflicts = normalizeConflictCheckResponse(conflictResponse).conflicts;
           setConflicts(nextConflicts);
           if (nextConflicts.length > 0) {
             return {
@@ -665,12 +671,14 @@ export function useTimetableData({
         }
 
         if (entriesToDelete.length > 0) {
-          await Promise.all(
-            entriesToDelete.map((entry) => deleteEntry(entry.id)),
-          );
+          for (const entry of entriesToDelete) {
+            await deleteEntry(entry.id);
+            deletionStarted = true;
+          }
         }
 
         if (bulkSaveRequest.payload.items.length > 0) {
+          assertBulkPayloadSize(bulkSaveRequest.payload.items, "save");
           const savedEntriesResponse = await bulkSaveEntries(
             bulkSaveRequest.payload,
           );
@@ -693,14 +701,25 @@ export function useTimetableData({
         if (conflict) {
           setConflicts([conflict]);
         }
-        const message = timetableErrorMessage(
+        const baseMessage = timetableErrorMessage(
           error,
           messages?.saveFailed ?? "Failed to save timetable.",
           translateErrorCode,
         );
+        if (deletionStarted) {
+          await loadTimetableForScope();
+        }
+        const message = deletionStarted
+          ? `${baseMessage} Some deletions may already have been applied. The timetable was refreshed.`
+          : baseMessage;
         setApiError(message);
         console.error("Failed to save timetable:", error);
-        return { ok: false, hasConflicts: !!conflict, error: message };
+        return {
+          ok: false,
+          hasConflicts: !!conflict,
+          error: message,
+          partialMutation: deletionStarted,
+        };
       } finally {
         setIsSaving(false);
       }
@@ -714,11 +733,15 @@ export function useTimetableData({
       termId,
       messages,
       translateErrorCode,
+      loadTimetableForScope,
     ],
   );
 
   const publishCurrentTimetable = useCallback(
-    async (entries: TimetableEntry[]) => {
+    async (
+      entries: TimetableEntry[],
+      nextValidationSummary: TimetableValidationSummary,
+    ) => {
       if (!config) {
         return {
           ok: false,
@@ -727,12 +750,9 @@ export function useTimetableData({
       }
 
       try {
-        const [nextPublication, nextValidationSummary] = await Promise.all([
-          getPublication(
-            config.id || config.timetableConfigId || "",
-          ) as Promise<PublicationResponse>,
-          loadValidation(),
-        ]);
+        const nextPublication = (await getPublication(
+          config.id || config.timetableConfigId || "",
+        )) as PublicationResponse;
         setPublication(nextPublication);
 
         if (nextPublication.canPublish !== true) {
@@ -762,11 +782,7 @@ export function useTimetableData({
           selectedSectionId,
           selectedClassroomId: selectedClassroomId || undefined,
         });
-        if (
-          bulkSaveRequest.skippedSlots.some(
-            (slot) => slot.reason === "MISSING_TEACHER_ALLOCATION",
-          )
-        ) {
+        if (bulkSaveRequest.skippedSlots.length > 0) {
           const message =
             messages?.missingTeacherAllocation ??
             TEACHER_ALLOCATION_MISSING_MESSAGE;
@@ -783,8 +799,9 @@ export function useTimetableData({
               "No filled timetable slots to publish.",
           };
         }
+        assertBulkPayloadSize(bulkSaveRequest.payload.items, "conflict-check");
         const conflictResponse = await checkConflicts(bulkSaveRequest.payload);
-        const nextConflicts = conflictsFromResponse(conflictResponse);
+        const nextConflicts = normalizeConflictCheckResponse(conflictResponse).conflicts;
         setConflicts(nextConflicts);
         if (nextConflicts.length > 0) {
           return {
@@ -812,11 +829,13 @@ export function useTimetableData({
         if (conflict) {
           setConflicts([conflict]);
         }
-        const message = timetableErrorMessage(
+        const message =
+          publicationBlockingReason(error) ??
+          timetableErrorMessage(
           error,
           messages?.publishFailed ?? "Failed to publish timetable.",
           translateErrorCode,
-        );
+          );
         setApiError(message);
         console.error("Failed to publish timetable:", error);
         return { ok: false, hasConflicts: !!conflict, error: message };
@@ -824,7 +843,6 @@ export function useTimetableData({
     },
     [
       config,
-      loadValidation,
       messages,
       periods,
       selectedClassroomId,
@@ -837,6 +855,10 @@ export function useTimetableData({
 
   const unpublishCurrentTimetable = useCallback(async () => {
     if (!config) {
+      return false;
+    }
+    if (configScope(config) === "SECTION") {
+      setApiError("Unpublish is unavailable for section timetables.");
       return false;
     }
 

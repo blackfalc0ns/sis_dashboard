@@ -111,7 +111,7 @@ describe("ProfileCorrectionRequestDetailPage", () => {
     expect(screen.getByText("detail_student_number")).toBeInTheDocument();
     expect(screen.getByText("detail_reason")).toBeInTheDocument();
     expect(screen.getByText("detail_submitted_at")).toBeInTheDocument();
-    expect(screen.getByText("First Name")).toBeInTheDocument();
+    expect(screen.getByText("field_firstName")).toBeInTheDocument();
     expect(screen.getByText("Jon")).toBeInTheDocument();
     expect(screen.getByText("John")).toBeInTheDocument();
 

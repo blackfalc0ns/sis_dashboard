@@ -32,7 +32,11 @@ import type {
   BackendTimetableEntryDto,
   BackendTimetablePeriodDto,
   PublicationResponse,
+  TimetableValidationResponse,
 } from "@/features/academics/timetable/services/timetableApiTypes";
+import {
+  validationSummaryFromResponse,
+} from "@/features/academics/timetable/services/timetableValidationSummary";
 
 vi.mock("@/features/academics/academic-structure-tree/services/structureService", () => ({
   fetchAcademicYears: vi.fn(),
@@ -159,6 +163,24 @@ const activePublication: PublicationResponse = {
   canPublish: true,
   blockingReasons: [],
   warnings: [],
+};
+
+const validTimetableResponse: TimetableValidationResponse = {
+  termId: "term-1",
+  academicYearId: "year-1",
+  summary: {
+    classroomsChecked: 1,
+    expectedWeeklySlots: 1,
+    actualScheduledSlots: 1,
+    missingTeacherAllocations: 0,
+    underScheduledSubjects: 0,
+    overScheduledSubjects: 0,
+    teacherConflicts: 0,
+    classroomConflicts: 0,
+    roomConflicts: 0,
+    missingSubjectAllocationRows: 0,
+  },
+  items: [],
 };
 
 const hookParams = {
@@ -330,7 +352,6 @@ describe("useTimetableData", () => {
   });
 
   it("marks the loaded config active after publishing", async () => {
-    mockedValidate.mockResolvedValueOnce({ canPublish: true });
     mockedGetPublication.mockResolvedValueOnce(activePublication);
     mockedCheckConflicts.mockResolvedValueOnce({ conflicts: [] });
     mockedPublish.mockResolvedValueOnce(undefined);
@@ -341,10 +362,14 @@ describe("useTimetableData", () => {
     await waitFor(() => expect(result.current.config?.status).toBe("draft"));
 
     await act(async () => {
-      await result.current.publishCurrentTimetable(result.current.timetableEntries);
+      await result.current.publishCurrentTimetable(
+        result.current.timetableEntries,
+        validationSummaryFromResponse(validTimetableResponse),
+      );
     });
 
     expect(result.current.config?.status).toBe("active");
+    expect(mockedValidate).not.toHaveBeenCalled();
   });
 
   it("marks the loaded config draft after unpublishing", async () => {
@@ -369,6 +394,26 @@ describe("useTimetableData", () => {
 
     expect(result.current.config?.status).toBe("draft");
     expect(result.current.isPublished).toBe(false);
+  });
+
+  it("does not unpublish a section config through the grade-scoped endpoint", async () => {
+    mockedGetConfig.mockResolvedValueOnce({
+      ...backendConfig,
+      scopeType: "section",
+      classroomId: null,
+      sectionId: "section-1",
+    });
+    const { result } = renderHook(() => useTimetableData(hookParams));
+
+    await waitFor(() => expect(result.current.config?.scopeType).toBe("section"));
+    await act(async () => {
+      await result.current.unpublishCurrentTimetable();
+    });
+
+    expect(mockedUnpublish).not.toHaveBeenCalled();
+    expect(result.current.apiError).toBe(
+      "Unpublish is unavailable for section timetables.",
+    );
   });
 });
 

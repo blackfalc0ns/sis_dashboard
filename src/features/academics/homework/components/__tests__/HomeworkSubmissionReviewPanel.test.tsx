@@ -131,6 +131,42 @@ function arrange(status = "submitted", hasQuestions = true) {
 describe("HomeworkSubmissionReviewPanel backend workflow", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("loads all submissions before a reviewer applies a status filter", async () => {
+    arrange();
+    render(
+      <HomeworkSubmissionReviewPanel
+        homeworkId="homework-1"
+        totalMarks={10}
+        assignmentStatus="published"
+        isGraded
+      />,
+    );
+
+    await waitFor(() =>
+      expect(listHomeworkSubmissions).toHaveBeenCalledWith("homework-1", {
+        page: 1,
+        limit: 25,
+      }),
+    );
+  });
+
+  it("uses the assignment-wide counters for submission KPIs", async () => {
+    arrange();
+    render(
+      <HomeworkSubmissionReviewPanel
+        homeworkId="homework-1"
+        totalMarks={10}
+        assignmentStatus="published"
+        isGraded
+        counters={{ totalTargets: 12, submitted: 3, late: 2, reviewed: 5 }}
+      />,
+    );
+
+    await waitFor(() => expect(listHomeworkSubmissions).toHaveBeenCalled());
+    expect(screen.getByText("summary.total").parentElement).toHaveTextContent("10");
+    expect(screen.getByText("summary.reviewed").parentElement).toHaveTextContent("5");
+  });
+
   it("locks every review control after the submission is reviewed", async () => {
     arrange("reviewed");
     render(
@@ -223,6 +259,25 @@ describe("HomeworkSubmissionReviewPanel backend workflow", () => {
     expect(screen.getByTestId("file-preview")).toHaveTextContent(
       "submission/file-1:Student work",
     );
+  });
+
+  it("explains the score and grade assessment prerequisites for syncing", async () => {
+    arrange();
+    vi.mocked(getHomeworkGradeSyncStatus).mockResolvedValue({
+      homeworkId: "homework-1",
+      linked: false,
+    });
+    render(
+      <HomeworkSubmissionReviewPanel
+        homeworkId="homework-1"
+        totalMarks={10}
+        assignmentStatus="published"
+        isGraded
+      />,
+    );
+
+    expect(await screen.findByText("guidance.validAwardedScore")).toBeInTheDocument();
+    expect(screen.getByText("guidance.gradeAssessmentLinkRequired")).toBeInTheDocument();
   });
 
   it("shows answer validation and does not send a score above question points", async () => {

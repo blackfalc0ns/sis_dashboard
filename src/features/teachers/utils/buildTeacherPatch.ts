@@ -5,7 +5,7 @@ import type {
 } from "@/features/teachers/types/index";
 
 const managedFields: Array<keyof UpdateTeacherRequest> = [
-  "loginEmail", "username", "contactEmail", "phone", "teacherCode",
+  "contactEmail", "phone", "teacherCode",
   "firstNameAr", "lastNameAr", "firstNameEn", "lastNameEn", "gender",
   "department", "specialization", "employmentType", "experienceYears",
   "hireDate", "workingDays", "workStartTime", "workEndTime", "notesAr", "notesEn",

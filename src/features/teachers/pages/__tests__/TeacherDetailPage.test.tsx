@@ -41,12 +41,13 @@ describe("TeacherDetailPage", () => {
     mocks.detail.mockReset().mockReturnValue({ teacher: teacherFixture, isLoading: false, error: null, refresh: mocks.refresh, replaceTeacher: vi.fn() });
   });
 
-  it("offers only legal transitions and never exposes rehire", async () => {
+  it("offers only legal transitions and never exposes archive or rehire", async () => {
     const user = userEvent.setup();
     render(<TeacherDetailPage teacherId="teacher-1" />);
     expect(screen.getByRole("button", { name: "lifecycle.actions.active" })).toBeVisible();
     expect(screen.getByRole("button", { name: "lifecycle.actions.terminated" })).toBeVisible();
     expect(screen.queryByText(/rehire/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "actions.archive" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "lifecycle.actions.active" }));
     expect(screen.getByText("transition-dialog:ACTIVE")).toBeVisible();
   });

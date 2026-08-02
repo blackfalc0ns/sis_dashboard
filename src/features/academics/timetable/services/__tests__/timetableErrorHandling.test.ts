@@ -3,6 +3,7 @@ import { ApiError } from "@/lib/api-error";
 import {
   conflictFromTimetableError,
   isTimetableErrorCode,
+  publicationBlockingReason,
   timetableErrorMessage,
   timetableFormErrors,
 } from "@/features/academics/timetable/services/timetableErrorHandling";
@@ -94,5 +95,21 @@ describe("timetableErrorHandling", () => {
       resourceName: "Ms. Noor",
       sections: [],
     }));
+  });
+
+  it("preserves the backend publication blocking reason", () => {
+    const error = new ApiError(
+      "Timetable publish is blocked by validation failures",
+      409,
+      "academics.timetable.publish_blocked",
+      undefined,
+      {
+        blockingReasons: [
+          { code: "invalid_day", message: "Monday is inactive." },
+        ],
+      },
+    );
+
+    expect(publicationBlockingReason(error)).toBe("Monday is inactive.");
   });
 });

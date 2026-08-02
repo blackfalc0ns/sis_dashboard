@@ -939,15 +939,6 @@ export const menuItems: MenuItem[] = [
         icon: Building2,
       },
       {
-        key: "settings-onboarding",
-        subgroup: "general",
-        label_en: "School setup",
-        label_ar: "إعداد المدرسة",
-        href_en: "/en/settings/onboarding",
-        href_ar: "/ar/settings/onboarding",
-        icon: ListChecks,
-      },
-      {
         key: "settings-users",
         subgroup: "access-identity",
         label_en: "Users",

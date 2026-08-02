@@ -223,6 +223,14 @@ export default function TimetableConfigDialog({
       applyErrors(validationErrors);
       return;
     }
+    if (
+      editingPeriodId &&
+      !periodForm.isInstructional &&
+      periodIdsInUse.has(editingPeriodId)
+    ) {
+      applyErrors({ form: [t("config.errors.periodInUse")], fields: {} });
+      return;
+    }
 
     setIsSavingConfig(true);
     try {
@@ -346,6 +354,20 @@ export default function TimetableConfigDialog({
     if (activeDays.length === 0) {
       validationErrors.fields.activeDays = [
         t("config.validation.atLeastOneDay"),
+      ];
+    }
+    const removedDays = (config?.activeDays ?? []).filter(
+      (dayIndex) => !activeDays.includes(dayIndex),
+    );
+    if (
+      entries.some(
+        (entry) =>
+          entry.subjectId &&
+          removedDays.includes(dayIndexFromKey(entry.dayKey)),
+      )
+    ) {
+      validationErrors.fields.activeDays = [
+        t("config.errors.activeDayInUse"),
       ];
     }
     if (scopeType === "GRADE" && !selectedGradeId) {
@@ -747,6 +769,10 @@ export default function TimetableConfigDialog({
       </div>
     </Modal>
   );
+}
+
+function dayIndexFromKey(dayKey: string): number {
+  return days.find((day) => day.key === dayKey)?.index ?? -1;
 }
 
 function periodByIndex(

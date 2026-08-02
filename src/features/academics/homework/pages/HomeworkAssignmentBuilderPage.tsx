@@ -71,6 +71,7 @@ import {
 } from "@/features/academics/homework/utils/homeworkLifecycle";
 import HomeworkGradeSyncPanel from "@/features/academics/homework/components/HomeworkGradeSyncPanel";
 import HomeworkSubmissionReviewPanel from "@/features/academics/homework/components/HomeworkSubmissionReviewPanel";
+import HomeworkAssignmentDetailsCard from "@/features/academics/homework/components/HomeworkAssignmentDetailsCard";
 
 interface HomeworkAssignmentBuilderPageProps {
   homeworkId: string;
@@ -749,6 +750,7 @@ export default function HomeworkAssignmentBuilderPage({
           totalMarks={homework.totalMarks}
           assignmentStatus={homework.status}
           isGraded={homework.isGraded}
+          counters={homework.counters}
         />
       ) : activeTab === "grade-sync" ? (
         <HomeworkGradeSyncPanel
@@ -772,6 +774,7 @@ export default function HomeworkAssignmentBuilderPage({
           showHomeworkFields
           showAttachmentLinks={false}
           detailsInputMode="single"
+          sidebarDetails={<HomeworkAssignmentDetailsCard homework={homework} />}
           onSelectQuestion={setSelectedQuestionId}
           onAddQuestion={() => void handleAddQuestion()}
           onUpdateQuestion={handleUpdateQuestionDraft}
@@ -809,6 +812,7 @@ export default function HomeworkAssignmentBuilderPage({
           showHomeworkFields
           showAttachmentLinks={false}
           detailsInputMode="single"
+          sidebarDetails={<HomeworkAssignmentDetailsCard homework={homework} />}
           onSelectQuestion={setSelectedQuestionId}
           onAddQuestion={() => void handleAddQuestion()}
           onUpdateQuestion={handleUpdateQuestionDraft}

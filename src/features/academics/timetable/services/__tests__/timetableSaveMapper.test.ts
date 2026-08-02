@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { TeacherAllocation } from "@/features/academics/teacher-allocation/services/teacherAllocationService";
 import type { BackendTimetablePeriodDto } from "@/features/academics/timetable/services/timetableApiTypes";
 import {
+  assertBulkPayloadSize,
   buildBulkSaveTimetableRequest,
   TEACHER_ALLOCATION_MISSING_MESSAGE,
 } from "@/features/academics/timetable/services/timetableSaveMapper";
@@ -210,5 +211,22 @@ describe("timetableSaveMapper", () => {
         reason: "MISSING_PERIOD",
       },
     ]);
+  });
+
+  it("requires backend bulk payloads to contain between 1 and 1,000 items", () => {
+    expect(() => assertBulkPayloadSize([], "save")).toThrow(
+      "at least one mapped entry",
+    );
+    expect(() =>
+      assertBulkPayloadSize(
+        Array.from({ length: 1001 }, () => ({
+          classroomId: "classroom-1",
+          dayOfWeek: 1,
+          periodId: "period-1",
+          teacherSubjectAllocationId: "allocation-1",
+        })),
+        "conflict-check",
+      ),
+    ).toThrow("1,000");
   });
 });

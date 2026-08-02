@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { menuItems } from "@/config/navigation";
 import en from "../en.json";
 import ar from "../ar.json";
 
@@ -24,9 +23,7 @@ describe("onboarding translations and navigation", () => {
     expect(en.onboarding.welcome.title).toBe(
       "Welcome to your school workspace",
     );
-    expect(ar.onboarding.welcome.title).toBe(
-      "مرحبًا بك في مساحة عمل مدرستك",
-    );
+    expect(ar.onboarding.welcome.title).toBe("مرحبًا بك في مساحة عمل مدرستك");
     expect(en.onboarding.setup.skip).toBe("Skip setup");
     expect(ar.onboarding.setup.skip).toBe("تخطي الإعداد");
     expect(en.onboarding.steps.organization.saveFailed).toBe(
@@ -36,36 +33,12 @@ describe("onboarding translations and navigation", () => {
       "تعذر حفظ ملف المدرسة",
     );
     expect(en.onboarding.guide.progressText).toContain("{completed}");
-    expect(ar.onboarding.steps.academicContext.yearsCount).toContain(
-      "plural",
-    );
-    expect(en.onboarding.steps.organization.editBranding).toBe(
-      "Edit branding",
-    );
+    expect(ar.onboarding.steps.academicContext.yearsCount).toContain("plural");
+    expect(en.onboarding.steps.organization.editBranding).toBe("Edit branding");
     expect(en.onboarding.steps.organization.completeness).toContain(
       "{percent}",
     );
-    expect(ar.onboarding.steps.organization.editBranding).toBe(
-      "تعديل الهوية",
-    );
+    expect(ar.onboarding.steps.organization.editBranding).toBe("تعديل الهوية");
     expect(ar.onboarding.steps.organization.locationRequired).toBeTruthy();
-  });
-
-  it("adds school setup under settings after branding", () => {
-    const settings = menuItems.find((item) => item.key === "settings");
-    const keys = settings?.children?.map((item) => item.key) ?? [];
-
-    expect(keys.slice(keys.indexOf("settings-branding"), keys.indexOf("settings-branding") + 2)).toEqual([
-      "settings-branding",
-      "settings-onboarding",
-    ]);
-    expect(settings?.children?.find((item) => item.key === "settings-onboarding")).toEqual(
-      expect.objectContaining({
-        label_en: "School setup",
-        label_ar: "إعداد المدرسة",
-        href_en: "/en/settings/onboarding",
-        href_ar: "/ar/settings/onboarding",
-      }),
-    );
   });
 });

@@ -1,13 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Modal from "@/components/ui/modal/Modal";
 import type { CredentialStatusRecord } from "@/features/settings/credentials/types";
-import { useTranslations } from "next-intl";
-import { getPasswordPolicyFailures } from "@/utils/validation/passwordPolicy";
 
 type CredentialModalUser = Pick<CredentialStatusRecord, "fullName" | "username" | "loginEmail">;
 
@@ -44,7 +42,6 @@ export default function SetPasswordModal({
   onSubmit,
   labels,
 }: SetPasswordModalProps) {
-  const tPasswordPolicy = useTranslations("password_policy");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [mustChangePassword, setMustChangePassword] = useState(true);
@@ -52,23 +49,13 @@ export default function SetPasswordModal({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const isValid = useMemo(
-    () =>
-      getPasswordPolicyFailures(password).length === 0 &&
-      password === confirmPassword,
-    [confirmPassword, password],
+  const isValid = Boolean(
+    password && confirmPassword && password === confirmPassword,
   );
 
   const handleSubmit = async () => {
     if (!password || !confirmPassword) {
       setLocalError(labels.required);
-      return;
-    }
-    const policyFailures = getPasswordPolicyFailures(password);
-    if (policyFailures.length > 0) {
-      setLocalError(
-        policyFailures.map((reason) => tPasswordPolicy(reason)).join(" "),
-      );
       return;
     }
     if (password !== confirmPassword) {
@@ -121,7 +108,6 @@ export default function SetPasswordModal({
           label={labels.password}
           type={showPassword ? "text" : "password"}
           value={password}
-          helperText={tPasswordPolicy("requirements")}
           onChange={(event) => {
             setPassword(event.target.value);
             setLocalError(null);

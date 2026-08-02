@@ -6,7 +6,6 @@ import { useState } from "react";
 import { Lock, Eye, EyeOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button, Input, Modal } from "@/components/ui";
-import { getPasswordPolicyFailures } from "@/utils/validation/passwordPolicy";
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -36,14 +35,6 @@ export default function ChangePasswordModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
-    const policyFailures = getPasswordPolicyFailures(newPassword);
-    if (policyFailures.length > 0) {
-      setError(
-        policyFailures.map((reason) => tPasswordPolicy(reason)).join(" "),
-      );
-      return;
-    }
 
     if (newPassword !== confirmPassword) {
       setError(t("error_mismatch"));

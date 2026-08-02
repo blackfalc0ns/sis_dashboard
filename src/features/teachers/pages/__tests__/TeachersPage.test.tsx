@@ -67,11 +67,9 @@ describe("TeachersPage", () => {
     expect(screen.getByText("create-dialog")).toBeVisible();
   });
 
-  it("opens the interim rehire flow only for managers", async () => {
-    const user = userEvent.setup();
+  it("does not expose rehire while the workflow is unavailable", () => {
     mocks.canManage = true;
     render(<TeachersPage />);
-    await user.click(screen.getByRole("button", { name: "actions.rehire" }));
-    expect(screen.getByText("rehire.discovery_gap")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "actions.rehire" })).not.toBeInTheDocument();
   });
 });

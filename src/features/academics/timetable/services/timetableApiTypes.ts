@@ -171,6 +171,55 @@ export interface TimetableValidationIssue {
   details?: Record<string, unknown>;
 }
 
+export interface TimetableUnpublishResponse {
+  termId: string;
+  academicYearId: string;
+  summary: {
+    configsChecked: number;
+    unpublishedCount: number;
+    entriesReturnedToDraft: number;
+  };
+}
+
+export interface TimetablePersistedConflictDto {
+  id: string;
+  type: "CLASSROOM_SLOT" | "TEACHER" | "ROOM" | string;
+  severity: string;
+  status: string;
+  dayOfWeek: number | null;
+  periodId: string | null;
+  entryId: string | null;
+  relatedEntryId: string | null;
+  entryIds: string[];
+  teacherUserId: string | null;
+  roomId: string | null;
+  message: string;
+}
+
+export interface TimetableConflictCheckResponse {
+  termId: string;
+  academicYearId: string;
+  hasConflicts: boolean;
+  conflicts: Array<{
+    code: string;
+    message: string;
+    severity: string;
+    dayOfWeek: number | null;
+    periodId: string | null;
+    classroomId: string | null;
+    teacherUserId: string | null;
+    roomId: string | null;
+    entryIds: string[];
+    proposedIndexes: number[];
+  }>;
+}
+
+export interface BackendTimetableValidationIssue {
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
 export interface TimetableValidationItem {
   classroomId: string;
   classroom: {
@@ -200,13 +249,13 @@ export interface TimetableValidationItem {
     | "over_scheduled"
     | "missing_teacher_allocation"
     | "missing_subject_allocation";
-  issues: TimetableValidationIssue[];
+  issues: BackendTimetableValidationIssue[];
 }
 
 export interface TimetableValidationResponse {
-  termId?: string;
-  academicYearId?: string;
-  summary?: {
+  termId: string;
+  academicYearId: string;
+  summary: {
     classroomsChecked: number;
     expectedWeeklySlots: number;
     actualScheduledSlots: number;
@@ -218,18 +267,7 @@ export interface TimetableValidationResponse {
     roomConflicts: number;
     missingSubjectAllocationRows: number;
   };
-  items?: TimetableValidationItem[];
-  canPublish?: boolean;
-  blockingReasons?: Array<string | TimetablePublishReason>;
-  warnings?: Array<string | TimetablePublishReason>;
-  missingTeacherAllocations?: TimetableValidationIssue[];
-  underScheduledSubjects?: TimetableValidationIssue[];
-  overScheduledSubjects?: TimetableValidationIssue[];
-  teacherConflicts?: TimetableValidationIssue[];
-  classroomConflicts?: TimetableValidationIssue[];
-  roomConflicts?: TimetableValidationIssue[];
-  missingSubjectAllocationRows?: TimetableValidationIssue[];
-  conflicts?: TimetableValidationIssue[];
+  items: TimetableValidationItem[];
 }
 
 export type UpsertConfigRequest = {

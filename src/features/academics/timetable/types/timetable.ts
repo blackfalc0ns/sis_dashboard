@@ -34,7 +34,7 @@ export interface Room {
 }
 
 export interface TimetableConflict {
-  type: "TEACHER" | "ROOM";
+  type: "CLASSROOM" | "TEACHER" | "ROOM" | "DUPLICATE" | "UNKNOWN";
   code?: string;
   message?: string;
   severity?: "blocking" | "warning" | string;

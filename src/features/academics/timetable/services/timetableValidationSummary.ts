@@ -39,44 +39,24 @@ export const emptyValidationSummary = (): TimetableValidationSummary => ({
 });
 
 export function validationSummaryFromResponse(
-  response: unknown,
+  response: TimetableValidationResponse,
 ): TimetableValidationSummary {
-  if (!response || typeof response !== "object") {
-    return emptyValidationSummary();
-  }
-
-  const validationResponse = response as TimetableValidationResponse;
-  const backendItems = Array.isArray(validationResponse.items)
-    ? validationResponse.items
-    : [];
+  const backendItems = response.items;
   const itemBuckets = bucketIssuesFromValidationItems(backendItems);
   return {
-    canPublish:
-      validationResponse.canPublish === true ||
-      !hasSummaryBlockingCounts(validationResponse),
-    backendSummary: validationResponse.summary ?? null,
+    canPublish: !hasSummaryBlockingCounts(response),
+    backendSummary: response.summary,
     items: backendItems,
-    blockingReasons: [
-      ...reasonList(validationResponse.blockingReasons),
-      ...blockingReasonsFromSummary(validationResponse),
-    ],
-    warnings: reasonList(validationResponse.warnings),
-    missingTeacherAllocations: issueList(
-      validationResponse.missingTeacherAllocations,
-    ).concat(itemBuckets.missingTeacherAllocations),
-    underScheduledSubjects: issueList(
-      validationResponse.underScheduledSubjects,
-    ).concat(itemBuckets.underScheduledSubjects),
-    overScheduledSubjects: issueList(
-      validationResponse.overScheduledSubjects,
-    ).concat(itemBuckets.overScheduledSubjects),
-    teacherConflicts: issueList(validationResponse.teacherConflicts),
-    classroomConflicts: issueList(validationResponse.classroomConflicts),
-    roomConflicts: issueList(validationResponse.roomConflicts),
-    missingSubjectAllocationRows: issueList(
-      validationResponse.missingSubjectAllocationRows,
-    ).concat(itemBuckets.missingSubjectAllocationRows),
-    conflicts: issueList(validationResponse.conflicts),
+    blockingReasons: blockingReasonsFromSummary(response),
+    warnings: [],
+    missingTeacherAllocations: itemBuckets.missingTeacherAllocations,
+    underScheduledSubjects: itemBuckets.underScheduledSubjects,
+    overScheduledSubjects: itemBuckets.overScheduledSubjects,
+    teacherConflicts: [],
+    classroomConflicts: [],
+    roomConflicts: [],
+    missingSubjectAllocationRows: itemBuckets.missingSubjectAllocationRows,
+    conflicts: [],
   };
 }
 
@@ -104,19 +84,40 @@ export function validationIssueText(issue: TimetableValidationIssue): string {
 }
 
 export function conflictsFromResponse(response: unknown): TimetableConflict[] {
+  return normalizeConflictResponse(response).conflicts;
+}
+
+export function normalizeConflictCheckResponse(response: unknown): {
+  conflicts: TimetableConflict[];
+} {
+  return normalizeConflictResponse(response, "code");
+}
+
+export function normalizePersistedConflicts(response: unknown): {
+  conflicts: TimetableConflict[];
+} {
+  return normalizeConflictResponse(response, "type");
+}
+
+function normalizeConflictResponse(
+  response: unknown,
+  source: "code" | "type" = "code",
+): { conflicts: TimetableConflict[] } {
   if (Array.isArray(response)) {
-    return response.map(normalizeConflict);
+    return { conflicts: response.map((conflict) => normalizeConflict(conflict, source)) };
   }
   if (response && typeof response === "object") {
     const conflictsResponse = response as {
       conflicts?: unknown[];
       items?: unknown[];
     };
-    return (conflictsResponse.conflicts ?? conflictsResponse.items ?? []).map(
-      normalizeConflict,
-    );
+    return {
+      conflicts: (conflictsResponse.conflicts ?? conflictsResponse.items ?? []).map(
+        (conflict) => normalizeConflict(conflict, source),
+      ),
+    };
   }
-  return [];
+  return { conflicts: [] };
 }
 
 export function hasBlockingValidation(summary: TimetableValidationSummary) {
@@ -131,24 +132,6 @@ export function hasBlockingValidation(summary: TimetableValidationSummary) {
     summary.missingSubjectAllocationRows.length > 0 ||
     summary.conflicts.length > 0
   );
-}
-
-function issueList(
-  issues: TimetableValidationIssue[] | undefined,
-): TimetableValidationIssue[] {
-  return Array.isArray(issues) ? issues : [];
-}
-
-function reasonList(
-  messages: Array<string | { message?: string }> | undefined,
-): string[] {
-  return Array.isArray(messages)
-    ? messages
-        .map((message) =>
-          typeof message === "string" ? message : message.message,
-        )
-        .filter((message): message is string => Boolean(message))
-    : [];
 }
 
 function bucketIssuesFromValidationItems(items: TimetableValidationItem[]) {
@@ -184,26 +167,22 @@ function bucketIssuesFromValidationItems(items: TimetableValidationItem[]) {
 }
 
 function enrichValidationIssue(
-  issue: TimetableValidationIssue,
+  issue: TimetableValidationItem["issues"][number],
   item: TimetableValidationItem,
 ): TimetableValidationIssue {
   return {
     ...issue,
-    subjectId: issue.subjectId ?? item.subjectId ?? undefined,
-    subjectName:
-      issue.subjectName ?? item.subject?.nameEn ?? item.subject?.nameAr,
-    classroomId: issue.classroomId ?? item.classroomId,
-    classroomName:
-      issue.classroomName ?? item.classroom.nameEn ?? item.classroom.nameAr,
-    expectedWeeklyHours: issue.expectedWeeklyHours ?? item.expectedWeeklyHours,
-    scheduledWeeklyHours:
-      issue.scheduledWeeklyHours ?? item.scheduledWeeklyHours,
+    subjectId: item.subjectId ?? undefined,
+    subjectName: item.subject?.nameEn ?? item.subject?.nameAr,
+    classroomId: item.classroomId,
+    classroomName: item.classroom.nameEn ?? item.classroom.nameAr,
+    expectedWeeklyHours: item.expectedWeeklyHours,
+    scheduledWeeklyHours: item.scheduledWeeklyHours,
     expected:
-      issue.expected ??
-      (typeof item.expectedWeeklyHours === "number"
+      typeof item.expectedWeeklyHours === "number"
         ? item.expectedWeeklyHours
-        : undefined),
-    actual: issue.actual ?? item.scheduledWeeklyHours,
+        : undefined,
+    actual: item.scheduledWeeklyHours,
   };
 }
 
@@ -233,7 +212,10 @@ function blockingReasonsFromSummary(
     : [];
 }
 
-function normalizeConflict(conflict: unknown): TimetableConflict {
+function normalizeConflict(
+  conflict: unknown,
+  source: "code" | "type",
+): TimetableConflict {
   const current = conflict as Partial<TimetableConflict> & {
     code?: string;
     type?: string;
@@ -247,21 +229,28 @@ function normalizeConflict(conflict: unknown): TimetableConflict {
     proposedIndexes?: number[];
     entryIds?: string[];
   };
-  if (current.dayKey && current.periodIndex) {
+  if (
+    current.dayKey &&
+    current.periodIndex &&
+    current.type &&
+    ["CLASSROOM", "TEACHER", "ROOM", "DUPLICATE", "UNKNOWN"].includes(
+      current.type,
+    )
+  ) {
     return current as TimetableConflict;
   }
-  const type =
-    current.type === "ROOM" || current.code === "room_conflict"
-      ? "ROOM"
-      : "TEACHER";
+  const discriminator = source === "type" ? current.type : current.code;
+  const type = conflictType(discriminator);
   const periodIndex = current.periodIndex ?? current.period ?? 0;
   const resourceId =
     type === "ROOM"
       ? (current.roomId ?? current.resourceId ?? "")
-      : (current.teacherUserId ?? current.resourceId ?? "");
+      : type === "TEACHER"
+        ? (current.teacherUserId ?? current.resourceId ?? "")
+        : current.resourceId ?? "";
   return {
     type,
-    code: current.code,
+    code: current.code ?? current.type,
     message: current.message,
     severity: current.severity,
     dayKey: dayIndexToKey(current.dayOfWeek ?? 0),
@@ -279,4 +268,23 @@ function normalizeConflict(conflict: unknown): TimetableConflict {
     day: current.dayOfWeek ?? current.day,
     period: periodIndex,
   };
+}
+
+function conflictType(discriminator: string | undefined): TimetableConflict["type"] {
+  switch (discriminator) {
+    case "CLASSROOM_SLOT":
+    case "CLASSROOM":
+    case "classroom_conflict":
+      return "CLASSROOM";
+    case "TEACHER":
+    case "teacher_conflict":
+      return "TEACHER";
+    case "ROOM":
+    case "room_conflict":
+      return "ROOM";
+    case "duplicate_slot":
+      return "DUPLICATE";
+    default:
+      return "UNKNOWN";
+  }
 }

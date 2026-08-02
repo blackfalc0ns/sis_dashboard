@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Button, Modal, Select } from "@/components/ui";
+import { Button, Modal } from "@/components/ui";
 import TeacherFormSections from "./TeacherFormSections";
 import { emptyCreateTeacherForm, createFormToRequest } from "@/features/teachers/utils/teacherFormMappers";
 import { validateTeacherForm } from "@/features/teachers/utils/teacherValidation";
@@ -66,8 +66,7 @@ export default function CreateTeacherDialog(props: CreateTeacherDialogProps) {
       footer={<><Button variant="secondary" onClick={props.onClose} disabled={props.isSubmitting}>{t("actions.cancel")}</Button><Button onClick={() => void submit()} loading={props.isSubmitting}>{t("dialog.create_action")}</Button></>}
     >
       <div className="space-y-4">
-        {errors.form ? <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errors.form}</p> : null}
-        <Select label={t("fields.employment_status")} value={form.employmentStatus} onChange={(employmentStatus) => setForm({ ...form, employmentStatus: employmentStatus as "ACTIVE" | "INACTIVE" })} options={[{ value: "INACTIVE", label: t("statuses.inactive") }, { value: "ACTIVE", label: t("statuses.active") }]} required />
+        {errors.form ? <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errors.form.startsWith("backend.") ? t(`errors.${errors.form.slice("backend.".length)}`) : errors.form}</p> : null}
         <TeacherFormSections form={form} errors={errors} showIdentityTools onChange={(nextForm) => setForm({ ...nextForm, employmentStatus: form.employmentStatus })} />
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{t("messages.activation_caveat")}</p>
       </div>

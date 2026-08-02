@@ -39,7 +39,7 @@ export function emptyCreateTeacherForm(
       notesEn: "",
     },
     schedule: { workingDays: [], workStartTime: "", workEndTime: "" },
-    employmentStatus: "INACTIVE",
+    employmentStatus: "ACTIVE",
   };
 }
 
@@ -127,7 +127,12 @@ export function createFormToRequest(
   };
 }
 
-export const editFormToRequest = editableRequest;
+export function editFormToRequest(form: EditTeacherFormState): UpdateTeacherRequest {
+  const request = editableRequest(form);
+  delete request.username;
+  delete request.loginEmail;
+  return request;
+}
 
 export function editFormToRehireRequest(
   form: EditTeacherFormState,

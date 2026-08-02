@@ -19,7 +19,9 @@ vi.mock("next/navigation", () => ({
 }));
 
 // Mock next-intl
-const mockT = vi.fn((key: string) => key);
+const mockT = vi.fn((key: string, values?: { count?: number }) =>
+  key === "subtitle" ? `subtitle:${values?.count}` : key,
+);
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
   useTranslations: () => mockT,
@@ -114,5 +116,28 @@ describe("ProfileCorrectionRequestsQueuePage", () => {
     expect(mockPush).toHaveBeenCalledWith(
       "/en/students-guardians/profile-correction-requests/req-1",
     );
+  });
+
+  it("shows the total pending count from the unfiltered queue", async () => {
+    const allRequests = [
+      ...mockRequests,
+      {
+        id: "req-3",
+        studentId: "STU003",
+        studentName: "Jane Doe",
+        status: "PENDING" as const,
+        changeCount: 2,
+        requestedAt: "2026-07-03",
+      },
+    ];
+    vi.mocked(fetchProfileCorrectionRequests).mockImplementation((params) =>
+      Promise.resolve(params?.status === "all" ? allRequests : [mockRequests[0]]),
+    );
+
+    await act(async () => {
+      render(<ProfileCorrectionRequestsQueuePage />);
+    });
+
+    expect(await screen.findByText("subtitle:2")).toBeInTheDocument();
   });
 });

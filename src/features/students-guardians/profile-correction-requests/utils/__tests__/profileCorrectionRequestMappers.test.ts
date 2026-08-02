@@ -8,11 +8,11 @@ describe("profileCorrectionRequestMappers", () => {
       status: "PENDING",
       requestedChanges: {
         firstName: "Ahmed",
-        phone: "5551",
+        studentPhone: "5551",
       },
       currentSnapshot: {
         firstName: "Ahmad",
-        phone: "1111",
+        studentPhone: "1111",
       },
       reason: "Correct my profile",
       reviewerNote: null,
@@ -40,7 +40,7 @@ describe("profileCorrectionRequestMappers", () => {
       changeCount: 2,
       currentSnapshot: {
         firstName: "Ahmad",
-        phone: "1111",
+        studentPhone: "1111",
       },
       changes: [
         {
@@ -50,8 +50,8 @@ describe("profileCorrectionRequestMappers", () => {
           requestedValue: "Ahmed",
         },
         {
-          field: "phone",
-          label: "phone",
+          field: "studentPhone",
+          label: "studentPhone",
           currentValue: "1111",
           requestedValue: "5551",
         },
@@ -100,20 +100,30 @@ describe("profileCorrectionRequestMappers", () => {
       requestId: "request-1",
       student_id: "student-1",
       currentValues: {
-        phone: "111",
+        studentPhone: "111",
       },
       requestedValues: {
-        phone: "222",
+        studentPhone: "222",
       },
     });
 
     expect(detail.changes).toEqual([
       {
-        field: "phone",
-        label: "phone",
+        field: "studentPhone",
+        label: "studentPhone",
         currentValue: "111",
         requestedValue: "222",
       },
     ]);
+  });
+
+  it("uses an em dash for missing comparison values", () => {
+    const detail = normalizeProfileCorrectionRequestDetail({
+      id: "request-1",
+      requestedChanges: { city: "Cairo" },
+      currentSnapshot: {},
+    });
+
+    expect(detail.changes[0].currentValue).toBe("—");
   });
 });

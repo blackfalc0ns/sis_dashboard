@@ -1,8 +1,9 @@
 {
   "password_policy": {
-    "requirements": "Use 8–256 characters with uppercase and lowercase letters, a number, and a symbol.",
-    "password_too_short": "Password must be at least 8 characters.",
-    "password_too_long": "Password must not exceed 256 characters.",
+    "requirements": "Use at least 12 characters with uppercase and lowercase letters, a number, and a symbol.",
+    "password_required": "Password is required.",
+    "password_too_short": "Password must be at least 12 characters.",
+    "password_common": "Choose a less common password.",
     "password_missing_uppercase": "Add at least one uppercase letter.",
     "password_missing_lowercase": "Add at least one lowercase letter.",
     "password_missing_number": "Add at least one number.",
@@ -4188,6 +4189,22 @@
       "table_field": "Field",
       "table_current": "Current Value",
       "table_requested": "Requested Value",
+      "field_firstName": "First name",
+      "field_fatherNameEn": "Father's name (English)",
+      "field_grandfatherNameEn": "Grandfather's name (English)",
+      "field_lastName": "Last name",
+      "field_firstNameAr": "First name (Arabic)",
+      "field_fatherNameAr": "Father's name (Arabic)",
+      "field_grandfatherNameAr": "Grandfather's name (Arabic)",
+      "field_familyNameAr": "Family name (Arabic)",
+      "field_gender": "Gender",
+      "field_birthDate": "Date of birth",
+      "field_nationality": "Nationality",
+      "field_studentPhone": "Student phone",
+      "field_studentEmail": "Student email",
+      "field_addressLine": "Address",
+      "field_city": "City",
+      "field_district": "District",
       "confirm_approve": "Are you sure you want to approve this request?",
       "confirm_reject": "Are you sure you want to reject this request?",
       "no_changes": "No changes specified in this request."
@@ -5545,6 +5562,21 @@
         }
       },
       "builder": {
+        "details": {
+          "title": "Assignment details",
+          "academicContext": "Academic context",
+          "classroom": "Classroom",
+          "subject": "Subject",
+          "teacher": "Teacher",
+          "scheduleDate": "Schedule date",
+          "publishedAt": "Published",
+          "dueAt": "Due",
+          "estimatedMinutes": "Estimated time",
+          "minutes": "{count} min",
+          "assigned": "Assigned",
+          "submitted": "Submitted",
+          "reviewed": "Reviewed"
+        },
         "untitled": "Untitled homework",
         "tabs": {
           "builder": "Builder",
@@ -5640,6 +5672,7 @@
           }
         },
         "summary": {
+          "total": "Total submissions",
           "visible": "On this page",
           "pending": "Pending",
           "late": "Late",
@@ -5730,7 +5763,9 @@
         },
         "guidance": {
           "requiredProgress": "Reviewed {reviewed} of {total} required answers.",
-          "syncUnavailable": "Only reviewed submissions with an awarded score can be synced."
+          "syncUnavailable": "Review the submission before syncing it.",
+          "validAwardedScore": "Enter and save a final score from 0 to the homework total.",
+          "gradeAssessmentLinkRequired": "Link this homework to a grade assessment from the Grade sync tab."
         },
         "unsavedChanges": {
           "title": "Discard unsaved review changes?",
@@ -6496,7 +6531,8 @@
           "saveConfig": "Unable to save timetable configuration.",
           "savePeriod": "Unable to save timetable period.",
           "deletePeriod": "Unable to delete timetable period.",
-          "periodInUse": "Cannot delete period that is already used."
+          "periodInUse": "Cannot change or delete a period that is already used.",
+          "activeDayInUse": "Move or delete timetable entries on removed days first."
         },
         "scopeOptions": {
           "term": "Term",
@@ -12706,6 +12742,7 @@
       "metadata": "Activity",
       "created_at": "Created At",
       "updated_at": "Updated At",
+      "membership_ended_at": "Membership Ended At",
       "no_value": "Not provided",
       "no_notes": "No notes added",
       "identity": "Identity and contact",
@@ -12910,7 +12947,23 @@
       "management_unavailable": "Credential actions are unavailable while this account is suspended or disabled."
     },
     "errors": {
-      "identity_inconsistent": "This teacher's account state is inconsistent, so the operation was stopped safely.",
+      "identity_conflict": "This phone number, username, or email is already used by another teacher. Enter a different value and try again.",
+      "username_conflict": "This username is already used by another teacher. Choose a different username.",
+      "login_email_conflict": "This login email is already used by another teacher. Use a different email.",
+      "contact_email_conflict": "This contact email is already used by another teacher. Use a different email.",
+      "phone_conflict": "This phone number is already used by another teacher. Enter a different phone number.",
+      "teacher_code_conflict": "This teacher code is already in use. Enter a different code.",
+      "profile_incomplete": "Complete the highlighted teacher profile fields before trying again.",
+      "teacher_role_required": "The Teacher role is not configured for this school. Contact a system administrator.",
+      "role_transition_conflict": "The teacher account changed while this form was open. Refresh the page and try again.",
+      "username_taken": "This username is already in use. Choose a different username.",
+      "login_email_taken": "This login email is already in use. Use a different email or contact a system administrator.",
+      "login_domain_missing": "The school login domain is not configured. Contact a system administrator.",
+      "invalid_field": "Review the highlighted field and enter a valid value.",
+      "phone_invalid": "Enter a valid phone number.",
+      "email_invalid": "Enter a valid email address.",
+      "work_time_order_invalid": "Work end time must be after work start time.",
+                   "identity_inconsistent": "This teacher's account state is inconsistent, so the operation was stopped safely.",
       "identity_inconsistent_guidance": "The latest teacher state was refreshed. Contact an administrator or backend support to repair the linked user and membership records before trying again.",
       "trace_id": "Support trace ID"
     },

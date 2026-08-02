@@ -4,11 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Archive, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { AccessDenied, Button, EmptyState } from "@/components/ui";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
-import ArchiveConfirmDialog from "@/features/teachers/components/ArchiveConfirmDialog";
 import EditTeacherDialog from "@/features/teachers/components/EditTeacherDialog";
 import EmploymentTransitionDialog from "@/features/teachers/components/EmploymentTransitionDialog";
 import EmploymentTransitionResultDialog from "@/features/teachers/components/EmploymentTransitionResultDialog";
@@ -40,7 +39,6 @@ export default function TeacherDetailPage({ teacherId }: { teacherId: string }) 
   const detail = useTeacherDetail(teacherId, permissions.isPermissionsReady && canView);
   const actions = useTeacherActions();
   const [showEdit, setShowEdit] = useState(false);
-  const [showArchive, setShowArchive] = useState(false);
   const [targetStatus, setTargetStatus] = useState<TeacherEmploymentStatus | null>(null);
   const [transitionResponse, setTransitionResponse] = useState<TeacherEmploymentStatusResponse | null>(null);
   const [actionError, setActionError] = useState<TeacherUiError | null>(null);
@@ -85,27 +83,12 @@ export default function TeacherDetailPage({ teacherId }: { teacherId: string }) 
       showError(actionErrorMessage(uiError));
     }
   };
-  const archiveTeacher = async () => {
-    setActionError(null);
-    try {
-      await actions.archiveTeacher(teacher.id);
-      showSuccess(t("messages.archive_success"));
-      router.push(`/${locale}/teachers`);
-    } catch (archiveError) {
-      const uiError = toTeacherUiError(archiveError);
-      setActionError(uiError);
-      setShowArchive(false);
-      if (uiError.shouldRefresh) await detail.refresh();
-      showError(actionErrorMessage(uiError));
-    }
-  };
-
   return (
     <main className="min-h-0 flex-1 overflow-x-hidden p-4 sm:p-6">
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href={`/${locale}/teachers`} className="inline-flex items-center gap-2 text-sm font-medium text-primary"><ArrowLeft className="h-4 w-4" />{t("actions.back_to_list")}</Link>
-          {canManage ? <div className="flex flex-wrap gap-2"><Button variant="secondary" leftIcon={<Pencil className="h-4 w-4" />} onClick={() => setShowEdit(true)}>{t("actions.edit")}</Button>{teacher.employmentStatus === "ACTIVE" ? <Button variant="secondary" onClick={() => setTargetStatus("INACTIVE")}>{t("actions.disable_account")}</Button> : null}{getAllowedTransitions(teacher.employmentStatus).filter((status) => status !== "INACTIVE").map((status) => <Button key={status} variant={status === "TERMINATED" ? "danger" : "secondary"} onClick={() => setTargetStatus(status)}>{t(`lifecycle.actions.${status.toLowerCase()}`)}</Button>)}<Button variant="danger" leftIcon={<Archive className="h-4 w-4" />} onClick={() => setShowArchive(true)}>{t("actions.archive")}</Button></div> : null}
+          {canManage ? <div className="flex flex-wrap gap-2"><Button variant="secondary" leftIcon={<Pencil className="h-4 w-4" />} onClick={() => setShowEdit(true)}>{t("actions.edit")}</Button>{teacher.employmentStatus === "ACTIVE" ? <Button variant="secondary" onClick={() => setTargetStatus("INACTIVE")}>{t("actions.disable_account")}</Button> : null}{getAllowedTransitions(teacher.employmentStatus).filter((status) => status !== "INACTIVE").map((status) => <Button key={status} variant={status === "TERMINATED" ? "danger" : "secondary"} onClick={() => setTargetStatus(status)}>{t(`lifecycle.actions.${status.toLowerCase()}`)}</Button>)}</div> : null}
         </div>
         <TeacherActionErrorAlert error={actionError} />
         <TeacherDetailHeader teacher={teacher} />
@@ -115,7 +98,6 @@ export default function TeacherDetailPage({ teacherId }: { teacherId: string }) 
       {showEdit ? <EditTeacherDialog isOpen teacher={teacher} isSubmitting={actions.activeAction === "update"} onClose={() => setShowEdit(false)} onSubmit={updateTeacher} /> : null}
       {targetStatus ? <EmploymentTransitionDialog isOpen teacher={teacher} targetStatus={targetStatus} isSubmitting={actions.activeAction === "employment"} onClose={() => setTargetStatus(null)} onSubmit={changeEmployment} /> : null}
       <EmploymentTransitionResultDialog response={transitionResponse} onClose={() => setTransitionResponse(null)} />
-      <ArchiveConfirmDialog isOpen={showArchive} teacher={teacher} isSubmitting={actions.activeAction === "archive"} onClose={() => setShowArchive(false)} onConfirm={() => void archiveTeacher()} />
     </main>
   );
 }
