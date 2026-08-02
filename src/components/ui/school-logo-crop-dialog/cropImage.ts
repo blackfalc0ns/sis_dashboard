@@ -53,7 +53,9 @@ function loadImage(source: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.addEventListener("load", () => resolve(image));
-    image.addEventListener("error", () => reject(new Error("Could not load image")));
+    image.addEventListener("error", () =>
+      reject(new Error("Could not load image")),
+    );
     image.src = source;
   });
 }
@@ -112,7 +114,7 @@ function createCropCanvas(
   return canvas;
 }
 
-function getFilterValue(customization: LogoCustomization) {
+export function getLogoFilterValue(customization: LogoCustomization) {
   const preset = {
     cool: "hue-rotate(190deg)",
     grayscale: "grayscale(100%)",
@@ -130,7 +132,7 @@ function getFilterValue(customization: LogoCustomization) {
     .join(" ");
 }
 
-function getBackgroundColor(
+export function getLogoBackgroundColor(
   sourceFile: File,
   customization: LogoCustomization,
 ) {
@@ -138,7 +140,10 @@ function getBackgroundColor(
     return customization.backgroundColor;
   }
 
-  if (customization.background === "white" || sourceFile.type === "image/jpeg") {
+  if (
+    customization.background === "white" ||
+    sourceFile.type === "image/jpeg"
+  ) {
     return "#ffffff";
   }
 
@@ -158,7 +163,7 @@ function createOutputCanvas(
   canvas.width = sourceCanvas.width;
   canvas.height = sourceCanvas.height;
 
-  const backgroundColor = getBackgroundColor(sourceFile, customization);
+  const backgroundColor = getLogoBackgroundColor(sourceFile, customization);
   if (backgroundColor) {
     context.fillStyle = backgroundColor;
     context.fillRect(0, 0, canvas.width, canvas.height);
@@ -167,11 +172,17 @@ function createOutputCanvas(
   context.save();
   if (customization.frame === "circle") {
     context.beginPath();
-    context.arc(canvas.width / 2, canvas.height / 2, canvas.width / 2, 0, Math.PI * 2);
+    context.arc(
+      canvas.width / 2,
+      canvas.height / 2,
+      canvas.width / 2,
+      0,
+      Math.PI * 2,
+    );
     context.clip();
   }
 
-  context.filter = getFilterValue(customization);
+  context.filter = getLogoFilterValue(customization);
   context.drawImage(sourceCanvas, 0, 0);
   context.restore();
 
@@ -191,17 +202,19 @@ function createOutputCanvas(
       context.stroke();
     } else {
       const inset = customization.borderWidth / 2;
-      context.strokeRect(inset, inset, canvas.width - customization.borderWidth, canvas.height - customization.borderWidth);
+      context.strokeRect(
+        inset,
+        inset,
+        canvas.width - customization.borderWidth,
+        canvas.height - customization.borderWidth,
+      );
     }
   }
 
   return canvas;
 }
 
-async function createOutputFile(
-  canvas: HTMLCanvasElement,
-  sourceFile: File,
-) {
+async function createOutputFile(canvas: HTMLCanvasElement, sourceFile: File) {
   const outputType =
     sourceFile.type === "image/png" ? "image/png" : "image/jpeg";
   const extension = outputType === "image/png" ? "png" : "jpg";
@@ -225,7 +238,11 @@ export async function createCroppedImage(
     const image = await loadImage(sourceUrl);
     const rotationCanvas = createRotationCanvas(image, rotation);
     const cropCanvas = createCropCanvas(rotationCanvas, cropPixels);
-    const outputCanvas = createOutputCanvas(cropCanvas, sourceFile, customization);
+    const outputCanvas = createOutputCanvas(
+      cropCanvas,
+      sourceFile,
+      customization,
+    );
     return createOutputFile(outputCanvas, sourceFile);
   } finally {
     URL.revokeObjectURL(sourceUrl);
