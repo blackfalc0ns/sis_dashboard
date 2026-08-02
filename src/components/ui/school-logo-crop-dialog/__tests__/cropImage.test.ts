@@ -22,15 +22,29 @@ class LoadedImage {
 
 describe("createCroppedImage", () => {
   const context = {
+    arc: vi.fn(),
+    beginPath: vi.fn(),
+    clip: vi.fn(),
     clearRect: vi.fn(),
     drawImage: vi.fn(),
+    fillRect: vi.fn(),
+    filter: "",
+    fillStyle: "",
+    lineWidth: 0,
     restore: vi.fn(),
     rotate: vi.fn(),
     save: vi.fn(),
+    stroke: vi.fn(),
+    strokeStyle: "",
     translate: vi.fn(),
   };
 
   beforeEach(() => {
+    vi.clearAllMocks();
+    context.fillStyle = "";
+    context.filter = "";
+    context.lineWidth = 0;
+    context.strokeStyle = "";
     vi.stubGlobal("Image", LoadedImage);
     vi.stubGlobal("URL", {
       createObjectURL: vi.fn(() => "blob:school-logo"),
@@ -63,7 +77,7 @@ describe("createCroppedImage", () => {
 
       expect(result.type).toBe(outputType);
       expect(result.name).toBe(outputName);
-      expect(context.drawImage).toHaveBeenLastCalledWith(
+      expect(context.drawImage).toHaveBeenCalledWith(
         expect.any(HTMLCanvasElement),
         8,
         12,
@@ -91,5 +105,56 @@ describe("createCroppedImage", () => {
         0,
       ),
     ).rejects.toThrow("Could not prepare image");
+  });
+
+  it("renders selected adjustments, a custom background, and a circular border", async () => {
+    await createCroppedImage(
+      new File(["source"], "school-logo.png", { type: "image/png" }),
+      crop,
+      0,
+      {
+        background: "custom",
+        backgroundColor: "#2563eb",
+        borderColor: "#ffffff",
+        borderWidth: 8,
+        brightness: 115,
+        contrast: 105,
+        filter: "warm",
+        frame: "circle",
+        saturation: 120,
+      },
+    );
+
+    expect(context.filter).toBe(
+      "brightness(115%) contrast(105%) saturate(120%) sepia(18%)",
+    );
+    expect(context.fillStyle).toBe("#2563eb");
+    expect(context.fillRect).toHaveBeenCalledWith(0, 0, 120, 120);
+    expect(context.arc).toHaveBeenCalledWith(60, 60, 60, 0, Math.PI * 2);
+    expect(context.strokeStyle).toBe("#ffffff");
+    expect(context.lineWidth).toBe(8);
+    expect(context.stroke).toHaveBeenCalledOnce();
+  });
+
+  it("flattens a transparent JPEG background to white", async () => {
+    await createCroppedImage(
+      new File(["source"], "school-logo.jpg", { type: "image/jpeg" }),
+      crop,
+      0,
+      {
+        background: "transparent",
+        backgroundColor: "#2563eb",
+        borderColor: "#ffffff",
+        borderWidth: 0,
+        brightness: 100,
+        contrast: 100,
+        filter: "original",
+        frame: "square",
+        saturation: 100,
+      },
+    );
+
+    expect(context.fillStyle).toBe("#ffffff");
+    expect(context.fillRect).toHaveBeenCalledWith(0, 0, 120, 120);
   });
 });
