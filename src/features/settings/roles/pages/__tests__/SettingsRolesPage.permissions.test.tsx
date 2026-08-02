@@ -108,6 +108,20 @@ describe("SettingsRolesPage permission catalog access", () => {
     expect(apiMocks.apiGet).not.toHaveBeenCalledWith("/settings/permissions");
   });
 
+  it("shows zero in the members cell when a role has no participants", async () => {
+    apiMocks.apiGet.mockImplementation((path: string) => {
+      if (path.startsWith("/settings/roles")) {
+        return Promise.resolve([{ ...role, memberCount: 0 }]);
+      }
+      return Promise.reject(new Error(`Unexpected GET ${path}`));
+    });
+
+    renderPage();
+
+    const roleRow = (await screen.findByText("Custom Admin")).closest("tr");
+    expect(roleRow).toHaveTextContent("0");
+  });
+
   it("loads the permission matrix when catalog access is granted", async () => {
     authState.permissions = [
       "settings.roles.view",

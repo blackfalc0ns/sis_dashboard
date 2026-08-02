@@ -584,6 +584,7 @@ export default function SettingsRolesPage() {
     {
       key: "memberCount",
       label: t("table.members"),
+      render: (value: unknown) => String(value ?? 0),
     },
     {
       key: "permissions",
