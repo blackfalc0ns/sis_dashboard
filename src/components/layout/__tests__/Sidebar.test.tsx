@@ -9,17 +9,27 @@ import {
   menuItems,
 } from "@/config/navigation";
 
-const navigationState = vi.hoisted(() => ({ pathname: "/en/dashboard" }));
+const navigationState = vi.hoisted(() => ({
+  pathname: "/en/dashboard",
+  grantedPermissions: null as Set<string> | null,
+}));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => navigationState.pathname,
   useSearchParams: () => new URLSearchParams(),
 }));
 
-vi.mock("@/hooks/usePermissions", () => ({
-  navigationPermissionByKey: {},
-  usePermissions: () => ({ hasPermission: () => true }),
-}));
+vi.mock("@/hooks/usePermissions", async (importOriginal) => {
+  const permissions = await importOriginal<typeof import("@/hooks/usePermissions")>();
+
+  return {
+    ...permissions,
+    usePermissions: () => ({
+      hasPermission: (permission: string) =>
+        navigationState.grantedPermissions?.has(permission) ?? true,
+    }),
+  };
+});
 
 vi.mock("@/hooks/use-auth", () => ({
   useAuth: () => ({ logout: vi.fn() }),
@@ -43,6 +53,35 @@ vi.mock("next/image", () => ({
 }));
 
 describe("Sidebar toggle control", () => {
+  it("shows System Health without a membership permission", () => {
+    navigationState.grantedPermissions = new Set();
+
+    try {
+      render(<Sidebar isOpen onToggle={vi.fn()} />);
+
+      expect(screen.getByRole("link", { name: "System Health" })).toBeInTheDocument();
+    } finally {
+      navigationState.grantedPermissions = null;
+    }
+  });
+
+  it("shows only the grade destinations granted by the backend membership", () => {
+    navigationState.grantedPermissions = new Set(["grades.assessments.view"]);
+
+    try {
+      render(<Sidebar isOpen onToggle={vi.fn()} />);
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Assessments & Grades" }),
+      );
+
+      expect(screen.getByText("Assessments")).toBeInTheDocument();
+      expect(screen.queryByText("Gradebook")).not.toBeInTheDocument();
+    } finally {
+      navigationState.grantedPermissions = null;
+    }
+  });
+
   it("links the logo to the localized dashboard", () => {
     navigationState.pathname = "/ar/settings/users";
 

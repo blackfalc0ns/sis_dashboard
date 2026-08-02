@@ -15,6 +15,7 @@ import {
 } from "../utils/authValidation";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { getDefaultAuthorizedNavigationPath } from "@/hooks/usePermissions";
 import { isApiError } from "@/lib/api-error";
 import { getValidationFieldErrors } from "@/lib/validation-errors";
 import {
@@ -108,7 +109,10 @@ export function LoginForm({ currentYear }: LoginFormProps) {
       });
 
       const currentLocale = localeFromPathname(pathname);
-      const dashboardPath = `/${currentLocale}/dashboard`;
+      const dashboardPath = getDefaultAuthorizedNavigationPath(
+        currentUser?.activeMembership?.permissions ?? [],
+        currentLocale,
+      );
       const returnPath = safeAuthReturnPath(
         searchParams.get("next") ?? searchParams.get("redirect"),
         currentLocale,

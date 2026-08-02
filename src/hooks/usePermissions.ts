@@ -1,11 +1,11 @@
 /**
  * Permission management hook
- * Legacy attendance permissions are preserved while settings permissions resolve
- * from the authenticated API session.
+ * Permissions resolve exclusively from the authenticated API session.
  */
 
 import { useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { bottomItems, menuItems } from "@/config/navigation";
 
 export type PermissionKey =
   | "dashboard.analytics.view"
@@ -36,10 +36,14 @@ export type PermissionKey =
   | "students.records.view"
   | "teachers.records.view"
   | "teachers.records.manage"
-  | "attendance.rollcall.submit"
-  | "attendance.rollcall.unsubmit"
-  | "attendance.excuses.approve"
-  | "attendance.lateEarly.editMinutes"
+  | "attendance.policies.view"
+  | "attendance.sessions.view"
+  | "attendance.sessions.submit"
+  | "attendance.entries.manage"
+  | "attendance.absences.view"
+  | "attendance.excuses.view"
+  | "attendance.excuses.review"
+  | "attendance.reports.view"
   | "behavior.records.view"
   | "behavior.records.create"
   | "behavior.records.manage"
@@ -95,6 +99,7 @@ export type PermissionKey =
   | "academics.structure.manage"
   | "academics.calendar.view"
   | "academics.calendar.manage"
+  | "academics.timetable.view"
   | "academics.curriculum.view"
   | "academics.curriculum.manage"
   | "academics.lesson_plans.view"
@@ -125,6 +130,11 @@ export type PermissionKey =
   | "grades.rules.manage"
   | "communication.admin.view"
   | "communication.admin.manage"
+  | "communication.overview.view"
+  | "communication.policies.view"
+  | "communication.announcements.view"
+  | "communication.notifications.view"
+  | "communication.notifications.manage"
   | "communication.conversations.view"
   | "communication.conversations.create"
   | "communication.conversations.manage"
@@ -157,32 +167,12 @@ export type PermissionKey =
   | "reinforcement.hero.badges.view"
   | "reinforcement.hero.badges.manage"
   | "reinforcement.hero.progress.view"
-  | "reinforcement.hero.progress.manage";
-
-const legacyAdminPermissions: PermissionKey[] = [
-  "attendance.rollcall.submit",
-  "attendance.rollcall.unsubmit",
-  "attendance.excuses.approve",
-  "attendance.lateEarly.editMinutes",
-  "academics.subjects.view",
-  "academics.subjects.manage",
-  "academics.structure.view",
-  "academics.structure.manage",
-];
-
-const alwaysGrantedNedaaPermissions: PermissionKey[] = [
-  "dismissal.settings.view",
-  "dismissal.settings.manage",
-  "dismissal.gates.view",
-  "dismissal.gates.manage",
-  "dismissal.staff.view",
-  "dismissal.staff.manage",
-  "dismissal.requests.view",
-  "dismissal.requests.manage",
-  "dismissal.requests.deliver",
-  "dismissal.requests.escalate",
-  "dismissal.requests.history.view",
-];
+  | "reinforcement.hero.progress.manage"
+  | "dashboard.summary.view"
+  | "dashboard.command_center.view"
+  | "dashboard.widgets.view"
+  | "dashboard.activity_feed.view"
+  | "school.support.view";
 
 export const settingsNavigationPermissionByKey: Partial<
   Record<string, PermissionKey>
@@ -193,10 +183,6 @@ export const settingsNavigationPermissionByKey: Partial<
   "settings-login-identity": "settings.users.view",
   "settings-credentials": "settings.users.view",
   "settings-roles": "settings.roles.view",
-  "settings-policies": "settings.policies.view",
-  "settings-admissions-documents": "settings.admissionsDocuments.view",
-  "settings-templates": "settings.templates.view",
-  "settings-integrations": "settings.integrations.view",
   "settings-email-connection": "settings.email.connection.view",
   "settings-email-templates": "settings.email.templates.view",
   "settings-email-credential-deliveries":
@@ -204,7 +190,6 @@ export const settingsNavigationPermissionByKey: Partial<
   "settings-email-deliveries": "settings.email.deliveries.view",
   "settings-email-campaigns": "settings.email.campaigns.view",
   "settings-security": "settings.security.view",
-  "settings-backup": "settings.backup.view",
 };
 
 export const reinforcementNavigationPermissionByKey: Partial<
@@ -221,10 +206,25 @@ export const reinforcementNavigationPermissionByKey: Partial<
   "hero-journey-missions": "reinforcement.hero.view",
 };
 
+const navigationKeysWithoutPermission = new Set(["system-health"]);
+
+type NavigationItem = (typeof menuItems)[number];
+
 export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
   {
     ...settingsNavigationPermissionByKey,
     ...reinforcementNavigationPermissionByKey,
+    "hero-journey": "reinforcement.hero.view",
+    "dashboard-overview": "dashboard.summary.view",
+    "dashboard-command-center": "dashboard.command_center.view",
+    "dashboard-widgets": "dashboard.widgets.view",
+    "communication-overview": "communication.overview.view",
+    "communication-conversations": "communication.conversations.view",
+    "communication-announcements": "communication.announcements.view",
+    "communication-notifications": "communication.notifications.view",
+    "communication-notification-deliveries": "communication.notifications.manage",
+    "communication-safety": "communication.messages.moderate",
+    "communication-settings": "communication.policies.view",
     "admissions-leads": "admissions.leads.view",
     "admissions-applications": "admissions.applications.view",
     "admissions-tests": "admissions.tests.view",
@@ -242,11 +242,21 @@ export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
     "academics-rooms": "academics.structure.view",
     "academics-subjects": "academics.subjects.view",
     "academics-teacher-allocation": "academics.structure.view",
-    "academics-timetable": "academics.structure.view",
+    "academics-timetable": "academics.timetable.view",
     "academics-calendar": "academics.calendar.view",
     "academics-curriculum": "academics.curriculum.view",
     "academics-lesson-plans": "academics.lesson_plans.view",
     "academics-homework": "homework.assignments.view",
+    "grades-overview": "grades.analytics.view",
+    "grades-assessments": "grades.assessments.view",
+    "grades-gradebook": "grades.gradebook.view",
+    "grades-rules": "grades.rules.view",
+    "attendance-reports": "attendance.reports.view",
+    "attendance-policies": "attendance.policies.view",
+    "attendance-roll-call": "attendance.sessions.view",
+    "attendance-absences": "attendance.absences.view",
+    "attendance-late-early": "attendance.entries.manage",
+    "attendance-excuses": "attendance.excuses.view",
     "behavior-overview": "behavior.overview.view",
     "behavior-reviews": "behavior.records.view",
     "behavior-records": "behavior.records.view",
@@ -256,7 +266,69 @@ export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
     "nedaa-gates": "dismissal.gates.view",
     "nedaa-staff-assignments": "dismissal.staff.view",
     "dashboard-analytics": "dashboard.analytics.view",
+    "dashboard-recent-activities": "dashboard.activity_feed.view",
+    help: "school.support.view",
   };
+
+export function filterNavigationItemsByPermission<
+  T extends { key: string; children?: T[] },
+>(
+  items: readonly T[],
+  hasPermission: (permission: PermissionKey) => boolean,
+): T[] {
+  return items.flatMap((item) => {
+    if (!item.children) {
+      if (navigationKeysWithoutPermission.has(item.key)) return [item];
+
+      const requiredPermission = navigationPermissionByKey[item.key];
+      return requiredPermission && hasPermission(requiredPermission) ? [item] : [];
+    }
+
+    const visibleChildren = filterNavigationItemsByPermission(
+      item.children,
+      hasPermission,
+    );
+    return visibleChildren.length > 0 ? [{ ...item, children: visibleChildren }] : [];
+  });
+}
+
+function getFirstNavigationHref(
+  items: readonly NavigationItem[],
+  isArabic: boolean,
+): string | null {
+  for (const item of items) {
+    const childHref = item.children
+      ? getFirstNavigationHref(item.children, isArabic)
+      : null;
+    if (childHref) return childHref;
+    if (!item.children) return isArabic ? item.href_ar : item.href_en;
+  }
+
+  return null;
+}
+
+export function getDefaultAuthorizedNavigationPath(
+  permissions: readonly string[],
+  locale: string,
+): string {
+  const hasPermission = (permission: PermissionKey) =>
+    permissions.includes(permission);
+  const isArabic = locale === "ar";
+
+  if (hasPermission("dashboard.summary.view")) {
+    return isArabic ? "/ar/dashboard" : "/en/dashboard";
+  }
+
+  const visibleItems = filterNavigationItemsByPermission(
+    [...menuItems, ...bottomItems],
+    hasPermission,
+  );
+
+  return (
+    getFirstNavigationHref(visibleItems, isArabic) ??
+    `/${locale}/settings/health`
+  );
+}
 
 export function usePermissions() {
   const { user, isLoading } = useAuth();
@@ -266,13 +338,10 @@ export function usePermissions() {
     [user],
   );
 
-  const grantedPermissions = useMemo(() => {
-    return new Set<PermissionKey>([
-      ...legacyAdminPermissions,
-      ...alwaysGrantedNedaaPermissions,
-      ...membershipPermissions,
-    ]);
-  }, [membershipPermissions]);
+  const grantedPermissions = useMemo(
+    () => new Set<PermissionKey>(membershipPermissions),
+    [membershipPermissions],
+  );
 
   const hasPermission = (key: PermissionKey): boolean =>
     grantedPermissions.has(key);

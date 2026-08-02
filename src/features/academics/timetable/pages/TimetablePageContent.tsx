@@ -33,7 +33,8 @@ export default function TimetablePageContent() {
     [searchParams],
   );
 
-  const isReadOnly = termStatus === "closed" || !canManageStructure;
+  const isTermClosed = termStatus === "closed";
+  const isReadOnly = isTermClosed || !canManageStructure;
   const schoolId = DEFAULT_SCHOOL_ID;
 
   const syncQueryParams = useCallback(
@@ -217,7 +218,7 @@ export default function TimetablePageContent() {
   return (
     <div className="flex h-full flex-1 flex-col bg-gray-50">
       {/* Read-only Banner */}
-      {isReadOnly && (
+      {isTermClosed && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3">
           <p className="text-sm text-yellow-800">{t("readOnlyBanner")}</p>
         </div>
@@ -268,7 +269,7 @@ export default function TimetablePageContent() {
             schoolId={schoolId}
             academicYearId={academicYearId}
             termId={termId}
-            isReadOnly={isReadOnly}
+            isReadOnly={isTermClosed}
           />
         )}
       </div>

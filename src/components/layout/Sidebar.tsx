@@ -23,7 +23,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
 import {
-  navigationPermissionByKey,
+  filterNavigationItemsByPermission,
   usePermissions,
 } from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/use-auth";
@@ -116,30 +116,12 @@ export default function Sidebar({
   const hasSearchQuery = searchQuery.trim().length > 0;
 
   const visibleMenuItems = useMemo(
-    () =>
-      menuItems
-        .map((item) => {
-          const itemPermission = navigationPermissionByKey[item.key];
-          if (itemPermission && !hasPermission(itemPermission)) {
-            return null;
-          }
+    () => filterNavigationItemsByPermission(menuItems, hasPermission),
+    [hasPermission],
+  );
 
-          if (!item.children) {
-            return item;
-          }
-
-          const nextChildren = item.children.filter((child) => {
-            const permission = navigationPermissionByKey[child.key];
-            return permission ? hasPermission(permission) : true;
-          });
-
-          return {
-            ...item,
-            children: nextChildren,
-          };
-        })
-        .filter((item): item is (typeof menuItems)[number] => item !== null)
-        .filter((item) => !item.children || item.children.length > 0),
+  const visibleBottomItems = useMemo(
+    () => filterNavigationItemsByPermission(bottomItems, hasPermission),
     [hasPermission],
   );
 
@@ -859,7 +841,7 @@ export default function Sidebar({
           className="pb-6 space-y-1 shrink-0 border-t border-white/15 pt-3"
           onMouseEnter={() => setHoveredCollapsedItemKey(null)}
         >
-          {bottomItems.map((item) => {
+          {visibleBottomItems.map((item) => {
             const Icon = item.icon;
             const itemHref = isArabic ? item.href_ar : item.href_en;
             const isPendingItem = pendingHref === itemHref;

@@ -84,7 +84,8 @@ export default function AcademicStructurePage() {
     [t],
   );
 
-  const isReadOnly = termStatus === "closed" || !canManageStructure;
+  const isTermClosed = termStatus === "closed";
+  const isReadOnly = isTermClosed || !canManageStructure;
   const supportsEditAndReorder = true;
   const supportsCarryOver = false;
   const {
@@ -461,7 +462,7 @@ export default function AcademicStructurePage() {
 
   return (
     <div className="flex h-screen flex-col">
-      {isReadOnly && (
+      {isTermClosed && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3 flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-yellow-600" />
           <span className="text-sm text-yellow-800">

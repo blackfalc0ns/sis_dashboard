@@ -41,6 +41,7 @@ interface SubjectsAllocationViewProps {
   showSubjectDialog: boolean;
   editingSubject: Subject | null;
   isReadOnly: boolean;
+  isTermClosed: boolean;
   onTabChange: (tab: "subjects" | "matrix") => void;
   onAddSubject: () => void;
   onEditSubject: (subject: Subject) => void;
@@ -71,6 +72,7 @@ export default function SubjectsAllocationView({
   showSubjectDialog,
   editingSubject,
   isReadOnly,
+  isTermClosed,
   onTabChange,
   onAddSubject,
   onEditSubject,
@@ -101,7 +103,7 @@ export default function SubjectsAllocationView({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Read-Only Banner */}
-      {isReadOnly && (
+      {isTermClosed && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3 flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-yellow-600" />
           <span className="text-sm text-yellow-800">

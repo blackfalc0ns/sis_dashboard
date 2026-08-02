@@ -158,6 +158,7 @@ export default function LessonPlansPage() {
     selectedSubjectId,
     onLoadError: handleLoadError,
   });
+  const isTermClosed = termStatus === "closed";
   const isReadOnly = !canEditLessonPlans({
     canManage: canManageLessonPlans,
     termStatus,
@@ -796,7 +797,7 @@ export default function LessonPlansPage() {
         />
 
         {/* Read-only banner */}
-        {isReadOnly && (
+        {isTermClosed && (
           <div className="p-4">
             <Alert severity="warning">
               <AlertTitle>{t("readOnlyBanner")}</AlertTitle>

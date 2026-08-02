@@ -58,6 +58,7 @@ interface TeacherAllocationViewProps {
   activeTab: "matrix" | "load";
   validationPanelOpen: boolean;
   isReadOnly: boolean;
+  isTermClosed: boolean;
   onValidate: () => void;
   onAllocationsChange: (allocations: TeacherAllocation[]) => void;
   onRefresh: () => Promise<void>;
@@ -87,6 +88,7 @@ export default function TeacherAllocationView({
   activeTab,
   validationPanelOpen,
   isReadOnly,
+  isTermClosed,
   onValidate,
   onAllocationsChange,
   onRefresh,
@@ -119,7 +121,7 @@ export default function TeacherAllocationView({
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
       {/* Read-Only Banner */}
-      {isReadOnly && (
+      {isTermClosed && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3 flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-yellow-600" />
           <span className="text-sm text-yellow-800">{t("readOnlyBanner")}</span>

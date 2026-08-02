@@ -246,7 +246,8 @@ export default function AcademicCalendarPage() {
     severity: "success",
   });
 
-  const isReadOnly = termStatus === "closed" || !canManage;
+  const isTermClosed = termStatus === "closed";
+  const isReadOnly = isTermClosed || !canManage;
   const term = selectedTerm;
 
   const handleExport = (format: AcademicsExportFormat) => {
@@ -679,7 +680,7 @@ export default function AcademicCalendarPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
       {/* Read-Only Banner */}
-      {isReadOnly && (
+      {isTermClosed && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-6 py-3 flex items-center gap-2">
           <AlertCircle className="w-5 h-5 text-yellow-600" />
           <span className="text-sm text-yellow-800">{t("readonly_banner")}</span>

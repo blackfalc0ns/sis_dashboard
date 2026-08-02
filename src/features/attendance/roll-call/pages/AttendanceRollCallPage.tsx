@@ -286,7 +286,7 @@ export default function AttendanceRollCallPage() {
     Boolean(isSubmitted) &&
     !isReadOnly &&
     termContext.termStatus !== "closed" &&
-    hasPermission("attendance.rollcall.unsubmit");
+    hasPermission("attendance.sessions.submit");
   const shouldGuardNavigation = isDirty && !isReadOnly && !isSubmitted;
   const suppressNextPopStateRef = useRef(false);
 

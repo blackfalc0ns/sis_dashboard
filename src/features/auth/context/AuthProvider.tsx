@@ -25,6 +25,7 @@ import {
   localeFromPathname,
   safeAuthReturnPath,
 } from "@/features/auth/utils/authRedirect";
+import { getDefaultAuthorizedNavigationPath } from "@/hooks/usePermissions";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<MeResponse | null>(null);
@@ -159,10 +160,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoading) {
       const loginPath = getLocalizedPath("login");
-      const dashboardPath = getLocalizedPath("dashboard");
+      const dashboardPath = user
+        ? getDefaultAuthorizedNavigationPath(
+            user.activeMembership?.permissions ?? [],
+            currentLocale,
+          )
+        : getLocalizedPath("dashboard");
       const changePasswordPath = getLocalizedPath("change-password");
       const isLoginRoute = pathname === loginPath;
       const isChangePasswordRoute = pathname === changePasswordPath;
+      const isDashboardRoute = pathname === getLocalizedPath("dashboard");
       const isRootRoute =
         pathname === "/" || pathname === "/ar" || pathname === "/en";
       let redirectPath: string | null = null;
@@ -179,6 +186,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         redirectPath = isLoginRoute
           ? (loginReturnPath() ?? dashboardPath)
           : dashboardPath;
+      } else if (
+        user &&
+        !mustChangePassword &&
+        isDashboardRoute &&
+        dashboardPath !== pathname
+      ) {
+        redirectPath = dashboardPath;
       }
 
       if (!redirectPath) {
@@ -194,6 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     pathname,
     router,
     getLocalizedPath,
+    currentLocale,
     loginPathWithRedirect,
     loginReturnPath,
     mustChangePassword,

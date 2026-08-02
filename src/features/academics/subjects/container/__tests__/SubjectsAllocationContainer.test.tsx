@@ -291,6 +291,22 @@ describe("SubjectsAllocationContainer", () => {
     expect(screen.getByText("read-only")).toBeInTheDocument();
   });
 
+  it("keeps an open term distinct from missing manage permission", async () => {
+    mockPermissions(["academics.subjects.view"]);
+
+    render(<SubjectsAllocationContainer />);
+
+    await waitFor(() => {
+      expect(mockedSubjectsAllocationView).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          isLoading: false,
+          isReadOnly: true,
+          isTermClosed: false,
+        }),
+      );
+    });
+  });
+
   it("does not expose carry-over without backend support", async () => {
     render(<SubjectsAllocationContainer />);
 

@@ -113,6 +113,28 @@ describe("AuthProvider route redirects", () => {
     });
   });
 
+  it("redirects an unavailable dashboard overview to the first permitted tab", async () => {
+    authProviderMocks.pathname = "/ar/dashboard";
+    authProviderMocks.hasTokens.mockReturnValue(true);
+    authProviderMocks.getCurrentUser.mockResolvedValue({
+      id: "user-1",
+      mustChangePassword: false,
+      activeMembership: { permissions: ["grades.assessments.view"] },
+    });
+
+    render(
+      <AuthProvider>
+        <div>Protected app</div>
+      </AuthProvider>,
+    );
+
+    await waitFor(() => {
+      expect(authProviderMocks.push).toHaveBeenCalledWith(
+        "/ar/grades/assessments",
+      );
+    });
+  });
+
   it("redirects once when concurrent requests report an expired session", async () => {
     authProviderMocks.pathname = "/ar/academics";
     authProviderMocks.hasTokens.mockReturnValue(true);

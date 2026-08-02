@@ -59,7 +59,11 @@ describe("LoginForm Sprint 11 behavior", () => {
     mockSearchParams = new URLSearchParams({
       next: "/ar/dashboard/recent-activities",
     });
-    mockLogin.mockResolvedValue({ id: "u1", mustChangePassword: false });
+    mockLogin.mockResolvedValue({
+      id: "u1",
+      mustChangePassword: false,
+      activeMembership: { permissions: ["dashboard.summary.view"] },
+    });
 
     const { container } = render(<LoginForm currentYear={2026} />);
 
@@ -78,7 +82,11 @@ describe("LoginForm Sprint 11 behavior", () => {
     mockSearchParams = new URLSearchParams({
       redirect: "/en/dashboard/recent-activities",
     });
-    mockLogin.mockResolvedValue({ id: "u1", mustChangePassword: false });
+    mockLogin.mockResolvedValue({
+      id: "u1",
+      mustChangePassword: false,
+      activeMembership: { permissions: ["dashboard.summary.view"] },
+    });
 
     const { container } = render(<LoginForm currentYear={2026} />);
 
@@ -97,7 +105,11 @@ describe("LoginForm Sprint 11 behavior", () => {
     mockSearchParams = new URLSearchParams({
       next: "//evil.example",
     });
-    mockLogin.mockResolvedValue({ id: "u1", mustChangePassword: false });
+    mockLogin.mockResolvedValue({
+      id: "u1",
+      mustChangePassword: false,
+      activeMembership: { permissions: ["dashboard.summary.view"] },
+    });
 
     const { container } = render(<LoginForm currentYear={2026} />);
 
@@ -109,5 +121,25 @@ describe("LoginForm Sprint 11 behavior", () => {
     await user.click(screen.getByRole("button", { name: "submit" }));
 
     expect(mockPush).toHaveBeenCalledWith("/en/dashboard");
+  });
+
+  it("opens the first permitted tab when the dashboard overview is unavailable", async () => {
+    const user = userEvent.setup();
+    mockLogin.mockResolvedValue({
+      id: "u1",
+      mustChangePassword: false,
+      activeMembership: { permissions: ["grades.assessments.view"] },
+    });
+
+    const { container } = render(<LoginForm currentYear={2026} />);
+
+    await user.type(screen.getByRole("textbox"), "user@example.edu");
+    await user.type(
+      container.querySelector('input[name="password"]') as HTMLInputElement,
+      "valid-password",
+    );
+    await user.click(screen.getByRole("button", { name: "submit" }));
+
+    expect(mockPush).toHaveBeenCalledWith("/en/grades/assessments");
   });
 });

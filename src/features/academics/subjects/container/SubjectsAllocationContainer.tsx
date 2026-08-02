@@ -67,7 +67,8 @@ export default function SubjectsAllocationContainer() {
     [searchParams]
   );
 
-  const isReadOnly = termStatus === "closed" || !canManage;
+  const isTermClosed = termStatus === "closed";
+  const isReadOnly = isTermClosed || !canManage;
 
   const loadSubjectAllocationData = useCallback(async () => {
     if (!canView) {
@@ -256,6 +257,7 @@ export default function SubjectsAllocationContainer() {
       showSubjectDialog={showSubjectDialog}
       editingSubject={editingSubject}
       isReadOnly={isReadOnly}
+      isTermClosed={isTermClosed}
       onTabChange={handleTabChange}
       onAddSubject={handleAddSubject}
       onEditSubject={handleEditSubject}

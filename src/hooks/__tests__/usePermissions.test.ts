@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { navigationPermissionByKey } from "../usePermissions";
+import {
+  getDefaultAuthorizedNavigationPath,
+  navigationPermissionByKey,
+} from "../usePermissions";
 
 describe("behavior navigation permissions", () => {
   it("maps each behavior destination to its backend view permission", () => {
@@ -15,5 +18,16 @@ describe("behavior navigation permissions", () => {
 describe("teacher navigation permissions", () => {
   it("requires the teacher-directory view permission", () => {
     expect(navigationPermissionByKey.teachers).toBe("teachers.records.view");
+  });
+});
+
+describe("default authorized navigation", () => {
+  it("prioritizes the dashboard overview over earlier permitted tabs", () => {
+    expect(
+      getDefaultAuthorizedNavigationPath(
+        ["reinforcement.hero.view", "dashboard.summary.view"],
+        "ar",
+      ),
+    ).toBe("/ar/dashboard");
   });
 });

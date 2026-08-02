@@ -164,6 +164,19 @@ describe("AcademicCalendarPage", () => {
     expect(fetchCalendarEvents).not.toHaveBeenCalled();
   });
 
+  it("does not show the closed-term banner for an open term without manage permission", async () => {
+    vi.mocked(usePermissions).mockReturnValue(
+      createPermissionsState(
+        (permission) => permission === "academics.calendar.view"
+      )
+    );
+
+    renderComponent();
+
+    await screen.findByText("month-calendar");
+    expect(screen.queryByText("readonly_banner")).not.toBeInTheDocument();
+  });
+
   it("keeps the calendar visible while refreshing after the initial load", async () => {
     vi.mocked(usePermissions).mockReturnValue(
       createPermissionsState(() => true)

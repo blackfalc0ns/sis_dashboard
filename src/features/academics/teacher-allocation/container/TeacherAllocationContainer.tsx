@@ -77,7 +77,8 @@ export default function TeacherAllocationContainer() {
     [searchParams]
   );
 
-  const isReadOnly = termStatus === "closed" || !canManage;
+  const isTermClosed = termStatus === "closed";
+  const isReadOnly = isTermClosed || !canManage;
 
   const loadTeacherAllocationData = useCallback(async () => {
     if (!canView) {
@@ -240,6 +241,7 @@ export default function TeacherAllocationContainer() {
       activeTab={queryState.activeTab}
       validationPanelOpen={validationPanelOpen}
       isReadOnly={isReadOnly}
+      isTermClosed={isTermClosed}
       onValidate={handleValidate}
       onAllocationsChange={handleAllocationsChange}
       onRefresh={refreshData}

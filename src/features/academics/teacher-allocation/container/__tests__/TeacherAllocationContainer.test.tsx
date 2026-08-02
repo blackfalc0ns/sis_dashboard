@@ -216,6 +216,22 @@ describe("TeacherAllocationContainer", () => {
     expect(mockedFetchTeacherAllocations).toHaveBeenCalledWith("term-1");
   });
 
+  it("keeps an open term distinct from missing manage permission", async () => {
+    mockPermissions(["academics.structure.view"]);
+
+    render(<TeacherAllocationContainer />);
+
+    await waitFor(() => {
+      expect(mockedTeacherAllocationView).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          isLoading: false,
+          isReadOnly: true,
+          isTermClosed: false,
+        }),
+      );
+    });
+  });
+
   it("disables write actions for closed terms", async () => {
     mockAcademicContext("closed");
 

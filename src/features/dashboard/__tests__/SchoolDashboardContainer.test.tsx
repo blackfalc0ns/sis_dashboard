@@ -125,7 +125,7 @@ describe("SchoolDashboardContainer", () => {
     render(<SchoolDashboardContainer />);
 
     expect(await screen.findByText("School command center")).toBeInTheDocument();
-    expect(screen.getByText("Quick school setup")).toBeInTheDocument();
+    expect(screen.queryByText("Quick school setup")).not.toBeInTheDocument();
     expect(screen.getByText("Active Students")).toBeInTheDocument();
     expect(screen.getAllByText("125").length).toBeGreaterThan(0);
     expect(screen.getByText(/Absences marked today/)).toBeInTheDocument();
