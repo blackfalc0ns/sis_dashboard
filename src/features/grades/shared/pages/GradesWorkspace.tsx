@@ -354,6 +354,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
 
   const openEditGradeDialog = useCallback(async (assessment: Assessment, row: GradebookStudentRow) => {
     if (assessment.deliveryMode === "QUESTION_BASED") {
+      if (!canReviewSubmissions) return;
       try {
         const review = await fetchAssessmentSubmissionReview(
           academicYearId,
@@ -368,12 +369,14 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
       return;
     }
 
+    if (!canManageGradeItems) return;
     const detail = await fetchGradeItemDetail(academicYearId, termId, assessment.id, row.studentId);
     setGradeApiError(null);
     setEditGradeState({ assessment, row, comment: detail?.comment });
-  }, [academicYearId, showError, t, termId]);
+  }, [academicYearId, canManageGradeItems, canReviewSubmissions, showError, t, termId]);
 
   const handleSaveAssessment = async (payload: CreateAssessmentPayload) => {
+    if (!canManageAssessments) return;
     try {
       setIsCreatingAssessment(true);
       setAssessmentApiError(null);
@@ -392,7 +395,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   };
 
   const handleDeleteAssessment = async () => {
-    if (!assessmentToDelete) return;
+    if (!assessmentToDelete || !canManageAssessments) return;
     try {
       setAssessmentActionId(assessmentToDelete.id);
       setAssessmentActionType("delete");
@@ -409,7 +412,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   };
 
   const handleSaveGrade = async (payload: { score: number | null; status: GradeItemStatus; comment?: string }) => {
-    if (!editGradeState) return;
+    if (!editGradeState || !canManageGradeItems) return;
     try {
       setIsSavingGrade(true);
       setGradeApiError(null);
@@ -436,7 +439,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   const handleSaveSubmissionCorrection = async (
     answers: Array<{ answerId: string; awardedPoints: number | null; teacherComment?: string }>,
   ) => {
-    if (!submissionReviewState) return;
+    if (!submissionReviewState || !canReviewSubmissions) return;
     try {
       setIsSavingSubmissionCorrection(true);
       await saveAssessmentSubmissionCorrection(
@@ -457,6 +460,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   };
 
   const openBulkEntryDialog = async (assessment: Assessment) => {
+    if (!canManageGradeItems) return;
     try {
       setAssessmentActionId(assessment.id);
       setAssessmentActionType("bulk");
@@ -473,7 +477,7 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   };
 
   const handleBulkSave = async (items: Array<{ studentId: string; score: number | null; status: GradeItemStatus; comment?: string }>) => {
-    if (!bulkEntryState) return;
+    if (!bulkEntryState || !canManageGradeItems) return;
     try {
       setIsBulkSaving(true);
       await bulkUpdateAssessmentGrades(academicYearId, termId, bulkEntryState.assessment.id, items);
@@ -488,6 +492,11 @@ export default function GradesWorkspace({ view }: GradesWorkspaceProps) {
   };
 
   const handleAssessmentAction = async (assessmentId: string, type: "publish" | "approve" | "lock") => {
+    if (
+      (type === "publish" && !canPublishAssessments) ||
+      (type === "approve" && !canApproveAssessments) ||
+      (type === "lock" && !canLockAssessments)
+    ) return;
     try {
       setAssessmentActionId(assessmentId);
       setAssessmentActionType(type);

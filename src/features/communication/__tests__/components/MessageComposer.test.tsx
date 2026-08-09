@@ -10,12 +10,6 @@ const mockPolicy = {
   allowedAttachmentMimeTypes: ["image/png", "application/pdf"],
 };
 
-vi.mock("@/features/communication/hooks/useCommunicationPolicy", () => ({
-  useCommunicationPolicy: vi.fn(() => ({
-    policy: mockPolicy,
-  })),
-}));
-
 const labels = conversationRedesignLabels.en;
 const voiceUnavailableMessage =
   "Voice recording is not available in this browser.";
@@ -23,9 +17,12 @@ const voiceUnavailableMessage =
 function renderComposer() {
   return render(
     <MessageComposer
+      allowedAttachmentMimeTypes={mockPolicy.allowedAttachmentMimeTypes}
+      attachmentSizeLimitMb={mockPolicy.maxAttachmentSizeMb}
       disabled={false}
       editingMessage={null}
       labels={labels}
+      maxLength={mockPolicy.maxMessageLength}
       onCancelEdit={vi.fn()}
       onCancelReply={vi.fn()}
       onEditMessage={vi.fn().mockResolvedValue(undefined)}

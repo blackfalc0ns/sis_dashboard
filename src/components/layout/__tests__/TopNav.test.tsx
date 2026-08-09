@@ -1,6 +1,10 @@
 import { act, render, screen, fireEvent } from "@testing-library/react";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
+import {
+  CommunicationRealtimeContext,
+  type CommunicationRealtimeContextValue,
+} from "@/features/communication/realtime/CommunicationRealtimeProvider";
 import { createMockSocket, type MockSocket } from "@/features/communication/__tests__/utils/mock-socket";
 import TopNav from "../TopNav";
 
@@ -110,12 +114,32 @@ vi.mock("@/features/communication/api/communication.service", () => ({
   markNotificationRead: vi.fn(),
 }));
 
-vi.mock("@/features/communication/hooks/useCommunicationSocket", () => ({
-  useCommunicationSocket: () => ({
-    socket: mockSocket,
+const noRealtimeCommand = () => undefined;
+
+function renderTopNav(userName = "Test User") {
+  const realtimeContext: CommunicationRealtimeContextValue = {
+    socket:
+      mockSocket as unknown as CommunicationRealtimeContextValue["socket"],
     isConnected: true,
-  }),
-}));
+    connectionError: null,
+    resyncVersion: 0,
+    retryConnection: noRealtimeCommand,
+    joinConversation: noRealtimeCommand,
+    leaveConversation: noRealtimeCommand,
+    startTyping: noRealtimeCommand,
+    stopTyping: noRealtimeCommand,
+  };
+
+  return render(
+    <CommunicationRealtimeContext.Provider value={realtimeContext}>
+      <TopNav
+        userName={userName}
+        userRole="Admin"
+        schoolName="Test School"
+      />
+    </CommunicationRealtimeContext.Provider>,
+  );
+}
 
 describe("TopNav Notification Integration", () => {
   beforeEach(() => {
@@ -130,13 +154,7 @@ describe("TopNav Notification Integration", () => {
   });
 
   it("opens the dropdown when the Bell button is clicked", async () => {
-    render(
-      <TopNav
-        userName="Test User"
-        userRole="Admin"
-        schoolName="Test School"
-      />
-    );
+    renderTopNav();
 
     // Let any initial mount updates resolve
     await act(async () => {
@@ -157,26 +175,15 @@ describe("TopNav Notification Integration", () => {
   });
 
   it("updates correctly when socket events alter notification list size or unread badge status", async () => {
-    // 1. Initial render with 0 notifications
-    render(
-      <TopNav
-        userName="Test User"
-        userRole="Admin"
-        schoolName="Test School"
-      />
-    );
+    renderTopNav();
 
-    // Wait for first call to fetch notifications and let mount finish
     await act(async () => {
       await vi.advanceTimersByTimeAsync(150);
     });
-    expect(getNotificationsMock).toHaveBeenCalledTimes(1);
 
-    // Initially no count badge should be rendered
     const bellButton = screen.getByRole("button", { name: /notifications/i });
     expect(bellButton).toHaveTextContent("");
 
-    // 2. Set up mock API response for next fetch
     const testNotif = {
       id: "notif-100",
       type: "message_received",
@@ -186,25 +193,15 @@ describe("TopNav Notification Integration", () => {
       createdAt: "2026-06-27T20:00:00.000Z",
     };
 
-    getNotificationsMock.mockResolvedValue({
-      items: [testNotif],
-      total: 1,
-    });
-
-    // 3. Simulate socket event: notificationCreated
     await act(async () => {
       mockSocket.simulateEvent(COMMUNICATION_SOCKET_EVENTS.notificationCreated, {
         notification: testNotif,
       });
-      // advance debounce timer
       await vi.advanceTimersByTimeAsync(150);
     });
 
-    // 4. Verify notification is fetched and badge updates to 1
-    expect(getNotificationsMock).toHaveBeenCalledTimes(2);
     expect(screen.getByText("1")).toBeInTheDocument();
 
-    // 5. Click the Bell button and check if dropdown shows the new notification
     act(() => {
       fireEvent.click(bellButton);
     });
@@ -213,13 +210,7 @@ describe("TopNav Notification Integration", () => {
   });
 
   it("keeps notification sound control out of the profile menu", async () => {
-    render(
-      <TopNav
-        userName="Test User"
-        userRole="Admin"
-        schoolName="Test School"
-      />
-    );
+    renderTopNav();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(150);
@@ -232,13 +223,7 @@ describe("TopNav Notification Integration", () => {
   });
 
   it("opens the authenticated profile modal from the profile menu", async () => {
-    render(
-      <TopNav
-        userName="Fallback User"
-        userRole="Admin"
-        schoolName="Test School"
-      />
-    );
+    renderTopNav("Fallback User");
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(150);

@@ -51,6 +51,9 @@ export const conversationRedesignLabels = {
     readOnlyConversation: "This conversation is read-only.",
     readOnlyComposer:
       "This conversation is read-only. Only admins can send messages.",
+    messagePermissionDeniedTitle: "You cannot send messages",
+    messagePermissionDeniedDescription:
+      "Your account does not have the permission required to send messages in this conversation.",
     loadingMessages: "Loading messages...",
     noMessagesYet: "No messages yet.",
     newMessage: "1 new message",
@@ -353,6 +356,9 @@ export const conversationRedesignLabels = {
     readOnlyConversation: "هذه المحادثة للقراءة فقط.",
     readOnlyComposer:
       "هذه المحادثة للقراءة فقط. يمكن للمشرفين فقط إرسال الرسائل.",
+    messagePermissionDeniedTitle: "لا يمكنك إرسال الرسائل",
+    messagePermissionDeniedDescription:
+      "لا يملك حسابك الصلاحية المطلوبة لإرسال الرسائل في هذه المحادثة.",
     loadingMessages: "جاري تحميل الرسائل...",
     noMessagesYet: "لا توجد رسائل بعد.",
     newMessage: "رسالة جديدة واحدة",

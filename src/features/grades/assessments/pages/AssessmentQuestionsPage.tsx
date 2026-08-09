@@ -7,6 +7,7 @@ import { useMediaQuery, useTheme } from "@mui/material";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { AssignmentQuestion } from "@/features/academics/curriculum/services/curriculumService";
 import type { ValidationErrors } from "@/features/academics/curriculum/types/types";
 import { calculatePointsSummary } from "@/features/academics/curriculum/utils/points";
@@ -108,6 +109,7 @@ export default function AssessmentQuestionsPage({
     defaultMatches: false,
   });
   const { showError, showSuccess } = useToast();
+  const { hasPermission } = usePermissions();
   const {
     academicYearId,
     termId,
@@ -151,9 +153,16 @@ export default function AssessmentQuestionsPage({
   const weightParam = Number(searchParams.get("weight") || "15");
   const maxScoreParam = Number(searchParams.get("maxScore") || "20");
   const isCreateMode = mode === "create";
+  const canManageAssessments = hasPermission("grades.assessments.manage");
+  const canManageQuestions = hasPermission("grades.questions.manage");
+  const canEditQuestions = isCreateMode
+    ? canManageAssessments
+    : canManageQuestions;
   const isReadOnly = isCreateMode
     ? termStatus === "closed"
     : !canEditAssessmentQuestions(assessment, termStatus);
+  const isQuestionReadOnly = isReadOnly || !canEditQuestions;
+  const isAssessmentReadOnly = isReadOnly || !canManageAssessments;
   const isTemporaryQuestionId = (questionId: string) => questionId.startsWith("temp-question-");
 
   // Question builders are focused flows: they keep year/term in the route
@@ -368,6 +377,7 @@ export default function AssessmentQuestionsPage({
   };
 
   const handleSaveAssessment = async () => {
+    if (!canManageAssessments) return;
     if (
       !assessmentDraft ||
       (!isCreateMode && !assessment) ||
@@ -459,6 +469,7 @@ export default function AssessmentQuestionsPage({
   };
 
   const handleAddQuestion = async () => {
+    if (!canEditQuestions) return;
     const nextIndex = tempQuestionCounter + 1;
     setTempQuestionCounter(nextIndex);
     const tempId = `temp-question-${nextIndex}`;
@@ -499,6 +510,7 @@ export default function AssessmentQuestionsPage({
     questionId: string,
     updates: Partial<AssignmentQuestion>,
   ) => {
+    if (!canEditQuestions) return;
     if (!questionDraft || questionDraft.id !== questionId) return;
     const nextQuestion = { ...questionDraft, ...updates };
     setQuestionDraft(nextQuestion);
@@ -510,6 +522,7 @@ export default function AssessmentQuestionsPage({
   };
 
   const handleSaveQuestion = async () => {
+    if (!canEditQuestions) return;
     if (!questionDraft || !isQuestionDirty) return;
     const errors = validateQuestion(
       questionDraft as AssignmentQuestion,
@@ -581,6 +594,7 @@ export default function AssessmentQuestionsPage({
   };
 
   const handleDeleteQuestion = async (questionId: string) => {
+    if (!canEditQuestions) return;
     if (isCreateMode || isTemporaryQuestionId(questionId)) {
       setQuestions((current) =>
         current
@@ -608,6 +622,7 @@ export default function AssessmentQuestionsPage({
     questionId: string,
     direction: "up" | "down",
   ) => {
+    if (!canEditQuestions) return;
     const index = questions.findIndex((question) => question.id === questionId);
     if (
       (direction === "up" && index === 0) ||
@@ -654,6 +669,7 @@ export default function AssessmentQuestionsPage({
   };
 
   const handleAutoDistributePoints = async () => {
+    if (!canEditQuestions) return;
     const maxScore = assessmentDraft?.maxScore || 0;
     const questionCount = questions.length;
     if (maxScore <= 0 || questionCount === 0) return;
@@ -702,7 +718,7 @@ export default function AssessmentQuestionsPage({
       {assessment && (
         <AssessmentQuestionBuilderHeader
           assessment={assessmentDraft || assessment}
-          isReadOnly={isReadOnly}
+          isReadOnly={isQuestionReadOnly && isAssessmentReadOnly}
           isAssessmentDirty={isAssessmentDirty}
           isQuestionDirty={isQuestionDirty}
           isAssignmentSaving={isAssignmentSaving}
@@ -711,7 +727,7 @@ export default function AssessmentQuestionsPage({
           saveLabel={
             isCreateMode ? tGrades("actions.createAssessment") : undefined
           }
-          canSaveAssessment={canSaveAssessment}
+          canSaveAssessment={canSaveAssessment && canManageAssessments}
           onSaveAssessment={() => void handleSaveAssessment()}
         />
       )}
@@ -757,7 +773,8 @@ export default function AssessmentQuestionsPage({
               )) as AssignmentQuestion | undefined
           }
           assessment={assessmentDraft || assessment}
-          isReadOnly={isReadOnly}
+          isReadOnly={isQuestionReadOnly}
+          isAssessmentReadOnly={isAssessmentReadOnly}
           pointsSummary={pointsSummary}
           validationErrors={validationErrors}
           isQuestionDirty={isQuestionDirty}
@@ -790,7 +807,8 @@ export default function AssessmentQuestionsPage({
               )) as AssignmentQuestion | undefined
           }
           assessment={assessmentDraft || assessment}
-          isReadOnly={isReadOnly}
+          isReadOnly={isQuestionReadOnly}
+          isAssessmentReadOnly={isAssessmentReadOnly}
           pointsSummary={pointsSummary}
           validationErrors={validationErrors}
           isQuestionDirty={isQuestionDirty}

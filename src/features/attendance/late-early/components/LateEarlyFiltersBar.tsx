@@ -9,6 +9,7 @@ import Button from "@/components/ui/button/Button";
 import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
 import type { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { LateEarlyFilters } from "../types";
+import { isInvalidDateRange } from "@/features/attendance/shared/utils/dateRange";
 
 interface LateEarlyFiltersBarProps {
   filters: LateEarlyFilters;
@@ -33,12 +34,14 @@ export default function LateEarlyFiltersBar({
 }: LateEarlyFiltersBarProps) {
   const t = useTranslations("attendance.lateEarly.filters");
   const tCommon = useTranslations("common");
+  const invalidDateRange = isInvalidDateRange(filters.dateFrom, filters.dateTo);
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <div className="lg:col-span-4">
           <Input
+            label={t("search")}
             value={filters.search}
             onChange={(event) => onFiltersChange({ search: event.target.value })}
             placeholder={t("searchPlaceholder")}
@@ -47,20 +50,26 @@ export default function LateEarlyFiltersBar({
         </div>
         <div className="lg:col-span-2">
           <DatePicker
+            label={t("dateFrom")}
             value={filters.dateFrom ? new Date(filters.dateFrom) : null}
+            maxDate={filters.dateTo ? new Date(filters.dateTo) : undefined}
             onChange={(value) => onFiltersChange({ dateFrom: value ? value.toISOString().split("T")[0] : undefined })}
             placeholder={t("dateFrom")}
           />
         </div>
         <div className="lg:col-span-2">
           <DatePicker
+            label={t("dateTo")}
             value={filters.dateTo ? new Date(filters.dateTo) : null}
+            minDate={filters.dateFrom ? new Date(filters.dateFrom) : undefined}
             onChange={(value) => onFiltersChange({ dateTo: value ? value.toISOString().split("T")[0] : undefined })}
             placeholder={t("dateTo")}
+            error={invalidDateRange ? tCommon("invalidDateRange") : undefined}
           />
         </div>
         <div className="lg:col-span-2">
           <Select
+            label={t("type")}
             value={filters.type}
             onChange={(value) => onFiltersChange({ type: value as LateEarlyFilters["type"] })}
             options={[
@@ -73,6 +82,7 @@ export default function LateEarlyFiltersBar({
         </div>
         <div className="lg:col-span-2">
           <Select
+            label={t("sessionStatus")}
             value={filters.sessionStatus || "ALL"}
             onChange={(value) => onFiltersChange({ sessionStatus: value as LateEarlyFilters["sessionStatus"] })}
             options={[
@@ -101,6 +111,7 @@ export default function LateEarlyFiltersBar({
 
         <div className="lg:col-span-2">
           <Input
+            label={t("minutesMin")}
             type="number"
             min={0}
             value={typeof filters.minutesMin === "number" ? filters.minutesMin : ""}
@@ -114,6 +125,7 @@ export default function LateEarlyFiltersBar({
 
         <div className="lg:col-span-2">
           <Input
+            label={t("minutesMax")}
             type="number"
             min={0}
             value={typeof filters.minutesMax === "number" ? filters.minutesMax : ""}

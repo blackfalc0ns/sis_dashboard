@@ -76,7 +76,7 @@ export default function BehaviorCategoriesPage() {
   }, [debouncedSearch, filters, showError, t]);
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
+    if (!canManage || !deleteTarget) return;
     setDeleting(true);
     try {
       await deleteBehaviorCategory(deleteTarget.id);

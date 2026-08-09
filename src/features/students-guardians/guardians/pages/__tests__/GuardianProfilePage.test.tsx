@@ -26,6 +26,7 @@ vi.mock(
   () => ({
     getStudentsGuardiansCapabilities: () => ({
       canLinkGuardianAccount: true,
+      canManageGuardians: true,
     }),
   }),
 );

@@ -13,6 +13,10 @@ import { FilterPanel } from "@/components/ui";
 import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/useUrlQueryState";
 import { isPolicyConfigComplete, hasNotificationsEnabled } from "../utils/policyKpis";
 import type { AttendancePolicy, AttendanceScopeType } from "../types";
+import {
+  AVAILABLE_POLICY_SCOPE_TYPES,
+  isAvailablePolicyScope,
+} from "../policyScopes";
 import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
 import type { Stage, Grade, Section, Classroom } from "@/features/academics/academic-structure-tree/services/structureService";
 
@@ -23,6 +27,7 @@ interface PoliciesListPanelProps {
   sections: Section[];
   classrooms: Classroom[];
   isReadOnly: boolean;
+  canManagePolicies: boolean;
   onCreatePolicy: () => void;
   onOpenExport: () => void;
   onFilteredPoliciesChange?: (policies: AttendancePolicy[]) => void;
@@ -38,6 +43,7 @@ export default function PoliciesListPanel({
   sections,
   classrooms,
   isReadOnly,
+  canManagePolicies,
   onCreatePolicy,
   onOpenExport,
   onFilteredPoliciesChange,
@@ -62,14 +68,7 @@ export default function PoliciesListPanel({
       >,
     ) => {
       const updates: Partial<Record<keyof typeof values, string | null>> = {};
-      const validScopes = new Set([
-        "ALL",
-        "SCHOOL",
-        "STAGE",
-        "GRADE",
-        "SECTION",
-        "CLASSROOM",
-      ]);
+      const validScopes = new Set(["ALL", ...AVAILABLE_POLICY_SCOPE_TYPES]);
       const validStatuses = new Set(["ALL", "ACTIVE", "INACTIVE"]);
       const validNotifications = new Set(["ALL", "ENABLED", "DISABLED"]);
 
@@ -129,6 +128,10 @@ export default function PoliciesListPanel({
   // Filter policies
   const filteredPolicies = useMemo(() => {
     return policies.filter((policy) => {
+      if (!isAvailablePolicyScope(policy.scopeType)) {
+        return false;
+      }
+
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -401,7 +404,7 @@ export default function PoliciesListPanel({
             }}
             className="p-1.5 text-gray-600 hover:text-primary hover:bg-gray-100 rounded transition-colors"
             title={t("edit")}
-            disabled={isReadOnly}
+            disabled={isReadOnly || !canManagePolicies}
           >
             <Edit2 className="w-4 h-4" />
           </button>
@@ -416,7 +419,7 @@ export default function PoliciesListPanel({
                 : "text-gray-600 hover:text-green-600 hover:bg-green-50"
             }`}
             title={row.isActive ? t("deactivate") : t("activate")}
-            disabled={isReadOnly}
+            disabled={isReadOnly || !canManagePolicies}
           >
             {row.isActive ? (
               <PowerOff className="w-4 h-4" />
@@ -431,7 +434,7 @@ export default function PoliciesListPanel({
             }}
             className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
             title={t("delete")}
-            disabled={isReadOnly}
+            disabled={isReadOnly || !canManagePolicies}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -463,7 +466,7 @@ export default function PoliciesListPanel({
               size="sm"
               leftIcon={<Plus className="w-4 h-4" />}
               onClick={onCreatePolicy}
-              disabled={isReadOnly}
+              disabled={isReadOnly || !canManagePolicies}
             >
               {t("createPolicy")}
             </Button>
@@ -477,6 +480,7 @@ export default function PoliciesListPanel({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 type="text"
+                label={t("searchPlaceholder")}
                 placeholder={t("searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setValue("search", e.target.value, "replace")}
@@ -487,20 +491,21 @@ export default function PoliciesListPanel({
           filtersSlot={
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
               <Select
+                label={t("scope")}
                 value={scopeFilter}
                 onChange={(value) => setValue("scope", value as "ALL" | AttendanceScopeType, "push")}
                 options={[
                   { value: "ALL", label: tCommon("all_scopes") },
-                  { value: "SCHOOL", label: t("scopeType.school") },
-                  { value: "STAGE", label: t("scopeType.stage") },
-                  { value: "GRADE", label: t("scopeType.grade") },
-                  { value: "SECTION", label: t("scopeType.section") },
-                  { value: "CLASSROOM", label: t("scopeType.classroom") },
+                  ...AVAILABLE_POLICY_SCOPE_TYPES.map((scopeType) => ({
+                    value: scopeType,
+                    label: t(`scopeType.${scopeType.toLowerCase()}`),
+                  })),
                 ]}
                 selectSize="sm"
               />
 
               <Select
+                label={t("status")}
                 value={statusFilter}
                 onChange={(value) => setValue("status", value as "ALL" | "ACTIVE" | "INACTIVE", "push")}
                 options={[
@@ -512,6 +517,7 @@ export default function PoliciesListPanel({
               />
 
               <Select
+                label={t("list.notifications")}
                 value={notificationsFilter}
                 onChange={(value) => setValue("notifications", value as "ALL" | "ENABLED" | "DISABLED", "push")}
                 options={[

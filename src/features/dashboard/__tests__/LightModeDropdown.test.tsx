@@ -19,6 +19,42 @@ const mockCreateTodo = vi.mocked(api.createDashboardTodo);
 const mockUpdateTodo = vi.mocked(api.updateDashboardTodo);
 
 describe("LightModeDropdown Integration", () => {
+  it("disables todo creation when manage access is absent", async () => {
+    mockFetchDashboardWidgets.mockResolvedValue({
+      generatedAt: "2026-07-15T09:00:00.000Z",
+      widgets: [],
+      summary: { total: 0, byType: {}, bySource: {} },
+      filters: { source: null, type: "calendar-card", limit: 1 },
+      deferred: {
+        customLayouts: "deferred",
+        widgetPreferences: "deferred",
+        analyticsCharts: "available",
+        weatherWidgets: "deferred",
+        todoWidgets: "available",
+        analyticsStandalone: "available",
+        todosStandalone: "persisted",
+        calendarTodoComposition: "available",
+        plannerCalendar: "available",
+        crossModulePlannerItems: "available",
+      },
+    });
+    mockFetchDropdown.mockResolvedValue({
+      location: { label: null, city: null, country: null, timezone: "Africa/Cairo" },
+      weather: {
+        status: "provider_not_configured",
+        current: { temperature: null, lowTemperature: null, feelsLike: null, condition: "Weather unavailable" },
+        emptyState: { message: "Weather provider is not configured." },
+      },
+      planner: { date: "2026-07-15", timezone: "Africa/Cairo", eventDates: [], todos: [] },
+    });
+
+    render(<LightModeDropdown canManageTodos={false} defaultExpanded />);
+
+    expect(
+      await screen.findByRole("button", { name: "add" }),
+    ).toBeDisabled();
+  });
+
   it("loads dropdown details when the page opens", async () => {
     mockFetchDashboardWidgets.mockResolvedValue({
       generatedAt: "2026-07-15T09:00:00.000Z",
@@ -89,7 +125,7 @@ describe("LightModeDropdown Integration", () => {
       },
     });
 
-    render(<LightModeDropdown />);
+    render(<LightModeDropdown canManageTodos />);
 
     await waitFor(() => {
       expect(mockFetchDropdown).toHaveBeenCalledWith(
@@ -187,7 +223,7 @@ describe("LightModeDropdown Integration", () => {
       },
     });
 
-    render(<LightModeDropdown defaultExpanded />);
+    render(<LightModeDropdown canManageTodos defaultExpanded />);
 
     await waitFor(() => {
       expect(mockFetchDropdown).toHaveBeenCalled();
@@ -262,7 +298,7 @@ describe("LightModeDropdown Integration", () => {
     });
     mockUpdateTodo.mockRejectedValueOnce(new Error("Network error"));
 
-    render(<LightModeDropdown defaultExpanded />);
+    render(<LightModeDropdown canManageTodos defaultExpanded />);
 
     await screen.findByText("Retryable Todo");
     fireEvent.click(screen.getByRole("button", { name: "edit" }));

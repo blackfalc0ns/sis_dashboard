@@ -8,6 +8,7 @@ import { Button, DataTable, type Column } from "@/components/ui";
 import Select from "@/components/ui/input/Select";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
 import { fetchGradesFiltersData } from "../../gradebook/services/gradesGradebookService";
 import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
 import { useGradesYearTermLayoutContext } from "../../hooks/GradesYearTermLayoutContext";
@@ -23,6 +24,8 @@ export default function GradesRulesListPage() {
   const locale = useLocale();
   const router = useRouter();
   const { showError } = useToast();
+  const { hasPermission } = usePermissions();
+  const canManageRules = hasPermission("grades.rules.manage");
   const { academicYearId, termId, isInitializing } = useGradesYearTermLayoutContext();
   const [rules, setRules] = useState<GradeRuleRecord[]>([]);
   const [grades, setGrades] = useState<ScopeEntityOption[]>([]);
@@ -74,7 +77,7 @@ export default function GradesRulesListPage() {
   return <main className="space-y-6 p-4 sm:p-6">
     <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div><h1 className="text-xl font-semibold text-gray-900">{t("title")}</h1><p className="mt-1 text-sm text-gray-600">{t("subtitle")}</p></div>
-      <Button leftIcon={<Plus className="h-4 w-4" />} onClick={() => navigate("/new")}>{t("form.createTitle")}</Button>
+      {canManageRules ? <Button leftIcon={<Plus className="h-4 w-4" />} onClick={() => navigate("/new")}>{t("form.createTitle")}</Button> : null}
     </header>
 
     <section className="rounded-xl border border-gray-200 bg-white p-4">

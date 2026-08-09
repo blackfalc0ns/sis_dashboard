@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import NotesTab from "../NotesTab";
 import * as studentsService from "@/features/students-guardians/students/services/studentsService";
+import { renderWithPermissions } from "@/__tests__/test-utils/renderWithPermissions";
 
 vi.mock(
   "@/features/students-guardians/students/services/studentsService",
@@ -29,7 +30,10 @@ describe("NotesTab", () => {
   });
 
   it("shows backend category and guardian visibility correctly", async () => {
-    render(<NotesTab student={{ id: "student-1" } as never} />);
+    renderWithPermissions(
+      <NotesTab student={{ id: "student-1" } as never} />,
+      ["students.notes.view"],
+    );
 
     await waitFor(() => {
       expect(screen.getByText("Follow-up required")).toBeInTheDocument();

@@ -147,6 +147,12 @@ export interface RejectConversationInvitePayload {
 export interface ConversationJoinRequest extends CommunicationRecord {
   id: CommunicationId;
   conversationId?: CommunicationId;
+  requestedById?: CommunicationId;
+  requestedBy?: {
+    id: CommunicationId;
+    displayName: string;
+    userType: string;
+  };
   userId?: CommunicationId;
   user?: CommunicationActor;
   status?: "pending" | "approved" | "rejected";

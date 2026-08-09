@@ -9,6 +9,8 @@ const toastSpies = vi.hoisted(() => ({
   showSuccess: vi.fn(),
 }));
 
+let grantedPermissions = new Set<string>();
+
 vi.mock("@/features/communication/api/communication.service", () => ({
   createAnnouncement: vi.fn(),
 }));
@@ -20,10 +22,29 @@ vi.mock("@/components/ui/toast/Toast", () => ({
   }),
 }));
 
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    hasPermission: (permission: string) => grantedPermissions.has(permission),
+    isPermissionsReady: true,
+  }),
+}));
+
 const mockedCreateAnnouncement = vi.mocked(createAnnouncement);
 
 describe("QuickActionPanel", () => {
   beforeEach(() => {
+    grantedPermissions = new Set([
+      "students.records.manage",
+      "students.guardians.manage",
+      "students.enrollments.manage",
+      "attendance.sessions.view",
+      "attendance.policies.view",
+      "academics.structure.view",
+      "communication.announcements.view",
+      "communication.announcements.manage",
+      "grades.gradebook.view",
+      "grades.assessments.manage",
+    ]);
     mockedCreateAnnouncement.mockReset();
     toastSpies.showError.mockClear();
     toastSpies.showSuccess.mockClear();
@@ -66,5 +87,29 @@ describe("QuickActionPanel", () => {
 
     expect(screen.getByText("Enter a title.")).toBeInTheDocument();
     expect(mockedCreateAnnouncement).not.toHaveBeenCalled();
+  });
+
+  it("shows only quick actions the user can open and hides announcement drafting without manage access", () => {
+    grantedPermissions = new Set([
+      "attendance.sessions.view",
+      "attendance.policies.view",
+      "academics.structure.view",
+    ]);
+
+    render(<QuickActionPanel />);
+
+    expect(screen.getByRole("link", { name: "attendance" })).toBeVisible();
+    expect(
+      screen.queryByRole("link", { name: "add_student" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "announcement" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "assessment" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /create draft/i }),
+    ).not.toBeInTheDocument();
   });
 });

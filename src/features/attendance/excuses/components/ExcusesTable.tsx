@@ -13,6 +13,8 @@ import {
 interface ExcusesTableProps {
   requests: ExcuseRequest[];
   isReadOnly: boolean;
+  canManageExcuses: boolean;
+  canReviewExcuses: boolean;
   onView: (request: ExcuseRequest) => void;
   onApprove: (request: ExcuseRequest) => void;
   onReject: (request: ExcuseRequest) => void;
@@ -20,7 +22,7 @@ interface ExcusesTableProps {
   onDelete: (request: ExcuseRequest) => void;
 }
 
-export default function ExcusesTable({ requests, isReadOnly, onView, onApprove, onReject, onEdit, onDelete }: ExcusesTableProps) {
+export default function ExcusesTable({ requests, isReadOnly, canManageExcuses, canReviewExcuses, onView, onApprove, onReject, onEdit, onDelete }: ExcusesTableProps) {
   const t = useTranslations("attendance.excuses.table");
   const locale = useLocale();
 
@@ -108,7 +110,8 @@ export default function ExcusesTable({ requests, isReadOnly, onView, onApprove, 
       sortable: false,
       render: (_: unknown, row: ExcuseRequest) => {
         const isPending = row.status === "PENDING";
-        const canMutate = isPending && !isReadOnly;
+        const canManage = isPending && !isReadOnly && canManageExcuses;
+        const canReview = isPending && !isReadOnly && canReviewExcuses;
 
         return (
           <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()}>
@@ -118,22 +121,22 @@ export default function ExcusesTable({ requests, isReadOnly, onView, onApprove, 
               </button>
             </Tooltip>
             <Tooltip title={t("approve")} arrow>
-              <button disabled={!canMutate} onClick={() => onApprove(row)} className="p-1.5 rounded disabled:opacity-40" style={{ color: "var(--color-success-700)" }}>
+              <button disabled={!canReview} onClick={() => onApprove(row)} className="p-1.5 rounded disabled:opacity-40" style={{ color: "var(--color-success-700)" }}>
                 <Check className="w-4 h-4" />
               </button>
             </Tooltip>
             <Tooltip title={t("reject")} arrow>
-              <button disabled={!canMutate} onClick={() => onReject(row)} className="p-1.5 rounded disabled:opacity-40" style={{ color: "var(--color-accent-700)" }}>
+              <button disabled={!canReview} onClick={() => onReject(row)} className="p-1.5 rounded disabled:opacity-40" style={{ color: "var(--color-accent-700)" }}>
                 <X className="w-4 h-4" />
               </button>
             </Tooltip>
             <Tooltip title={t("edit")} arrow>
-              <button disabled={!canMutate} onClick={() => onEdit(row)} className="p-1.5 rounded disabled:opacity-40" style={{ color: "var(--text-secondary)" }}>
+              <button disabled={!canManage} onClick={() => onEdit(row)} className="p-1.5 rounded disabled:opacity-40" style={{ color: "var(--text-secondary)" }}>
                 <PencilLine className="w-4 h-4" />
               </button>
             </Tooltip>
             <Tooltip title={t("delete")} arrow>
-              <button disabled={!canMutate} onClick={() => onDelete(row)} className="p-1.5 rounded disabled:opacity-40" style={{ color: "var(--color-accent-700)" }}>
+              <button disabled={!canManage} onClick={() => onDelete(row)} className="p-1.5 rounded disabled:opacity-40" style={{ color: "var(--color-accent-700)" }}>
                 <Trash2 className="w-4 h-4" />
               </button>
             </Tooltip>

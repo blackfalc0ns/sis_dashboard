@@ -345,9 +345,11 @@ export default function ConversationThread({
   const joinRequestsState = useConversationJoinRequests(conversationId, {
     enabled: loadedTabs.joinRequests,
   });
-  const presenceState = usePresence();
-  const typingState = useTypingIndicator(conversationId);
   const { policy } = useCommunicationPolicy();
+  const presenceState = usePresence({
+    enabled: policy?.allowOnlinePresence !== false,
+  });
+  const typingState = useTypingIndicator(conversationId);
   const messageIds = useMemo(
     () =>
       messagesState.messages
@@ -660,7 +662,11 @@ export default function ConversationThread({
           <ParticipantsPanel
             participants={participantsState.participants}
             total={participantsState.total}
-            presenceByUserId={presenceState.presenceByUserId}
+            presenceByUserId={
+              policy?.allowOnlinePresence === false
+                ? {}
+                : presenceState.presenceByUserId
+            }
             isLoading={participantsState.isLoading}
             isRefreshing={participantsState.isRefreshing}
             isMutating={participantsState.isMutating}

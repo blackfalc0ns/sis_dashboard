@@ -6,6 +6,7 @@ import { Filter } from "lucide-react";
 import { useMediaQuery } from "@mui/material";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
 import AttendanceScopeHeader from "@/features/attendance/shared/components/AttendanceScopeHeader";
 import AttendanceFiltersPanel from "@/features/attendance/shared/components/AttendanceFiltersPanel";
@@ -19,6 +20,7 @@ import {
   AttendanceWorkspaceState,
 } from "@/features/attendance/shared/components/AttendanceWorkspaceShell";
 import { isScopeSelectionComplete } from "@/features/attendance/shared/attendanceScope";
+import { isDateRangeValidationError, isInvalidDateRange } from "@/features/attendance/shared/utils/dateRange";
 import {
   fetchStructureTree,
   type Classroom,
@@ -66,6 +68,7 @@ function computeKpis(incidents: Incident[]): LateEarlyKpis {
 }
 
 export default function AttendanceLateEarlyPage() {
+  const { hasPermission } = usePermissions();
   const t = useTranslations("attendance.lateEarly");
   const tCommon = useTranslations("common");
   const locale = useLocale();
@@ -109,7 +112,20 @@ export default function AttendanceLateEarlyPage() {
   const [editingIncident, setEditingIncident] = useState<Incident | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
 
+  const handleFiltersChange = (patch: Partial<LateEarlyFilters>) => {
+    if ("search" in patch) {
+      setSearchInput(patch.search || "");
+    }
+
+    const nonSearchFilters = { ...patch };
+    delete nonSearchFilters.search;
+    if (Object.keys(nonSearchFilters).length > 0) {
+      setFilters((prev) => ({ ...prev, ...nonSearchFilters }));
+    }
+  };
+
   const isReadOnly = termContext.isReadOnly;
+  const isEntryReadOnly = isReadOnly || !hasPermission("attendance.entries.manage");
   const kpis = useMemo(() => computeKpis(incidents), [incidents]);
 
   // Get current term object
@@ -120,8 +136,6 @@ export default function AttendanceLateEarlyPage() {
   const resetFilters = useCallback(() => {
     setSearchInput("");
     setFilters({
-      dateFrom: term?.startDate,
-      dateTo: term?.endDate,
       scopeType: "SCHOOL",
       scopeIds: {},
       type: "ALL",
@@ -129,10 +143,17 @@ export default function AttendanceLateEarlyPage() {
       search: "",
       sessionStatus: "ALL",
     });
-  }, [term?.endDate, term?.startDate]);
+  }, []);
 
   const reloadIncidents = useCallback(async () => {
     if (!termContext.yearId || !termContext.termId) return;
+
+    if (isInvalidDateRange(filters.dateFrom, filters.dateTo)) {
+      setIncidents([]);
+      setSelectedIncident(null);
+      setLoading(false);
+      return;
+    }
 
     if (!isScopeSelectionComplete(filters.scopeType, filters.scopeIds)) {
       setIncidents([]);
@@ -151,7 +172,11 @@ export default function AttendanceLateEarlyPage() {
       });
     } catch (error) {
       console.error("Failed to load incidents", error);
-      showError(tCommon("error_loading"));
+      showError(
+        isDateRangeValidationError(error)
+          ? tCommon("invalidDateRange")
+          : tCommon("error_loading"),
+      );
     } finally {
       setLoading(false);
     }
@@ -358,7 +383,7 @@ export default function AttendanceLateEarlyPage() {
   };
 
   const handleEditMinutes = (incident: Incident) => {
-    if (isReadOnly || incident.sessionStatus !== "SUBMITTED") return;
+    if (isEntryReadOnly || incident.sessionStatus !== "SUBMITTED") return;
     setEditingIncident(incident);
     setMinutesEditorOpen(true);
   };
@@ -424,7 +449,7 @@ export default function AttendanceLateEarlyPage() {
   ) : (
     <LateEarlyTable
       incidents={incidents}
-      isReadOnly={isReadOnly}
+      isReadOnly={isEntryReadOnly}
       onView={handleOpenIncident}
       onEditMinutes={handleEditMinutes}
     />
@@ -435,7 +460,7 @@ export default function AttendanceLateEarlyPage() {
       <AttendanceWorkspaceShell>
         <AttendanceWorkspaceHeader>
           <AttendanceScopeHeader
-            isReadOnly={isReadOnly}
+            isReadOnly={isEntryReadOnly}
             scopeType={filters.scopeType}
             scopeIds={filters.scopeIds}
             stages={stages}
@@ -455,12 +480,7 @@ export default function AttendanceLateEarlyPage() {
                 grades={grades}
                 sections={sections}
                 classrooms={classrooms}
-                onFiltersChange={(patch) => {
-                  if ("search" in patch) {
-                    setSearchInput(patch.search || "");
-                  }
-                  setFilters((prev) => ({ ...prev, ...patch }));
-                }}
+                onFiltersChange={handleFiltersChange}
                 onResetFilters={resetFilters}
                 onOpenExport={() => setShowExportModal(true)}
               />
@@ -500,12 +520,7 @@ export default function AttendanceLateEarlyPage() {
         classrooms={classrooms}
         onClose={() => setFiltersDrawerOpen(false)}
         onApply={() => setFiltersDrawerOpen(false)}
-        onFiltersChange={(patch) => {
-          if ('search' in patch) {
-            setSearchInput(patch.search || "");
-          }
-          setFilters((prev) => ({ ...prev, ...patch }));
-        }}
+        onFiltersChange={handleFiltersChange}
         onResetFilters={resetFilters}
         onOpenExport={() => setShowExportModal(true)}
       />
@@ -521,7 +536,7 @@ export default function AttendanceLateEarlyPage() {
       >
         <IncidentDetailsDrawer
           incident={selectedIncident}
-          isReadOnly={isReadOnly}
+          isReadOnly={isEntryReadOnly}
           onClose={() => {
             setDetailsDrawerOpen(false);
             setSelectedIncident(null);
@@ -534,7 +549,7 @@ export default function AttendanceLateEarlyPage() {
         isOpen={minutesEditorOpen}
         type={editingIncident?.type || "LATE"}
         initialMinutes={editingIncident?.minutes || 0}
-        isReadOnly={isReadOnly}
+        isReadOnly={isEntryReadOnly}
         onClose={() => {
           setMinutesEditorOpen(false);
           setEditingIncident(null);

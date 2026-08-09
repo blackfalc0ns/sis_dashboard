@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button, FilterPanel, Select } from "@/components/ui";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
+import DashboardPermissionGuard from "@/features/dashboard/components/DashboardPermissionGuard";
 import {
   mapDashboardAlertsToViewModel,
   type DashboardAlertsViewModel,
@@ -93,6 +94,14 @@ const toneStyles: Record<
 };
 
 export default function DashboardAlertsPage() {
+  return (
+    <DashboardPermissionGuard permission="dashboard.alerts.view">
+      <DashboardAlertsContent />
+    </DashboardPermissionGuard>
+  );
+}
+
+function DashboardAlertsContent() {
   const { isInitializing } = useAcademicYearTermLayoutContext();
   const locale = useLocale();
   const pathname = usePathname();

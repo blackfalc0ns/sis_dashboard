@@ -1,4 +1,4 @@
-import { apiClient, apiPost } from "@/lib/api";
+import { apiClient, apiPost, type ApiRequestConfig } from "@/lib/api";
 
 export interface UploadedFileRecord {
   id: string;
@@ -17,10 +17,13 @@ export async function uploadFile(file: File): Promise<UploadedFileRecord> {
   });
 }
 
-export async function downloadFileBlob(fileId: string): Promise<Blob> {
+export async function downloadFileBlob(
+  fileId: string,
+  config?: ApiRequestConfig,
+): Promise<Blob> {
   const response = await apiClient.get(
     `/api/files/${encodeURIComponent(fileId)}/download`,
-    { baseURL: "", responseType: "blob" },
+    { ...config, baseURL: "", responseType: "blob" },
   );
   return response.data instanceof Blob
     ? response.data

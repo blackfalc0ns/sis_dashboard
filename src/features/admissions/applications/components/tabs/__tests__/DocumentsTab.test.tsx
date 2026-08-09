@@ -421,7 +421,7 @@ describe("DocumentsTab review actions", () => {
     permissionMocks.permissions = new Set([]);
     renderDocumentsTab();
 
-    expect(screen.getByText("You do not have access to this admissions area")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toBeInTheDocument();
     expect(serviceMocks.fetchApplicationDocuments).not.toHaveBeenCalled();
     expect(screen.queryByText("Pending document")).not.toBeInTheDocument();
   });

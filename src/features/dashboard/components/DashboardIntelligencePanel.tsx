@@ -45,6 +45,8 @@ import type {
 } from "@/features/dashboard/types/dashboardApi.types";
 import { resolveDashboardActionTarget } from "@/features/dashboard/utils/resolveDashboardActionTarget";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
+import { usePermissions } from "@/hooks/usePermissions";
+import DashboardPermissionGuard from "./DashboardPermissionGuard";
 
 type IntelligenceState = {
   commandCenter: DashboardCommandCenterResponse | null;
@@ -67,6 +69,42 @@ const emptyState: IntelligenceState = {
 const chartColors = ["#036b80", "#0ea5a4", "#f59e0b", "#7c3aed"];
 
 export default function DashboardIntelligencePanel({
+  onCommandCenterChange,
+}: {
+  onCommandCenterChange?: (commandCenter: DashboardCommandCenterResponse | null) => void;
+}) {
+  const { isPermissionsReady } = usePermissions();
+
+  if (!isPermissionsReady) return null;
+
+  return (
+    <DashboardPermissionGuard
+      fallback={null}
+      permission="dashboard.command_center.view"
+    >
+      <DashboardPermissionGuard
+        fallback={null}
+        permission="dashboard.widgets.view"
+      >
+        <DashboardPermissionGuard
+          fallback={null}
+          permission="dashboard.analytics.view"
+        >
+          <DashboardPermissionGuard
+            fallback={null}
+            permission="dashboard.todos.view"
+          >
+            <DashboardIntelligenceContent
+              onCommandCenterChange={onCommandCenterChange}
+            />
+          </DashboardPermissionGuard>
+        </DashboardPermissionGuard>
+      </DashboardPermissionGuard>
+    </DashboardPermissionGuard>
+  );
+}
+
+function DashboardIntelligenceContent({
   onCommandCenterChange,
 }: {
   onCommandCenterChange?: (commandCenter: DashboardCommandCenterResponse | null) => void;

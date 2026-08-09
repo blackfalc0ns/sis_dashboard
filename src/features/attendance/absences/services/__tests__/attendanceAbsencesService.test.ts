@@ -77,7 +77,6 @@ describe("attendanceAbsencesService", () => {
         dateFrom: "2026-02-01",
         dateTo: "2026-02-28",
         scopeType: "CLASSROOM",
-        scopeKey: "classroom:classroom-1",
         classroomId: "classroom-1",
       },
     });
@@ -121,10 +120,41 @@ describe("attendanceAbsencesService", () => {
         termId: "term-1",
         dateFrom: "2026-02-01",
         dateTo: "2026-02-28",
-        scopeType: "SCHOOL",
-        scopeKey: "school",
       },
     });
+  });
+
+  it("does not invent the status that an excused incident had before correction", async () => {
+    mockedApiGet.mockResolvedValueOnce({
+      items: [
+        {
+          id: "incident-2",
+          academicYearId: "year-1",
+          termId: "term-1",
+          date: "2026-02-10",
+          studentId: "student-1",
+          studentNameEn: "Sara Ali",
+          scopeType: "CLASSROOM",
+          status: "EXCUSED",
+          lateMinutes: 20,
+          mode: "PERIOD",
+          submittedAt: "2026-02-10T08:00:00.000Z",
+          updatedAt: "2026-02-10T08:10:00.000Z",
+        },
+      ],
+    });
+
+    const [record] = await fetchAbsenceRecords({
+      yearId: "year-1",
+      termId: "term-1",
+      scopeType: "SCHOOL",
+      status: "ALL",
+      granularities: ["PERIOD"],
+      onlyUnexcused: false,
+      search: "",
+    });
+
+    expect(record.excusedFromStatus).toBeUndefined();
   });
 
   it("uses backend correction endpoints for excuse and early leave updates", async () => {

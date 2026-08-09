@@ -63,6 +63,7 @@ describe("authenticatedFileUrlCache", () => {
     const repeatedFile = await loadAuthenticatedFileUrl("file-1");
 
     expect(fileServiceMocks.downloadFileBlob).toHaveBeenCalledTimes(1);
+    expect(fileServiceMocks.downloadFileBlob).toHaveBeenCalledWith("file-1");
     expect(concurrentFile).toBe(firstFile);
     expect(repeatedFile).toBe(firstFile);
     expect(getCachedAuthenticatedFile("file-1")).toBe(firstFile);

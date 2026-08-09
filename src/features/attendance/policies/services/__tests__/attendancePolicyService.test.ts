@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/api-error";
 import {
   createPolicy,
   deletePolicy,
+  fetchEffectiveAttendancePolicy,
   fetchPolicies,
   resolveEffectiveExcusePolicy,
   updatePolicy,
@@ -81,6 +82,43 @@ describe("attendancePolicyService", () => {
       params: {
         academicYearId: "year-1",
         termId: "term-1",
+      },
+    });
+  });
+
+  it("uses the backend-selected policy for the requested roll-call context", async () => {
+    mockedApiGet.mockResolvedValueOnce({
+      policy: {
+        id: "policy-1",
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "CLASSROOM",
+        scopeIds: { classroomId: "classroom-1" },
+        mode: "PERIOD",
+      },
+    });
+
+    await expect(
+      fetchEffectiveAttendancePolicy({
+        yearId: "year-1",
+        termId: "term-1",
+        scopeType: "CLASSROOM",
+        scopeIds: { classroomId: "classroom-1" },
+        date: "2026-02-10",
+      }),
+    ).resolves.toMatchObject({
+      id: "policy-1",
+      scopeType: "CLASSROOM",
+      scopeIds: { classroomId: "classroom-1" },
+    });
+
+    expect(mockedApiGet).toHaveBeenCalledWith("/attendance/policies/effective", {
+      params: {
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "CLASSROOM",
+        classroomId: "classroom-1",
+        date: "2026-02-10",
       },
     });
   });

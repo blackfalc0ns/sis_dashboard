@@ -85,7 +85,7 @@ export default function GuardianProfilePage({
   const locale = useLocale();
   const router = useRouter();
   const permissions = usePermissions();
-  const { canLinkGuardianAccount } =
+  const { canLinkGuardianAccount, canManageGuardians } =
     getStudentsGuardiansCapabilities(permissions);
   const params = useParams();
   const lang = (params.lang as string) || "en";
@@ -145,6 +145,10 @@ export default function GuardianProfilePage({
   }
 
   const openEditModal = () => {
+    if (!canManageGuardians) {
+      return;
+    }
+
     setEditForm(buildGuardianEditForm(guardian));
     setEditError(null);
     setIsEditModalOpen(true);
@@ -175,7 +179,7 @@ export default function GuardianProfilePage({
 
   const saveGuardianEdit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!editForm) {
+    if (!canManageGuardians || !editForm) {
       return;
     }
 
@@ -270,6 +274,7 @@ export default function GuardianProfilePage({
                 variant="secondary"
                 leftIcon={<Edit className="h-4 w-4" />}
                 onClick={openEditModal}
+                disabled={!canManageGuardians}
               >
                 {t("actions.edit")}
               </Button>

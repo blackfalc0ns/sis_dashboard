@@ -625,6 +625,8 @@
     "preview": "معاينة",
     "open": "فتح",
     "filePreview": {
+      "accessDenied": "ليس لديك صلاحية لمعاينة هذا المرفق.",
+      "accessDeniedDescription": "تواصل مع المسؤول إذا كنت بحاجة إلى الوصول إلى هذا الملف.",
       "title": "معاينة المرفق",
       "loading": "جارٍ تحميل المعاينة...",
       "unavailable": "المعاينة غير متاحة",
@@ -677,6 +679,7 @@
     "title_ar": "العنوان (عربي)",
     "title_en": "العنوان (English)",
     "noResults": "لا توجد نتائج",
+    "invalidDateRange": "يجب أن يكون تاريخ البداية قبل أو مساويًا لتاريخ النهاية.",
     "unsavedChangesTitle": "تغييرات غير محفوظة",
     "unsavedChangesBody": "لديك تغييرات غير محفوظة. هل تريد الخروج بدون حفظ ",
     "stay": "البقاء",
@@ -707,7 +710,17 @@
     "print": "طباعة",
     "accessDenied": {
       "title": "تم رفض الوصول",
-      "description": "ليست لديك صلاحية لعرض هذا القسم."
+      "description": "ليست لديك صلاحية لعرض هذا القسم.",
+      "requiredPermissions": "الصلاحيات المطلوبة",
+      "eyebrow": "صلاحية مطلوبة",
+      "guidance": "تواصل مع مسؤول المدرسة لطلب الصلاحية التي تحتاج إليها."
+    },
+    "scopePermissionDenied": {
+      "title": "ليست لديك صلاحية لتنفيذ هذا الإجراء",
+      "description": "صلاحيات حسابك الحالية لا تسمح بتنفيذ هذا الإجراء.",
+      "requiredPermissions": "الصلاحيات المطلوبة",
+      "guidance": "تواصل مع مسؤول المدرسة إذا كنت تعتقد أنك بحاجة إلى هذه الصلاحية.",
+      "dismiss": "حسنًا"
     },
     "export": {
       "button": "تصدير",
@@ -7768,6 +7781,7 @@
     "backToHome": "العودة للرئيسية"
   },
   "attendance": {
+    "readOnlyView": "هذه صفحة للعرض فقط",
     "title": "الحضور والانضباط",
     "common": {
       "termContext": {
@@ -7894,6 +7908,8 @@
         "noPolicyDesc": "لم يتم العثور على سياسة حضور نشطة لهذا النطاق والتاريخ. يرجى إنشاء سياسة أولاً.",
         "noTimetable": "لا يوجد جدول زمني",
         "noTimetableDesc": "الحضور بالحصة يتطلب إعداد الجدول الزمني. يرجى إعداد الجدول الزمني أولاً.",
+        "inactiveDate": "لا يوجد تسجيل حضور مجدول",
+        "inactiveDateDesc": "التاريخ المحدد ليس يومًا نشطًا في جدول هذا النطاق.",
         "noStudents": "لا يوجد طلاب",
         "noStudentsDesc": "لم يتم العثور على طلاب للنطاق المحدد."
       },
@@ -8094,13 +8110,16 @@
       },
       "filters": {
         "filters": "الفلاتر",
+        "search": "البحث",
         "searchPlaceholder": "ابحث باسم الطالب أو الرقم...",
         "dateFrom": "من تاريخ",
         "dateTo": "إلى تاريخ",
+        "type": "نوع الواقعة",
         "allTypes": "كل الأنواع",
         "late": "تأخير",
         "earlyLeave": "مغادرة مبكرة",
         "allSessionStatuses": "كل حالات الجلسة",
+        "sessionStatus": "حالة الجلسة",
         "sessionDraft": "مسودة",
         "sessionSubmitted": "معتمدة",
         "minutesMin": "أقل دقائق",
@@ -8209,9 +8228,12 @@
       },
       "filters": {
         "filters": "الفلاتر",
+        "search": "البحث",
         "searchPlaceholder": "ابحث باسم الطالب أو الرقم...",
         "dateFrom": "من تاريخ",
         "dateTo": "إلى تاريخ",
+        "status": "حالة الطلب",
+        "type": "نوع العذر",
         "allStatuses": "كل الحالات",
         "pending": "قيد المراجعة",
         "approved": "مقبول",
@@ -8221,6 +8243,7 @@
         "late": "تأخير",
         "earlyLeave": "مغادرة مبكرة",
         "allAttachments": "كل المرفقات",
+        "hasAttachment": "المرفق",
         "withAttachment": "مع مرفق",
         "withoutAttachment": "بدون مرفق",
         "export": "تصدير",

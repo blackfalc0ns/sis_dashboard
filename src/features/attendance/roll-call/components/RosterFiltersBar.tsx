@@ -118,6 +118,7 @@ export default function RosterFiltersBar({
             />
             <Input
               type="text"
+              label={t("search")}
               placeholder={t("searchPlaceholder")}
               value={filters.search}
               onChange={(e) =>

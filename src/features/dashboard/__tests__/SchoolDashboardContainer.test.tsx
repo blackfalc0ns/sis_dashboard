@@ -21,6 +21,16 @@ vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({
   useAcademicYearTermLayoutContext: () => ({ isInitializing: false }),
 }));
 
+let grantedDashboardPermissions = new Set<string>();
+
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    hasPermission: (permission: string) =>
+      grantedDashboardPermissions.has(permission),
+    isPermissionsReady: true,
+  }),
+}));
+
 vi.mock("@/features/dashboard/services/dashboardApiService", () => ({
   fetchDashboardSummary: vi.fn(),
   fetchDashboardAlerts: vi.fn(),
@@ -58,6 +68,28 @@ type DashboardModuleResult = Awaited<ReturnType<typeof fetchDashboardModuleByKey
 
 describe("SchoolDashboardContainer", () => {
   beforeEach(() => {
+    grantedDashboardPermissions = new Set([
+      "dashboard.summary.view",
+      "dashboard.alerts.view",
+      "dashboard.activity_feed.view",
+      "dashboard.modules.view",
+      "dashboard.command_center.view",
+      "dashboard.light_mode_dropdown.view",
+      "dashboard.widgets.view",
+      "dashboard.analytics.view",
+      "dashboard.todos.view",
+      "dashboard.todos.manage",
+      "students.records.manage",
+      "students.guardians.manage",
+      "students.enrollments.manage",
+      "attendance.sessions.view",
+      "attendance.policies.view",
+      "academics.structure.view",
+      "communication.announcements.view",
+      "communication.announcements.manage",
+      "grades.gradebook.view",
+      "grades.assessments.manage",
+    ]);
     mockedFetchDashboardSummary.mockReset();
     mockedFetchDashboardAlerts.mockReset();
     mockedFetchDashboardActivityFeed.mockReset();
@@ -432,6 +464,25 @@ describe("SchoolDashboardContainer", () => {
     expect(screen.getByText("Absences marked today")).toBeInTheDocument();
     expect(screen.getByText("Recent activities")).toBeInTheDocument();
     expect(screen.getByText("Attendance session submitted")).toBeInTheDocument();
+  });
+
+  it("keeps permitted dashboard sections visible without requesting denied sections", async () => {
+    grantedDashboardPermissions = new Set([
+      "dashboard.summary.view",
+      "dashboard.activity_feed.view",
+    ]);
+    mockedFetchDashboardSummary.mockResolvedValue(dashboardSummaryResponse());
+    mockedFetchDashboardActivityFeed.mockResolvedValue(
+      dashboardActivityFeedResponse(),
+    );
+
+    render(<SchoolDashboardContainer />);
+
+    expect(await screen.findByText("School command center")).toBeInTheDocument();
+    expect(screen.getByText("Recent activities")).toBeInTheDocument();
+    expect(screen.queryByText("Action Required")).not.toBeInTheDocument();
+    expect(mockedFetchDashboardAlerts).not.toHaveBeenCalled();
+    expect(mockedFetchDashboardModules).not.toHaveBeenCalled();
   });
 
   it("fetches dashboard modules on mount and displays them as tabs, switching tab fetches module details", async () => {

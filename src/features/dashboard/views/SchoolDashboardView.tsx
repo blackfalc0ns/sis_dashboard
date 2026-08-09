@@ -26,6 +26,8 @@ import ActivitiesCard from "../components/ActivitiesCard";
 import DashboardAnalysisCards from "../components/DashboardAnalysisCards";
 import DashboardAnalysisCharts from "../components/DashboardAnalysisCharts";
 import DashboardIntelligencePanel from "../components/DashboardIntelligencePanel";
+import DashboardLightModeDropdown from "../components/DashboardLightModeDropdown";
+import DashboardPermissionGuard from "../components/DashboardPermissionGuard";
 import FilterBar from "../components/FilterBar";
 import QuickActionPanel from "../components/QuickActionPanel";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
@@ -49,7 +51,6 @@ import type {
   DashboardModuleListItem,
   DashboardModulePage,
 } from "@/features/dashboard/types/dashboardApi.types";
-import { LightModeDropdown } from "@/components/ui";
 
 export type DashboardSectionState<TData> =
   | { status: "loading" }
@@ -199,17 +200,22 @@ export default function SchoolDashboardView({
       dir={locale === "ar" ? "rtl" : "ltr"}
     >
       <div className="mx-auto max-w-[1600px] space-y-6">
-        <DashboardHeader
-          activityFeedState={activityFeedState}
-          alertsState={alertsState}
-          isRefreshing={isRefreshing}
-          onRefresh={onRefresh}
-          locale={locale}
-          pathname={pathname}
-          summaryState={summaryState}
-          t={t}
-        />
-        <LightModeDropdown />
+        <DashboardPermissionGuard
+          fallback={null}
+          permission="dashboard.summary.view"
+        >
+          <DashboardHeader
+            activityFeedState={activityFeedState}
+            alertsState={alertsState}
+            isRefreshing={isRefreshing}
+            onRefresh={onRefresh}
+            locale={locale}
+            pathname={pathname}
+            summaryState={summaryState}
+            t={t}
+          />
+        </DashboardPermissionGuard>
+        <DashboardLightModeDropdown />
         <DashboardIntelligencePanel
           onCommandCenterChange={handleCommandCenterChange}
         />
@@ -224,30 +230,42 @@ export default function SchoolDashboardView({
           t={t}
         />
 
-        <TopKpiGrid locale={locale} summaryState={summaryState} t={t} />
+        <DashboardPermissionGuard
+          fallback={null}
+          permission="dashboard.summary.view"
+        >
+          <TopKpiGrid locale={locale} summaryState={summaryState} t={t} />
+        </DashboardPermissionGuard>
 
-        <DashboardTabs
-          activeTab={activeTab}
-          onTabChange={(tabId) => {
-            setActiveTab(tabId);
-            if (tabId !== "overview") {
-              onLoadModuleDetails(tabId);
-            }
-          }}
-          tabs={dynamicTabs}
-          t={t}
-        />
+        <DashboardPermissionGuard
+          fallback={null}
+          permission="dashboard.modules.view"
+        >
+          <>
+            <DashboardTabs
+              activeTab={activeTab}
+              onTabChange={(tabId) => {
+                setActiveTab(tabId);
+                if (tabId !== "overview") {
+                  onLoadModuleDetails(tabId);
+                }
+              }}
+              tabs={dynamicTabs}
+              t={t}
+            />
 
-        <DashboardTabContent
-          activeTab={activeTab}
-          locale={locale}
-          pathname={pathname}
-          summaryState={summaryState}
-          cachedModules={cachedModules}
-          moduleLoadingStates={moduleLoadingStates}
-          moduleErrors={moduleErrors}
-          t={t}
-        />
+            <DashboardTabContent
+              activeTab={activeTab}
+              locale={locale}
+              pathname={pathname}
+              summaryState={summaryState}
+              cachedModules={cachedModules}
+              moduleLoadingStates={moduleLoadingStates}
+              moduleErrors={moduleErrors}
+              t={t}
+            />
+          </>
+        </DashboardPermissionGuard>
 
         <PersistentDashboardDetails
           activityFeedState={activityFeedState}
@@ -273,11 +291,16 @@ function DashboardActionRow({
 }) {
   return (
     <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-      <ActionRequiredPanel
-        alertsState={alertsState}
-        pathname={pathname}
-        t={t}
-      />
+      <DashboardPermissionGuard
+        fallback={null}
+        permission="dashboard.alerts.view"
+      >
+        <ActionRequiredPanel
+          alertsState={alertsState}
+          pathname={pathname}
+          t={t}
+        />
+      </DashboardPermissionGuard>
       <QuickActionPanel />
     </section>
   );
@@ -748,12 +771,17 @@ function PersistentDashboardDetails({
 
   return (
     <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-      <DashboardActivityPanel
-        activityFeedState={activityFeedState}
-        locale={locale}
-        recentActivitiesHref={recentActivitiesPath(pathname)}
-        t={t}
-      />
+      <DashboardPermissionGuard
+        fallback={null}
+        permission="dashboard.activity_feed.view"
+      >
+        <DashboardActivityPanel
+          activityFeedState={activityFeedState}
+          locale={locale}
+          recentActivitiesHref={recentActivitiesPath(pathname)}
+          t={t}
+        />
+      </DashboardPermissionGuard>
       <DeferredFeatureList deferredFeatures={deferredFeatures} t={t} />
     </section>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { Calendar, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import DatePicker from "@/components/ui/input/DatePicker";
@@ -15,6 +16,11 @@ import type {
 import type { TimetablePeriod } from "@/features/academics/timetable/types/timetableConfig";
 import { getSessionStatusStyle } from "@/features/attendance/shared/statusStyles";
 import type { AttendanceScopeIds } from "@/features/attendance/shared/attendanceScope";
+import {
+  formatLocalDate,
+  isTimetableDateActive,
+  parseLocalDate,
+} from "../utils/localDate";
 
 import type { AttendanceSessionMode, AttendanceSessionStatus } from "../types";
 
@@ -28,7 +34,7 @@ interface SessionPickerPanelProps {
   grades: Grade[];
   sections: Section[];
   classrooms: Classroom[];
-  onScopeTypeChange: (scopeType: AttendanceScopeType) => void;
+  onScopeChange: (scopeType: AttendanceScopeType) => void;
   onScopeIdsChange: (scopeIds: AttendanceScopeIds) => void;
 
   // Date
@@ -36,6 +42,7 @@ interface SessionPickerPanelProps {
   onDateChange: (date: string) => void;
   termStartDate: string;
   termEndDate: string;
+  activeDayIndexes?: number[];
 
   // Mode & Period
   mode: AttendanceSessionMode;
@@ -63,12 +70,13 @@ export default function SessionPickerPanel({
   grades,
   sections,
   classrooms,
-  onScopeTypeChange,
+  onScopeChange,
   onScopeIdsChange,
   date,
   onDateChange,
   termStartDate,
   termEndDate,
+  activeDayIndexes,
   mode,
   isDailyDerivedFromPeriods = false,
   periods,
@@ -84,6 +92,7 @@ export default function SessionPickerPanel({
   const t = useTranslations("attendance.rollCall");
   const tStatus = useTranslations("attendance.rollCall.sessionStatus");
   const locale = useLocale();
+  const ignoreNextScopeIdsReset = useRef(false);
   const frameClassName =
     variant === "rail"
       ? "flex h-full w-full flex-col rounded-lg border border-border bg-[var(--background)]"
@@ -179,8 +188,21 @@ export default function SessionPickerPanel({
             grades={grades}
             sections={sections}
             classrooms={classrooms}
-            onScopeTypeChange={onScopeTypeChange}
-            onScopeIdsChange={onScopeIdsChange}
+            onScopeTypeChange={(nextScopeType) => {
+              ignoreNextScopeIdsReset.current = true;
+              onScopeChange(nextScopeType);
+            }}
+            onScopeIdsChange={(nextScopeIds) => {
+              if (
+                ignoreNextScopeIdsReset.current &&
+                Object.keys(nextScopeIds).length === 0
+              ) {
+                ignoreNextScopeIdsReset.current = false;
+                return;
+              }
+              ignoreNextScopeIdsReset.current = false;
+              onScopeIdsChange(nextScopeIds);
+            }}
             disabled={disabled || lockSessionContext}
           />
         </div>
@@ -194,12 +216,17 @@ export default function SessionPickerPanel({
             {t("sessionPicker.date")}
           </h4>
           <DatePicker
-            value={date ? new Date(date) : null}
+            value={date ? parseLocalDate(date) : null}
             onChange={(newDate) =>
-              onDateChange(newDate ? newDate.toISOString().split("T")[0] : "")
+              onDateChange(newDate ? formatLocalDate(newDate) : "")
             }
-            minDate={termStartDate ? new Date(termStartDate) : undefined}
-            maxDate={termEndDate ? new Date(termEndDate) : undefined}
+            minDate={termStartDate ? parseLocalDate(termStartDate) : undefined}
+            maxDate={termEndDate ? parseLocalDate(termEndDate) : undefined}
+            shouldDisableDate={
+              activeDayIndexes
+                ? (candidate) => !isTimetableDateActive(candidate, activeDayIndexes)
+                : undefined
+            }
             disabled={disabled || lockSessionContext}
           />
         </div>

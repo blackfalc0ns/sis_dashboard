@@ -87,7 +87,9 @@ export function sendSchoolSupportMessage(
   );
 }
 
-export function markSchoolSupportRead(payload?: MarkSchoolSupportReadPayload) {
+export function markSchoolSupportRead(
+  payload?: MarkSchoolSupportReadPayload,
+) {
   return apiPost<{ conversationId: string; readAt: string; markedCount: number }>(
     `${SCHOOL_SUPPORT_ENDPOINT}/read`,
     payload,

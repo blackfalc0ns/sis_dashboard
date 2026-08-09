@@ -3,7 +3,8 @@
 import { useTranslations } from "next-intl";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import ScopePicker from "../ScopePicker";
-import type { PolicyFormData, AttendanceScopeType } from "../../types";
+import type { PolicyFormData } from "../../types";
+import { AVAILABLE_POLICY_SCOPE_TYPES } from "../../policyScopes";
 import type {
   Stage,
   Grade,
@@ -63,8 +64,8 @@ export default function Step2Scope({
         <label className="block text-sm font-medium text-gray-700 mb-3">
           {t("fields.scope")} <span className="text-red-500">*</span>
         </label>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-          {(["SCHOOL", "STAGE", "GRADE", "SECTION", "CLASSROOM"] as AttendanceScopeType[]).map(
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+          {AVAILABLE_POLICY_SCOPE_TYPES.map(
             (scopeType) => (
               <div
                 key={scopeType}
@@ -121,6 +122,7 @@ export default function Step2Scope({
               ...scopeIds,
             });
           }}
+          allowedScopeTypes={AVAILABLE_POLICY_SCOPE_TYPES}
           disabled={isReadOnly}
           errors={{
             scopeType: errors.scopeType,

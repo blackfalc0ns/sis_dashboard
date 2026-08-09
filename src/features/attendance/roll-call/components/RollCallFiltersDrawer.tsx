@@ -78,7 +78,7 @@ export default function RollCallFiltersDrawer({
         {/* Search */}
         <div className="mb-4">
           <label style={{ color: "var(--color-gray-700)" }} className="block text-sm font-medium mb-1">
-            {t("searchPlaceholder")}
+            {t("search")}
           </label>
           <div className="relative">
             <Search style={{ color: "var(--color-neutral-400)" }} className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" />

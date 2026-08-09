@@ -21,6 +21,9 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Modal from "@/components/ui/modal/Modal";
 import { GuardianProfileProvider } from "@/features/students-guardians/guardians/context/GuardianProfileContext";
+import StudentsGuardiansPermissionGuard from "@/features/students-guardians/shared/components/StudentsGuardiansPermissionGuard";
+import { usePermissions } from "@/hooks/usePermissions";
+import { getStudentsGuardiansCapabilities } from "@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities";
 
 type GuardianEditForm = {
   full_name: string;
@@ -70,10 +73,21 @@ export default function GuardianProfileLayout({
 }: {
   children: React.ReactNode;
 }) {
+  return (
+    <StudentsGuardiansPermissionGuard permissions={["students.guardians.view"]}>
+      <GuardianProfileLayoutContent>{children}</GuardianProfileLayoutContent>
+    </StudentsGuardiansPermissionGuard>
+  );
+}
+
+function GuardianProfileLayoutContent({ children }: { children: React.ReactNode }) {
   const t = useTranslations("students_guardians.guardian_profile");
   const locale = useLocale();
   const router = useRouter();
   const params = useParams();
+  const permissions = usePermissions();
+  const { canManageGuardians } =
+    getStudentsGuardiansCapabilities(permissions);
   const lang = (params.lang as string) || "en";
 
   const { activeTab, entityId: guardianId, handleTabClick } = useSectionTabs({
@@ -126,7 +140,7 @@ export default function GuardianProfileLayout({
   }, [guardianId]);
 
   const openEditModal = () => {
-    if (!guardian) return;
+    if (!canManageGuardians || !guardian) return;
     setEditForm(buildGuardianEditForm(guardian));
     setEditError(null);
     setIsEditModalOpen(true);
@@ -150,7 +164,7 @@ export default function GuardianProfileLayout({
 
   const saveGuardianEdit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!editForm || !guardian) return;
+    if (!canManageGuardians || !editForm || !guardian) return;
 
     setIsSavingEdit(true);
     setEditError(null);
@@ -260,6 +274,7 @@ export default function GuardianProfileLayout({
             variant="secondary"
             leftIcon={<Edit className="h-4 w-4" />}
             onClick={openEditModal}
+            disabled={!canManageGuardians}
           >
             {t("actions.edit")}
           </Button>

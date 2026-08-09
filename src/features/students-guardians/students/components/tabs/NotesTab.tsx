@@ -23,6 +23,8 @@ import AddNoteModal, {
   NoteFormData,
 } from "@/features/students-guardians/students/components/modals/AddNoteModal";
 import { useTranslations } from "next-intl";
+import { usePermissions } from "@/hooks/usePermissions";
+import { getStudentsGuardiansCapabilities } from "@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities";
 
 interface NotesTabProps {
   student: Student;
@@ -30,6 +32,8 @@ interface NotesTabProps {
 
 export default function NotesTab({ student }: NotesTabProps) {
   const t = useTranslations("students_guardians.profile.notes");
+  const permissions = usePermissions();
+  const { canManageNotes } = getStudentsGuardiansCapabilities(permissions);
   const [categoryFilter, setCategoryFilter] = useState<NoteCategory | "all">(
     "all",
   );
@@ -75,6 +79,8 @@ export default function NotesTab({ student }: NotesTabProps) {
   }, [notesRevision, student.id]);
 
   const handleAddNote = async (noteData: NoteFormData) => {
+    if (!canManageNotes) return;
+
     try {
       await studentsService.createStudentNote(student.id, {
         category: noteData.category,
@@ -96,7 +102,7 @@ export default function NotesTab({ student }: NotesTabProps) {
   };
 
   const handleUpdateNote = async (noteData: NoteFormData) => {
-    if (!editingNote) return;
+    if (!canManageNotes || !editingNote) return;
 
     try {
       await studentsService.updateStudentNote(
@@ -204,6 +210,7 @@ export default function NotesTab({ student }: NotesTabProps) {
             className="p-1.5 text-gray-600"
             title={t("edit")}
             onClick={() => setEditingNote(row as unknown as StudentNote)}
+            disabled={!canManageNotes}
           >
             <Edit2 className="h-4 w-4" />
           </Button>
@@ -238,6 +245,7 @@ export default function NotesTab({ student }: NotesTabProps) {
           type="button"
           onClick={() => setShowAddModal(true)}
           leftIcon={<Plus className="h-4 w-4" />}
+          disabled={!canManageNotes}
         >
           {t("add_note")}
         </Button>

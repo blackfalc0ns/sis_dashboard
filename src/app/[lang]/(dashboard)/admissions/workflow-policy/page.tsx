@@ -1,5 +1,10 @@
 import AdmissionsWorkflowPolicyPage from "@/features/admissions/workflow-policy/pages/AdmissionsWorkflowPolicyPage";
+import AdmissionsAccessGuard from "@/features/admissions/shared/components/AdmissionsAccessGuard";
 
 export default function AdmissionsWorkflowPolicyRoute() {
-  return <AdmissionsWorkflowPolicyPage />;
+  return (
+    <AdmissionsAccessGuard permission="admissions.applications.view">
+      <AdmissionsWorkflowPolicyPage />
+    </AdmissionsAccessGuard>
+  );
 }

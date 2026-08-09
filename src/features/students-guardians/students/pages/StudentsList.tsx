@@ -46,6 +46,7 @@ import { useUrlQueryState } from "@/features/students-guardians/shared/hooks/use
 import StudentsGuardiansGlobalExportModal from "@/features/students-guardians/shared/components/export/StudentsGuardiansGlobalExportModal";
 import StudentAccountLinkModal from "@/features/students-guardians/students/components/StudentAccountLinkModal";
 import { usePermissions } from "@/hooks/usePermissions";
+import { getStudentsGuardiansCapabilities } from "@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities";
 import {
   downloadStudentsGuardiansExport,
   getStudentsGuardiansExportLocaleForFormat,
@@ -57,8 +58,10 @@ export default function StudentsList() {
   const t = useTranslations("students_guardians.students");
   const locale = useLocale();
   const router = useRouter();
-  const { hasPermission } = usePermissions();
+  const permissions = usePermissions();
+  const { hasPermission } = permissions;
   const canManageAccounts = hasPermission("settings.users.manage");
+  const { canManageNotes } = getStudentsGuardiansCapabilities(permissions);
   const params = useParams();
   const lang = (params.lang as string) || "en";
   const [students, setStudents] = useState<Student[]>([]);
@@ -190,7 +193,7 @@ export default function StudentsList() {
   };
 
   const handleAddNote = async (noteData: NoteFormData) => {
-    if (!selectedStudent) return;
+    if (!canManageNotes || !selectedStudent) return;
 
     try {
       await studentsService.createStudentNote(selectedStudent.id, {
@@ -207,6 +210,7 @@ export default function StudentsList() {
 
   const handleAddNoteClick = (e: React.MouseEvent, student: Student) => {
     e.stopPropagation();
+    if (!canManageNotes) return;
     setSelectedStudent(student);
     setShowAddNoteModal(true);
   };
@@ -379,8 +383,9 @@ export default function StudentsList() {
             variant="ghost"
             size="sm"
             onClick={(e) => handleAddNoteClick(e, row as unknown as Student)}
-            className="p-1.5 text-gray-600"
+            className={`p-1.5 ${canManageNotes ? "text-gray-600" : "text-gray-400"}`}
             title={t("actions.add_note")}
+            disabled={!canManageNotes}
           >
             <MessageSquare className="w-4 h-4" />
           </Button>

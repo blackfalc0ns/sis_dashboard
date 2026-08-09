@@ -12,6 +12,7 @@ import type { AttachmentMeta } from "@/features/attendance/roll-call/types";
 import type { StructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { AbsenceRecord } from "../types";
 import { getLocalizedStructureName } from "../utils/localizedStructureName";
+import { canCorrectIncidentToEarlyLeave } from "../utils/correctionPermissions";
 
 interface AbsenceDetailsPanelProps {
   record: AbsenceRecord | null;
@@ -20,6 +21,7 @@ interface AbsenceDetailsPanelProps {
   onEditEarlyLeave: (record: AbsenceRecord) => void;
   isReadOnly: boolean;
   structureTree: StructureTree | null;
+  onAttachmentPreviewChange?: (open: boolean) => void;
 }
 
 export default function AbsenceDetailsPanel({
@@ -29,12 +31,21 @@ export default function AbsenceDetailsPanel({
   onEditEarlyLeave,
   isReadOnly,
   structureTree,
+  onAttachmentPreviewChange,
 }: AbsenceDetailsPanelProps) {
   const t = useTranslations("attendance.absences.details");
   const tTable = useTranslations("attendance.absences.table");
   const locale = useLocale();
   const router = useRouter();
   const [previewAttachment, setPreviewAttachment] = useState<AttachmentMeta | null>(null);
+  const openAttachmentPreview = (attachment: AttachmentMeta) => {
+    setPreviewAttachment(attachment);
+    onAttachmentPreviewChange?.(true);
+  };
+  const closeAttachmentPreview = () => {
+    setPreviewAttachment(null);
+    onAttachmentPreviewChange?.(false);
+  };
 
   if (!record) {
     return (
@@ -47,7 +58,7 @@ export default function AbsenceDetailsPanel({
     );
   }
 
-  const getStatusLabel = (status: string, excusedFromStatus?: AbsenceRecord["excusedFromStatus"]) => {
+  const getStatusLabel = (status: string) => {
     const statusKeys: Record<string, "absent" | "late" | "earlyLeave" | "excused" | "unmarked"> = {
       ABSENT: "absent",
       LATE: "late",
@@ -55,10 +66,7 @@ export default function AbsenceDetailsPanel({
       EXCUSED: "excused",
       UNMARKED: "unmarked",
     };
-    const label = (value: string) => tTable(`statusLabels.${statusKeys[value] || "unmarked"}`);
-    return status === "EXCUSED" && excusedFromStatus
-      ? tTable("statusTransition", { from: label(excusedFromStatus), to: label(status) })
-      : label(status);
+    return tTable(`statusLabels.${statusKeys[status] || "unmarked"}`);
   };
 
   const handleOpenStudentProfile = () => {
@@ -112,7 +120,7 @@ export default function AbsenceDetailsPanel({
                 </div>
                 <div>
                   <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("studentNumber")}:</span>
-                  <p style={{ color: "var(--color-gray-900)" }} className="text-sm">{record.studentNumber}</p>
+                  <p style={{ color: "var(--color-gray-900)" }} className="text-sm">{record.studentNumber || "—"}</p>
                 </div>
               </div>
             </div>
@@ -182,7 +190,7 @@ export default function AbsenceDetailsPanel({
                 )}
                 <div>
                   <span style={{ color: "var(--color-neutral-500)" }} className="text-xs">{t("status")}:</span>
-                  <p style={{ color: "var(--color-gray-900)" }} className="text-sm font-medium">{getStatusLabel(record.status, record.excusedFromStatus)}</p>
+                  <p style={{ color: "var(--color-gray-900)" }} className="text-sm font-medium">{getStatusLabel(record.status)}</p>
                 </div>
                 {record.minutesLate ? (
                   <div>
@@ -224,7 +232,7 @@ export default function AbsenceDetailsPanel({
                           <button
                             key={att.id}
                             type="button"
-                            onClick={() => setPreviewAttachment(att)}
+                            onClick={() => openAttachmentPreview(att)}
                             className="w-full text-start p-3 rounded border"
                             style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}
                             title={t("previewAttachment")}
@@ -275,7 +283,7 @@ export default function AbsenceDetailsPanel({
                 {record.excuse ? t("editExcuse") : t("addExcuse")}
               </Button>
             )}
-            {record.status === "EARLY_LEAVE" && (
+            {canCorrectIncidentToEarlyLeave(record.status) && (
               <Button
                 variant="outline"
                 size="sm"
@@ -293,7 +301,7 @@ export default function AbsenceDetailsPanel({
       <FilePreviewModal
         attachment={previewAttachment}
         isOpen={!!previewAttachment}
-        onClose={() => setPreviewAttachment(null)}
+        onClose={closeAttachmentPreview}
       />
     </>
   );

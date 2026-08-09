@@ -145,6 +145,7 @@ export default function DatePicker({
             format={dateFormat}
             slotProps={{
               textField: {
+                error: Boolean(error),
                 placeholder: placeholder,
                 fullWidth: true,
                 variant: "standard",
@@ -205,6 +206,7 @@ export default function DatePicker({
       {/* Helper Text or Error Message */}
       {(helperText || error) && (
         <div
+          role={error ? "alert" : undefined}
           className={`flex items-start gap-1 mt-1 text-xs ${
             error ? "text-red-600" : "text-gray-500"
           } ${isRTL ? "text-right" : "text-left"}`}

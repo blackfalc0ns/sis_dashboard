@@ -39,8 +39,8 @@ import {
 } from "recharts";
 import type { PieLabelRenderProps } from "recharts";
 import { Button, DatePicker, FilterPanel, Select } from "@/components/ui";
-import AccessDenied from "@/components/ui/access-denied/AccessDenied";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import DashboardPermissionGuard from "@/features/dashboard/components/DashboardPermissionGuard";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import {
   fetchAnalyticsCatalog,
@@ -52,7 +52,6 @@ import {
   fetchStructureTree,
   type StructureTree,
 } from "@/features/academics/academic-structure-tree/services/structureService";
-import { usePermissions } from "@/hooks/usePermissions";
 import { ApiError, isApiError } from "@/lib/api-error";
 import type {
   DashboardAnalyticsCatalog,
@@ -543,21 +542,11 @@ function DashboardAnalyticsChartFilters({
 }
 
 export default function DashboardAnalyticsPage() {
-  const { hasPermission, isPermissionsReady } = usePermissions();
-
-  if (!isPermissionsReady) {
-    return <MainLoader />;
-  }
-
-  if (!hasPermission("dashboard.analytics.view")) {
-    return (
-      <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
-        <AccessDenied />
-      </main>
-    );
-  }
-
-  return <DashboardAnalyticsContent />;
+  return (
+    <DashboardPermissionGuard permission="dashboard.analytics.view">
+      <DashboardAnalyticsContent />
+    </DashboardPermissionGuard>
+  );
 }
 
 function DashboardAnalyticsContent() {

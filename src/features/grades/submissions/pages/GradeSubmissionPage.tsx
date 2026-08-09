@@ -42,6 +42,7 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
   const errorT = useTranslations("academics.grades.errors");
   const locale = useLocale();
   const { hasPermission } = usePermissions();
+  const canViewQuestions = hasPermission("grades.questions.view");
   const [submission, setSubmission] = useState<GradeSubmissionDetail | null>(null);
   const [questionDefinitions, setQuestionDefinitions] = useState<Record<string, AssessmentQuestion>>({});
   const [drafts, setDrafts] = useState<Record<string, DraftAnswer>>({});
@@ -54,7 +55,7 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
     setIsLoading(true);
     try {
       const detail = await fetchGradeSubmission(submissionId);
-      const definitions = shouldFetchSubmissionQuestionDefinitions(detail.status)
+      const definitions = canViewQuestions && shouldFetchSubmissionQuestionDefinitions(detail.status)
         ? await fetchAssessmentQuestions("", detail.termId, detail.assessmentId)
         : [];
       setSubmission(detail);
@@ -71,7 +72,7 @@ export default function GradeSubmissionPage({ submissionId }: { submissionId: st
     } finally {
       setIsLoading(false);
     }
-  }, [errorT, submissionId]);
+  }, [canViewQuestions, errorT, submissionId]);
 
   useEffect(() => { void Promise.resolve().then(loadSubmission); }, [loadSubmission]);
 

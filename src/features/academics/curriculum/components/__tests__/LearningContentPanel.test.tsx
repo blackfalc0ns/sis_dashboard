@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api-error";
 import {
   archiveLessonContent,
@@ -14,6 +14,9 @@ import { uploadLearningMedia } from "../../services/filesService";
 import LearningContentPanel from "../LearningContentPanel";
 
 const translate = (key: string) => key;
+const authenticatedFileMocks = vi.hoisted(() => ({
+  downloadFileBlob: vi.fn(),
+}));
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
@@ -72,6 +75,8 @@ vi.mock("@/components/ui/confirm-dialog/ConfirmDialog", () => ({
     ) : null,
 }));
 
+vi.mock("@/services/filesService", () => authenticatedFileMocks);
+
 const contentItem: LessonContentItem = {
   id: "content-1",
   curriculumId: "curriculum-1",
@@ -96,6 +101,12 @@ const contentItem: LessonContentItem = {
 };
 
 describe("LearningContentPanel", () => {
+  beforeEach(() => {
+    authenticatedFileMocks.downloadFileBlob.mockResolvedValue(
+      new Blob(["worksheet"], { type: "application/pdf" }),
+    );
+  });
+
   it("shows the list first and opens the form when creating content", async () => {
     const user = userEvent.setup();
     vi.mocked(listLessonContent).mockResolvedValue([]);

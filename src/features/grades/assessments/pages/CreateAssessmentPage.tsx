@@ -7,6 +7,7 @@ import MainLoader from "@/components/ui/loaders/MainLoader";
 import Button from "@/components/ui/button/Button";
 import { DatePicker, Input, Select } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
 import { fetchGradesFiltersData } from "../../gradebook/services/gradesGradebookService";
 import { fetchSubjectAllocations, type SubjectAllocation } from "@/features/academics/subjects/services/subjectsService";
 import { createAssessment } from "../services/gradesAssessmentsService";
@@ -57,6 +58,8 @@ export default function CreateAssessmentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showError, showSuccess } = useToast();
+  const { hasPermission } = usePermissions();
+  const canManageAssessments = hasPermission("grades.assessments.manage");
   const {
     academicYearId,
     termId,
@@ -209,7 +212,7 @@ export default function CreateAssessmentPage() {
   };
 
   const handleSubmit = async () => {
-    if (!draft) return;
+    if (!draft || !canManageAssessments) return;
     try {
       setIsSubmitting(true);
       if (draft.deliveryMode === "SCORE_ONLY") {

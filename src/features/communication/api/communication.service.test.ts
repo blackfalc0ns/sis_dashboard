@@ -139,6 +139,7 @@ describe("communication service backend compatibility", () => {
     );
   });
 
+
   it("uses invite endpoints with sanitized payloads", async () => {
     await communicationService.getConversationInvites("conv-1");
     await communicationService.createConversationInvite("conv-1", {

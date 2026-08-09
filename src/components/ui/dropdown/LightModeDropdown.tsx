@@ -84,6 +84,7 @@ export interface LightModeDropdownData {
 }
 
 export interface LightModeDropdownProps {
+  canManageTodos: boolean;
   weatherData?: Partial<LightModeDropdownData>;
   locale?: LightModeDropdownLocale;
   className?: string;
@@ -212,6 +213,7 @@ function emptyPlanner(weatherData?: Partial<LightModeDropdownData>) {
 }
 
 export default function LightModeDropdown({
+  canManageTodos,
   weatherData,
   locale,
   className,
@@ -361,6 +363,7 @@ export default function LightModeDropdown({
 
   async function addTodo(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canManageTodos) return;
     const title = newTodoTitle.trim();
     const notes = newTodoDescription.trim();
     if (!title) return;
@@ -383,6 +386,7 @@ export default function LightModeDropdown({
   }
 
   async function toggleTodo(todoId: string) {
+    if (!canManageTodos) return;
     const todo = planner.todos.find((currentTodo) => currentTodo.id === todoId);
     if (!todo) return;
 
@@ -410,6 +414,7 @@ export default function LightModeDropdown({
     todoId: string,
     updates: { title: string; notes: string; priority: TodoPriority },
   ): Promise<boolean> {
+    if (!canManageTodos) return false;
     const todo = planner.todos.find((currentTodo) => currentTodo.id === todoId);
     if (!todo) return false;
 
@@ -445,6 +450,7 @@ export default function LightModeDropdown({
   }
 
   async function removeTodo(todoId: string) {
+    if (!canManageTodos) return;
     const todo = planner.todos.find((currentTodo) => currentTodo.id === todoId);
     if (!todo) return;
 
@@ -494,6 +500,7 @@ export default function LightModeDropdown({
           selectedDate={selectedDate}
           currentTime={currentTime}
           isLoading={isLoading}
+          canManageTodos={canManageTodos}
           newTodoTitle={newTodoTitle}
           newTodoDescription={newTodoDescription}
           newTodoPriority={newTodoPriority}
@@ -608,6 +615,7 @@ function ExpandedPlanner({
   selectedDate,
   currentTime,
   isLoading,
+  canManageTodos,
   newTodoTitle,
   newTodoDescription,
   newTodoPriority,
@@ -635,6 +643,7 @@ function ExpandedPlanner({
   selectedDate: Date;
   currentTime: Date;
   isLoading: boolean;
+  canManageTodos: boolean;
   newTodoTitle: string;
   newTodoDescription: string;
   newTodoPriority: TodoPriority;
@@ -762,6 +771,7 @@ function ExpandedPlanner({
             <Button
               type="submit"
               size="sm"
+              disabled={!canManageTodos}
               leftIcon={<Plus size={15} />}
               className="rounded-xl bg-primary px-4 text-xs font-bold text-white hover:bg-hover"
             >
@@ -787,6 +797,7 @@ function ExpandedPlanner({
                 key={todo.id}
                 todo={todo}
                 text={text}
+                canManageTodos={canManageTodos}
                 onToggleTodo={onToggleTodo}
                 onUpdateTodo={onUpdateTodo}
                 onDeleteTodo={onDeleteTodo}
@@ -906,12 +917,14 @@ function TodoCalendar({
 function TodoRow({
   todo,
   text,
+  canManageTodos,
   onToggleTodo,
   onUpdateTodo,
   onDeleteTodo,
 }: {
   todo: LightModeDropdownTodo;
   text: LocalizedText;
+  canManageTodos: boolean;
   onToggleTodo: (todoId: string) => void;
   onUpdateTodo: (
     todoId: string,
@@ -999,7 +1012,7 @@ function TodoRow({
           <Button
             type="submit"
             size="sm"
-            disabled={isSaving || !draftTitle.trim()}
+            disabled={!canManageTodos || isSaving || !draftTitle.trim()}
             leftIcon={<Save size={14} />}
             className="rounded-lg bg-primary text-xs text-white hover:bg-hover"
           >
@@ -1015,7 +1028,7 @@ function TodoRow({
       <button
         type="button"
         onClick={() => todo.id && onToggleTodo(todo.id)}
-        disabled={!todo.id}
+        disabled={!canManageTodos || !todo.id}
         aria-label={todo.completed ? text.markIncomplete : text.markDone}
         className="mt-0.5 shrink-0 text-gray-300 transition-colors hover:text-emerald-600 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 rounded-full cursor-pointer"
       >
@@ -1052,7 +1065,7 @@ function TodoRow({
       <button
         type="button"
         onClick={startEditing}
-        disabled={!todo.id}
+        disabled={!canManageTodos || !todo.id}
         aria-label={text.edit}
         className="mt-0.5 shrink-0 text-gray-300 transition-colors hover:text-primary disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 rounded cursor-pointer"
       >
@@ -1061,7 +1074,7 @@ function TodoRow({
       <button
         type="button"
         onClick={() => todo.id && onDeleteTodo(todo.id)}
-        disabled={!todo.id}
+        disabled={!canManageTodos || !todo.id}
         aria-label={text.deleteTask}
         className="mt-0.5 shrink-0 text-gray-300 transition-colors hover:text-rose-600 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 rounded cursor-pointer"
       >

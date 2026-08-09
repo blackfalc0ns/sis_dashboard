@@ -8,7 +8,10 @@ import { Filter, Plus } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import ConfirmDialog from "@/components/ui/confirm-dialog/ConfirmDialog";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
+import { isDateRangeValidationError, isInvalidDateRange } from "@/features/attendance/shared/utils/dateRange";
 import AttendanceFiltersPanel from "@/features/attendance/shared/components/AttendanceFiltersPanel";
 import AttendanceBottomDrawer from "@/features/attendance/shared/components/AttendanceBottomDrawer";
 import {
@@ -76,6 +79,7 @@ export default function AttendanceExcusesPage() {
   const locale = useLocale();
   const router = useRouter();
   const { showSuccess, showError } = useToast();
+  const { hasPermission } = usePermissions();
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   // Use unified term context
@@ -83,6 +87,7 @@ export default function AttendanceExcusesPage() {
 
   const [requests, setRequests] = useState<ExcuseRequest[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
 
   const [filters, setFilters] = useState<ExcuseRequestFilters>({
     status: "ALL",
@@ -90,10 +95,16 @@ export default function AttendanceExcusesPage() {
     search: "",
     hasAttachment: "ALL",
   });
+  const debouncedSearch = useDebounce(searchInput, 500);
+  const requestFilters = useMemo(
+    () => ({ ...filters, search: debouncedSearch }),
+    [debouncedSearch, filters],
+  );
 
   const [selectedRequest, setSelectedRequest] = useState<ExcuseRequest | null>(null);
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
   const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
+  const [attachmentPreviewOpen, setAttachmentPreviewOpen] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [editingRequest, setEditingRequest] = useState<ExcuseRequest | null>(null);
   const [decisionRequest, setDecisionRequest] = useState<ExcuseRequest | null>(null);
@@ -107,6 +118,8 @@ export default function AttendanceExcusesPage() {
   const [showExportModal, setShowExportModal] = useState(false);
 
   const isReadOnly = termContext.isReadOnly;
+  const canManageExcuses = hasPermission("attendance.excuses.manage");
+  const canReviewExcuses = hasPermission("attendance.excuses.review");
   const kpis = useMemo(() => computeKpis(requests), [requests]);
 
   // Get current term object
@@ -117,9 +130,16 @@ export default function AttendanceExcusesPage() {
   const reloadRequests = useCallback(async () => {
     if (!termContext.yearId || !termContext.termId) return;
 
+    if (isInvalidDateRange(requestFilters.dateFrom, requestFilters.dateTo)) {
+      setRequests([]);
+      setSelectedRequest(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const data = await fetchExcuseRequests({ yearId: termContext.yearId, termId: termContext.termId, ...filters });
+      const data = await fetchExcuseRequests({ yearId: termContext.yearId, termId: termContext.termId, ...requestFilters });
       setRequests(data);
 
       // Update selected request if it exists in the new list
@@ -129,11 +149,15 @@ export default function AttendanceExcusesPage() {
       });
     } catch (error) {
       console.error("Failed to load excuse requests", error);
-      showError(tCommon("error_loading"));
+      showError(
+        isDateRangeValidationError(error)
+          ? tCommon("invalidDateRange")
+          : tCommon("error_loading"),
+      );
     } finally {
       setLoading(false);
     }
-  }, [termContext.yearId, termContext.termId, filters, showError, tCommon]);
+  }, [termContext.yearId, termContext.termId, requestFilters, showError, tCommon]);
 
   useEffect(() => {
     void Promise.resolve().then(reloadRequests);
@@ -222,7 +246,7 @@ export default function AttendanceExcusesPage() {
     : "";
 
   const handleLegacyExport = (format: "csv" | "excel") => {
-    if (!term) return;
+    if (!term || isReadOnly || !canManageExcuses) return;
 
     exportExcuses(requests, locale, format, {
       yearName: selectedYearName,
@@ -338,7 +362,7 @@ export default function AttendanceExcusesPage() {
   };
 
   const handleApproveReject = async (note: string): Promise<DecisionResult | void> => {
-    if (!decisionRequest) return;
+    if (!decisionRequest || isReadOnly || !canReviewExcuses) return;
 
     try {
       if (decisionAction === "APPROVE") {
@@ -369,7 +393,7 @@ export default function AttendanceExcusesPage() {
   };
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || isReadOnly || !canManageExcuses) return;
 
     try {
       await deleteExcuseRequest(deleteTarget.id);
@@ -382,6 +406,7 @@ export default function AttendanceExcusesPage() {
   };
 
   const openDecision = async (request: ExcuseRequest, action: "APPROVE" | "REJECT") => {
+    if (isReadOnly || !canReviewExcuses) return;
     setDecisionRequest(request);
     setDecisionAction(action);
     setApprovalEligibility(null);
@@ -431,14 +456,25 @@ export default function AttendanceExcusesPage() {
   };
 
   const resetFilters = () => {
+    setSearchInput("");
     setFilters({
-      dateFrom: term?.startDate,
-      dateTo: term?.endDate,
       status: "ALL",
       type: "ALL",
       search: "",
       hasAttachment: "ALL",
     });
+  };
+
+  const handleFiltersChange = (patch: Partial<ExcuseRequestFilters>) => {
+    if ("search" in patch) {
+      setSearchInput(patch.search || "");
+    }
+
+    const nonSearchPatch = { ...patch };
+    delete nonSearchPatch.search;
+    if (Object.keys(nonSearchPatch).length > 0) {
+      setFilters((previousFilters) => ({ ...previousFilters, ...nonSearchPatch }));
+    }
   };
 
   if (termContext.isLoading) {
@@ -467,6 +503,8 @@ export default function AttendanceExcusesPage() {
     <ExcusesTable
       requests={requests}
       isReadOnly={isReadOnly}
+      canManageExcuses={canManageExcuses}
+      canReviewExcuses={canReviewExcuses}
       onView={handleViewRequest}
       onApprove={(request) => openDecision(request, "APPROVE")}
       onReject={(request) => openDecision(request, "REJECT")}
@@ -488,7 +526,7 @@ export default function AttendanceExcusesPage() {
                 variant="primary"
                 size="sm"
                 leftIcon={<Plus className="w-4 h-4" />}
-                disabled={isReadOnly}
+                disabled={isReadOnly || !canManageExcuses}
                 onClick={handleCreateRequest}
               >
                 {t("createRequest")}
@@ -501,8 +539,8 @@ export default function AttendanceExcusesPage() {
           <>
             <AttendanceFiltersPanel>
               <ExcusesFiltersBar
-                filters={filters}
-                onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
+                filters={{ ...filters, search: searchInput }}
+                onFiltersChange={handleFiltersChange}
                 onReset={resetFilters}
                 onOpenExport={() => setShowExportModal(true)}
               />
@@ -528,7 +566,7 @@ export default function AttendanceExcusesPage() {
                 variant="primary"
                 size="sm"
                 leftIcon={<Plus className="w-4 h-4" />}
-                disabled={isReadOnly}
+                disabled={isReadOnly || !canManageExcuses}
                 onClick={handleCreateRequest}
               >
                 {t("createRequest")}
@@ -544,17 +582,19 @@ export default function AttendanceExcusesPage() {
 
       <ExcusesFiltersDrawer
         isOpen={showFiltersDrawer}
-        filters={filters}
+        filters={{ ...filters, search: searchInput }}
         onClose={() => setShowFiltersDrawer(false)}
         onApply={() => setShowFiltersDrawer(false)}
-        onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
+        onFiltersChange={handleFiltersChange}
         onReset={resetFilters}
         onOpenExport={() => setShowExportModal(true)}
       />
 
       <AttendanceBottomDrawer
         isOpen={showDetailsDrawer}
+        disableEnforceFocus={attachmentPreviewOpen}
         onClose={() => {
+          setAttachmentPreviewOpen(false);
           setShowDetailsDrawer(false);
           setSelectedRequest(null);
         }}
@@ -565,19 +605,23 @@ export default function AttendanceExcusesPage() {
           request={selectedRequest}
           effectivePolicy={selectedRequestPolicy}
           isReadOnly={isReadOnly}
+          canManageExcuses={canManageExcuses}
+          canReviewExcuses={canReviewExcuses}
           onClose={() => {
+            setAttachmentPreviewOpen(false);
             setShowDetailsDrawer(false);
             setSelectedRequest(null);
           }}
           onApprove={(request) => openDecision(request, "APPROVE")}
           onReject={(request) => openDecision(request, "REJECT")}
           onEdit={handleEditRequest}
+          onAttachmentPreviewChange={setAttachmentPreviewOpen}
         />
       </AttendanceBottomDrawer>
 
       <ExcuseRequestModal
         isOpen={showRequestModal}
-        isReadOnly={isReadOnly}
+        isReadOnly={isReadOnly || !canManageExcuses}
         yearId={termContext.yearId || ""}
         termId={termContext.termId || ""}
         termRange={{ startDate: term?.startDate || "", endDate: term?.endDate || "" }}

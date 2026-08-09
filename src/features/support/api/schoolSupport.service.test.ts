@@ -64,4 +64,5 @@ describe("school support service", () => {
       },
     );
   });
+
 });

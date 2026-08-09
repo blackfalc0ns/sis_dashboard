@@ -629,6 +629,8 @@
       "loading": "Loading preview...",
       "unavailable": "Preview unavailable",
       "unavailableDescription": "This attachment cannot be previewed right now.",
+      "accessDenied": "You do not have permission to preview this attachment.",
+      "accessDeniedDescription": "Contact an administrator if you need access to this file.",
       "fileType": "File type",
       "fileSize": "File size",
       "openInNewTab": "Open this file in a new tab.",
@@ -677,6 +679,7 @@
     "title_ar": "Title (AR)",
     "title_en": "Title (EN)",
     "noResults": "No results",
+    "invalidDateRange": "The start date must be before or equal to the end date.",
     "unsavedChangesTitle": "Unsaved changes",
     "unsavedChangesBody": "You have unsaved changes. Leave without saving?",
     "stay": "Stay",
@@ -707,7 +710,17 @@
     "print": "Print",
     "accessDenied": {
       "title": "Access denied",
-      "description": "You do not have permission to view this section."
+      "description": "You do not have permission to view this section.",
+      "requiredPermissions": "Required permissions",
+      "eyebrow": "Permission required",
+      "guidance": "Contact your school administrator to request the access you need."
+    },
+    "scopePermissionDenied": {
+      "title": "You do not have permission for this action",
+      "description": "Your current account permissions do not allow this action.",
+      "requiredPermissions": "Required permissions",
+      "guidance": "Contact your school administrator if you believe you need access.",
+      "dismiss": "OK"
     },
     "export": {
       "button": "Export",
@@ -7767,6 +7780,7 @@
     "backToHome": "Back to Home"
   },
   "attendance": {
+    "readOnlyView": "This is a read-only view",
     "title": "Attendance & Discipline",
     "description": "Today's student attendance rate",
     "common": {
@@ -7894,6 +7908,8 @@
         "noPolicyDesc": "No active attendance policy found for this scope and date. Please create a policy first.",
         "noTimetable": "No Timetable Configuration",
         "noTimetableDesc": "Period-based attendance requires timetable configuration. Please configure the timetable first.",
+        "inactiveDate": "No Roll-Call Scheduled",
+        "inactiveDateDesc": "The selected date is not an active day in this scope's timetable.",
         "noStudents": "No Students",
         "noStudentsDesc": "No students found for the selected scope."
       },
@@ -8093,13 +8109,16 @@
       },
       "filters": {
         "filters": "Filters",
+        "search": "Search",
         "searchPlaceholder": "Search by student name or number...",
         "dateFrom": "Date from",
         "dateTo": "Date to",
+        "type": "Incident type",
         "allTypes": "All types",
         "late": "Late",
         "earlyLeave": "Early Leave",
         "allSessionStatuses": "All session statuses",
+        "sessionStatus": "Session status",
         "sessionDraft": "Draft",
         "sessionSubmitted": "Submitted",
         "minutesMin": "Minutes min",
@@ -8214,9 +8233,12 @@
       },
       "filters": {
         "filters": "Filters",
+        "search": "Search",
         "searchPlaceholder": "Search by student name or number...",
         "dateFrom": "Date from",
         "dateTo": "Date to",
+        "status": "Request status",
+        "type": "Excuse type",
         "allStatuses": "All statuses",
         "pending": "Pending",
         "approved": "Approved",
@@ -8226,6 +8248,7 @@
         "late": "Late",
         "earlyLeave": "Early Leave",
         "allAttachments": "All attachments",
+        "hasAttachment": "Attachment",
         "withAttachment": "With attachments",
         "withoutAttachment": "Without attachments",
         "export": "Export",

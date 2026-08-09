@@ -1,9 +1,5 @@
 import SchoolDashboard from "@/features/dashboard/pages/SchoolDashboard";
 
 export default function DashboardPage() {
-  return (
-      <main >
-        <SchoolDashboard />
-      </main>
-  );
+  return <SchoolDashboard />;
 }

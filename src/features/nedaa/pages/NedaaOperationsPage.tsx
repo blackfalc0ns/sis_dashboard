@@ -959,6 +959,8 @@ export default function NedaaOperationsPage() {
   const { hasPermission } = usePermissions();
   const canView = hasPermission("dismissal.requests.view");
   const canManage = hasPermission("dismissal.requests.manage");
+  const canDeliver = hasPermission("dismissal.requests.deliver");
+  const canEscalate = hasPermission("dismissal.requests.escalate");
   const canViewHistory = hasPermission("dismissal.requests.history.view");
   const [activeTab, setActiveTab] = useState<OperationsTab>("active");
   const [activeRequests, setActiveRequests] = useState<
@@ -1430,7 +1432,7 @@ export default function NedaaOperationsPage() {
   }, [t]);
 
   const openDeliveryModal = useCallback((request?: ActiveDismissalRequest) => {
-    if (!request || request.status !== "ready") return;
+    if (!canDeliver || !request || request.status !== "ready") return;
     setPickupCode("");
     setPickupRecipientToken("");
     setActionNote("");
@@ -1456,7 +1458,43 @@ export default function NedaaOperationsPage() {
         ),
       )
       .finally(() => setReadOnlyModalLoading(false));
-  }, [t]);
+  }, [canDeliver, t]);
+
+  const openStatusModal = useCallback((request?: ActiveDismissalRequest) => {
+    if (!canManage || !request) return;
+    const availableStatuses = nextStatusByCurrentStatus[request.status];
+    if (availableStatuses.length === 0) return;
+    setSelectedStatus(availableStatuses[0]);
+    setActionNote("");
+    setActionModal({
+      type: "status",
+      requestId: request.id,
+      title: request.child.displayName,
+      requestStatus: request.status,
+    });
+  }, [canManage]);
+
+  const openArrivalModal = useCallback((student?: DismissalWaitingStudent) => {
+    if (!canManage || !student) return;
+    setActionNote("");
+    setActionModal({
+      type: "arrival",
+      requestId: student.id,
+      title: student.child.displayName,
+      waitingStudent: student,
+    });
+  }, [canManage]);
+
+  const openEscalationModal = useCallback((request?: ActiveDismissalRequest) => {
+    if (!canEscalate || !request) return;
+    setEscalationReason("parent_waiting");
+    setActionNote("");
+    setActionModal({
+      type: "escalation",
+      requestId: request.id,
+      title: request.child.displayName,
+    });
+  }, [canEscalate]);
 
   const activeColumns = useMemo<Column<OperationTableRow>[]>(
     () => [
@@ -1520,7 +1558,7 @@ export default function NedaaOperationsPage() {
               <Button
                 size="sm"
                 variant="success"
-                disabled={!canManage}
+                disabled={!canDeliver}
                 onClick={() => openDeliveryModal(row.activeRequest)}
               >
                 {t("operations_actions.deliver")}
@@ -1530,7 +1568,7 @@ export default function NedaaOperationsPage() {
                 size="sm"
                 variant="danger"
                 className="hidden sm:inline-flex"
-              disabled={!canManage}
+              disabled={!canEscalate}
               onClick={() => openEscalationModal(row.activeRequest)}
             >
               {t("operations_actions.escalate")}
@@ -1562,7 +1600,7 @@ export default function NedaaOperationsPage() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  disabled={!canManage}
+                  disabled={!canEscalate}
                   aria-label={`${t("operations_actions.escalate")} ${t("operations_actions.more")}`}
                   onClick={() => openEscalationModal(row.activeRequest)}
                 >
@@ -1585,7 +1623,17 @@ export default function NedaaOperationsPage() {
         ),
       },
     ],
-    [canManage, openDeliveryModal, openDetail, openRecipients, t],
+    [
+      canDeliver,
+      canEscalate,
+      canManage,
+      openDeliveryModal,
+      openDetail,
+      openEscalationModal,
+      openRecipients,
+      openStatusModal,
+      t,
+    ],
   );
 
   const waitingColumns = useMemo<Column<OperationTableRow>[]>(
@@ -1634,7 +1682,7 @@ export default function NedaaOperationsPage() {
         ),
       },
     ],
-    [canManage, t],
+    [canManage, openArrivalModal, t],
   );
 
   const historyColumns = useMemo<Column<OperationTableRow>[]>(
@@ -1736,42 +1784,6 @@ export default function NedaaOperationsPage() {
     });
   };
 
-  const openStatusModal = (request?: ActiveDismissalRequest) => {
-    if (!request) return;
-    const availableStatuses = nextStatusByCurrentStatus[request.status];
-    if (availableStatuses.length === 0) return;
-    setSelectedStatus(availableStatuses[0]);
-    setActionNote("");
-    setActionModal({
-      type: "status",
-      requestId: request.id,
-      title: request.child.displayName,
-      requestStatus: request.status,
-    });
-  };
-
-  const openArrivalModal = (student?: DismissalWaitingStudent) => {
-    if (!student) return;
-    setActionNote("");
-    setActionModal({
-      type: "arrival",
-      requestId: student.id,
-      title: student.child.displayName,
-      waitingStudent: student,
-    });
-  };
-
-  const openEscalationModal = (request?: ActiveDismissalRequest) => {
-    if (!request) return;
-    setEscalationReason("parent_waiting");
-    setActionNote("");
-    setActionModal({
-      type: "escalation",
-      requestId: request.id,
-      title: request.child.displayName,
-    });
-  };
-
   const closeActionModal = () => {
     if (isSavingAction) return;
     setActionModal(null);
@@ -1787,6 +1799,16 @@ export default function NedaaOperationsPage() {
 
   const saveAction = async () => {
     if (!actionModal) return;
+
+    if (
+      (actionModal.type === "status" || actionModal.type === "arrival") &&
+      !canManage
+    ) {
+      return;
+    }
+    if (actionModal.type === "delivery_confirm" && !canDeliver) return;
+    if (actionModal.type === "escalation" && !canEscalate) return;
+
     setIsSavingAction(true);
     try {
       if (actionModal.type === "status") {

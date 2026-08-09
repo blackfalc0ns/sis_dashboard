@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast/Toast";
 import GuardiansTab from "@/features/students-guardians/students/components/tabs/GuardiansTab";
+import { renderWithPermissions } from "@/__tests__/test-utils/renderWithPermissions";
 
 const apiMocks = vi.hoisted(() => ({
   apiDelete: vi.fn(),
@@ -48,10 +49,11 @@ describe("GuardiansTab", () => {
     });
 
     const user = userEvent.setup();
-    render(
+    renderWithPermissions(
       <ToastProvider>
         <GuardiansTab student={{ id: "student-1" } as never} />
       </ToastProvider>,
+      ["students.guardians.manage"],
     );
 
     await user.click(await screen.findByRole("button", { name: "edit_link" }));
@@ -82,10 +84,11 @@ describe("GuardiansTab", () => {
     );
 
     const user = userEvent.setup();
-    render(
+    renderWithPermissions(
       <ToastProvider>
         <GuardiansTab student={{ id: "student-1" } as never} />
       </ToastProvider>,
+      ["students.guardians.manage"],
     );
 
     await user.click(await screen.findByTitle("Unlink guardian from student"));

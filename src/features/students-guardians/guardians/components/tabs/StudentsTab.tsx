@@ -23,6 +23,8 @@ import Button from "@/components/ui/button/Button";
 import Input from "@/components/ui/input/Input";
 import Modal from "@/components/ui/modal/Modal";
 import EmptyState from "@/components/ui/empty-state/EmptyState";
+import { usePermissions } from "@/hooks/usePermissions";
+import { getStudentsGuardiansCapabilities } from "@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities";
 
 interface StudentsTabProps {
   guardian: StudentGuardian;
@@ -31,6 +33,9 @@ interface StudentsTabProps {
 export default function StudentsTab({ guardian }: StudentsTabProps) {
   const t = useTranslations("students_guardians.guardian_profile");
   const router = useRouter();
+  const permissions = usePermissions();
+  const { canLinkGuardianToStudent } =
+    getStudentsGuardiansCapabilities(permissions);
   const params = useParams();
   const lang = (params.lang as string) || "en";
 
@@ -132,7 +137,7 @@ export default function StudentsTab({ guardian }: StudentsTabProps) {
 
   const handleLinkStudent = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selectedStudentId) return;
+    if (!canLinkGuardianToStudent || !selectedStudentId) return;
 
     setIsLinkingStudent(true);
     setLinkError(null);
@@ -167,6 +172,7 @@ export default function StudentsTab({ guardian }: StudentsTabProps) {
 
           <Button type="button" leftIcon={<UserPlus className="w-4 h-4" />}
             onClick={() => setIsLinkModalOpen(true)}
+            disabled={!canLinkGuardianToStudent}
           >
             Link Student
           </Button>

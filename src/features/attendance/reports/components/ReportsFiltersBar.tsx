@@ -13,6 +13,7 @@ import type {
 } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { AttendanceReportsFilters, ReportsStudentOption } from "../types";
 import ReportsExportActions from "./ReportsExportActions";
+import { isInvalidDateRange } from "@/features/attendance/shared/utils/dateRange";
 
 interface ReportsFiltersBarProps {
   filters: AttendanceReportsFilters;
@@ -43,6 +44,7 @@ export default function ReportsFiltersBar({
 }: ReportsFiltersBarProps) {
   const t = useTranslations("attendance.reportsPage.filters");
   const tCommon = useTranslations("common");
+  const invalidDateRange = isInvalidDateRange(filters.dateFrom, filters.dateTo);
 
   return (
     <div className="space-y-4">
@@ -51,13 +53,16 @@ export default function ReportsFiltersBar({
           type="date"
           label={t("dateFrom")}
           value={filters.dateFrom || ""}
+          max={filters.dateTo || undefined}
           onChange={(event) => onFiltersChange({ dateFrom: event.target.value })}
         />
         <Input
           type="date"
           label={t("dateTo")}
           value={filters.dateTo || ""}
+          min={filters.dateFrom || undefined}
           onChange={(event) => onFiltersChange({ dateTo: event.target.value })}
+          error={invalidDateRange ? tCommon("invalidDateRange") : undefined}
         />
         <Select
           label={t("student")}

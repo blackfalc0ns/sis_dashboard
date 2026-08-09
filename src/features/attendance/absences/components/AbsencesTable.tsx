@@ -9,6 +9,7 @@ import type { StructureTree } from "@/features/academics/academic-structure-tree
 import type { AbsenceRecord } from "../types";
 import type { AttendanceStatus } from "@/features/attendance/roll-call/types";
 import { getLocalizedStructureName } from "../utils/localizedStructureName";
+import { canCorrectIncidentToEarlyLeave } from "../utils/correctionPermissions";
 
 interface AbsencesTableProps {
   records: AbsenceRecord[];
@@ -42,7 +43,7 @@ export default function AbsencesTable({
   };
 
   const getStatusChip = (row: AbsenceRecord) => {
-    const { status, granularity, excusedFromStatus } = row;
+    const { status, granularity } = row;
 
     if (granularity === "DAILY_DERIVED") {
       const style = getAttendanceStatusStyle(status as AttendanceStatus);
@@ -60,9 +61,7 @@ export default function AbsencesTable({
     }
 
     const style = getAttendanceStatusStyle(status as AttendanceStatus);
-    const statusLabel = status === "EXCUSED" && excusedFromStatus
-      ? t("statusTransition", { from: getStatusLabel(excusedFromStatus), to: getStatusLabel(status) })
-      : getStatusLabel(status);
+    const statusLabel = getStatusLabel(status);
 
     return (
       <span 
@@ -95,7 +94,7 @@ export default function AbsencesTable({
           <div style={{ color: "var(--color-neutral-500)" }} className="text-xs">
             {locale === "ar" ? row.studentNameEn : row.studentNameAr}
           </div>
-          <div style={{ color: "var(--color-neutral-400)" }} className="text-xs">{row.studentNumber}</div>
+          <div style={{ color: "var(--color-neutral-400)" }} className="text-xs">{row.studentNumber || "—"}</div>
         </div>
       ),
     },
@@ -201,7 +200,7 @@ export default function AbsencesTable({
                 </button>
               </Tooltip>
             )}
-            {row.status === "EARLY_LEAVE" && (
+            {canCorrectIncidentToEarlyLeave(row.status) && (
               <Tooltip title={t("editEarlyLeave")} arrow>
                 <button
                   onClick={(e) => {

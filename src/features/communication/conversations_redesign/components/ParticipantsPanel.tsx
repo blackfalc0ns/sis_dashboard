@@ -7,6 +7,7 @@ import type { ConversationParticipant } from "@/features/communication/types/con
 import { actorName, displayNameForUserId, getAvatarUrl } from "@/features/communication/conversations_redesign/utils/displayNames";
 import { formatRelativeDate, participantUserId } from "@/features/communication/conversations_redesign/utils/formatters";
 import { normalizeRole, normalizeStatus } from "@/features/communication/utils/communication-errors";
+import { targetRoleForTransition } from "@/features/communication/utils/participant-role-transitions";
 
 export default function ParticipantsPanel({
   canLeaveConversation,
@@ -222,6 +223,8 @@ function ParticipantRow({
 
   const normalizedRole = normalizeRole(participant.role);
   const normalizedStatus = normalizeStatus(participant.status);
+  const promotionTarget = targetRoleForTransition(participant.role, "promote");
+  const demotionTarget = targetRoleForTransition(participant.role, "demote");
 
   const isLastOwner =
     normalizedRole === "OWNER" &&
@@ -299,17 +302,21 @@ function ParticipantRow({
             >
               {labels.editParticipant}
             </ParticipantActionButton>
-            <ParticipantActionButton
-              onClick={() => onPromoteParticipant(participant)}
-            >
-              {labels.promote}
-            </ParticipantActionButton>
-            <ParticipantActionButton
-              onClick={() => onDemoteParticipant(participant)}
-              disabled={isLastOwner}
-            >
-              {labels.demote}
-            </ParticipantActionButton>
+            {promotionTarget ? (
+              <ParticipantActionButton
+                onClick={() => onPromoteParticipant(participant)}
+              >
+                {labels.promote}
+              </ParticipantActionButton>
+            ) : null}
+            {demotionTarget ? (
+              <ParticipantActionButton
+                onClick={() => onDemoteParticipant(participant)}
+                disabled={isLastOwner}
+              >
+                {labels.demote}
+              </ParticipantActionButton>
+            ) : null}
             <button
               type="button"
               onClick={() => onRemoveParticipant(participant)}

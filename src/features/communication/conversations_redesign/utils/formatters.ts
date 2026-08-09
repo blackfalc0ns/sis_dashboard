@@ -32,7 +32,7 @@ export function formatTime(value: string | null | undefined, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
+    hour12: true,
   }).format(date);
 }
 
@@ -170,4 +170,3 @@ export function isOwnMessage(
 export function messageSenderUserId(message: ConversationMessage) {
   return message.senderId || message.sender?.userId || message.sender?.id || "";
 }
-

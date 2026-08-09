@@ -6,6 +6,7 @@ import { Plus, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
 import AnnouncementFilters from "@/features/communication/components/announcements/AnnouncementFilters";
 import AnnouncementList from "@/features/communication/components/announcements/AnnouncementList";
 import ArchiveAnnouncementDialog from "@/features/communication/components/announcements/ArchiveAnnouncementDialog";
@@ -105,6 +106,10 @@ export default function AnnouncementsPage() {
   const locale = useLocale() as LocaleKey;
   const t = labels[locale] ?? labels.en;
   const { showSuccess, showError } = useToast();
+  const { hasPermission } = usePermissions();
+  const canManageAnnouncements = hasPermission(
+    "communication.announcements.manage",
+  );
   const {
     announcements,
     archive,
@@ -157,14 +162,16 @@ export default function AnnouncementsPage() {
             >
               {t.refresh}
             </Button>
-            <Link href={`/${locale}/communication/announcements/new`}>
-              <Button
-                type="button"
-                leftIcon={<Plus className="h-4 w-4" aria-hidden="true" />}
-              >
-                {t.newAnnouncement}
-              </Button>
-            </Link>
+            {canManageAnnouncements ? (
+              <Link href={`/${locale}/communication/announcements/new`}>
+                <Button
+                  type="button"
+                  leftIcon={<Plus className="h-4 w-4" aria-hidden="true" />}
+                >
+                  {t.newAnnouncement}
+                </Button>
+              </Link>
+            ) : null}
           </>
         }
       />
@@ -203,6 +210,7 @@ export default function AnnouncementsPage() {
 
       <AnnouncementList
         announcements={announcements}
+        canManageActions={canManageAnnouncements}
         locale={locale}
         disabled={isMutating}
         labels={{

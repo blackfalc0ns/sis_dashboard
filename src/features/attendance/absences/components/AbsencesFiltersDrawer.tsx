@@ -11,6 +11,8 @@ import DatePicker from "@/components/ui/input/DatePicker";
 import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
 import type { AbsencesFilters, AttendanceIncidentType } from "../types";
 import type { StructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
+import { formatLocalDate, parseLocalDate } from "@/features/attendance/roll-call/utils/localDate";
+import { isInvalidDateRange } from "@/features/attendance/shared/utils/dateRange";
 
 interface AbsencesFiltersDrawerProps {
   isOpen: boolean;
@@ -36,6 +38,7 @@ export default function AbsencesFiltersDrawer({
 
   // Local draft state for mobile - only apply on "Apply" button
   const [draftFilters, setDraftFilters] = useState<AbsencesFilters>(filters);
+  const invalidDateRange = isInvalidDateRange(draftFilters.dateFrom, draftFilters.dateTo);
 
   // Update draft when filters change externally
   useEffect(() => {
@@ -62,6 +65,8 @@ export default function AbsencesFiltersDrawer({
 
   const handleReset = () => {
     const resetFilters: AbsencesFilters = {
+      dateFrom: undefined,
+      dateTo: undefined,
       scopeType: "SCHOOL",
       status: "ALL",
       granularities: ["DAILY", "PERIOD"],
@@ -137,12 +142,7 @@ export default function AbsencesFiltersDrawer({
                     })
                   }
                   onScopeIdsChange={(scopeIds) =>
-                    handleDraftChange({
-                      scopeIds: {
-                        ...(draftFilters.scopeIds || {}),
-                        ...scopeIds,
-                      },
-                    })
+                    handleDraftChange({ scopeIds })
                   }
                 />
               </div>
@@ -154,8 +154,9 @@ export default function AbsencesFiltersDrawer({
                 {t("dateFrom")}
               </label>
               <DatePicker
-                value={draftFilters.dateFrom ? new Date(draftFilters.dateFrom) : null}
-                onChange={(value) => handleDraftChange({ dateFrom: value ? value.toISOString().split('T')[0] : undefined })}
+                value={draftFilters.dateFrom ? parseLocalDate(draftFilters.dateFrom) : null}
+                maxDate={draftFilters.dateTo ? parseLocalDate(draftFilters.dateTo) : undefined}
+                onChange={(value) => handleDraftChange({ dateFrom: value ? formatLocalDate(value) : undefined })}
                 placeholder={t("dateFrom")}
               />
             </div>
@@ -166,9 +167,11 @@ export default function AbsencesFiltersDrawer({
                 {t("dateTo")}
               </label>
               <DatePicker
-                value={draftFilters.dateTo ? new Date(draftFilters.dateTo) : null}
-                onChange={(value) => handleDraftChange({ dateTo: value ? value.toISOString().split('T')[0] : undefined })}
+                value={draftFilters.dateTo ? parseLocalDate(draftFilters.dateTo) : null}
+                minDate={draftFilters.dateFrom ? parseLocalDate(draftFilters.dateFrom) : undefined}
+                onChange={(value) => handleDraftChange({ dateTo: value ? formatLocalDate(value) : undefined })}
                 placeholder={t("dateTo")}
+                error={invalidDateRange ? tCommon("invalidDateRange") : undefined}
               />
             </div>
 
@@ -230,6 +233,7 @@ export default function AbsencesFiltersDrawer({
             variant="primary"
             size="sm"
             onClick={handleApply}
+            disabled={invalidDateRange}
             className="flex-1"
           >
             {tCommon("apply")}

@@ -30,6 +30,8 @@ import { useTranslations } from "next-intl";
 import StudentTabSkeleton from "@/features/students-guardians/students/components/StudentTabSkeleton";
 import { Button, EmptyState, Input, Modal } from "@/components/ui";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
+import { getStudentsGuardiansCapabilities } from "@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities";
 
 interface GuardiansTabProps {
   student: Student;
@@ -42,6 +44,9 @@ function errorMessage(failure: unknown, fallback: string) {
 export default function GuardiansTab({ student }: GuardiansTabProps) {
   const t = useTranslations("students_guardians.profile.guardians");
   const { showError } = useToast();
+  const permissions = usePermissions();
+  const { canManageGuardians } =
+    getStudentsGuardiansCapabilities(permissions);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [guardians, setGuardians] = useState<StudentGuardian[]>([]);
@@ -105,6 +110,8 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
   }, [showError, student.id]);
 
   const handleAddGuardian = async (guardianData: GuardianFormData) => {
+    if (!canManageGuardians) return;
+
     setError(null);
     try {
       const { selectedStudents, ...guardianFields } = guardianData;
@@ -216,6 +223,8 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
 
   const handleLinkExistingGuardian = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!canManageGuardians) return;
+
     if (!selectedGuardianId) {
       setError("Please select a guardian to link.");
       return;
@@ -240,6 +249,8 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
   };
 
   const handleUnlinkGuardian = async (guardianId: string) => {
+    if (!canManageGuardians) return;
+
     try {
       setError(null);
       await studentsService.unlinkGuardianFromStudent(student.id, guardianId);
@@ -252,6 +263,8 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
   };
 
   const openLinkEditor = (guardian: StudentGuardian) => {
+    if (!canManageGuardians) return;
+
     setEditingGuardian(guardian);
     setEditAsPrimary(guardian.is_primary);
     setEditCanPickup(guardian.can_pickup);
@@ -260,7 +273,7 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
   };
 
   const saveGuardianLink = async () => {
-    if (!editingGuardian) return;
+    if (!canManageGuardians || !editingGuardian) return;
 
     setIsSavingLink(true);
     setError(null);
@@ -348,6 +361,7 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
             variant="outline"
             onClick={() => setShowLinkModal(true)}
             leftIcon={<Search className="w-4 h-4" />}
+            disabled={!canManageGuardians}
           >
             {t("link_existing")}
           </Button>
@@ -355,6 +369,7 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
             type="button"
             onClick={() => setShowAddModal(true)}
             leftIcon={<Plus className="w-4 h-4" />}
+            disabled={!canManageGuardians}
           >
             {t("add_guardian")}
           </Button>
@@ -412,6 +427,7 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
                   aria-label={t("edit_link")}
                   title={t("edit_link")}
                   onClick={() => openLinkEditor(guardian)}
+                  disabled={!canManageGuardians}
                 >
                   <Edit2 className="w-4 h-4" />
                 </Button>
@@ -425,6 +441,7 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
                     }
                     className="p-2 text-red-500"
                     title="Unlink guardian from student"
+                    disabled={!canManageGuardians}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -539,6 +556,7 @@ export default function GuardiansTab({ student }: GuardiansTabProps) {
                 type="button"
                 onClick={() => setShowAddModal(true)}
                 leftIcon={<Plus className="w-4 h-4" />}
+                disabled={!canManageGuardians}
               >
                 {t("add_guardian")}
               </Button>

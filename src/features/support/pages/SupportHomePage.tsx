@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useLocale } from "next-intl";
 import { BookOpen, MessageCircle } from "lucide-react";
+import SupportPermissionGuard from "../components/SupportPermissionGuard";
 
 const copy = {
   en: {
@@ -22,6 +23,14 @@ const copy = {
 } as const;
 
 export default function SupportHomePage() {
+  return (
+    <SupportPermissionGuard permission="school.support.view">
+      <SupportHomeContent />
+    </SupportPermissionGuard>
+  );
+}
+
+function SupportHomeContent() {
   const locale = useLocale();
   const isArabic = locale === "ar";
   const labels = isArabic ? copy.ar : copy.en;

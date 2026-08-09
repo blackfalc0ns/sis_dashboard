@@ -25,6 +25,7 @@ import {
   labelsForLocale,
   type ConversationRedesignLabels,
 } from "@/features/communication/conversations_redesign/labels";
+import { formatTime } from "@/features/communication/conversations_redesign/utils/formatters";
 import type {
   ConversationFiltersState,
   ConversationListItemModel,
@@ -130,11 +131,7 @@ function formatConversationTime(
   const diffDays = Math.round((today.getTime() - target.getTime()) / 86400000);
 
   if (diffDays === 0) {
-    return new Intl.DateTimeFormat(locale, {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }).format(date);
+    return formatTime(value, locale);
   }
   if (diffDays === 1) return labels.yesterday;
   if (diffDays < 7) {

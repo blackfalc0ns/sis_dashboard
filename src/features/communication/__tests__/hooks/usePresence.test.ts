@@ -21,4 +21,37 @@ describe("usePresence", () => {
       isOnline: true,
     });
   });
+
+  it.each([
+    ["online", true],
+    ["offline", false],
+  ])("uses the backend %s status when an online flag is absent", (status, isOnline) => {
+    const { result } = renderHook(() => usePresence());
+
+    act(() => {
+      result.current.handlePresenceUpdated({ userId: "user-1", status });
+    });
+
+    expect(result.current.presenceByUserId["user-1"]?.isOnline).toBe(isOnline);
+  });
+
+  it("hides and ignores presence when online presence is disabled", () => {
+    const { result, rerender } = renderHook(
+      ({ enabled }) => usePresence({ enabled }),
+      { initialProps: { enabled: true } },
+    );
+
+    act(() => {
+      result.current.handlePresenceUpdated({ userId: "user-1", online: true });
+    });
+    rerender({ enabled: false });
+
+    expect(result.current.presenceByUserId).toEqual({});
+
+    act(() => {
+      result.current.handlePresenceUpdated({ userId: "user-2", online: true });
+    });
+
+    expect(result.current.presenceByUserId).toEqual({});
+  });
 });

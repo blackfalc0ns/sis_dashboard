@@ -11,7 +11,7 @@ export function stringValue(value: unknown): string | undefined {
 
 
 export function actorName(actor?: CommunicationActor | null) {
-  return actor?.name || actor?.nameEn || actor?.nameAr;
+  return actor?.displayName || actor?.name || actor?.nameEn || actor?.nameAr;
 }
 
 export function displayNameForUserId(

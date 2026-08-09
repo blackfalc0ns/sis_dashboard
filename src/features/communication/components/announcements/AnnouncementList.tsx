@@ -24,6 +24,7 @@ export interface AnnouncementListLabels {
 
 export interface AnnouncementListProps {
   announcements: Announcement[];
+  canManageActions: boolean;
   locale: string;
   disabled?: boolean;
   labels: AnnouncementListLabels;
@@ -80,6 +81,7 @@ function statusLabel(
 
 export default function AnnouncementList({
   announcements,
+  canManageActions,
   disabled,
   labels,
   locale,
@@ -142,7 +144,7 @@ export default function AnnouncementList({
                     {labels.view}
                   </Button>
                 </Link>
-                {status === "draft" ? (
+                {canManageActions && status === "draft" ? (
                   <>
                     <Link href={href}>
                       <Button
@@ -167,7 +169,7 @@ export default function AnnouncementList({
                     </Button>
                   </>
                 ) : null}
-                {status !== "archived" ? (
+                {canManageActions && status !== "archived" ? (
                   <Button
                     type="button"
                     size="sm"

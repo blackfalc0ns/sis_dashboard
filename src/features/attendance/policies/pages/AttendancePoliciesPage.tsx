@@ -39,8 +39,10 @@ import {
 import type { AttendancePolicy, PolicyFormData } from "../types";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import AttendanceReadOnlyBanner from "../../shared/components/AttendanceReadOnlyBanner";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export default function AttendancePoliciesPage() {
+  const { hasPermission } = usePermissions();
   const locale = useLocale();
   const t = useTranslations("attendance.policies");
   const tCommon = useTranslations("common");
@@ -70,6 +72,7 @@ export default function AttendancePoliciesPage() {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
 
   const isReadOnly = termContext.isReadOnly;
+  const canManagePolicies = hasPermission("attendance.policies.manage");
 
   // Compute KPIs
   const kpis = useMemo(() => {
@@ -505,6 +508,7 @@ export default function AttendancePoliciesPage() {
             sections={sections}
             classrooms={classrooms}
             isReadOnly={isReadOnly}
+            canManagePolicies={canManagePolicies}
             onCreatePolicy={handleCreatePolicy}
             onOpenExport={() => setShowExportModal(true)}
             onFilteredPoliciesChange={setVisiblePolicies}
@@ -525,6 +529,7 @@ export default function AttendancePoliciesPage() {
           sections={sections}
           classrooms={classrooms}
           isReadOnly={isReadOnly}
+          canManagePolicies={canManagePolicies}
           onSave={handleSavePolicy}
           onClose={handleCancelEdit}
         />

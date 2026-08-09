@@ -1,5 +1,5 @@
-import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { renderWithPermissions } from "@/__tests__/test-utils/renderWithPermissions";
 
 import Page from "@/app/[lang]/(dashboard)/communication/conversations/page";
 
@@ -24,7 +24,10 @@ describe("communication conversations route", () => {
       searchParams: Promise.resolve({ conversationId: "conv-1" }),
     });
 
-    const { container } = render(element);
+    const { container } = renderWithPermissions(element, [
+      "communication.conversations.view",
+      "communication.messages.view",
+    ]);
     const routeShell = container.querySelector("main");
 
     expect(routeShell).toHaveClass("min-w-0", "overflow-x-hidden");

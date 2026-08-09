@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
+import { ApiError } from "@/lib/api-error";
 import { createMockSocket, type MockSocket } from "../utils/mock-socket";
 import {
   archiveNotification,
@@ -20,6 +21,7 @@ function deferredPromise<T>() {
 
 let mockSocket: MockSocket;
 let getNotificationsMock: ReturnType<typeof vi.fn>;
+let resyncVersion: number;
 
 vi.mock("@/features/communication/api/communication.service", () => ({
   archiveNotification: vi.fn(),
@@ -33,7 +35,7 @@ vi.mock("@/features/communication/hooks/useCommunicationSocket", () => ({
     socket: mockSocket,
     isConnected: true,
     connectionError: null,
-    resyncVersion: 0,
+    resyncVersion,
     joinConversation: vi.fn(),
     leaveConversation: vi.fn(),
     startTyping: vi.fn(),
@@ -47,10 +49,11 @@ describe("useNotifications", () => {
   beforeEach(() => {
     mockSocket = createMockSocket();
     getNotificationsMock = vi.fn().mockResolvedValue({ items: [], total: 0 });
+    resyncVersion = 0;
     vi.restoreAllMocks();
   });
 
-  it("cleans up notification socket listeners on unmount", async () => {
+  it("cleans up the notification socket listener on unmount", async () => {
     const { unmount } = renderHook(() => useNotifications());
 
     await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(1));
@@ -58,18 +61,12 @@ describe("useNotifications", () => {
       mockSocket.getListeners(COMMUNICATION_SOCKET_EVENTS.notificationCreated)
         .size,
     ).toBeGreaterThan(0);
-    expect(
-      mockSocket.getListeners(COMMUNICATION_SOCKET_EVENTS.notificationRead).size,
-    ).toBeGreaterThan(0);
 
     unmount();
 
     expect(
       mockSocket.getListeners(COMMUNICATION_SOCKET_EVENTS.notificationCreated)
         .size,
-    ).toBe(0);
-    expect(
-      mockSocket.getListeners(COMMUNICATION_SOCKET_EVENTS.notificationRead).size,
     ).toBe(0);
   });
 
@@ -93,6 +90,32 @@ describe("useNotifications", () => {
         recipientUserId: "user-1",
       }),
     );
+  });
+
+  it("suppresses the access-denied banner for background notification refreshes", async () => {
+    renderHook(() =>
+      useNotifications({ recipientUserId: "user-1", isBackground: true }),
+    );
+
+    await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(1));
+    expect(getNotificationsMock).toHaveBeenCalledWith(
+      expect.objectContaining({ recipientUserId: "user-1" }),
+    );
+  });
+
+  it("stops background notification refreshes after a forbidden response", async () => {
+    getNotificationsMock.mockRejectedValue(
+      new ApiError("Forbidden", 403, "FORBIDDEN"),
+    );
+    renderHook(() => useNotifications({ isBackground: true }));
+
+    await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(1));
+    await act(async () => undefined);
+
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect(getNotificationsMock).toHaveBeenCalledTimes(1);
   });
 
   it("does not send a limit parameter by default", async () => {
@@ -157,76 +180,37 @@ describe("useNotifications", () => {
     });
   });
 
-  describe("socket throttling", () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
+  it("adds a realtime notification without requesting the notification list again", async () => {
+    const { result } = renderHook(() => useNotifications());
 
-    afterEach(() => {
-      vi.useRealTimers();
-    });
+    await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(1));
 
-    it("refreshes when a notification is created over the socket", async () => {
-      renderHook(() => useNotifications());
-
-      await act(async () => {
-        vi.advanceTimersByTime(0);
-      });
-      expect(getNotificationsMock).toHaveBeenCalledTimes(1);
-
-      act(() => {
-        mockSocket.simulateEvent(COMMUNICATION_SOCKET_EVENTS.notificationCreated, {
-          notification: { id: "notification-1" },
-        });
-      });
-
-      // It should NOT call refresh immediately
-      expect(getNotificationsMock).toHaveBeenCalledTimes(1);
-
-      await act(async () => {
-        vi.advanceTimersByTime(100);
-      });
-
-      expect(getNotificationsMock).toHaveBeenCalledTimes(2);
-    });
-
-    it("debounces multiple socket events to a single refresh after 100ms", async () => {
-      renderHook(() => useNotifications());
-
-      // Advance timers to flush the initial effect refresh
-      await act(async () => {
-        vi.advanceTimersByTime(0);
-      });
-      expect(getNotificationsMock).toHaveBeenCalledTimes(1);
-
-      // Simulate a notification created event
-      act(() => {
-        mockSocket.simulateEvent(COMMUNICATION_SOCKET_EVENTS.notificationCreated, {
-          notification: { id: "notification-1" },
-        });
-      });
-
-      // It should NOT call refresh immediately
-      expect(getNotificationsMock).toHaveBeenCalledTimes(1);
-
-      // Simulate another event at 50ms
-      act(() => {
-        vi.advanceTimersByTime(50);
-        mockSocket.simulateEvent(COMMUNICATION_SOCKET_EVENTS.notificationRead, {
+    act(() => {
+      mockSocket.simulateEvent(COMMUNICATION_SOCKET_EVENTS.notificationCreated, {
+        notification: {
           notificationId: "notification-1",
-        });
+          status: "unread",
+          priority: "normal",
+          createdAt: "2026-08-09T12:00:00.000Z",
+        },
       });
-
-      // Still no new call
-      expect(getNotificationsMock).toHaveBeenCalledTimes(1);
-
-      // Advance by another 100ms (total 100ms from the second event)
-      await act(async () => {
-        vi.advanceTimersByTime(100);
-      });
-
-      expect(getNotificationsMock).toHaveBeenCalledTimes(2);
     });
+
+    expect(getNotificationsMock).toHaveBeenCalledTimes(1);
+    expect(result.current.notifications).toEqual([
+      expect.objectContaining({ id: "notification-1", status: "unread" }),
+    ]);
+    expect(result.current.unreadCount).toBe(1);
+  });
+
+  it("refreshes notifications after reconnect resynchronization", async () => {
+    const { rerender } = renderHook(() => useNotifications());
+
+    await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(1));
+    resyncVersion = 1;
+    rerender();
+
+    await waitFor(() => expect(getNotificationsMock).toHaveBeenCalledTimes(2));
   });
 
   describe("optimistic mutations", () => {

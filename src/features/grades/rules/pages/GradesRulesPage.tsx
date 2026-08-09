@@ -8,6 +8,7 @@ import Button from "@/components/ui/button/Button";
 import Select from "@/components/ui/input/Select";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
 import { fetchGradesFiltersData } from "../../gradebook/services/gradesGradebookService";
 import { mapGradesApiError } from "../../gradebook/utils/gradesApiErrors";
 import { useGradesYearTermLayoutContext } from "../../hooks/GradesYearTermLayoutContext";
@@ -32,6 +33,8 @@ export default function GradesRulesPage({
   const locale = useLocale();
   const router = useRouter();
   const { showError, showSuccess } = useToast();
+  const { hasPermission } = usePermissions();
+  const canManageRules = hasPermission("grades.rules.manage");
   const { academicYearId, termId, termStatus, isInitializing } =
     useGradesYearTermLayoutContext();
   const [scopeType, setScopeType] = useState<"school" | "grade">("school");
@@ -80,6 +83,7 @@ export default function GradesRulesPage({
   }, [academicYearId, ruleId, showError, tGrades, termId]);
 
   const submit = async () => {
+    if (!canManageRules) return;
     const mark = Number(passMark);
     if (!Number.isFinite(mark) || mark < 0 || mark > 100) {
       showError(t("validation.passMark"));
@@ -120,7 +124,7 @@ export default function GradesRulesPage({
         <MainLoader />
       </div>
     );
-  const disabled = termStatus === "closed" || saving;
+  const disabled = termStatus === "closed" || saving || !canManageRules;
   return (
     <main className="space-y-6 p-4 sm:p-6">
       <header className="flex items-start justify-between gap-4">

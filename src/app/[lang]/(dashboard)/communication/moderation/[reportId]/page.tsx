@@ -1,4 +1,5 @@
 import MessageReportDetailsPage from "@/features/communication/pages/MessageReportDetailsPage";
+import CommunicationAccessGuard from "@/features/communication/components/CommunicationAccessGuard";
 
 interface PageProps {
   params: Promise<{
@@ -12,8 +13,10 @@ export default async function CommunicationModerationDetailsPage({
   const { reportId } = await params;
 
   return (
-    <main className="flex-1 p-4 sm:p-6 min-w-0 overflow-x-hidden">
-      <MessageReportDetailsPage reportId={reportId} />
-    </main>
+    <CommunicationAccessGuard permission="communication.messages.moderate">
+      <main className="flex-1 p-4 sm:p-6 min-w-0 overflow-x-hidden">
+        <MessageReportDetailsPage reportId={reportId} />
+      </main>
+    </CommunicationAccessGuard>
   );
 }

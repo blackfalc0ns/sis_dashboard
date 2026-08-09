@@ -26,6 +26,7 @@ import {
 import { useSectionTabs, type TabConfig } from "@/hooks/useSectionTabs";
 import { buildLocalePath } from "@/lib/routing/localePath";
 import { StudentProfileProvider } from "@/features/students-guardians/students/components/StudentProfileContext";
+import StudentsGuardiansPermissionGuard from "@/features/students-guardians/shared/components/StudentsGuardiansPermissionGuard";
 
 const tabs: TabConfig[] = [
   { key: "personal", labelKey: "tabs.personal_info", icon: User },
@@ -63,6 +64,14 @@ export default function StudentProfileLayout({
 }: {
   children: React.ReactNode;
 }) {
+  return (
+    <StudentsGuardiansPermissionGuard permissions={["students.records.view"]}>
+      <StudentProfileLayoutContent>{children}</StudentProfileLayoutContent>
+    </StudentsGuardiansPermissionGuard>
+  );
+}
+
+function StudentProfileLayoutContent({ children }: { children: React.ReactNode }) {
   const t = useTranslations("students_guardians.profile");
   const locale = useLocale();
   const router = useRouter();

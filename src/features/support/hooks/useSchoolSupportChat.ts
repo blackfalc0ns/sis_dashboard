@@ -14,6 +14,8 @@ import type {
   LocalMessageDeliveryStatus,
 } from "@/features/communication/hooks/useConversationMessages";
 import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/usePermissions";
+import { isApiError } from "@/lib/api-error";
 
 const PAGE_SIZE = 50;
 const SUPPORT_CHAT_POLL_INTERVAL_MS = 5_000;
@@ -119,7 +121,10 @@ function unwrapSentMessage(
 
 export function useSchoolSupportChat() {
   const { user } = useAuth();
+  const { hasPermission, isPermissionsReady } = usePermissions();
   const currentUserId = user?.id;
+  const canSend =
+    isPermissionsReady && hasPermission("school.support.send");
   const mountedRef = useRef(false);
   const messagesRef = useRef<ConversationMessage[]>([]);
   const refreshRequestRef = useRef<{
@@ -134,6 +139,7 @@ export function useSchoolSupportChat() {
   const [hasOlderMessages, setHasOlderMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isPollingForbidden, setIsPollingForbidden] = useState(false);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -167,7 +173,16 @@ export function useSchoolSupportChat() {
       );
       setMessages(sortMessages(nextMessages));
       setHasOlderMessages(nextMessages.length >= PAGE_SIZE);
-      void markSchoolSupportRead().catch(() => undefined);
+      void markSchoolSupportRead().catch((nextError) => {
+        if (
+          mountedRef.current &&
+          options?.silent &&
+          isApiError(nextError) &&
+          nextError.status === 403
+        ) {
+          setIsPollingForbidden(true);
+        }
+      });
     })();
 
     refreshRequestRef.current = { key: requestKey, request };
@@ -176,6 +191,14 @@ export function useSchoolSupportChat() {
       await request;
     } catch (nextError) {
       if (!mountedRef.current) return;
+      if (
+        options?.silent &&
+        isApiError(nextError) &&
+        nextError.status === 403
+      ) {
+        setIsPollingForbidden(true);
+        return;
+      }
       setError(errorMessage(nextError));
       if (shouldShowLoading) setMessages([]);
     } finally {
@@ -197,6 +220,8 @@ export function useSchoolSupportChat() {
   }, [refresh]);
 
   useEffect(() => {
+    if (isPollingForbidden) return;
+
     const pollSupportChat = () => {
       if (document.visibilityState === "hidden") return;
       void refresh({ silent: true });
@@ -208,7 +233,7 @@ export function useSchoolSupportChat() {
     );
 
     return () => window.clearInterval(interval);
-  }, [refresh]);
+  }, [isPollingForbidden, refresh]);
 
   const loadOlderMessages = useCallback(async () => {
     if (isLoadingOlder || !hasOlderMessages) return;
@@ -242,7 +267,7 @@ export function useSchoolSupportChat() {
   const send = useCallback(
     async (body: string) => {
       const trimmed = body.trim();
-      if (!trimmed || !conversation) return undefined;
+      if (!canSend || !trimmed || !conversation) return undefined;
 
       const clientMessageId = createClientMessageId();
       const pendingMessage: ConversationMessage = {
@@ -299,7 +324,7 @@ export function useSchoolSupportChat() {
         setIsSending(false);
       }
     },
-    [conversation, currentUserId, currentUserName],
+    [canSend, conversation, currentUserId, currentUserName],
   );
 
   const isClosed = conversation?.status === "closed";
@@ -308,6 +333,7 @@ export function useSchoolSupportChat() {
     conversation,
     currentUserId,
     currentUserName,
+    canSend,
     error,
     hasOlderMessages,
     isClosed,

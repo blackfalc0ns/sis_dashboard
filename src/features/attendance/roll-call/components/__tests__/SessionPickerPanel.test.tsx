@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import SessionPickerPanel from "../SessionPickerPanel";
 
@@ -8,8 +9,27 @@ vi.mock("next-intl", () => ({
 }));
 
 vi.mock("@/features/attendance/policies/components/ScopePicker", () => ({
-  default: ({ disabled }: { disabled?: boolean }) => (
-    <button type="button" disabled={disabled}>Scope control</button>
+  default: ({
+    disabled,
+    onScopeTypeChange,
+    onScopeIdsChange,
+  }: {
+    disabled?: boolean;
+    onScopeTypeChange: (scopeType: "SCHOOL") => void;
+    onScopeIdsChange: (scopeIds: Record<string, string | undefined>) => void;
+  }) => (
+    <>
+      <button type="button" disabled={disabled}>Scope control</button>
+      <button
+        type="button"
+        onClick={() => {
+          onScopeTypeChange("SCHOOL");
+          onScopeIdsChange({});
+        }}
+      >
+        Change scope
+      </button>
+    </>
   ),
 }));
 
@@ -26,7 +46,7 @@ const defaultProps = {
   grades: [],
   sections: [],
   classrooms: [],
-  onScopeTypeChange: vi.fn(),
+  onScopeChange: vi.fn(),
   onScopeIdsChange: vi.fn(),
   date: "2026-02-10",
   onDateChange: vi.fn(),
@@ -77,5 +97,23 @@ describe("SessionPickerPanel", () => {
     );
     screen.getByRole("button", { name: "sessionPicker.reopenForEdit" }).click();
     expect(onReopenForEdit).toHaveBeenCalledOnce();
+  });
+
+  it("forwards a scope-type change as one atomic scope change", async () => {
+    const user = userEvent.setup();
+    const onScopeChange = vi.fn();
+    const onScopeIdsChange = vi.fn();
+    render(
+      <SessionPickerPanel
+        {...defaultProps}
+        onScopeChange={onScopeChange}
+        onScopeIdsChange={onScopeIdsChange}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Change scope" }));
+
+    expect(onScopeChange).toHaveBeenCalledWith("SCHOOL");
+    expect(onScopeIdsChange).not.toHaveBeenCalled();
   });
 });

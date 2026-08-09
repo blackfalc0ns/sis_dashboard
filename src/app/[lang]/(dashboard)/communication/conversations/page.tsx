@@ -1,4 +1,5 @@
 import ConversationsPage from "@/features/communication/conversations_redesign/pages/ConversationPage";
+import CommunicationAccessGuard from "@/features/communication/components/CommunicationAccessGuard";
 
 interface PageProps {
   searchParams?: Promise<{
@@ -14,8 +15,15 @@ export default async function Page({ searchParams }: PageProps) {
     : conversationIdParam;
 
   return (
-    <main className="min-w-0 overflow-x-hidden">
-      <ConversationsPage initialConversationId={conversationId ?? null} />
-    </main>
+    <CommunicationAccessGuard
+      permissions={[
+        "communication.conversations.view",
+        "communication.messages.view",
+      ]}
+    >
+      <main className="min-w-0 overflow-x-hidden">
+        <ConversationsPage initialConversationId={conversationId ?? null} />
+      </main>
+    </CommunicationAccessGuard>
   );
 }

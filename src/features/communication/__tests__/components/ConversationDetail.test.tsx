@@ -1157,6 +1157,24 @@ describe("ConversationDetail", () => {
       ).not.toBeInTheDocument();
     });
 
+    it("shows the permission composer when the active participant cannot send messages", () => {
+      hasPermissionMock.mockImplementation(
+        (permission: string) => permission !== "communication.messages.send",
+      );
+
+      renderConversationDetail();
+
+      expect(screen.getByText("You cannot send messages")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Your account does not have the permission required to send messages in this conversation.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByText("communication.messages.send")).toBeInTheDocument();
+      expect(screen.queryByTestId("read-only-composer")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("message-composer")).not.toBeInTheDocument();
+    });
+
     it("shows restriction banner when communication policy is disabled", () => {
       useCommunicationPolicyMock.mockReturnValue({
         policy: {

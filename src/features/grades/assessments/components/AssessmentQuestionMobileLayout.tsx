@@ -19,6 +19,7 @@ interface AssessmentQuestionMobileLayoutProps {
   selectedQuestion: AssignmentQuestion | undefined;
   assessment: Assessment;
   isReadOnly: boolean;
+  isAssessmentReadOnly: boolean;
   pointsSummary: PointsSummary;
   validationErrors: ValidationErrors;
   isQuestionDirty: boolean;
@@ -39,6 +40,7 @@ export default function AssessmentQuestionMobileLayout({
   selectedQuestion,
   assessment,
   isReadOnly,
+  isAssessmentReadOnly,
   pointsSummary,
   validationErrors,
   isQuestionDirty,
@@ -114,7 +116,7 @@ export default function AssessmentQuestionMobileLayout({
               assessment={assessment}
               pointsSummary={pointsSummary}
               validationErrors={validationErrors}
-              isReadOnly={isReadOnly}
+              isReadOnly={isAssessmentReadOnly}
               onUpdate={onUpdateAssessment}
               onAutoDistributePoints={onAutoDistributePoints}
             />

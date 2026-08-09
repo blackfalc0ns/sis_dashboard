@@ -12,6 +12,7 @@ import type {
   ParticipantRoleChangeValues,
 } from "@/features/communication/hooks/useConversationParticipants";
 import type { ConversationParticipant } from "@/features/communication/types/conversation.types";
+import { targetRoleForTransition } from "@/features/communication/utils/participant-role-transitions";
 import AddParticipantDialog from "./AddParticipantDialog";
 import EditParticipantRoleDialog, {
   type ParticipantDialogMode,
@@ -266,6 +267,14 @@ export default function ParticipantsPanel({
             const isSelf = Boolean(currentUserId && userId === currentUserId);
             const showAdminActions = Boolean(canManageParticipants && !isSelf);
             const isOnline = presence?.isOnline || presence?.status === "online";
+            const promotionTarget = targetRoleForTransition(
+              participant.role,
+              "promote",
+            );
+            const demotionTarget = targetRoleForTransition(
+              participant.role,
+              "demote",
+            );
 
             return (
               <div
@@ -334,30 +343,34 @@ export default function ParticipantsPanel({
                     >
                       {labels.edit}
                     </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      disabled={isMutating}
-                      onClick={() => {
-                        setRoleDialogMode("promote");
-                        setSelectedParticipant(participant);
-                      }}
-                    >
-                      {labels.promote}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      disabled={isMutating}
-                      onClick={() => {
-                        setRoleDialogMode("demote");
-                        setSelectedParticipant(participant);
-                      }}
-                    >
-                      {labels.demote}
-                    </Button>
+                    {promotionTarget ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={isMutating}
+                        onClick={() => {
+                          setRoleDialogMode("promote");
+                          setSelectedParticipant(participant);
+                        }}
+                      >
+                        {labels.promote}
+                      </Button>
+                    ) : null}
+                    {demotionTarget ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={isMutating}
+                        onClick={() => {
+                          setRoleDialogMode("demote");
+                          setSelectedParticipant(participant);
+                        }}
+                      >
+                        {labels.demote}
+                      </Button>
+                    ) : null}
                     <Button
                       type="button"
                       variant="danger"

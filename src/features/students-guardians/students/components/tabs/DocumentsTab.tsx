@@ -30,6 +30,8 @@ import type { Document } from "@/features/admissions/types/admissions";
 import { useTranslations } from "next-intl";
 import { downloadFileBlob, uploadFile } from "@/services/filesService";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
+import { getStudentsGuardiansCapabilities } from "@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities";
 
 interface DocumentsTabProps {
   student: Student;
@@ -38,6 +40,9 @@ interface DocumentsTabProps {
 export default function DocumentsTab({ student }: DocumentsTabProps) {
   const t = useTranslations("students_guardians.profile.documents");
   const { showToast } = useToast();
+  const permissions = usePermissions();
+  const { canManageDocuments, canImportAdmissionsDocuments } =
+    getStudentsGuardiansCapabilities(permissions);
   const [documents, setDocuments] = useState<StudentDocument[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -88,6 +93,8 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
   }, [loadDocuments]);
 
   const handleUploadDocument = async (documentData: DocumentUploadData) => {
+    if (!canManageDocuments) return;
+
     try {
       const uploadedFile = await uploadFile(documentData.file);
       await studentsService.createStudentDocument(student.id, {
@@ -108,7 +115,7 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
   };
 
   const handleUploadClick = () => {
-    // Can be extended to track which document is being uploaded
+    if (!canManageDocuments) return;
     setShowUploadModal(true);
   };
 
@@ -124,7 +131,7 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
   };
 
   const handleOpenImport = async () => {
-    if (!student.applicationId) return;
+    if (!canImportAdmissionsDocuments || !student.applicationId) return;
 
     setShowImportModal(true);
     setIsLoadingImports(true);
@@ -149,7 +156,7 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
   };
 
   const handleImportDocuments = async (applicationDocumentIds: string[]) => {
-    if (!student.applicationId) return;
+    if (!canImportAdmissionsDocuments || !student.applicationId) return;
 
     setIsImporting(true);
     try {
@@ -171,7 +178,7 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
   };
 
   const handleDeleteDocument = async () => {
-    if (!documentToDelete) return;
+    if (!canManageDocuments || !documentToDelete) return;
 
     setIsDeleting(true);
     try {
@@ -346,9 +353,10 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => handleUploadClick()}
-              className="p-1.5 text-green-600"
-              title={t("upload")}
+                onClick={() => handleUploadClick()}
+                className="p-1.5 text-green-600"
+                title={t("upload")}
+                disabled={!canManageDocuments}
             >
               <Upload className="w-4 h-4" />
             </Button>
@@ -360,6 +368,7 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
             onClick={() => setDocumentToDelete(row as unknown as StudentDocument)}
             className="p-1.5 text-red-600 hover:bg-red-50"
             title={t("delete")}
+            disabled={!canManageDocuments}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -441,6 +450,7 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
                 variant="secondary"
                 onClick={() => void handleOpenImport()}
                 leftIcon={<FileInput className="h-4 w-4" />}
+                disabled={!canImportAdmissionsDocuments}
               >
                 {t("import_from_admissions")}
               </Button>
@@ -449,6 +459,7 @@ export default function DocumentsTab({ student }: DocumentsTabProps) {
               type="button"
               onClick={() => handleUploadClick()}
               leftIcon={<Upload className="w-4 h-4" />}
+              disabled={!canManageDocuments}
             >
               {t("upload_document")}
             </Button>

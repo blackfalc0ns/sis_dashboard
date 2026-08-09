@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, DatePicker, FilterPanel, Input, Select } from "@/components/ui";
 import MainLoader from "@/components/ui/loaders/MainLoader";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
+import DashboardPermissionGuard from "@/features/dashboard/components/DashboardPermissionGuard";
 import {
   appendDashboardActivityFeedPage,
   mapDashboardActivityFeedToViewModel,
@@ -52,6 +53,14 @@ const defaultRecentActivityFilters: RecentActivityFilters = {
 };
 
 export default function RecentActivitiesPage() {
+  return (
+    <DashboardPermissionGuard permission="dashboard.activity_feed.view">
+      <RecentActivitiesContent />
+    </DashboardPermissionGuard>
+  );
+}
+
+function RecentActivitiesContent() {
   const { isInitializing } = useAcademicYearTermLayoutContext();
   const locale = useLocale();
   const pathname = usePathname();

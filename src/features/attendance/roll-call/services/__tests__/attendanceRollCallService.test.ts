@@ -17,10 +17,6 @@ vi.mock("@/lib/api", () => ({
   apiPut: vi.fn(),
 }));
 
-vi.mock("@/features/attendance/policies/services/attendancePolicyService", () => ({
-  fetchPolicies: vi.fn().mockResolvedValue([]),
-}));
-
 const mockedApiGet = vi.mocked(apiGet);
 const mockedApiPost = vi.mocked(apiPost);
 const mockedApiPut = vi.mocked(apiPut);

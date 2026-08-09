@@ -6,6 +6,8 @@ import { ApiError } from "@/lib/api-error";
 import PolicyWizardDialog from "../PolicyWizardDialog";
 import type { Term } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { AttendancePolicy, PolicyFormData } from "../../types";
+import { fetchTimetableConfig } from "@/features/academics/timetable/services/timetableConfigService";
+import type { TimetableConfig } from "@/features/academics/timetable/types/timetableConfig";
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
@@ -24,6 +26,7 @@ vi.mock("@/features/academics/timetable/services/timetableConfigService", () => 
 }));
 
 const mockedApiGet = vi.mocked(apiGet);
+const mockedFetchTimetableConfig = vi.mocked(fetchTimetableConfig);
 
 const term = {
   id: "term-1",
@@ -46,6 +49,7 @@ function renderWizard(options: {
       sections={[]}
       classrooms={[]}
       isReadOnly={false}
+      canManagePolicies
       onSave={options.onSave ?? vi.fn().mockResolvedValue(undefined)}
       onClose={vi.fn()}
     />,
@@ -88,6 +92,14 @@ const classroomPolicy: AttendancePolicy = {
 
 function validationCalls() {
   return mockedApiGet.mock.calls.filter(([url]) => url === "/attendance/policies/validate-name");
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((complete) => {
+    resolve = complete;
+  });
+  return { promise, resolve };
 }
 
 describe("PolicyWizardDialog policy errors", () => {
@@ -208,5 +220,178 @@ describe("PolicyWizardDialog policy errors", () => {
         effectiveEndDate: null,
       }),
     );
+  });
+
+  it("loads term periods for a school-scope period policy", async () => {
+    const user = userEvent.setup();
+    mockedFetchTimetableConfig.mockResolvedValue({
+      id: "term-config-1",
+      termId: "term-1",
+      scopeType: "TERM",
+      days: [],
+      periods: [
+        {
+          id: "term-period-1",
+          index: 1,
+          nameAr: "الحصة الأولى",
+          nameEn: "Term period 1",
+        },
+      ],
+      updatedAt: "2026-08-04T00:00:00.000Z",
+    });
+
+    renderWizard({
+      policy: {
+        ...classroomPolicy,
+        scopeType: "SCHOOL",
+        scopeIds: {},
+        selectedPeriodIds: [],
+      },
+    });
+
+    await waitFor(() =>
+      expect(mockedFetchTimetableConfig).toHaveBeenCalledWith({
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "TERM",
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "next" }));
+    await user.click(screen.getByRole("button", { name: "next" }));
+
+    expect(await screen.findByText("Term period 1")).toBeInTheDocument();
+  });
+
+  it("keeps periods from the latest scope when an earlier request resolves last", async () => {
+    const user = userEvent.setup();
+    const firstRequest = deferred<TimetableConfig | null>();
+    const secondRequest = deferred<TimetableConfig | null>();
+    mockedFetchTimetableConfig
+      .mockImplementationOnce(() => firstRequest.promise)
+      .mockImplementationOnce(() => secondRequest.promise);
+
+    const { rerender } = renderWizard({ policy: classroomPolicy });
+
+    await waitFor(() =>
+      expect(mockedFetchTimetableConfig).toHaveBeenLastCalledWith({
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "CLASSROOM",
+        classroomId: "classroom-1",
+      }),
+    );
+
+    const latestPolicy = {
+      ...classroomPolicy,
+      scopeIds: { ...classroomPolicy.scopeIds, classroomId: "classroom-2" },
+    };
+    rerender(
+      <PolicyWizardDialog
+        isOpen
+        policy={latestPolicy}
+        term={term}
+        stages={[]}
+        grades={[]}
+        sections={[]}
+        classrooms={[]}
+        isReadOnly={false}
+        canManagePolicies
+        onSave={vi.fn().mockResolvedValue(undefined)}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(mockedFetchTimetableConfig).toHaveBeenLastCalledWith({
+        academicYearId: "year-1",
+        termId: "term-1",
+        scopeType: "CLASSROOM",
+        classroomId: "classroom-2",
+      }),
+    );
+
+    secondRequest.resolve({
+      id: "classroom-config-2",
+      termId: "term-1",
+      scopeType: "CLASSROOM",
+      days: [],
+      periods: [
+        {
+          id: "latest-period",
+          index: 1,
+          nameAr: "الحصة الأحدث",
+          nameEn: "Latest period",
+        },
+      ],
+      updatedAt: "2026-08-04T00:00:00.000Z",
+    });
+    firstRequest.resolve({
+      id: "classroom-config-1",
+      termId: "term-1",
+      scopeType: "CLASSROOM",
+      days: [],
+      periods: [
+        {
+          id: "stale-period",
+          index: 1,
+          nameAr: "الحصة القديمة",
+          nameEn: "Stale period",
+        },
+      ],
+      updatedAt: "2026-08-04T00:00:00.000Z",
+    });
+
+    await user.click(screen.getByRole("button", { name: "next" }));
+    await user.click(screen.getByRole("button", { name: "next" }));
+
+    expect(await screen.findByText("Latest period")).toBeInTheDocument();
+    expect(screen.queryByText("Stale period")).not.toBeInTheDocument();
+  });
+
+  it("does not re-save period IDs outside the selected scope timetable", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    mockedFetchTimetableConfig.mockResolvedValue({
+      id: "classroom-config-1",
+      termId: "term-1",
+      scopeType: "CLASSROOM",
+      days: [],
+      periods: [
+        {
+          id: "classroom-period-1",
+          index: 1,
+          nameAr: "الحصة الأولى",
+          nameEn: "Classroom period 1",
+        },
+      ],
+      updatedAt: "2026-08-04T00:00:00.000Z",
+    });
+    renderWizard({
+      policy: { ...classroomPolicy, selectedPeriodIds: ["section-period-1"] },
+      onSave,
+    });
+
+    await waitFor(() => expect(mockedFetchTimetableConfig).toHaveBeenCalled());
+    for (let step = 0; step < 4; step += 1) {
+      await user.click(screen.getByRole("button", { name: "next" }));
+    }
+    await user.click(screen.getByRole("button", { name: "save" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ selectedPeriodIds: [] }),
+    );
+  });
+
+  it("does not offer stage as a policy scope", async () => {
+    const user = userEvent.setup();
+    renderWizard({ policy: classroomPolicy });
+
+    await user.click(screen.getByRole("button", { name: "next" }));
+
+    expect(screen.queryByText("scope.stage")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: "scopeType.stage" }),
+    ).not.toBeInTheDocument();
   });
 });

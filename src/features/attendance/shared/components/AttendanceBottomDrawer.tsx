@@ -6,6 +6,7 @@ interface AttendanceBottomDrawerProps extends PropsWithChildren {
   onClose: () => void;
   heightClassName?: string;
   anchor?: DrawerProps["anchor"];
+  disableEnforceFocus?: boolean;
 }
 
 export default function AttendanceBottomDrawer({
@@ -13,10 +14,16 @@ export default function AttendanceBottomDrawer({
   onClose,
   heightClassName = "h-[80vh]",
   anchor = "bottom",
+  disableEnforceFocus = false,
   children,
 }: AttendanceBottomDrawerProps) {
   return (
-    <Drawer anchor={anchor} open={isOpen} onClose={onClose}>
+    <Drawer
+      anchor={anchor}
+      open={isOpen}
+      onClose={onClose}
+      ModalProps={{ disableEnforceFocus }}
+    >
       <div className={heightClassName}>{children}</div>
     </Drawer>
   );

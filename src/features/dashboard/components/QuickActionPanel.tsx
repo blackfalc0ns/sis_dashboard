@@ -11,6 +11,7 @@ import {
 import { useMemo } from "react";
 import DashboardAnnouncementDraftForm from "@/features/dashboard/components/DashboardAnnouncementDraftForm";
 import type { DashboardAnnouncementLocale } from "@/features/dashboard/utils/dashboardAnnouncementLabels";
+import { usePermissions, type PermissionKey } from "@/hooks/usePermissions";
 
 type QuickAction = {
   id: string;
@@ -18,15 +19,27 @@ type QuickAction = {
   icon: typeof UserPlus;
   label: string;
   color: string;
+  permissions: readonly PermissionKey[];
 };
 
 export default function QuickActionPanel() {
   const locale = useLocale() as DashboardAnnouncementLocale;
   const t = useTranslations("quick_actions");
+  const { hasPermission, isPermissionsReady } = usePermissions();
   const quickActions = useMemo(
-    () => createQuickActions(locale, t),
-    [locale, t],
+    () =>
+      createQuickActions(locale, t).filter((action) =>
+        action.permissions.every(hasPermission),
+      ),
+    [hasPermission, locale, t],
   );
+  const canManageAnnouncements = hasPermission(
+    "communication.announcements.manage",
+  );
+
+  if (!isPermissionsReady || (!quickActions.length && !canManageAnnouncements)) {
+    return null;
+  }
 
   return (
     <aside className="h-full rounded-2xl border border-gray-200/80 bg-white/90 p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)]">
@@ -35,10 +48,12 @@ export default function QuickActionPanel() {
         <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_0_4px_rgba(3,107,128,0.10)]" aria-hidden="true" />
       </div>
       <QuickActionLinks actions={quickActions} />
-      <DashboardAnnouncementDraftForm
-        locale={locale}
-        notificationTitle={t("notification_center")}
-      />
+      {canManageAnnouncements ? (
+        <DashboardAnnouncementDraftForm
+          locale={locale}
+          notificationTitle={t("notification_center")}
+        />
+      ) : null}
     </aside>
   );
 }
@@ -81,6 +96,11 @@ function createQuickActions(
       label: t("add_student"),
       href: `/${locale}/students-guardians/registration`,
       color: "#0ac5b2",
+      permissions: [
+        "students.records.manage",
+        "students.guardians.manage",
+        "students.enrollments.manage",
+      ],
     },
     {
       id: "attendance",
@@ -88,6 +108,11 @@ function createQuickActions(
       label: t("attendance"),
       href: `/${locale}/attendance/roll-call`,
       color: "#D93030",
+      permissions: [
+        "attendance.sessions.view",
+        "attendance.policies.view",
+        "academics.structure.view",
+      ],
     },
     {
       id: "announcement",
@@ -95,6 +120,7 @@ function createQuickActions(
       label: t("announcement"),
       href: `/${locale}/communication/announcements`,
       color: "#37A465",
+      permissions: ["communication.announcements.view"],
     },
     {
       id: "assessment",
@@ -102,6 +128,7 @@ function createQuickActions(
       label: t("assessment"),
       href: `/${locale}/grades/assessments/new`,
       color: "#025a6b",
+      permissions: ["grades.gradebook.view", "grades.assessments.manage"],
     },
   ];
 }

@@ -7,6 +7,7 @@ import Button from "@/components/ui/button/Button";
 import LateEarlyFiltersBar from "./LateEarlyFiltersBar";
 import type { Classroom, Grade, Section, Stage } from "@/features/academics/academic-structure-tree/services/structureService";
 import type { LateEarlyFilters } from "../types";
+import { isInvalidDateRange } from "@/features/attendance/shared/utils/dateRange";
 
 interface LateEarlyFiltersDrawerProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ export default function LateEarlyFiltersDrawer({
 }: LateEarlyFiltersDrawerProps) {
   const t = useTranslations("attendance.lateEarly.filters");
   const tCommon = useTranslations("common");
+  const invalidDateRange = isInvalidDateRange(filters.dateFrom, filters.dateTo);
 
   return (
     <Drawer anchor="bottom" open={isOpen} onClose={onClose}>
@@ -67,7 +69,7 @@ export default function LateEarlyFiltersDrawer({
           <Button variant="outline" onClick={onResetFilters}>
             {tCommon("reset")}
           </Button>
-          <Button variant="primary" onClick={onApply}>
+          <Button variant="primary" onClick={onApply} disabled={invalidDateRange}>
             {t("apply")}
           </Button>
         </div>

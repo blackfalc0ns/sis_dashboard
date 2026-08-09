@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@/features/dashboard/__tests__/dashboardI18nMock";
+import DashboardPermissionGuard from "@/features/dashboard/components/DashboardPermissionGuard";
 import DashboardAnalyticsPage from "@/features/dashboard/pages/DashboardAnalyticsPage";
 import {
   fetchAnalyticsCatalog,
@@ -248,7 +249,11 @@ describe("DashboardAnalyticsPage", () => {
   it("does not request analytics data for a user without dashboard analytics access", async () => {
     permissionState.hasPermission.mockReturnValue(false);
 
-    render(<DashboardAnalyticsPage />);
+    render(
+      <DashboardPermissionGuard permission="dashboard.analytics.view">
+        <DashboardAnalyticsPage />
+      </DashboardPermissionGuard>,
+    );
 
     await waitFor(() => {
       expect(permissionState.hasPermission).toHaveBeenCalledWith("dashboard.analytics.view");

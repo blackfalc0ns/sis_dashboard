@@ -9,6 +9,8 @@ import Select from "@/components/ui/input/Select";
 import ScopePicker from "@/features/attendance/policies/components/ScopePicker";
 import type { AbsencesFilters, AttendanceIncidentType } from "../types";
 import type { StructureTree } from "@/features/academics/academic-structure-tree/services/structureService";
+import { formatLocalDate, parseLocalDate } from "@/features/attendance/roll-call/utils/localDate";
+import { isInvalidDateRange } from "@/features/attendance/shared/utils/dateRange";
 
 interface AbsencesFiltersBarProps {
   filters: AbsencesFilters;
@@ -28,6 +30,7 @@ export default function AbsencesFiltersBar({
 }: AbsencesFiltersBarProps) {
   const t = useTranslations("attendance.absences.filters");
   const tCommon = useTranslations("common");
+  const invalidDateRange = isInvalidDateRange(filters.dateFrom, filters.dateTo);
 
   const statusOptions: { value: "ALL" | AttendanceIncidentType; label: string }[] = [
     { value: "ALL", label: t("allStatuses") },
@@ -48,6 +51,7 @@ export default function AbsencesFiltersBar({
         />
         <Input
           type="text"
+          label={t("searchPlaceholder")}
           placeholder={t("searchPlaceholder")}
           value={filters.search}
           onChange={(e) => onFiltersChange({ search: e.target.value })}
@@ -70,14 +74,7 @@ export default function AbsencesFiltersBar({
             sections={structureTree?.sections || []}
             classrooms={structureTree?.classrooms || []}
             onScopeTypeChange={(scopeType) => onFiltersChange({ scopeType, scopeIds: {} })}
-            onScopeIdsChange={(scopeIds) =>
-              onFiltersChange({
-                scopeIds: {
-                  ...(filters.scopeIds || {}),
-                  ...scopeIds,
-                },
-              })
-            }
+            onScopeIdsChange={(scopeIds) => onFiltersChange({ scopeIds })}
           />
         </div>
       </div>
@@ -87,17 +84,20 @@ export default function AbsencesFiltersBar({
         {/* Date From */}
         <DatePicker
           label={t("dateFrom")}
-          value={filters.dateFrom ? new Date(filters.dateFrom) : null}
-          onChange={(value) => onFiltersChange({ dateFrom: value ? value.toISOString().split('T')[0] : undefined })}
+          value={filters.dateFrom ? parseLocalDate(filters.dateFrom) : null}
+          maxDate={filters.dateTo ? parseLocalDate(filters.dateTo) : undefined}
+          onChange={(value) => onFiltersChange({ dateFrom: value ? formatLocalDate(value) : undefined })}
           placeholder={t("dateFrom")}
         />
 
         {/* Date To */}
         <DatePicker
           label={t("dateTo")}
-          value={filters.dateTo ? new Date(filters.dateTo) : null}
-          onChange={(value) => onFiltersChange({ dateTo: value ? value.toISOString().split('T')[0] : undefined })}
+          value={filters.dateTo ? parseLocalDate(filters.dateTo) : null}
+          minDate={filters.dateFrom ? parseLocalDate(filters.dateFrom) : undefined}
+          onChange={(value) => onFiltersChange({ dateTo: value ? formatLocalDate(value) : undefined })}
           placeholder={t("dateTo")}
+          error={invalidDateRange ? tCommon("invalidDateRange") : undefined}
         />
 
         {/* Status Single-Select */}

@@ -22,6 +22,23 @@ vi.mock("@/hooks/useSectionTabs", () => ({
   }),
 }));
 
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    hasPermission: () => true,
+    hasAllPermissions: () => true,
+    isPermissionsReady: true,
+  }),
+}));
+
+vi.mock(
+  "@/features/students-guardians/shared/permissions/studentsGuardiansCapabilities",
+  () => ({
+    getStudentsGuardiansCapabilities: () => ({
+      canManageGuardians: true,
+    }),
+  }),
+);
+
 vi.mock("@/features/students-guardians/students/services/studentsService", () => ({
   fetchGuardianById: vi.fn(),
   updateGuardian: vi.fn(),

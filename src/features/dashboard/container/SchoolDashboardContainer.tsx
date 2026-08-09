@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useAcademicYearTermLayoutContext } from "@/features/academics/hooks/AcademicYearTermLayoutContext";
 import {
   DASHBOARD_ACTIVITY_PREVIEW_LIMIT,
@@ -47,7 +48,12 @@ const initialDashboardLoadState: DashboardLoadState = {
 
 export default function SchoolDashboardContainer() {
   const { isInitializing } = useAcademicYearTermLayoutContext();
+  const { hasPermission, isPermissionsReady } = usePermissions();
   const t = useTranslations("dashboard_new");
+  const canViewSummary = hasPermission("dashboard.summary.view");
+  const canViewAlerts = hasPermission("dashboard.alerts.view");
+  const canViewActivityFeed = hasPermission("dashboard.activity_feed.view");
+  const canViewModules = hasPermission("dashboard.modules.view");
   const [dashboardLoadState, setDashboardLoadState] =
     useState<DashboardLoadState>(initialDashboardLoadState);
   const [refreshSequence, setRefreshSequence] = useState(0);
@@ -65,12 +71,20 @@ export default function SchoolDashboardContainer() {
   }, []);
 
   useEffect(() => {
-    if (isInitializing) {
+    if (isInitializing || !isPermissionsReady) {
       return;
     }
 
     let shouldIgnoreResponse = false;
-    let pendingDashboardRequests = 3;
+    let pendingDashboardRequests = [
+      canViewSummary,
+      canViewAlerts,
+      canViewActivityFeed,
+    ].filter(Boolean).length;
+
+    if (pendingDashboardRequests === 0) {
+      return;
+    }
 
     const markDashboardRequestSettled = () => {
       pendingDashboardRequests -= 1;
@@ -83,7 +97,8 @@ export default function SchoolDashboardContainer() {
       }
     };
 
-    fetchDashboardSummary()
+    if (canViewSummary) {
+      fetchDashboardSummary()
       .then((summaryResponse) => {
         if (shouldIgnoreResponse) {
           return;
@@ -117,8 +132,10 @@ export default function SchoolDashboardContainer() {
 
         markDashboardRequestSettled();
       });
+    }
 
-    fetchDashboardAlerts({ limit: DASHBOARD_ALERT_PREVIEW_LIMIT })
+    if (canViewAlerts) {
+      fetchDashboardAlerts({ limit: DASHBOARD_ALERT_PREVIEW_LIMIT })
       .then((alertsResponse) => {
         if (shouldIgnoreResponse) {
           return;
@@ -152,8 +169,10 @@ export default function SchoolDashboardContainer() {
 
         markDashboardRequestSettled();
       });
+    }
 
-    fetchDashboardActivityFeed({ limit: DASHBOARD_ACTIVITY_PREVIEW_LIMIT })
+    if (canViewActivityFeed) {
+      fetchDashboardActivityFeed({ limit: DASHBOARD_ACTIVITY_PREVIEW_LIMIT })
       .then((activityFeedResponse) => {
         if (shouldIgnoreResponse) {
           return;
@@ -187,11 +206,20 @@ export default function SchoolDashboardContainer() {
 
         markDashboardRequestSettled();
       });
+    }
 
     return () => {
       shouldIgnoreResponse = true;
     };
-  }, [isInitializing, refreshSequence, t]);
+  }, [
+    canViewActivityFeed,
+    canViewAlerts,
+    canViewSummary,
+    isInitializing,
+    isPermissionsReady,
+    refreshSequence,
+    t,
+  ]);
 
   const [modules, setModules] = useState<DashboardModuleListItem[]>([]);
   const [cachedModules, setCachedModules] = useState<Record<string, DashboardModulePage>>({});
@@ -199,7 +227,11 @@ export default function SchoolDashboardContainer() {
   const [moduleErrors, setModuleErrors] = useState<Record<string, string>>({});
 
   const loadModuleDetails = useCallback((moduleKey: string) => {
-    if (cachedModules[moduleKey] || moduleLoadingStates[moduleKey] === "loading") {
+    if (
+      !canViewModules ||
+      cachedModules[moduleKey] ||
+      moduleLoadingStates[moduleKey] === "loading"
+    ) {
       return;
     }
 
@@ -214,10 +246,10 @@ export default function SchoolDashboardContainer() {
         setModuleErrors((curr) => ({ ...curr, [moduleKey]: dashboardErrorMessage(error, t) }));
         setModuleLoadingStates((curr) => ({ ...curr, [moduleKey]: "error" }));
       });
-  }, [cachedModules, moduleLoadingStates, t]);
+  }, [cachedModules, canViewModules, moduleLoadingStates, t]);
 
   useEffect(() => {
-    if (isInitializing) {
+    if (isInitializing || !isPermissionsReady || !canViewModules) {
       return;
     }
 
@@ -238,7 +270,11 @@ export default function SchoolDashboardContainer() {
     return () => {
       shouldIgnoreResponse = true;
     };
-  }, [isInitializing, refreshSequence]);
+  }, [canViewModules, isInitializing, isPermissionsReady, refreshSequence]);
+
+  if (!isPermissionsReady) {
+    return null;
+  }
 
   return (
     <SchoolDashboardView

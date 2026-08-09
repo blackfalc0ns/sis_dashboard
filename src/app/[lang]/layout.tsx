@@ -2,6 +2,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
 import DocumentLocaleSync from "@/components/i18n/DocumentLocaleSync";
 import { routing } from "@/i18n/routing";
+import { ScopePermissionDeniedProvider } from "@/providers/ScopePermissionDeniedProvider";
 
 export default async function DashboardLayout({
   children,
@@ -19,7 +20,7 @@ export default async function DashboardLayout({
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       <DocumentLocaleSync locale={locale} />
-      {children}
+      <ScopePermissionDeniedProvider>{children}</ScopePermissionDeniedProvider>
     </NextIntlClientProvider>
   );
 }

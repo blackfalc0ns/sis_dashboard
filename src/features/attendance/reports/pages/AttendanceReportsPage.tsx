@@ -37,6 +37,7 @@ import ReportsDrilldownDrawer, {
 import { useAttendanceYearTermLayoutContext } from "@/features/attendance/shared/hooks/AttendanceYearTermLayoutContext";
 import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
 import { isScopeSelectionComplete } from "@/features/attendance/shared/attendanceScope";
+import { isDateRangeValidationError, isInvalidDateRange } from "@/features/attendance/shared/utils/dateRange";
 import {
   fetchAttendanceReportSummary,
   fetchDerivedDailyAbsences,
@@ -200,6 +201,13 @@ export default function AttendanceReportsPage() {
     )
       return;
 
+    if (isInvalidDateRange(filters.dateFrom, filters.dateTo)) {
+      setReport(null);
+      setDerivedDailyAbsences([]);
+      setLoading(false);
+      return;
+    }
+
     if (!isScopeSelectionComplete(filters.scopeType, filters.scopeIds)) {
       setReport(null);
       setDerivedDailyAbsences([]);
@@ -225,7 +233,11 @@ export default function AttendanceReportsPage() {
       );
     } catch (error) {
       console.error("Failed to load attendance reports", error);
-      showError(tCommon("error_loading"));
+      showError(
+        isDateRangeValidationError(error)
+          ? tCommon("invalidDateRange")
+          : tCommon("error_loading"),
+      );
     } finally {
       setLoading(false);
     }
@@ -792,7 +804,7 @@ export default function AttendanceReportsPage() {
                 onReset={resetFilters}
                 onOpenExport={() => setShowExportModal(true)}
                 onPrint={printReport}
-                exportDisabled={!exportPayload?.data.length}
+                exportDisabled={isInvalidDateRange(filters.dateFrom, filters.dateTo) || !exportPayload?.data.length}
               />
             </AttendanceFiltersPanel>
           ) : (
@@ -1007,7 +1019,7 @@ export default function AttendanceReportsPage() {
             onReset={resetFilters}
             onOpenExport={() => setShowExportModal(true)}
             onPrint={printReport}
-            exportDisabled={!exportPayload?.data.length}
+            exportDisabled={isInvalidDateRange(filters.dateFrom, filters.dateTo) || !exportPayload?.data.length}
           />
         </div>
       </AttendanceBottomDrawer>

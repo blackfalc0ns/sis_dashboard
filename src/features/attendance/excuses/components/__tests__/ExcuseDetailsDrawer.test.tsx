@@ -41,6 +41,8 @@ describe("ExcuseDetailsDrawer", () => {
         request={request}
         effectivePolicy={null}
         isReadOnly={false}
+        canManageExcuses
+        canReviewExcuses
         onClose={vi.fn()}
         onApprove={vi.fn()}
         onReject={vi.fn()}

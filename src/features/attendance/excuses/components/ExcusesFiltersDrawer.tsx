@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import ExcusesFiltersBar from "./ExcusesFiltersBar";
 import type { ExcuseRequestFilters } from "../types";
+import { isInvalidDateRange } from "@/features/attendance/shared/utils/dateRange";
 
 interface ExcusesFiltersDrawerProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export default function ExcusesFiltersDrawer({
 }: ExcusesFiltersDrawerProps) {
   const t = useTranslations("attendance.excuses.filters");
   const tCommon = useTranslations("common");
+  const invalidDateRange = isInvalidDateRange(filters.dateFrom, filters.dateTo);
 
   return (
     <Drawer anchor="bottom" open={isOpen} onClose={onClose}>
@@ -50,7 +52,7 @@ export default function ExcusesFiltersDrawer({
 
         <div className="p-4 border-t grid grid-cols-2 gap-3" style={{ borderColor: "var(--border-color)" }}>
           <Button variant="outline" onClick={onReset}>{tCommon("reset")}</Button>
-          <Button variant="primary" onClick={onApply}>{t("apply")}</Button>
+          <Button variant="primary" onClick={onApply} disabled={invalidDateRange}>{t("apply")}</Button>
         </div>
       </div>
     </Drawer>

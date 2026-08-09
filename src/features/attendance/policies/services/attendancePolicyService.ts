@@ -32,6 +32,14 @@ export interface ValidatePolicyNameParams {
   excludeId?: string;
 }
 
+export interface EffectiveAttendancePolicyParams {
+  yearId: string;
+  termId: string;
+  scopeType: AttendanceScopeType;
+  scopeIds?: AttendanceScopeIds;
+  date: string;
+}
+
 export interface PolicyNameValidationResult {
   uniqueAr: boolean;
   uniqueEn: boolean;
@@ -412,6 +420,25 @@ export const fetchPolicies = async (
   return policies;
 };
 
+export async function fetchEffectiveAttendancePolicy(
+  params: EffectiveAttendancePolicyParams,
+): Promise<AttendancePolicy | null> {
+  const response = await apiGet<unknown>(`${BASE}/effective`, {
+    params: {
+      academicYearId: params.yearId,
+      termId: params.termId,
+      scopeType: params.scopeType,
+      ...buildScopeParams(params.scopeType, params.scopeIds),
+      date: params.date,
+    },
+  });
+  const policy = asRecord(response).policy;
+
+  return policy
+    ? mapPolicy(policy, { yearId: params.yearId, termId: params.termId })
+    : null;
+}
+
 /**
  * Create a new policy
  */
@@ -474,22 +501,18 @@ export async function resolveEffectiveExcusePolicy(
   scopeIds: AttendanceScopeIds | undefined,
   dateISO: string, // YYYY-MM-DD
 ): Promise<EffectiveExcusePolicy | null> {
-  const response = await apiGet<unknown>(`${BASE}/effective`, {
-    params: {
-      academicYearId: yearId,
-      termId,
-      scopeType,
-      ...buildScopeParams(scopeType, scopeIds),
-      date: dateISO,
-    },
+  const selectedPolicy = await fetchEffectiveAttendancePolicy({
+    yearId,
+    termId,
+    scopeType,
+    scopeIds,
+    date: dateISO,
   });
-  const envelope = asRecord(response);
 
-  if (!envelope.policy) {
+  if (!selectedPolicy) {
     return null;
   }
 
-  const selectedPolicy = mapPolicy(envelope.policy, { yearId, termId });
   return {
     allowExcuses: selectedPolicy.allowExcuses,
     requireExcuseReason: selectedPolicy.requireExcuseReason,

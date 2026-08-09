@@ -21,6 +21,8 @@ vi.mock("next-intl", () => ({
   NextIntlClientProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="intl-provider">{children}</div>
   ),
+  useLocale: () => "en",
+  useTranslations: () => (key: string) => key,
 }));
 
 vi.mock("@/app/providers", () => ({

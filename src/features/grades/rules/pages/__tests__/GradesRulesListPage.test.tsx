@@ -18,6 +18,9 @@ vi.mock("@/features/grades/hooks/GradesYearTermLayoutContext", () => ({
   useGradesYearTermLayoutContext: () => ({ academicYearId: "year-1", termId: "term-1", isInitializing: false }),
 }));
 vi.mock("@/components/ui/toast/Toast", () => ({ useToast: () => ({ showError: vi.fn() }) }));
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => ({ hasPermission: () => true }),
+}));
 vi.mock("../../services/gradesRulesService", () => ({ fetchGradeRules: mocks.fetchGradeRules }));
 vi.mock("@/features/grades/gradebook/services/gradesGradebookService", () => ({
   fetchGradesFiltersData: mocks.fetchGradesFiltersData,

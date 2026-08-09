@@ -48,6 +48,7 @@ export type CommunicationListResponse<T> = CommunicationResponse<
 export interface CommunicationActor extends CommunicationRecord {
   id: CommunicationId;
   userId?: CommunicationId;
+  displayName?: string;
   name?: string;
   nameAr?: string;
   nameEn?: string;

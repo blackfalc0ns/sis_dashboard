@@ -63,8 +63,14 @@ export default function EarlyLeaveEditorModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="sm">
-      <div className="p-6">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="sm"
+      showCloseButton={false}
+      closeOnOverlayClick={false}
+    >
+      <div className="space-y-4 pb-2">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 style={{ color: "var(--color-gray-900)" }} className="text-xl font-semibold">{t("title")}</h2>

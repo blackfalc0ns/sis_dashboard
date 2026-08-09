@@ -187,6 +187,73 @@ describe("api refresh queue", () => {
     expect(localStorage.getItem("moazez_refresh_token")).toBeNull();
   });
 
+  it("does not open the scope-permission dialog for a regular forbidden request", async () => {
+    const { SCOPE_PERMISSION_DENIED_EVENT } = await import("../api");
+    const onScopePermissionDenied = vi.fn();
+    window.addEventListener(
+      SCOPE_PERMISSION_DENIED_EVENT,
+      onScopePermissionDenied,
+    );
+
+    const error = {
+      config: { headers: {} },
+      isAxiosError: true,
+      message: "Forbidden",
+      response: { data: { message: "Forbidden" }, status: 403 },
+    };
+
+    await expect(axiosMocks.state.responseRejected?.(error)).rejects.toThrow(
+      "Forbidden",
+    );
+    expect(onScopePermissionDenied).not.toHaveBeenCalled();
+
+    window.removeEventListener(
+      SCOPE_PERMISSION_DENIED_EVENT,
+      onScopePermissionDenied,
+    );
+  });
+
+  it("publishes the missing permissions with the global permission event", async () => {
+    const { SCOPE_PERMISSION_DENIED_EVENT } = await import("../api");
+    const deniedPermissionEvents: CustomEvent[] = [];
+    const onScopePermissionDenied = (event: Event) => {
+      deniedPermissionEvents.push(event as CustomEvent);
+    };
+    window.addEventListener(
+      SCOPE_PERMISSION_DENIED_EVENT,
+      onScopePermissionDenied,
+    );
+
+    const error = {
+      config: { headers: {} },
+      isAxiosError: true,
+      message: "Forbidden",
+      response: {
+        data: {
+          error: {
+            code: "auth.scope.missing",
+            details: { missingPermissions: ["attendance.excuses.review"] },
+            message: "Forbidden",
+          },
+        },
+        status: 403,
+      },
+    };
+
+    await expect(axiosMocks.state.responseRejected?.(error)).rejects.toThrow(
+      "Forbidden",
+    );
+    expect(deniedPermissionEvents).toHaveLength(1);
+    expect(deniedPermissionEvents[0].detail).toEqual({
+      missingPermissions: ["attendance.excuses.review"],
+    });
+
+    window.removeEventListener(
+      SCOPE_PERMISSION_DENIED_EVENT,
+      onScopePermissionDenied,
+    );
+  });
+
   it("throws a clear error when NEXT_PUBLIC_API_URL is missing", async () => {
     vi.resetModules();
     process.env.NEXT_PUBLIC_API_URL = "";

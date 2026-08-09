@@ -1,6 +1,7 @@
 "use client";
 
 import ScopeBreadcrumb from "@/features/attendance/shared/components/ScopeBreadcrumb";
+import { useTranslations } from "next-intl";
 import AttendanceReadOnlyBanner from "./AttendanceReadOnlyBanner";
 import type {
   Classroom,
@@ -35,6 +36,7 @@ export default function AttendanceScopeHeader({
   classrooms = [],
   containerClassName = "flex flex-col gap-4",
 }: AttendanceScopeHeaderProps) {
+  const t = useTranslations("attendance");
   const canShowScope = isScopeSelectionComplete(scopeType, scopeIds);
 
   if (!isReadOnly && !canShowScope) {
@@ -44,7 +46,7 @@ export default function AttendanceScopeHeader({
   return (
     <div className={containerClassName}>
       {isReadOnly ? (
-        <AttendanceReadOnlyBanner message={"This is a read-only view"} />
+        <AttendanceReadOnlyBanner message={t("readOnlyView")} />
       ) : null}
       {canShowScope ? (
         <div

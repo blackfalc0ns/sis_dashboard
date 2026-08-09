@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastProvider } from "@/components/ui/toast/Toast";
 import DocumentsTab from "@/features/students-guardians/students/components/tabs/DocumentsTab";
+import { renderWithPermissions } from "@/__tests__/test-utils/renderWithPermissions";
 
 const apiMocks = vi.hoisted(() => ({
   apiDelete: vi.fn(),
@@ -55,7 +56,7 @@ const applicationDocument = {
 };
 
 const renderDocumentsTab = () =>
-  render(
+  renderWithPermissions(
     <ToastProvider>
       <DocumentsTab
         student={
@@ -66,6 +67,7 @@ const renderDocumentsTab = () =>
         }
       />
     </ToastProvider>,
+    ["students.documents.manage", "admissions.documents.view"],
   );
 
 describe("DocumentsTab", () => {

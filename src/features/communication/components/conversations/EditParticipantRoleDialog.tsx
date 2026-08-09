@@ -15,6 +15,10 @@ import type {
   ParticipantStatus,
 } from "@/features/communication/types/conversation.types";
 import {
+  targetRoleForTransition,
+  type ParticipantRoleTransition,
+} from "@/features/communication/utils/participant-role-transitions";
+import {
   participantRoleOptions,
   participantStatusOptions,
   type ParticipantDialogOptionLabels,
@@ -90,6 +94,14 @@ export default function EditParticipantRoleDialog({
     status: participant?.status ?? "active",
     mutedUntil: datetimeLocalValue(participant?.mutedUntil),
   });
+  const transition =
+    mode === "edit" ? null : (mode as ParticipantRoleTransition);
+  const targetRole = transition
+    ? targetRoleForTransition(participant?.role, transition)
+    : null;
+  const roleOptions = targetRole
+    ? participantRoleOptions(labels).filter((option) => option.value === targetRole)
+    : participantRoleOptions(labels);
 
   const handleSubmit = async () => {
     if (mode === "edit") {
@@ -97,7 +109,7 @@ export default function EditParticipantRoleDialog({
       return;
     }
 
-    await onSubmit({ targetRole: values.role });
+    if (targetRole) await onSubmit({ targetRole });
   };
 
   return (
@@ -114,6 +126,7 @@ export default function EditParticipantRoleDialog({
           <Button
             type="button"
             loading={isSubmitting}
+            disabled={mode !== "edit" && !targetRole}
             onClick={() => void handleSubmit()}
           >
             {submitLabelForMode(mode, labels)}
@@ -124,8 +137,8 @@ export default function EditParticipantRoleDialog({
       <div className="space-y-4 pb-4">
         <Select
           label={mode === "edit" ? labels.role : labels.targetRole}
-          value={values.role ?? "member"}
-          options={participantRoleOptions(labels)}
+          value={targetRole ?? values.role ?? "member"}
+          options={roleOptions}
           onChange={(value) =>
             setValues((current) => ({
               ...current,

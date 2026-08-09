@@ -78,24 +78,17 @@ function normalizeGranularity(
     : "PERIOD";
 }
 
-function resolveScopeKey(scopeType: ScopeType, scopeIds?: AttendanceScopeIds) {
-  if (scopeType === "CLASSROOM") return scopeIds?.classroomId ? `classroom:${scopeIds.classroomId}` : undefined;
-  if (scopeType === "SECTION") return scopeIds?.sectionId ? `section:${scopeIds.sectionId}` : undefined;
-  if (scopeType === "GRADE") return scopeIds?.gradeId ? `grade:${scopeIds.gradeId}` : undefined;
-  if (scopeType === "STAGE") return scopeIds?.stageId ? `stage:${scopeIds.stageId}` : undefined;
-  return "school";
-}
-
 function buildAbsenceQueryParams(
   params: { yearId: string; termId: string } & Partial<AbsencesFilters>
 ) {
+  const selectedScopeType = params.scopeType === "SCHOOL" ? undefined : params.scopeType;
+
   return omitUndefined({
     academicYearId: params.yearId,
     termId: params.termId,
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
-    scopeType: params.scopeType,
-    scopeKey: params.scopeType ? resolveScopeKey(params.scopeType, params.scopeIds) : undefined,
+    scopeType: selectedScopeType,
     stageId: params.scopeIds?.stageId,
     gradeId: params.scopeIds?.gradeId,
     sectionId: params.scopeIds?.sectionId,
@@ -129,13 +122,6 @@ function mapAbsenceRecord(item: unknown, fallback: { yearId: string; termId: str
   const status = normalizeStatus(object.status || object.type || object.itemType);
   const minutesLate = getNumber(object, ["minutesLate", "lateMinutes"]);
   const minutesEarlyLeave = getNumber(object, ["minutesEarlyLeave", "earlyLeaveMinutes"]);
-  const excusedFromStatus = status === "EXCUSED"
-    ? minutesEarlyLeave
-      ? "EARLY_LEAVE"
-      : minutesLate
-        ? "LATE"
-        : "ABSENT"
-    : undefined;
   const attachments = Array.isArray(object.attachments)
     ? (object.attachments as AttachmentMeta[])
     : Array.isArray(asRecord(object.excuse).attachments)
@@ -170,7 +156,6 @@ function mapAbsenceRecord(item: unknown, fallback: { yearId: string; termId: str
     periodNameAr: getOptionalString(object, ["periodNameAr", "periodLabelAr"]),
     periodNameEn: getOptionalString(object, ["periodNameEn", "periodLabelEn"]),
     status,
-    excusedFromStatus,
     minutesLate,
     minutesEarlyLeave,
     excuse: excuseReason || attachments

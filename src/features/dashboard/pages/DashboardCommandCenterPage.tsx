@@ -23,6 +23,7 @@ import {
 } from "recharts";
 import { Button } from "@/components/ui";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import DashboardPermissionGuard from "@/features/dashboard/components/DashboardPermissionGuard";
 import { fetchDashboardCommandCenter } from "@/features/dashboard/services/dashboardApiService";
 import type { DashboardCommandCenterResponse } from "@/features/dashboard/types/dashboardApi.types";
 import { resolveDashboardActionTarget } from "@/features/dashboard/utils/resolveDashboardActionTarget";
@@ -47,6 +48,14 @@ const commandCenterTabs: Array<{ id: CommandCenterTab; label: string }> = [
 ];
 
 export default function DashboardCommandCenterPage() {
+  return (
+    <DashboardPermissionGuard permission="dashboard.command_center.view">
+      <DashboardCommandCenterContent />
+    </DashboardPermissionGuard>
+  );
+}
+
+function DashboardCommandCenterContent() {
   const t = useTranslations("dashboard_new.command_center");
   const [data, setData] = useState<DashboardCommandCenterResponse | null>(null);
   const [error, setError] = useState<string | null>(null);

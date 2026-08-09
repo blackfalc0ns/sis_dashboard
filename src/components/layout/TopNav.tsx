@@ -62,7 +62,7 @@ export default function TopNav({
     isRefreshing: notificationsRefreshing,
     error: notificationsError,
     refresh: refreshNotifications,
-  } = useNotifications({ recipientUserId: user?.id });
+  } = useNotifications({ recipientUserId: user?.id, isBackground: true });
 
   const handleTabChange = (tab: NotificationTab) => {
     setActiveTab(tab);

@@ -10,6 +10,13 @@ vi.mock("@/features/academics/hooks/AcademicYearTermLayoutContext", () => ({
   useAcademicYearTermLayoutContext: () => ({ isInitializing: false }),
 }));
 
+vi.mock("@/hooks/usePermissions", () => ({
+  usePermissions: () => ({
+    hasPermission: () => true,
+    isPermissionsReady: true,
+  }),
+}));
+
 vi.mock("@/features/dashboard/services/dashboardApiService", () => ({
   fetchDashboardActivityFeed: vi.fn(),
 }));

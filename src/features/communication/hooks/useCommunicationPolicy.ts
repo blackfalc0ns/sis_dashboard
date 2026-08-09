@@ -184,32 +184,39 @@ export function payloadFromValues(
   };
 }
 
-export function useCommunicationPolicy() {
+interface UseCommunicationPolicyOptions {
+  enabled?: boolean;
+  includeAdminOverview?: boolean;
+}
+
+export function useCommunicationPolicy({
+  enabled = true,
+  includeAdminOverview = true,
+}: UseCommunicationPolicyOptions = {}) {
   const mountedRef = useRef(false);
   const [policy, setPolicy] = useState<CommunicationPolicy | null>(cachedPolicy);
   const [adminOverview, setAdminOverview] =
     useState<CommunicationAdminOverview | null>(null);
-  const [isLoading, setIsLoading] = useState(!cachedPolicy);
+  const [isLoading, setIsLoading] = useState(enabled && !cachedPolicy);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (!enabled) return;
     setIsRefreshing(true);
     setError(null);
 
     try {
-      const [policyResponse, overviewResponse] = await Promise.all([
-        getPolicy(),
-        getAdminOverview(),
-      ]);
+      const policyResponse = await getPolicy();
       const nextPolicy = unwrapItem<CommunicationPolicy>(policyResponse);
-      const nextOverview =
-        unwrapItem<CommunicationAdminOverview>(overviewResponse);
+      const nextOverview = includeAdminOverview
+        ? unwrapItem<CommunicationAdminOverview>(await getAdminOverview())
+        : null;
 
       if (!mountedRef.current) return;
       notifyPolicyListeners(nextPolicy);
-      setAdminOverview(nextOverview);
+      if (nextOverview) setAdminOverview(nextOverview);
     } catch (nextError) {
       if (mountedRef.current) setError(errorMessageFromUnknown(nextError));
     } finally {
@@ -218,7 +225,7 @@ export function useCommunicationPolicy() {
         setIsRefreshing(false);
       }
     }
-  }, []);
+  }, [enabled, includeAdminOverview]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -226,9 +233,9 @@ export function useCommunicationPolicy() {
       if (mountedRef.current) setPolicy(nextPolicy);
     };
     policyListeners.add(listener);
-    if (!cachedPolicy) {
+    if (enabled && !cachedPolicy) {
     void Promise.resolve().then(refresh);
-    } else {
+    } else if (enabled && includeAdminOverview) {
       void getAdminOverview()
         .then((response) => {
           if (mountedRef.current) {
@@ -242,7 +249,7 @@ export function useCommunicationPolicy() {
       mountedRef.current = false;
       policyListeners.delete(listener);
     };
-  }, [refresh]);
+  }, [enabled, includeAdminOverview, refresh]);
 
   const save = useCallback(
     async (values: CommunicationPolicyFormValues) => {

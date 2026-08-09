@@ -71,6 +71,7 @@ import { conversationIsReadOnly } from "@/features/communication/conversations_r
 import ConversationHeader from "@/features/communication/conversations_redesign/components/ConversationHeader";
 import ConversationTabs from "@/features/communication/conversations_redesign/components/ConversationTabs";
 import EditConversationDialog from "@/features/communication/conversations_redesign/components/EditConversationDialog";
+import { AccessDeniedComposer } from "@/features/communication/conversations_redesign/components/messages/AccessDeniedComposer";
 import MessageInfoDialog from "@/features/communication/conversations_redesign/components/messages/MessageInfoDialog";
 import ReportMessageDialog from "@/features/communication/conversations_redesign/components/messages/ReportMessageDialog";
 import {
@@ -242,9 +243,15 @@ export default function ConversationDetail({
       permissions.canReviewJoinRequests &&
       hasPermission("communication.participants.manage"),
   });
-  const presenceState = usePresence();
+  const canViewPolicy = hasPermission("communication.policies.view");
+  const { policy, isLoading: isPolicyLoading } = useCommunicationPolicy({
+    enabled: canViewPolicy,
+    includeAdminOverview: false,
+  });
+  const presenceState = usePresence({
+    enabled: policy?.allowOnlinePresence !== false,
+  });
   const typingState = useTypingIndicator(conversationId);
-  const { policy, isLoading: isPolicyLoading } = useCommunicationPolicy();
 
   const messageIds = useMemo(() => {
     const ids = messagesState.messages
@@ -611,6 +618,7 @@ export default function ConversationDetail({
   const isRestricted = currentUserParticipant?.isRestricted === true;
   const isRemovedOrLeft =
     currentUserStatus === "left" || currentUserStatus === "removed";
+  const hasMessageSendPermission = hasPermission("communication.messages.send");
   const canSendMessages =
     !readOnly &&
     !isMuted &&
@@ -619,7 +627,7 @@ export default function ConversationDetail({
     !isRemovedOrLeft &&
     isCommunicationEnabled &&
     permissions.isActiveParticipant &&
-    hasPermission("communication.messages.send");
+    hasMessageSendPermission;
 
   const restrictionBanner = (() => {
     const normStatus = normalizeStatus(conversation?.status);
@@ -930,7 +938,11 @@ export default function ConversationDetail({
             }
             onRemoveParticipant={setParticipantToRemove}
             participants={participantsState.participants}
-            presenceByUserId={presenceState.presenceByUserId}
+            presenceByUserId={
+              policy?.allowOnlinePresence === false
+                ? {}
+                : presenceState.presenceByUserId
+            }
             total={participantsState.total}
             userDisplayNames={userDisplayNames}
           />
@@ -991,6 +1003,11 @@ export default function ConversationDetail({
               {restrictionBanner}
             </div>
           </div>
+        ) : !hasMessageSendPermission ? (
+          <AccessDeniedComposer
+            labels={labels}
+            requiredPermission="communication.messages.send"
+          />
         ) : !canSendMessages ? (
           <ReadOnlyComposer labels={labels} />
         ) : (
@@ -1000,6 +1017,8 @@ export default function ConversationDetail({
               policy?.allowAttachments !== false &&
               policy?.allowVoiceMessages !== false
             }
+            allowedAttachmentMimeTypes={policy?.allowedAttachmentMimeTypes}
+            attachmentSizeLimitMb={policy?.maxAttachmentSizeMb}
             disabled={false}
             editingMessage={editingMessage}
             labels={labels}

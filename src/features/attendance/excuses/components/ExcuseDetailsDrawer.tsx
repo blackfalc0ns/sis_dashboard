@@ -17,24 +17,36 @@ interface ExcuseDetailsDrawerProps {
   request: ExcuseRequest | null;
   effectivePolicy: EffectiveExcusePolicy | null;
   isReadOnly: boolean;
+  canManageExcuses: boolean;
+  canReviewExcuses: boolean;
   onClose: () => void;
   onApprove: (request: ExcuseRequest) => void;
   onReject: (request: ExcuseRequest) => void;
   onEdit: (request: ExcuseRequest) => void;
+  onAttachmentPreviewChange?: (open: boolean) => void;
 }
 
-export default function ExcuseDetailsDrawer({ request, effectivePolicy, isReadOnly, onClose, onApprove, onReject, onEdit }: ExcuseDetailsDrawerProps) {
+export default function ExcuseDetailsDrawer({ request, effectivePolicy, isReadOnly, canManageExcuses, canReviewExcuses, onClose, onApprove, onReject, onEdit, onAttachmentPreviewChange }: ExcuseDetailsDrawerProps) {
   const t = useTranslations("attendance.excuses.details");
   const tTable = useTranslations("attendance.excuses.table");
   const locale = useLocale();
   const router = useRouter();
   const [previewAttachment, setPreviewAttachment] = useState<AttachmentMeta | null>(null);
+  const openAttachmentPreview = (attachment: AttachmentMeta) => {
+    setPreviewAttachment(attachment);
+    onAttachmentPreviewChange?.(true);
+  };
+  const closeAttachmentPreview = () => {
+    setPreviewAttachment(null);
+    onAttachmentPreviewChange?.(false);
+  };
 
   if (!request) {
     return <div className="h-full flex items-center justify-center p-6" style={{ color: "var(--text-secondary)" }}>{t("selectRequest")}</div>;
   }
 
-  const canMutate = request.status === "PENDING" && !isReadOnly;
+  const canManage = request.status === "PENDING" && !isReadOnly && canManageExcuses;
+  const canReview = request.status === "PENDING" && !isReadOnly && canReviewExcuses;
   const thresholdState =
     request.type === "LATE"
       ? getThresholdState("LATE", request.minutesLate, effectivePolicy)
@@ -158,7 +170,7 @@ export default function ExcuseDetailsDrawer({ request, effectivePolicy, isReadOn
                   <button
                     key={attachment.id}
                     type="button"
-                    onClick={() => setPreviewAttachment(attachment)}
+                    onClick={() => openAttachmentPreview(attachment)}
                     className="w-full text-start text-sm p-3 rounded border transition-colors"
                     style={{ borderColor: "var(--border-color)", color: "var(--text-primary)", backgroundColor: "var(--background)" }}
                     title={t("previewAttachment")}
@@ -189,17 +201,18 @@ export default function ExcuseDetailsDrawer({ request, effectivePolicy, isReadOn
           </section>
         </div>
 
-        {canMutate && (
+        {request.status === "PENDING" && (
           <div className="p-4 border-t grid grid-cols-3 gap-2" style={{ borderColor: "var(--border-color)" }}>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onEdit(request)}
+              disabled={!canManage}
             >
               {t("edit")}
             </Button>
-            <Button variant="primary" size="sm" leftIcon={<Check className="w-4 h-4" />} onClick={() => onApprove(request)}>{t("approve")}</Button>
-            <Button variant="danger" size="sm" leftIcon={<Ban className="w-4 h-4" />} onClick={() => onReject(request)}>{t("reject")}</Button>
+            <Button variant="primary" size="sm" leftIcon={<Check className="w-4 h-4" />} onClick={() => onApprove(request)} disabled={!canReview}>{t("approve")}</Button>
+            <Button variant="danger" size="sm" leftIcon={<Ban className="w-4 h-4" />} onClick={() => onReject(request)} disabled={!canReview}>{t("reject")}</Button>
           </div>
         )}
       </div>
@@ -207,7 +220,7 @@ export default function ExcuseDetailsDrawer({ request, effectivePolicy, isReadOn
       <FilePreviewModal
         attachment={previewAttachment}
         isOpen={!!previewAttachment}
-        onClose={() => setPreviewAttachment(null)}
+        onClose={closeAttachmentPreview}
       />
     </>
   );

@@ -8,13 +8,8 @@ import type {
   RosterStudent,
   SessionWithEntries,
 } from "../types";
-import type { AttendancePolicy } from "@/features/attendance/policies/types";
-import { fetchPolicies } from "@/features/attendance/policies/services/attendancePolicyService";
 import {
-  ATTENDANCE_SCOPE_PRIORITY,
   matchesDirectAttendanceScope,
-  resolveAttendanceHierarchyScope,
-  scopeMatchesTarget,
   type AttendanceScopeIds,
 } from "@/features/attendance/shared/attendanceScope";
 
@@ -272,36 +267,6 @@ function buildSessionQuery(params: {
   }
 
   return query;
-}
-
-export async function fetchEffectivePolicy(
-  yearId: string,
-  termId: string,
-  scopeType: ScopeType,
-  scopeIds: AttendanceScopeIds,
-  date: string
-): Promise<AttendancePolicy | null> {
-  const policies = await fetchPolicies(yearId, termId);
-  const activePolicies = policies.filter((policy) => {
-    if (!policy.isActive) return false;
-    if (policy.effectiveStartDate && date < policy.effectiveStartDate) return false;
-    if (policy.effectiveEndDate && date > policy.effectiveEndDate) return false;
-    return true;
-  });
-
-  const resolvedScope = resolveAttendanceHierarchyScope({ scopeType, scopeIds });
-
-  for (const priority of ATTENDANCE_SCOPE_PRIORITY) {
-    const matchingPolicy = activePolicies.find(
-      (policy) =>
-        policy.scopeType === priority &&
-        scopeMatchesTarget(policy.scopeType, policy.scopeIds, resolvedScope)
-    );
-
-    if (matchingPolicy) return matchingPolicy;
-  }
-
-  return null;
 }
 
 export async function fetchRoster(

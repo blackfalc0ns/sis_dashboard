@@ -8,6 +8,7 @@ import {
   markNotificationRead,
 } from "@/features/communication/api/communication.service";
 import { COMMUNICATION_SOCKET_EVENTS } from "@/features/communication/realtime/communication-events";
+import type { CommunicationRealtimePayload } from "@/features/communication/realtime/communication-socket";
 import type {
   CommunicationList,
   CommunicationRecord,
@@ -20,6 +21,7 @@ import type {
   NotificationSourceModule,
   NotificationType,
 } from "@/features/communication/types/notification.types";
+import { isApiError } from "@/lib/api-error";
 import { useCommunicationSocket } from "./useCommunicationSocket";
 
 export type NotificationStatusFilter = "all" | "unread" | "read" | "archived";
@@ -156,6 +158,41 @@ function normalizeNotification(
   return notificationId ? { ...notification, id: notificationId } : notification;
 }
 
+function notificationFromRealtimePayload(
+  payload: CommunicationRealtimePayload,
+): CommunicationNotification | null {
+  if (!isRecord(payload.notification)) return null;
+
+  const notification = normalizeNotification(
+    payload.notification as CommunicationNotification,
+  );
+  return typeof notification.id === "string" && notification.id.trim()
+    ? notification
+    : null;
+}
+
+function matchesNotificationFilters(
+  notification: CommunicationNotification,
+  filters: NotificationFiltersState,
+  recipientUserId?: string,
+): boolean {
+  const createdAt = notification.createdAt ?? "";
+  const notificationRecipientUserId =
+    notification.recipientUserId ?? recipientUserId;
+  return [
+    filters.status === "all" || notification.status === filters.status,
+    !filters.priority || notification.priority === filters.priority,
+    !filters.type || notification.type === filters.type,
+    !filters.sourceModule || notification.sourceModule === filters.sourceModule,
+    !filters.sourceType || notification.sourceType === filters.sourceType,
+    !filters.sourceId || notification.sourceId === filters.sourceId,
+    !filters.recipientUserId ||
+      notificationRecipientUserId === filters.recipientUserId,
+    !filters.createdFrom || createdAt >= (isoFromInput(filters.createdFrom) ?? ""),
+    !filters.createdTo || createdAt <= (isoFromInput(filters.createdTo) ?? ""),
+  ].every(Boolean);
+}
+
 function isoFromInput(value: string) {
   if (!value.trim()) return undefined;
   const date = new Date(value);
@@ -164,6 +201,8 @@ function isoFromInput(value: string) {
 
 export interface UseNotificationsOptions {
   recipientUserId?: string;
+  /** True only for feeds that refresh outside a user-initiated page action. */
+  isBackground?: boolean;
 }
 
 function paramsFromFilters(
@@ -199,10 +238,9 @@ function paramsFromFilters(
 }
 
 export function useNotifications(options: UseNotificationsOptions = {}) {
-  const { socket } = useCommunicationSocket();
-  const { recipientUserId } = options;
+  const { socket, resyncVersion } = useCommunicationSocket();
+  const { isBackground = false, recipientUserId } = options;
   const mountedRef = useRef(false);
-  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [filters, setFilters] =
     useState<NotificationFiltersState>(DEFAULT_FILTERS);
   const [notifications, setNotifications] = useState<
@@ -219,18 +257,21 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isBackgroundRefreshForbidden, setIsBackgroundRefreshForbidden] =
+    useState(false);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (refreshOptions?: { background?: boolean }) => {
+    const isBackgroundRequest =
+      isBackground && refreshOptions?.background === true;
     setIsRefreshing(true);
     setError(null);
 
     try {
-      const response = await getNotifications(
-        paramsFromFilters(filters, { recipientUserId }, {
-          page,
-          limit: requestedLimit,
-        }),
-      );
+      const params = paramsFromFilters(filters, { recipientUserId }, {
+        page,
+        limit: requestedLimit,
+      });
+      const response = await getNotifications(params);
       const list = unwrapList<CommunicationNotification>(response);
       const normalized = sortNotifications(list.items.map(normalizeNotification));
 
@@ -240,8 +281,15 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       setPageState(list.page ?? page);
       setLimitState(list.limit ?? requestedLimit);
       setTotalPages(list.totalPages);
+      if (isBackground && !isBackgroundRequest) {
+        setIsBackgroundRefreshForbidden(false);
+      }
     } catch (nextError) {
       if (!mountedRef.current) return;
+      if (isBackgroundRequest && isApiError(nextError) && nextError.status === 403) {
+        setIsBackgroundRefreshForbidden(true);
+        return;
+      }
       setError(errorMessageFromUnknown(nextError));
       setNotifications([]);
       setTotal(0);
@@ -251,7 +299,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
         setIsRefreshing(false);
       }
     }
-  }, [filters, page, recipientUserId, requestedLimit]);
+  }, [filters, isBackground, page, recipientUserId, requestedLimit]);
 
   const setFiltersAndResetPage = useCallback(
     (
@@ -279,62 +327,85 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     setLimitState(normalizedLimit);
   }, []);
 
-  const debouncedRefresh = useCallback(() => {
-    if (refreshTimerRef.current) {
-      clearTimeout(refreshTimerRef.current);
-    }
-    refreshTimerRef.current = setTimeout(() => {
-      refreshTimerRef.current = null;
-      void refresh();
-    }, 100);
-  }, [refresh]);
-
   useEffect(() => {
     mountedRef.current = true;
-    void Promise.resolve().then(refresh);
+    void Promise.resolve().then(() => refresh({ background: isBackground }));
 
     return () => {
       mountedRef.current = false;
-      if (refreshTimerRef.current) {
-        clearTimeout(refreshTimerRef.current);
-      }
     };
-  }, [refresh]);
+  }, [isBackground, refresh]);
 
   useEffect(() => {
+    if (isBackground && isBackgroundRefreshForbidden) return;
+
     const handleFocus = () => {
-      void refresh();
+      void refresh({ background: isBackground });
     };
 
     window.addEventListener("focus", handleFocus);
     return () => {
       window.removeEventListener("focus", handleFocus);
     };
-  }, [refresh]);
+  }, [isBackground, isBackgroundRefreshForbidden, refresh]);
+
+  const addRealtimeNotification = useCallback(
+    (payload: CommunicationRealtimePayload) => {
+      const notification = notificationFromRealtimePayload(payload);
+      if (
+        !notification ||
+        page !== 1 ||
+        !matchesNotificationFilters(notification, filters, recipientUserId)
+      ) {
+        return;
+      }
+
+      const replacesExistingNotification = notifications.some(
+        (currentNotification) => currentNotification.id === notification.id,
+      );
+      setNotifications((currentNotifications) =>
+        sortNotifications([
+          notification,
+          ...currentNotifications.filter(
+            (currentNotification) => currentNotification.id !== notification.id,
+          ),
+        ]),
+      );
+      if (!replacesExistingNotification) {
+        setTotal((currentTotal) => currentTotal + 1);
+      }
+    },
+    [filters, notifications, page, recipientUserId],
+  );
 
   useEffect(() => {
+    if (isBackground && isBackgroundRefreshForbidden) return;
     if (!socket) return;
 
-    socket.on(
-      COMMUNICATION_SOCKET_EVENTS.notificationCreated,
-      debouncedRefresh,
-    );
-    socket.on(
-      COMMUNICATION_SOCKET_EVENTS.notificationRead,
-      debouncedRefresh,
-    );
+    socket.on(COMMUNICATION_SOCKET_EVENTS.notificationCreated, addRealtimeNotification);
 
     return () => {
       socket.off(
         COMMUNICATION_SOCKET_EVENTS.notificationCreated,
-        debouncedRefresh,
-      );
-      socket.off(
-        COMMUNICATION_SOCKET_EVENTS.notificationRead,
-        debouncedRefresh,
+        addRealtimeNotification,
       );
     };
-  }, [debouncedRefresh, socket]);
+  }, [addRealtimeNotification, isBackground, isBackgroundRefreshForbidden, socket]);
+
+  useEffect(() => {
+    if (resyncVersion === 0) return;
+
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (!cancelled) {
+        return refresh({ background: isBackground });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isBackground, refresh, resyncVersion]);
 
   const markAllRead = useCallback(async () => {
     setIsMutating(true);

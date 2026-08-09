@@ -55,7 +55,7 @@ export default function GuardiansList() {
   const locale = useLocale();
   const router = useRouter();
   const permissions = usePermissions();
-  const { canLinkGuardianAccount } =
+  const { canLinkGuardianAccount, canManageGuardians } =
     getStudentsGuardiansCapabilities(permissions);
   const params = useParams();
   const lang = (params.lang as string) || "en";
@@ -198,6 +198,10 @@ export default function GuardiansList() {
   };
 
   const handleCreateGuardian = async (guardianData: GuardianFormData) => {
+    if (!canManageGuardians) {
+      return;
+    }
+
     try {
       setPageError(null);
       const { selectedStudents, ...guardianFields } = guardianData;
@@ -259,6 +263,9 @@ export default function GuardiansList() {
     guardian: StudentGuardian,
   ) => {
     e.stopPropagation();
+    if (!canManageGuardians) {
+      return;
+    }
     setEditingGuardian(guardian);
     setEditGuardianError(null);
     setEditGuardianForm({
@@ -278,7 +285,7 @@ export default function GuardiansList() {
 
   const handleEditGuardianSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!editingGuardian) {
+    if (!canManageGuardians || !editingGuardian) {
       return;
     }
 
@@ -403,8 +410,13 @@ export default function GuardiansList() {
             onClick={(e) =>
               handleEditGuardianClick(e, row as unknown as StudentGuardian)
             }
-            className="p-1.5 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+            className={`p-1.5 rounded transition-colors ${
+              canManageGuardians
+                ? "text-gray-600 hover:bg-gray-100"
+                : "text-gray-400 cursor-not-allowed"
+            }`}
             title={t("actions.edit")}
+            disabled={!canManageGuardians}
           >
             <Edit className="w-4 h-4" />
           </Button>
@@ -505,6 +517,7 @@ export default function GuardiansList() {
                 type="button"
                 leftIcon={<Plus className="w-4 h-4" />}
                 onClick={() => setShowCreateGuardianModal(true)}
+                disabled={!canManageGuardians}
               >
                 {t("actions.create_guardian")}
               </Button>

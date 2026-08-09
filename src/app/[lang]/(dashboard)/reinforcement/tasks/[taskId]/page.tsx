@@ -1,4 +1,5 @@
 import ReinforcementTaskDetailPage from "@/features/reinforcement/pages/ReinforcementTaskDetailPage";
+import ReinforcementAccessGuard from "@/features/reinforcement/components/ReinforcementAccessGuard";
 
 interface PageProps {
   params: Promise<{
@@ -11,7 +12,9 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <main className="flex-1 p-4 sm:p-6 min-w-0 overflow-x-hidden">
-      <ReinforcementTaskDetailPage taskId={taskId} />
+      <ReinforcementAccessGuard permission="reinforcement.tasks.view">
+        <ReinforcementTaskDetailPage taskId={taskId} />
+      </ReinforcementAccessGuard>
     </main>
   );
 }

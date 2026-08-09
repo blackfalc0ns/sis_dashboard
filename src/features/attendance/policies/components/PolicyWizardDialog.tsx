@@ -44,6 +44,7 @@ interface PolicyWizardDialogProps {
   sections: Section[];
   classrooms: Classroom[];
   isReadOnly: boolean;
+  canManagePolicies: boolean;
   onSave: (data: PolicyFormData) => Promise<void>;
   onClose: () => void;
 }
@@ -57,6 +58,7 @@ export default function PolicyWizardDialog({
   sections,
   classrooms,
   isReadOnly,
+  canManagePolicies,
   onSave,
   onClose,
 }: PolicyWizardDialogProps) {
@@ -73,6 +75,7 @@ export default function PolicyWizardDialog({
   const [nameValidationStatus, setNameValidationStatus] =
     useState<NameValidationStatus>("idle");
   const nameValidationRequestId = useRef(0);
+  const periodsRequestId = useRef(0);
 
   // Form data
   const [formData, setFormData] = useState<PolicyFormData>({
@@ -216,12 +219,18 @@ export default function PolicyWizardDialog({
         );
         return period?.id || id;
       });
+      const availablePeriodIds = new Set(
+        availablePeriods.map((period) => period.id),
+      );
+      const scopedPeriodIds = migratedPeriodIds.filter((id) =>
+        availablePeriodIds.has(id),
+      );
 
       const nextPeriodIds =
-        migratedPeriodIds.length > 0
-          ? migratedPeriodIds
+        scopedPeriodIds.length > 0
+          ? scopedPeriodIds
           : policy
-            ? migratedPeriodIds
+            ? []
             : getDefaultPeriodIds(availablePeriods);
 
       if (
@@ -240,14 +249,16 @@ export default function PolicyWizardDialog({
     });
   }, [isOpen, policy, availablePeriods, formData.mode, formData.dailyComputationStrategy]);
 
-  async function loadAvailablePeriods() {
+  async function loadAvailablePeriods(requestId: number) {
     if (!term) return;
 
     // Do not query timetable data while the hierarchy target is incomplete.
     // The request should start only after the selected policy scope is valid.
     if (!isScopeSelectionComplete(formData.scopeType, formData.scopeIds)) {
-      setAvailablePeriods([]);
-      setIsLoadingPeriods(false);
+      if (periodsRequestId.current === requestId) {
+        setAvailablePeriods([]);
+        setIsLoadingPeriods(false);
+      }
       return;
     }
 
@@ -262,20 +273,25 @@ export default function PolicyWizardDialog({
               ? formData.scopeIds?.classroomId
               : undefined;
 
-      // Load only the selected policy target. TERM/STAGE/SCHOOL configs are
-      // not valid timetable lookup targets on the current backend contract.
+      const targetScopeType =
+        formData.scopeType === "SCHOOL"
+          ? "TERM"
+          : formData.scopeType === "GRADE" ||
+              formData.scopeType === "SECTION" ||
+              formData.scopeType === "CLASSROOM"
+            ? formData.scopeType
+            : null;
+
+      // School policies use the term timetable; stage has no timetable scope.
       if (
-        !targetId ||
-        !["GRADE", "SECTION", "CLASSROOM"].includes(formData.scopeType)
+        !targetScopeType ||
+        (targetScopeType !== "TERM" && !targetId)
       ) {
-        setAvailablePeriods([]);
+        if (periodsRequestId.current === requestId) {
+          setAvailablePeriods([]);
+        }
         return;
       }
-
-      const targetScopeType = formData.scopeType as
-        | "GRADE"
-        | "SECTION"
-        | "CLASSROOM";
 
       const targetConfig = await fetchTimetableConfig({
         academicYearId: formData.yearId || term.yearId,
@@ -288,17 +304,26 @@ export default function PolicyWizardDialog({
 
       // A missing target config must remain empty; do not silently fall back
       // to synthetic default periods for a real policy scope.
-      setAvailablePeriods(targetConfig?.periods || []);
+      if (periodsRequestId.current === requestId) {
+        setAvailablePeriods(targetConfig?.periods || []);
+      }
     } catch (error) {
       console.error("Failed to load periods:", error);
-      setAvailablePeriods([]);
+      if (periodsRequestId.current === requestId) {
+        setAvailablePeriods([]);
+      }
     } finally {
-      setIsLoadingPeriods(false);
+      if (periodsRequestId.current === requestId) {
+        setIsLoadingPeriods(false);
+      }
     }
   }
 
   // Load periods when dialog opens or scope changes (always needed now)
   useEffect(() => {
+    const requestId = periodsRequestId.current + 1;
+    periodsRequestId.current = requestId;
+
     if (
       !isOpen ||
       !term ||
@@ -309,7 +334,14 @@ export default function PolicyWizardDialog({
       return;
     }
 
-    loadAvailablePeriods();
+    setAvailablePeriods([]);
+    void loadAvailablePeriods(requestId);
+
+    return () => {
+      if (periodsRequestId.current === requestId) {
+        periodsRequestId.current += 1;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     isOpen,
@@ -624,7 +656,7 @@ export default function PolicyWizardDialog({
               ) : (
                 <Button
                   onClick={handleSave}
-                  disabled={isReadOnly || isSaving}
+                  disabled={isReadOnly || !canManagePolicies || isSaving}
                   loading={isSaving}
                   variant="primary"
                   leftIcon={<Save className="w-4 h-4" />}
@@ -650,7 +682,7 @@ export default function PolicyWizardDialog({
               <Step1BasicInfo
                 formData={formData}
                 errors={errors}
-                isReadOnly={isReadOnly}
+                isReadOnly={isReadOnly || !canManagePolicies}
                 onFieldChange={handleFieldChange}
                 onNameBlur={() => void runNameValidation()}
                 onRetryNameValidation={() => void runNameValidation()}
@@ -663,7 +695,7 @@ export default function PolicyWizardDialog({
               <Step2Scope
                 formData={formData}
                 errors={errors}
-                isReadOnly={isReadOnly}
+                isReadOnly={isReadOnly || !canManagePolicies}
                 stages={stages}
                 filteredGrades={filteredGrades}
                 filteredSections={filteredSections}
@@ -677,7 +709,7 @@ export default function PolicyWizardDialog({
               <Step3ModeComputation
                 formData={formData}
                 errors={errors}
-                isReadOnly={isReadOnly}
+                isReadOnly={isReadOnly || !canManagePolicies}
                 availablePeriods={availablePeriods}
                 isLoadingPeriods={isLoadingPeriods}
                 onFieldChange={handleFieldChange}
@@ -688,7 +720,7 @@ export default function PolicyWizardDialog({
               <Step4Rules
                 formData={formData}
                 errors={errors}
-                isReadOnly={isReadOnly}
+                isReadOnly={isReadOnly || !canManagePolicies}
                 onFieldChange={handleFieldChange}
               />
             )}
@@ -697,7 +729,7 @@ export default function PolicyWizardDialog({
               <Step5Review
                 formData={formData}
                 errors={errors}
-                isReadOnly={isReadOnly}
+                isReadOnly={isReadOnly || !canManagePolicies}
                 term={term}
                 onFieldChange={handleFieldChange}
               />

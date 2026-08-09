@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button, Select } from "@/components/ui";
 import MainLoader from "@/components/ui/loaders/MainLoader";
+import DashboardPermissionGuard from "@/features/dashboard/components/DashboardPermissionGuard";
 import ModuleWidgetCard from "@/features/dashboard/components/ModuleWidgetCard";
 import { fetchDashboardWidgets } from "@/features/dashboard/services/dashboardApiService";
 import type {
@@ -41,6 +42,14 @@ const widgetTypes: DashboardWidgetType[] = [
 const widgetLimits = [10, 20, 30, 50] as const;
 
 export default function DashboardWidgetsPage() {
+  return (
+    <DashboardPermissionGuard permission="dashboard.widgets.view">
+      <DashboardWidgetsContent />
+    </DashboardPermissionGuard>
+  );
+}
+
+function DashboardWidgetsContent() {
   const t = useTranslations("dashboard_new.widgets");
   const [response, setResponse] = useState<DashboardWidgetsResponse | null>(
     null,

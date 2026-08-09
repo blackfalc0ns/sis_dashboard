@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import Button from "@/components/ui/button/Button";
 import Modal from "@/components/ui/modal/Modal";
+import { isApiError } from "@/lib/api-error";
 import { loadAuthenticatedFileUrl } from "@/lib/files/authenticatedFileUrlCache";
 import { formatFileSize } from "@/utils/upload/validateFile";
 
@@ -29,6 +30,7 @@ export default function FilePreviewModal({ attachment, isOpen, onClose }: FilePr
   const [previewMimeType, setPreviewMimeType] = useState<string | null>(null);
   const [previewAttachmentId, setPreviewAttachmentId] = useState<string | null>(null);
   const [failedAttachmentId, setFailedAttachmentId] = useState<string | null>(null);
+  const [deniedAttachmentId, setDeniedAttachmentId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!attachment?.id) {
@@ -37,6 +39,7 @@ export default function FilePreviewModal({ attachment, isOpen, onClose }: FilePr
         setPreviewMimeType(null);
         setPreviewAttachmentId(null);
         setFailedAttachmentId(null);
+        setDeniedAttachmentId(null);
       });
       return;
     }
@@ -48,23 +51,28 @@ export default function FilePreviewModal({ attachment, isOpen, onClose }: FilePr
         setPreviewMimeType(file.mimeType || attachment.type || null);
         setPreviewAttachmentId(attachment.id);
       })
-      .catch(() => {
-        if (active) setFailedAttachmentId(attachment.id);
+      .catch((error) => {
+        if (!active) return;
+        setFailedAttachmentId(attachment.id);
+        setDeniedAttachmentId(
+          isApiError(error) && error.status === 403 ? attachment.id : null,
+        );
       });
     return () => {
       active = false;
     };
   }, [attachment?.id, attachment?.type]);
 
-  const contentUrl = previewUrl || attachment?.url;
+  const accessDenied = deniedAttachmentId === attachment?.id;
+  const contentUrl = accessDenied ? null : previewUrl || attachment?.url;
   const mimeType = previewMimeType || attachment?.type || "";
   const loading = Boolean(isOpen && attachment?.id && previewAttachmentId !== attachment.id && failedAttachmentId !== attachment.id);
   const openPreview = () => contentUrl && window.open(contentUrl, "_blank", "noopener,noreferrer");
 
   const unavailable = attachment ? (
     <div className="space-y-3 rounded-xl p-4" style={{ backgroundColor: "var(--background-secondary, var(--color-neutral-50))" }}>
-      <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{t("unavailable")}</p>
-      <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{t("unavailableDescription")}</p>
+      <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{accessDenied ? t("accessDenied") : t("unavailable")}</p>
+      <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{accessDenied ? t("accessDeniedDescription") : t("unavailableDescription")}</p>
       <div className="space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
         <div>{t("fileType")}: {attachment.type || "-"}</div>
         <div>{t("fileSize")}: {formatFileSize(attachment.size)}</div>

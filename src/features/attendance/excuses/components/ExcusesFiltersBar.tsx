@@ -7,6 +7,7 @@ import DatePicker from "@/components/ui/input/DatePicker";
 import Select from "@/components/ui/input/Select";
 import Button from "@/components/ui/button/Button";
 import type { ExcuseRequestFilters } from "../types";
+import { isInvalidDateRange } from "@/features/attendance/shared/utils/dateRange";
 
 interface ExcusesFiltersBarProps {
   filters: ExcuseRequestFilters;
@@ -23,12 +24,14 @@ export default function ExcusesFiltersBar({
 }: ExcusesFiltersBarProps) {
   const t = useTranslations("attendance.excuses.filters");
   const tCommon = useTranslations("common");
+  const invalidDateRange = isInvalidDateRange(filters.dateFrom, filters.dateTo);
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <div className="lg:col-span-4">
           <Input
+            label={t("search")}
             value={filters.search}
             onChange={(event) => onFiltersChange({ search: event.target.value })}
             placeholder={t("searchPlaceholder")}
@@ -37,20 +40,26 @@ export default function ExcusesFiltersBar({
         </div>
         <div className="lg:col-span-2">
           <DatePicker
+            label={t("dateFrom")}
             value={filters.dateFrom ? new Date(filters.dateFrom) : null}
+            maxDate={filters.dateTo ? new Date(filters.dateTo) : undefined}
             onChange={(value) => onFiltersChange({ dateFrom: value ? value.toISOString().split("T")[0] : undefined })}
             placeholder={t("dateFrom")}
           />
         </div>
         <div className="lg:col-span-2">
           <DatePicker
+            label={t("dateTo")}
             value={filters.dateTo ? new Date(filters.dateTo) : null}
+            minDate={filters.dateFrom ? new Date(filters.dateFrom) : undefined}
             onChange={(value) => onFiltersChange({ dateTo: value ? value.toISOString().split("T")[0] : undefined })}
             placeholder={t("dateTo")}
+            error={invalidDateRange ? tCommon("invalidDateRange") : undefined}
           />
         </div>
         <div className="lg:col-span-2">
           <Select
+            label={t("status")}
             value={filters.status}
             onChange={(value) => onFiltersChange({ status: value as ExcuseRequestFilters["status"] })}
             options={[
@@ -64,6 +73,7 @@ export default function ExcusesFiltersBar({
         </div>
         <div className="lg:col-span-2">
           <Select
+            label={t("type")}
             value={filters.type}
             onChange={(value) => onFiltersChange({ type: value as ExcuseRequestFilters["type"] })}
             options={[
@@ -80,6 +90,7 @@ export default function ExcusesFiltersBar({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
         <div className="lg:col-span-4">
           <Select
+            label={t("hasAttachment")}
             value={filters.hasAttachment}
             onChange={(value) => onFiltersChange({ hasAttachment: value as ExcuseRequestFilters["hasAttachment"] })}
             options={[

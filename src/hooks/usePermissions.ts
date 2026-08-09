@@ -9,6 +9,15 @@ import { bottomItems, menuItems } from "@/config/navigation";
 
 export type PermissionKey =
   | "dashboard.analytics.view"
+  | "dashboard.alerts.view"
+  | "dashboard.activity_feed.view"
+  | "dashboard.command_center.view"
+  | "dashboard.light_mode_dropdown.view"
+  | "dashboard.modules.view"
+  | "dashboard.summary.view"
+  | "dashboard.todos.view"
+  | "dashboard.todos.manage"
+  | "dashboard.widgets.view"
   | "admissions.leads.view"
   | "admissions.leads.manage"
   | "admissions.applications.view"
@@ -37,17 +46,21 @@ export type PermissionKey =
   | "teachers.records.view"
   | "teachers.records.manage"
   | "attendance.policies.view"
+  | "attendance.policies.manage"
   | "attendance.sessions.view"
+  | "attendance.sessions.manage"
   | "attendance.sessions.submit"
   | "attendance.entries.manage"
   | "attendance.absences.view"
   | "attendance.excuses.view"
+  | "attendance.excuses.manage"
   | "attendance.excuses.review"
   | "attendance.reports.view"
   | "behavior.records.view"
   | "behavior.records.create"
   | "behavior.records.manage"
   | "behavior.records.review"
+  | "behavior.points.view"
   | "behavior.categories.view"
   | "behavior.categories.manage"
   | "behavior.overview.view"
@@ -83,6 +96,7 @@ export type PermissionKey =
   | "settings.backup.manage"
   | "dismissal.settings.view"
   | "dismissal.settings.manage"
+  | "dismissal.profile.view"
   | "dismissal.gates.view"
   | "dismissal.gates.manage"
   | "dismissal.staff.view"
@@ -92,6 +106,8 @@ export type PermissionKey =
   | "dismissal.requests.deliver"
   | "dismissal.requests.escalate"
   | "dismissal.requests.history.view"
+  | "dismissal.notifications.view"
+  | "dismissal.notifications.manage"
   | "academics.overview.view"
   | "academics.subjects.view"
   | "academics.subjects.manage"
@@ -132,7 +148,9 @@ export type PermissionKey =
   | "communication.admin.manage"
   | "communication.overview.view"
   | "communication.policies.view"
+  | "communication.policies.manage"
   | "communication.announcements.view"
+  | "communication.announcements.manage"
   | "communication.notifications.view"
   | "communication.notifications.manage"
   | "communication.conversations.view"
@@ -152,6 +170,8 @@ export type PermissionKey =
   | "reinforcement.templates.manage"
   | "reinforcement.tasks.view"
   | "reinforcement.tasks.manage"
+  | "reinforcement.submissions.view"
+  | "reinforcement.submissions.submit"
   | "reinforcement.xp.view"
   | "reinforcement.xp.manage"
   | "reinforcement.reviews.view"
@@ -168,11 +188,11 @@ export type PermissionKey =
   | "reinforcement.hero.badges.manage"
   | "reinforcement.hero.progress.view"
   | "reinforcement.hero.progress.manage"
-  | "dashboard.summary.view"
-  | "dashboard.command_center.view"
-  | "dashboard.widgets.view"
-  | "dashboard.activity_feed.view"
-  | "school.support.view";
+  | "reinforcement.hero.missions.start"
+  | "reinforcement.hero.missions.complete"
+  | "reinforcement.hero.objectives.complete"
+  | "school.support.view"
+  | "school.support.send";
 
 export const settingsNavigationPermissionByKey: Partial<
   Record<string, PermissionKey>
@@ -255,7 +275,7 @@ export const navigationPermissionByKey: Partial<Record<string, PermissionKey>> =
     "attendance-policies": "attendance.policies.view",
     "attendance-roll-call": "attendance.sessions.view",
     "attendance-absences": "attendance.absences.view",
-    "attendance-late-early": "attendance.entries.manage",
+    "attendance-late-early": "attendance.absences.view",
     "attendance-excuses": "attendance.excuses.view",
     "behavior-overview": "behavior.overview.view",
     "behavior-reviews": "behavior.records.view",

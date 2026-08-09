@@ -20,6 +20,7 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    ".worktrees/**",
     "out/**",
     "build/**",
     "docs/Reusable Light Mode Dropdown/**",

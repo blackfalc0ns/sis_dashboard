@@ -1,4 +1,5 @@
 import axios, {
+  type AxiosError,
   AxiosInstance,
   AxiosRequestConfig,
   AxiosResponse,
@@ -6,6 +7,49 @@ import axios, {
 } from "axios";
 import { tokenStorage } from "./token-storage";
 import { ApiError, isAxiosError } from "./api-error";
+import {
+  SCOPE_PERMISSION_DENIED_EVENT,
+  type ScopePermissionDeniedEventDetail,
+} from "./access-denied-event";
+
+export { SCOPE_PERMISSION_DENIED_EVENT } from "./access-denied-event";
+
+export type ApiRequestConfig = AxiosRequestConfig;
+
+function isScopePermissionDenied(error: AxiosError): boolean {
+  const response = error.response;
+  const payload = response?.data as
+    | { code?: string; error?: { code?: string } }
+    | undefined;
+
+  return response?.status === 403 &&
+    (payload?.code === "auth.scope.missing" ||
+      payload?.error?.code === "auth.scope.missing");
+}
+
+function getMissingScopePermissions(error: AxiosError): string[] {
+  const payload = error.response?.data as
+    | { error?: { details?: { missingPermissions?: unknown } } }
+    | undefined;
+  const missingPermissions = payload?.error?.details?.missingPermissions;
+
+  return Array.isArray(missingPermissions)
+    ? missingPermissions.filter(
+        (permission): permission is string => typeof permission === "string",
+      )
+    : [];
+}
+
+function publishScopePermissionDenied(missingPermissions: string[]) {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent<ScopePermissionDeniedEventDetail>(
+        SCOPE_PERMISSION_DENIED_EVENT,
+        { detail: { missingPermissions } },
+      ),
+    );
+  }
+}
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -166,6 +210,10 @@ apiClient.interceptors.response.use(
       }
     }
 
+    if (isAxiosError(error) && isScopePermissionDenied(error)) {
+      publishScopePermissionDenied(getMissingScopePermissions(error));
+    }
+
     // Wrap any other error in our ApiError class
     if (isAxiosError(error)) {
       return Promise.reject(ApiError.fromAxiosError(error));
@@ -178,7 +226,7 @@ apiClient.interceptors.response.use(
 // Generic wrapper functions
 export async function apiGet<T>(
   url: string,
-  config?: AxiosRequestConfig,
+  config?: ApiRequestConfig,
 ): Promise<T> {
   const response = await apiClient.get<T>(url, config);
   return response.data;
@@ -187,7 +235,7 @@ export async function apiGet<T>(
 export async function apiPost<T>(
   url: string,
   data?: unknown,
-  config?: AxiosRequestConfig,
+  config?: ApiRequestConfig,
 ): Promise<T> {
   const response = await apiClient.post<T>(url, data, config);
   return response.data;
@@ -196,7 +244,7 @@ export async function apiPost<T>(
 export async function apiPut<T>(
   url: string,
   data?: unknown,
-  config?: AxiosRequestConfig,
+  config?: ApiRequestConfig,
 ): Promise<T> {
   const response = await apiClient.put<T>(url, data, config);
   return response.data;
@@ -205,7 +253,7 @@ export async function apiPut<T>(
 export async function apiPatch<T>(
   url: string,
   data?: unknown,
-  config?: AxiosRequestConfig,
+  config?: ApiRequestConfig,
 ): Promise<T> {
   const response = await apiClient.patch<T>(url, data, config);
   return response.data;
@@ -213,7 +261,7 @@ export async function apiPatch<T>(
 
 export async function apiDelete<T>(
   url: string,
-  config?: AxiosRequestConfig,
+  config?: ApiRequestConfig,
 ): Promise<T> {
   const response = await apiClient.delete<T>(url, config);
   return response.data;

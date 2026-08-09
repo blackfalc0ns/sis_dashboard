@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 
 import type { ConversationRedesignLabels } from "@/features/communication/conversations_redesign/labels";
-import { useCommunicationPolicy } from "@/features/communication/hooks/useCommunicationPolicy";
 
 import { EmojiPickerButton } from "./EmojiPickerButton";
 
@@ -50,6 +49,8 @@ function audioExtension(mimeType: string) {
 export function MessageComposer({
   allowAttachments = true,
   allowVoice = true,
+  allowedAttachmentMimeTypes,
+  attachmentSizeLimitMb,
   disabled,
   editingMessage,
   labels,
@@ -66,6 +67,8 @@ export function MessageComposer({
 }: {
   allowAttachments?: boolean;
   allowVoice?: boolean;
+  allowedAttachmentMimeTypes?: string[];
+  attachmentSizeLimitMb?: number;
   disabled: boolean;
   editingMessage: { id: string; body: string } | null;
   labels: ConversationRedesignLabels;
@@ -87,8 +90,7 @@ export function MessageComposer({
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingError, setRecordingError] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
-  const { policy } = useCommunicationPolicy();
-  const maxMessageLength = policy?.maxMessageLength ?? maxLength ?? 4000;
+  const maxMessageLength = maxLength ?? 4000;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -165,8 +167,8 @@ export function MessageComposer({
     const files = event.target.files;
     if (!allowAttachments || !files || files.length === 0 || disabled) return;
 
-    const maxAttachmentSizeMb = policy?.maxAttachmentSizeMb ?? 10;
-    const allowedMimes = policy?.allowedAttachmentMimeTypes;
+    const maxAttachmentSizeMb = attachmentSizeLimitMb ?? 10;
+    const allowedMimes = allowedAttachmentMimeTypes;
 
     const validFiles: File[] = [];
 

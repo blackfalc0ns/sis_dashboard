@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useMediaQuery } from "@mui/material";
 import { Filter } from "lucide-react";
 import Button from "@/components/ui/button/Button";
 import { useToast } from "@/components/ui/toast/Toast";
+import { usePermissions } from "@/hooks/usePermissions";
 import AttendanceScopeHeader from "@/features/attendance/shared/components/AttendanceScopeHeader";
 import AttendanceFiltersPanel from "@/features/attendance/shared/components/AttendanceFiltersPanel";
 import AttendanceBottomDrawer from "@/features/attendance/shared/components/AttendanceBottomDrawer";
@@ -48,10 +49,12 @@ import {
   resolveEffectiveExcusePolicy,
 } from "@/features/attendance/policies/services/attendancePolicyService";
 import { isScopeSelectionComplete } from "@/features/attendance/shared/attendanceScope";
+import { isDateRangeValidationError, isInvalidDateRange } from "@/features/attendance/shared/utils/dateRange";
 import { getAttendanceScopeLabel } from "@/features/attendance/shared/attendanceScopePresentation";
 import type { AbsenceRecord, AbsencesFilters } from "../types";
 
 export default function AttendanceAbsencesPage() {
+  const { hasPermission } = usePermissions();
   const t = useTranslations("attendance.absences");
   const tCommon = useTranslations("common");
   const locale = useLocale();
@@ -66,15 +69,18 @@ export default function AttendanceAbsencesPage() {
   );
 
   const isReadOnly = termContext.isReadOnly;
+  const isEntryReadOnly = isReadOnly || !hasPermission("attendance.entries.manage");
 
   // State
   const [records, setRecords] = useState<AbsenceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const latestRecordsRequest = useRef(0);
   const [selectedRecord, setSelectedRecord] = useState<AbsenceRecord | null>(
     null,
   );
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
   const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
+  const [attachmentPreviewOpen, setAttachmentPreviewOpen] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [searchInput, setSearchInput] = useState("");
 
@@ -102,10 +108,28 @@ export default function AttendanceAbsencesPage() {
 
   // Reusable reload function
   const reloadRecords = useCallback(async () => {
-    if (!termContext.yearId || !termContext.termId) return;
+    const requestId = ++latestRecordsRequest.current;
+
+    if (!termContext.yearId || !termContext.termId) {
+      setIsLoading(false);
+      return;
+    }
+
+    if (isInvalidDateRange(filters.dateFrom, filters.dateTo)) {
+      if (requestId === latestRecordsRequest.current) {
+        setRecords([]);
+        setSelectedRecord(null);
+        setIsLoading(false);
+      }
+      return;
+    }
 
     if (!isScopeSelectionComplete(filters.scopeType, filters.scopeIds)) {
-      setRecords([]);
+      if (requestId === latestRecordsRequest.current) {
+        setRecords([]);
+        setSelectedRecord(null);
+        setIsLoading(false);
+      }
       return;
     }
 
@@ -116,12 +140,25 @@ export default function AttendanceAbsencesPage() {
         termId: termContext.termId,
         ...filters,
       });
-      setRecords(data);
+      if (requestId === latestRecordsRequest.current) {
+        setRecords(data);
+        setSelectedRecord((selected) =>
+          selected ? data.find((record) => record.id === selected.id) ?? null : null,
+        );
+      }
     } catch (error) {
       console.error("Failed to load absences:", error);
-      showError(tCommon("error_loading"));
+      if (requestId === latestRecordsRequest.current) {
+        if (isDateRangeValidationError(error)) {
+          setRecords([]);
+          setSelectedRecord(null);
+          showError(tCommon("invalidDateRange"));
+        } else {
+          showError(tCommon("error_loading"));
+        }
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRecordsRequest.current) setIsLoading(false);
     }
   }, [termContext.yearId, termContext.termId, filters, showError, tCommon]);
 
@@ -129,19 +166,25 @@ export default function AttendanceAbsencesPage() {
   useEffect(() => {
     if (!termContext.yearId || !termContext.termId) return;
 
+    let cancelled = false;
     const loadStructure = async () => {
       try {
         const tree = await fetchStructureTree(
           termContext.yearId!,
           termContext.termId!,
         );
+        if (cancelled) return;
         setStructureTree(tree);
       } catch (error) {
+        if (cancelled) return;
         console.error("Failed to load structure tree:", error);
       }
     };
 
-    loadStructure();
+    void loadStructure();
+    return () => {
+      cancelled = true;
+    };
   }, [termContext.yearId, termContext.termId]);
 
   // Load data when filters change
@@ -157,12 +200,19 @@ export default function AttendanceAbsencesPage() {
     if ("search" in newFilters) {
       setSearchInput(newFilters.search || "");
     }
-    setFilters((prev) => ({ ...prev, ...newFilters }));
+
+    const nonSearchFilters = { ...newFilters };
+    delete nonSearchFilters.search;
+    if (Object.keys(nonSearchFilters).length > 0) {
+      setFilters((prev) => ({ ...prev, ...nonSearchFilters }));
+    }
   };
 
   const handleClearFilters = () => {
     setSearchInput("");
     setFilters({
+      dateFrom: undefined,
+      dateTo: undefined,
       scopeType: "SCHOOL",
       status: "ALL",
       granularities: ["DAILY", "PERIOD"],
@@ -178,7 +228,7 @@ export default function AttendanceAbsencesPage() {
 
   const handleEditExcuse = async (record: AbsenceRecord) => {
     if (
-      isReadOnly ||
+      isEntryReadOnly ||
       record.sessionStatus !== "SUBMITTED" ||
       record.status === "EXCUSED"
     ) return;
@@ -209,7 +259,7 @@ export default function AttendanceAbsencesPage() {
 
   const handleEditEarlyLeave = (record: AbsenceRecord) => {
     if (
-      isReadOnly ||
+      isEntryReadOnly ||
       record.sessionStatus !== "SUBMITTED" ||
       record.status === "EXCUSED"
     ) return;
@@ -476,7 +526,7 @@ export default function AttendanceAbsencesPage() {
       onRecordClick={handleRecordClick}
       onEditExcuse={handleEditExcuse}
       onEditEarlyLeave={handleEditEarlyLeave}
-      isReadOnly={isReadOnly}
+      isReadOnly={isEntryReadOnly}
       structureTree={structureTree}
     />
   );
@@ -486,7 +536,7 @@ export default function AttendanceAbsencesPage() {
       <AttendanceWorkspaceShell>
         <AttendanceWorkspaceHeader>
           <AttendanceScopeHeader
-            isReadOnly={isReadOnly}
+            isReadOnly={isEntryReadOnly}
             scopeType={filters.scopeType}
             scopeIds={filters.scopeIds}
             stages={structureTree?.stages || []}
@@ -546,7 +596,9 @@ export default function AttendanceAbsencesPage() {
 
       <AttendanceBottomDrawer
         isOpen={showDetailsDrawer}
+        disableEnforceFocus={attachmentPreviewOpen}
         onClose={() => {
+          setAttachmentPreviewOpen(false);
           setShowDetailsDrawer(false);
           setSelectedRecord(null);
         }}
@@ -556,13 +608,15 @@ export default function AttendanceAbsencesPage() {
         <AbsenceDetailsPanel
           record={selectedRecord}
           onClose={() => {
+            setAttachmentPreviewOpen(false);
             setShowDetailsDrawer(false);
             setSelectedRecord(null);
           }}
           onEditExcuse={handleEditExcuse}
           onEditEarlyLeave={handleEditEarlyLeave}
-          isReadOnly={isReadOnly}
+          isReadOnly={isEntryReadOnly}
           structureTree={structureTree}
+          onAttachmentPreviewChange={setAttachmentPreviewOpen}
         />
       </AttendanceBottomDrawer>
 
@@ -579,7 +633,7 @@ export default function AttendanceAbsencesPage() {
           ""
         }
         attachmentMode="UNSUPPORTED"
-        isReadOnly={isReadOnly}
+        isReadOnly={isEntryReadOnly}
       />
 
       <EarlyLeaveEditorModal
@@ -590,7 +644,7 @@ export default function AttendanceAbsencesPage() {
         }}
         onSave={handleSaveEarlyLeave}
         initialMinutes={recordToEdit?.minutesEarlyLeave || 0}
-        isReadOnly={isReadOnly}
+        isReadOnly={isEntryReadOnly}
       />
 
       <AttendanceGlobalExportModal

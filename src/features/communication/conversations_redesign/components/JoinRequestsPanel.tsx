@@ -57,9 +57,10 @@ export default function JoinRequestsPanel({
           ) : null}
           {joinRequests.map((request) => {
             const name =
+              request.requestedBy?.displayName ||
               actorName(request.user) ||
               displayNameForUserId(
-                request.userId,
+                request.requestedById || request.userId,
                 userDisplayNames,
                 labels.requester,
               );

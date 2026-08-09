@@ -12,6 +12,7 @@ import { ToastMessage } from "@/features/communication/conversations_redesign/co
 import { labelsForLocale } from "@/features/communication/conversations_redesign/labels";
 import Avatar from "@/features/communication/conversations_redesign/components/Avatar";
 import { useSchoolSupportChat } from "@/features/support/hooks/useSchoolSupportChat";
+import SupportPermissionGuard from "../components/SupportPermissionGuard";
 
 const copy = {
   en: {
@@ -29,6 +30,14 @@ const copy = {
 } as const;
 
 export default function SupportChatPage() {
+  return (
+    <SupportPermissionGuard permission="school.support.view">
+      <SupportChatContent />
+    </SupportPermissionGuard>
+  );
+}
+
+function SupportChatContent() {
   const locale = useLocale();
   const router = useRouter();
   const labels = labelsForLocale(locale);
@@ -122,7 +131,11 @@ export default function SupportChatPage() {
         <MessageComposer
           allowAttachments={false}
           allowVoice={false}
-          disabled={supportChat.isSending || supportChat.isLoading}
+          disabled={
+            !supportChat.canSend ||
+            supportChat.isSending ||
+            supportChat.isLoading
+          }
           editingMessage={null}
           labels={labels}
           onCancelEdit={() => undefined}

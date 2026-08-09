@@ -15,13 +15,34 @@ const isRecord = (value: unknown): value is CommunicationRecord =>
 const stringValue = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim() ? value : undefined;
 
-export function usePresence() {
+function presenceOnlineState(
+  source: CommunicationRecord,
+  payload: CommunicationRecord,
+  status?: string,
+): boolean | undefined {
+  const explicitOnline = [
+    source.isOnline,
+    source.online,
+    payload.isOnline,
+    payload.online,
+  ].find((candidate): candidate is boolean => typeof candidate === "boolean");
+  if (explicitOnline !== undefined) return explicitOnline;
+
+  const normalizedStatus = status?.toLowerCase();
+  return normalizedStatus === "online"
+    ? true
+    : normalizedStatus === "offline"
+      ? false
+      : undefined;
+}
+
+export function usePresence({ enabled = true }: { enabled?: boolean } = {}) {
   const [presenceByUserId, setPresenceByUserId] = useState<
     Record<string, CommunicationPresence>
   >({});
 
   const handlePresenceUpdated = useCallback((payload: unknown) => {
-    if (!isRecord(payload)) return;
+    if (!enabled || !isRecord(payload)) return;
     const source = isRecord(payload.user) ? payload.user : payload;
     const userId =
       stringValue(source.userId) ??
@@ -29,30 +50,23 @@ export function usePresence() {
       stringValue(payload.userId);
     if (!userId) return;
 
+    const status = stringValue(source.status) ?? stringValue(payload.status);
+
     setPresenceByUserId((current) => ({
       ...current,
       [userId]: {
         userId,
-        status: stringValue(source.status) ?? stringValue(payload.status),
-        isOnline:
-          typeof source.isOnline === "boolean"
-            ? source.isOnline
-            : typeof source.online === "boolean"
-              ? source.online
-            : typeof payload.isOnline === "boolean"
-              ? payload.isOnline
-              : typeof payload.online === "boolean"
-                ? payload.online
-              : undefined,
+        status,
+        isOnline: presenceOnlineState(source, payload, status),
       },
     }));
-  }, []);
+  }, [enabled]);
 
   return useMemo(
     () => ({
-      presenceByUserId,
+      presenceByUserId: enabled ? presenceByUserId : {},
       handlePresenceUpdated,
     }),
-    [handlePresenceUpdated, presenceByUserId],
+    [enabled, handlePresenceUpdated, presenceByUserId],
   );
 }
