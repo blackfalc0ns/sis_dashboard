@@ -388,6 +388,7 @@ export default function GuardianProfilePage({
               />
               <Input
                 label={t("fields.primary_phone")}
+                type="tel"
                 value={editForm.phone_primary}
                 onChange={(event) =>
                   updateEditForm("phone_primary", event.target.value)
@@ -396,6 +397,7 @@ export default function GuardianProfilePage({
               />
               <Input
                 label={t("fields.secondary_phone")}
+                type="tel"
                 value={editForm.phone_secondary}
                 onChange={(event) =>
                   updateEditForm("phone_secondary", event.target.value)

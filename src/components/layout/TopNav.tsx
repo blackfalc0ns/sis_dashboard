@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/features/communication/hooks/useNotifications";
 import type { MeResponse } from "@/types/user";
 import TopNavNotificationDropdown from "./TopNavNotificationDropdown";
+import { MobileAppsMenu } from "@/features/app-download/components/MobileAppsMenu";
 import { getPasswordPolicyApiFailures } from "@/utils/validation/passwordPolicy";
 
 type NotificationTab = "all" | "chat" | "announcements";
@@ -104,6 +105,7 @@ export default function TopNav({
     untitled: t("top_nav_notifications.untitled"),
     noPreview: t("top_nav_notifications.no_preview"),
     archived: t("top_nav_notifications.archived"),
+    close: t("top_nav_notifications.close"),
   };
 
   useEffect(() => {
@@ -211,6 +213,8 @@ export default function TopNav({
                 labels={notificationLabels}
               />
             </div>
+
+            <MobileAppsMenu />
 
             <LanguageSwitcher />
 

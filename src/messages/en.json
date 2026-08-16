@@ -13382,7 +13382,8 @@
     "system": "System",
     "unread": "Unread",
     "read": "Read",
-    "archived": "Archived"
+    "archived": "Archived",
+    "close": "Close notifications"
   },
   "saving": "Saving...",
   "save": "Save",
@@ -13661,6 +13662,12 @@
     "parent": "Parent App",
     "dismissal_staff": "Dismissal Staff App"
   },
+  "mobile_apps": {
+    "menu_button": "Mobile apps",
+    "title": "School mobile apps",
+    "close": "Close mobile apps",
+    "description": "Download the right app for each school role."
+  },
   "user_select": {
     "select": "Select a user",
     "search_placeholder": "Search users...",
@@ -13673,5 +13680,10 @@
     "permission_denied": "You do not have permission to view users.",
     "remove": "Remove",
     "retry": "Retry"
+  },
+  "phoneInput": {
+    "searchLabel": "Search countries",
+    "searchPlaceholder": "Search country or code",
+    "invalid": "Enter a valid phone number."
   }
 }

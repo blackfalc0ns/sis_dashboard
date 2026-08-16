@@ -349,8 +349,8 @@ function GuardianProfileLayoutContent({ children }: { children: React.ReactNode 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input label={t("fields.full_name")} value={editForm.full_name} onChange={(event) => updateEditForm("full_name", event.target.value)} required />
               <Input label={t("fields.relation")} value={editForm.relation} onChange={(event) => updateEditForm("relation", event.target.value)} required />
-              <Input label={t("fields.primary_phone")} value={editForm.phone_primary} onChange={(event) => updateEditForm("phone_primary", event.target.value)} required />
-              <Input label={t("fields.secondary_phone")} value={editForm.phone_secondary} onChange={(event) => updateEditForm("phone_secondary", event.target.value)} />
+              <Input type="tel" label={t("fields.primary_phone")} value={editForm.phone_primary} onChange={(event) => updateEditForm("phone_primary", event.target.value)} required />
+              <Input type="tel" label={t("fields.secondary_phone")} value={editForm.phone_secondary} onChange={(event) => updateEditForm("phone_secondary", event.target.value)} />
               <Input label={t("fields.email")} type="email" value={editForm.email} onChange={(event) => updateEditForm("email", event.target.value)} />
               <Input label={t("fields.national_id")} value={editForm.national_id} onChange={(event) => updateEditForm("national_id", event.target.value)} />
               <Input label={t("fields.job_title")} value={editForm.job_title} onChange={(event) => updateEditForm("job_title", event.target.value)} />

@@ -30,6 +30,7 @@ import DashboardLightModeDropdown from "../components/DashboardLightModeDropdown
 import DashboardPermissionGuard from "../components/DashboardPermissionGuard";
 import FilterBar from "../components/FilterBar";
 import QuickActionPanel from "../components/QuickActionPanel";
+import { MobileAppsWidget } from "@/features/app-download/components/MobileAppsWidget";
 import PartialLoader from "@/components/ui/loaders/PartialLoader";
 import ModuleTabDashboardView from "../components/ModuleTabDashboardView";
 import { DASHBOARD_ALERT_PREVIEW_LIMIT } from "@/features/dashboard/constants/dashboardPreviewLimits";
@@ -266,6 +267,8 @@ export default function SchoolDashboardView({
             />
           </>
         </DashboardPermissionGuard>
+
+        <MobileAppsWidget />
 
         <PersistentDashboardDetails
           activityFeedState={activityFeedState}

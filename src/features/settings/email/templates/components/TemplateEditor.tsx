@@ -271,6 +271,7 @@ export default function TemplateEditor({
           error={errors?.supportEmail}
         />
         <Input
+          type="tel"
           label={labels.supportPhone}
           value={values.supportPhone}
           disabled={!canManage}

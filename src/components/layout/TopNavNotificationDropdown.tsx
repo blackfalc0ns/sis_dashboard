@@ -19,6 +19,7 @@ import {
   RefreshCw,
   AlertCircle,
   ArrowRight,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -98,6 +99,7 @@ interface TopNavNotificationDropdownProps {
     chat?: string;
     announcements?: string;
     archived?: string;
+    close?: string;
   };
 }
 
@@ -300,6 +302,7 @@ export default function TopNavNotificationDropdown({
     chat: labels?.chat ?? "Chat",
     announcements: labels?.announcements ?? "Announcements",
     archived: labels?.archived ?? "Archived",
+    close: labels?.close ?? "Close notifications",
   };
 
   // Resolve route target using the same conversation target as message toasts.
@@ -357,15 +360,21 @@ export default function TopNavNotificationDropdown({
   };
 
   return (
-    <div
-      ref={dropdownRef}
-      className="fixed start-3 end-3 top-[72px] z-50 w-auto overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.18)] sm:absolute sm:start-auto sm:end-0 sm:top-full sm:mt-3 sm:w-[400px] sm:max-w-none"
-      role="dialog"
-      aria-label={mergedLabels.title}
-    >
+    <>
+      <div
+        aria-hidden="true"
+        onClick={onClose}
+        className="fixed inset-0 z-40 bg-slate-950/30 sm:hidden"
+      />
+      <div
+        ref={dropdownRef}
+        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[80dvh] flex-col overflow-hidden rounded-t-2xl border border-slate-200/80 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.18)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:end-0 sm:top-full sm:mt-3 sm:block sm:w-[400px] sm:max-h-[calc(100dvh-6rem)] sm:rounded-2xl"
+        role="dialog"
+        aria-label={mergedLabels.title}
+      >
       {/* Header */}
       <div className="relative border-b border-slate-200/80 bg-slate-50/50 px-4 py-3.5">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="text-sm font-bold text-slate-950">
               {mergedLabels.title}
@@ -374,7 +383,7 @@ export default function TopNavNotificationDropdown({
               {mergedLabels.unreadCount}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <button
               type="button"
               onClick={() => void onRefresh?.()}
@@ -411,6 +420,14 @@ export default function TopNavNotificationDropdown({
               <CheckCheck className="h-3.5 w-3.5" />
               {mergedLabels.markAllRead}
             </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={mergedLabels.close}
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors duration-200 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
           </div>
         </div>
       </div>
@@ -445,7 +462,7 @@ export default function TopNavNotificationDropdown({
 
       {/* Notifications List */}
       <div
-        className="relative max-h-[24rem] overflow-y-auto px-2 py-2"
+        className="relative min-h-0 flex-1 overflow-y-auto px-2 py-2 sm:max-h-[24rem]"
         role="list"
         aria-label={mergedLabels.listLabel}
       >
@@ -657,6 +674,7 @@ export default function TopNavNotificationDropdown({
           />
         </button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

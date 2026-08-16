@@ -79,7 +79,7 @@ export default function RegistrationFields({
         <TextField label={labels.addressLine} required={false} value={form.addressLine} onChange={(value) => updateField("addressLine", value)} />
         <TextField label={labels.city} required={false} value={form.city} onChange={(value) => updateField("city", value)} />
         <TextField label={labels.district} required={false} value={form.district} onChange={(value) => updateField("district", value)} />
-        <TextField label={labels.studentPhone} required={false} value={form.studentPhone} onChange={(value) => updateField("studentPhone", value)} />
+        <TextField label={labels.studentPhone} type="tel" required={false} value={form.studentPhone} onChange={(value) => updateField("studentPhone", value)} />
         <TextField label={labels.studentEmail} type="email" required={false} value={form.studentEmail} onChange={(value) => updateField("studentEmail", value)} />
       </FieldSection>
 
@@ -146,8 +146,8 @@ function GuardianFields({
         <TextField label={labels.guardianRelation} value={guardian.relation} onChange={(value) => updateGuardian(index, "relation", value)} />
         <TextField label={labels.guardianFirstName} required={false} value={guardian.firstName} onChange={(value) => updateGuardian(index, "firstName", value)} />
         <TextField label={labels.guardianLastName} required={false} value={guardian.lastName} onChange={(value) => updateGuardian(index, "lastName", value)} />
-        <TextField label={labels.guardianPhone} value={guardian.phonePrimary} onChange={(value) => updateGuardian(index, "phonePrimary", value)} />
-        <TextField label={labels.guardianSecondaryPhone} required={false} value={guardian.phoneSecondary} onChange={(value) => updateGuardian(index, "phoneSecondary", value)} />
+        <TextField label={labels.guardianPhone} type="tel" value={guardian.phonePrimary} onChange={(value) => updateGuardian(index, "phonePrimary", value)} />
+        <TextField label={labels.guardianSecondaryPhone} type="tel" required={false} value={guardian.phoneSecondary} onChange={(value) => updateGuardian(index, "phoneSecondary", value)} />
         <TextField label={labels.guardianEmail} type="email" required={false} value={guardian.email} onChange={(value) => updateGuardian(index, "email", value)} />
         <TextField label={labels.guardianNationalId} required={false} value={guardian.nationalId} onChange={(value) => updateGuardian(index, "nationalId", value)} />
         <TextField label={labels.guardianJobTitle} required={false} value={guardian.jobTitle} onChange={(value) => updateGuardian(index, "jobTitle", value)} />

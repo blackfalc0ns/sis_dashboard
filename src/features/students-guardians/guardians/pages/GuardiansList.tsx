@@ -655,6 +655,7 @@ export default function GuardiansList() {
               <label className="text-sm font-medium text-gray-700">
                 {t("columns.phone")}
                 <Input
+                  type="tel"
                   value={editGuardianForm.phone_primary}
                   onChange={(event) =>
                     setEditGuardianForm((current) => ({
@@ -669,6 +670,7 @@ export default function GuardiansList() {
               <label className="text-sm font-medium text-gray-700">
                 {t("fields.phone_secondary")}
                 <Input
+                  type="tel"
                   value={editGuardianForm.phone_secondary}
                   onChange={(event) =>
                     setEditGuardianForm((current) => ({

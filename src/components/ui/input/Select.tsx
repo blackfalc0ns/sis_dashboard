@@ -18,6 +18,10 @@ export interface SelectOption {
   label: string;
   disabled?: boolean;
   searchText?: string;
+  leadingContent?: ReactNode;
+  trailingContent?: ReactNode;
+  triggerLabel?: string;
+  ariaLabel?: string;
 }
 
 export interface SelectProps {
@@ -38,6 +42,9 @@ export interface SelectProps {
   name?: string;
   searchable?: boolean;
   searchPlaceholder?: string;
+  searchLabel?: string;
+  menuLabel?: string;
+  triggerAriaLabel?: string;
   noOptionsText?: string;
   noResultsText?: string;
   searchMode?: "client" | "server";
@@ -68,6 +75,9 @@ export default function Select({
   name,
   searchable = false,
   searchPlaceholder = "Search...",
+  searchLabel,
+  menuLabel,
+  triggerAriaLabel,
   noOptionsText = "No options available",
   noResultsText = "No matching results",
   searchMode = "client",
@@ -201,7 +211,7 @@ export default function Select({
   }, [normalizedSearchQuery, options, searchable, searchMode]);
 
   const selectedOption = options.find((opt) => opt.value === selectedValue);
-  const displayLabel = selectedOption?.label || placeholder;
+  const displayLabel = selectedOption?.triggerLabel || selectedOption?.label || placeholder;
 
   const menu = isOpen ? (
     <div
@@ -229,6 +239,7 @@ export default function Select({
             <input
               ref={searchInputRef}
               type="text"
+              aria-label={searchLabel}
               value={searchQuery}
               onChange={(event) => updateSearchQuery(event.target.value)}
               onClick={(event) => event.stopPropagation()}
@@ -241,6 +252,7 @@ export default function Select({
         </div>
       )}
       <ul
+        aria-label={menuLabel}
         className="min-h-0 flex-1 py-1 overflow-y-auto"
         onScroll={(event) => {
           const list = event.currentTarget;
@@ -270,6 +282,7 @@ export default function Select({
                 type="button"
                 onClick={() => handleSelect(option)}
                 disabled={option.disabled}
+                aria-label={option.ariaLabel}
                 className={`group w-full flex items-center px-4 py-2.5 text-sm ${isRTL ? "text-right" : "text-left"} transition-all duration-200 ${
                   option.disabled
                     ? "text-gray-400 cursor-not-allowed opacity-50"
@@ -278,7 +291,17 @@ export default function Select({
                       : "text-gray-700 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200"
                 }`}
               >
-                <span dir="auto">{option.label}</span>
+                {option.leadingContent ? (
+                  <span className="me-3 flex shrink-0 items-center">
+                    {option.leadingContent}
+                  </span>
+                ) : null}
+                <span dir="auto" className="min-w-0 flex-1">
+                  {option.label}
+                </span>
+                {option.trailingContent ? (
+                  <span className="ms-3 shrink-0">{option.trailingContent}</span>
+                ) : null}
               </button>
             </li>
           ))
@@ -349,6 +372,8 @@ export default function Select({
           aria-controls={isOpen ? menuId : undefined}
           aria-describedby={helperText || error ? messageId : undefined}
           aria-expanded={isOpen}
+          aria-haspopup="listbox"
+          aria-label={triggerAriaLabel}
           onClick={() => {
             if (disabled) return;
             if (isOpen) {
@@ -358,6 +383,23 @@ export default function Select({
             }
             updateMenuPosition();
             onOpen?.();
+            setIsOpen(true);
+          }}
+          onKeyDown={(event) => {
+            if (
+              !searchable ||
+              event.key.length !== 1 ||
+              event.ctrlKey ||
+              event.metaKey ||
+              event.altKey
+            ) {
+              return;
+            }
+
+            event.preventDefault();
+            updateMenuPosition();
+            onOpen?.();
+            updateSearchQuery(event.key);
             setIsOpen(true);
           }}
           disabled={disabled}
@@ -377,11 +419,15 @@ export default function Select({
             ${className}
           `}
         >
-          <span
-            dir="auto"
-            className={`${!selectedOption ? "text-gray-400" : "text-gray-900"}`}
-          >
-            {displayLabel}
+          <span className={`flex min-w-0 items-center ${!selectedOption ? "text-gray-400" : "text-gray-900"}`}>
+            {selectedOption?.leadingContent ? (
+              <span className="me-2 flex shrink-0 items-center">
+                {selectedOption.leadingContent}
+              </span>
+            ) : null}
+            <span dir="auto" className="truncate">
+              {displayLabel}
+            </span>
           </span>
           <ChevronDown
             className={`w-4 h-4 ${error ? "text-red-500" : "text-gray-400"} transition-transform duration-200 ${isOpen ? "rotate-180" : ""} ${isRTL ? "mr-2" : "ml-2"}`}

@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import Input from "@/components/ui/input/Input";
 import { isApiError } from "@/lib/api-error";
 import { fetchGuardians } from "@/features/students-guardians/guardians/services/guardiansApiService";
 import PaginatedUserSelect from "@/features/settings/users/components/PaginatedUserSelect";
@@ -94,28 +95,17 @@ function Field({
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_|_$/g, "");
-  const synchronizeValue = (event: React.FormEvent<HTMLInputElement>) =>
-    onChange(event.currentTarget.value);
   return (
-    <label className="block text-sm font-medium text-gray-700">
-      {label}
-      {required && <span className="text-red-600"> *</span>}
-      <input
-        name={name}
-        type={type}
-        value={value}
-        disabled={disabled}
-        onInput={synchronizeValue}
-        onBlur={synchronizeValue}
-        aria-invalid={Boolean(error)}
-        className={`${inputClass} ${error ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}`}
-      />
-      {error ? (
-        <span className="mt-1 block text-xs font-normal text-red-700">
-          {error}
-        </span>
-      ) : null}
-    </label>
+    <Input
+      name={name}
+      label={label}
+      type={type}
+      value={value}
+      disabled={disabled}
+      required={required}
+      error={error}
+      onChange={(event) => onChange(event.target.value)}
+    />
   );
 }
 
@@ -544,6 +534,7 @@ function StudentStep({
         />
         <Field
           label={t("student_step.fields.phone")}
+          type="tel"
           value={form.student.studentPhone}
           onChange={(value) => update({ studentPhone: value })}
         />
@@ -755,6 +746,7 @@ function GuardianCard({
             />
             <Field
               label={t("guardians_step.fields.phone_primary")}
+              type="tel"
               required
               value={guardian.phonePrimary}
               onChange={(value) =>
@@ -763,6 +755,7 @@ function GuardianCard({
             />
             <Field
               label={t("guardians_step.fields.phone_secondary")}
+              type="tel"
               value={guardian.phoneSecondary}
               onChange={(value) =>
                 update(guardian.key, { phoneSecondary: value })

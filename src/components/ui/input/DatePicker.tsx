@@ -144,6 +144,9 @@ export default function DatePicker({
             }
             format={dateFormat}
             slotProps={{
+              popper: {
+                sx: { zIndex: 1500 },
+              },
               textField: {
                 error: Boolean(error),
                 placeholder: placeholder,

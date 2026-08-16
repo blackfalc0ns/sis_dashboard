@@ -210,7 +210,7 @@ function StudentProfileLayoutContent({ children }: { children: React.ReactNode }
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm overflow-visible">
         <div className="border-b border-gray-200 overflow-x-auto">
           <div className="flex min-w-max">
             {tabs.map((tab) => {

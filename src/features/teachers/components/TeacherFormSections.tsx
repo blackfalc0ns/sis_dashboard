@@ -182,7 +182,7 @@ function IdentitySection({ form, onChange, requiredError, showIdentityTools = fa
       )}</>}
       <div className="grid gap-3 md:grid-cols-2">
         <Input type="email" label={t("fields.contact_email")} value={form.identity.contactEmail} onChange={(event) => updateIdentity({ contactEmail: event.target.value })} error={requiredError("contactEmail")} />
-        <Input label={t("fields.phone")} value={form.identity.phone} onChange={(event) => updateIdentity({ phone: event.target.value })} error={requiredError("phone")} />
+        <Input type="tel" label={t("fields.phone")} value={form.identity.phone} onChange={(event) => updateIdentity({ phone: event.target.value })} error={requiredError("phone")} />
       </div>
     </section>
   );

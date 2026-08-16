@@ -226,7 +226,7 @@ describe("TopNavNotificationDropdown", () => {
     );
   });
 
-  it("has the approved responsive layout classes on the wrapper dialog container", () => {
+  it("uses a mobile bottom sheet and desktop dropdown layout", () => {
     render(
       <TopNavNotificationDropdown
         notifications={mockNotifications}
@@ -240,11 +240,19 @@ describe("TopNavNotificationDropdown", () => {
     );
 
     const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveClass("fixed", "start-3", "end-3", "top-[72px]");
+    expect(dialog).toHaveClass(
+      "fixed",
+      "inset-x-0",
+      "bottom-0",
+      "max-h-[80dvh]",
+      "rounded-t-2xl",
+    );
     expect(dialog).toHaveClass(
       "sm:absolute",
-      "sm:start-auto",
+      "sm:inset-x-auto",
+      "sm:bottom-auto",
       "sm:end-0",
+      "sm:top-full",
       "sm:w-[400px]",
     );
   });

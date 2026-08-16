@@ -43,6 +43,14 @@ vi.mock("next-intl", () => ({
         "top_nav_notifications.untitled": "Untitled update",
         "top_nav_notifications.no_preview": "No preview available.",
         "top_nav_notifications.system": "System",
+        "top_nav_notifications.close": "Close notifications",
+        "mobile_apps.menu_button": "Mobile apps",
+        "mobile_apps.title": "School mobile apps",
+        "mobile_apps.close": "Close mobile apps",
+        "app_download.student": "Student App",
+        "app_download.teacher": "Teacher App",
+        "app_download.parent": "Parent App",
+        "app_download.dismissal_staff": "Dismissal Staff App",
         "top_nav_profile.title": "Profile",
         "top_nav_profile.description": "Current account details from the authenticated user session.",
         "top_nav_profile.not_provided": "Not provided",
@@ -174,6 +182,27 @@ describe("TopNav Notification Integration", () => {
     expect(screen.getByRole("dialog", { name: "Notifications" })).toBeInTheDocument();
   });
 
+  it("closes the notification sheet from its close control", async () => {
+    renderTopNav();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(150);
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /notifications/i }));
+    });
+    act(() => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Close notifications" }),
+      );
+    });
+
+    expect(
+      screen.queryByRole("dialog", { name: "Notifications" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("updates correctly when socket events alter notification list size or unread badge status", async () => {
     renderTopNav();
 
@@ -239,5 +268,46 @@ describe("TopNav Notification Integration", () => {
     expect(screen.getByText("school.admin")).toBeInTheDocument();
     expect(screen.getByText("settings.users.view")).toBeInTheDocument();
     expect(screen.getByText("attendance.sessions.view")).toBeInTheDocument();
+  });
+
+  it("shows all school mobile apps from the global menu", async () => {
+    renderTopNav();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(150);
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Mobile apps" }));
+    });
+
+    expect(
+      screen.getByRole("dialog", { name: "School mobile apps" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Student App")).toBeInTheDocument();
+    expect(screen.getByText("Teacher App")).toBeInTheDocument();
+    expect(screen.getByText("Parent App")).toBeInTheDocument();
+    expect(screen.getByText("Dismissal Staff App")).toBeInTheDocument();
+  });
+
+  it("closes the mobile apps sheet from its close control", async () => {
+    renderTopNav();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(150);
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: "Mobile apps" }));
+    });
+    act(() => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Close mobile apps" }),
+      );
+    });
+
+    expect(
+      screen.queryByRole("dialog", { name: "School mobile apps" }),
+    ).not.toBeInTheDocument();
   });
 });

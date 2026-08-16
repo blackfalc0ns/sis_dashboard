@@ -7,6 +7,7 @@ import GoogleLocationPicker, {
 
 vi.mock("next-intl", () => ({
   useLocale: () => "en",
+  useTranslations: () => (key: string) => key,
 }));
 
 const labels: GoogleLocationPickerLabels = {
