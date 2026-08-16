@@ -9168,7 +9168,7 @@
         "errors": {
           "search_failed": "فشل البحث عن المواقع.",
           "resolve_failed": "فشل تحديد تفاصيل الموقع المختار.",
-          "api_key_missing": "مفتاح Google Maps API غير موجود. اضبط NEXT_PUBLIC_GOOGLE_MAPS_API_KEY لاستخدام محدد الخريطة.",
+          "api_key_missing": "مفتاح Google Maps API غير موجود. اضبط GOOGLE_MAPS_API_KEY لاستخدام محدد الخريطة.",
           "maps_load_failed": "تعذر تحميل خرائط Google. تحقق من المفتاح والفوترة وتفعيل Maps JavaScript وPlaces APIs.",
           "geolocation_not_supported": "متصفحك لا يدعم الوصول إلى الموقع.",
           "geolocation_permission_denied": "تم رفض إذن الموقع. اسمح بالوصول من المتصفح ثم حاول مرة أخرى.",

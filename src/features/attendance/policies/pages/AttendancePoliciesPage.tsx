@@ -140,7 +140,7 @@ export default function AttendancePoliciesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   const handleCreatePolicy = () => {
     setSelectedPolicy(null);
@@ -489,10 +489,7 @@ export default function AttendancePoliciesPage() {
   }
 
   return (
-    <div
-      style={{ backgroundColor: "var(--color-neutral-50)" }}
-      className="flex min-h-0 flex-1 flex-col"
-    >
+    <div className="flex min-h-0 flex-1 flex-col">
       {isReadOnly && (
         <AttendanceReadOnlyBanner message={t("readonly_banner")} />
       )}

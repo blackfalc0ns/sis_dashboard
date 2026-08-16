@@ -90,7 +90,7 @@ export default function GoogleLocationPicker({
   onValidityChange,
 }: GoogleLocationPickerProps) {
   const locale = useLocale();
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
   const markerRef = useRef<GoogleAdvancedMarkerInstance | null>(null);

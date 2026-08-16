@@ -47,7 +47,7 @@ describe("GoogleLocationPicker", () => {
   const originalGeolocation = navigator.geolocation;
 
   beforeEach(() => {
-    vi.stubEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "");
+    vi.stubEnv("GOOGLE_MAPS_API_KEY", "");
   });
 
   afterEach(() => {

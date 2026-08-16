@@ -22,9 +22,11 @@ function isScopePermissionDenied(error: AxiosError): boolean {
     | { code?: string; error?: { code?: string } }
     | undefined;
 
-  return response?.status === 403 &&
+  return (
+    response?.status === 403 &&
     (payload?.code === "auth.scope.missing" ||
-      payload?.error?.code === "auth.scope.missing");
+      payload?.error?.code === "auth.scope.missing")
+  );
 }
 
 function getMissingScopePermissions(error: AxiosError): string[] {
@@ -81,17 +83,18 @@ function expireSession() {
 
 function getTokenExpiry(token: string): number | null {
   try {
-    const base64Url = token.split('.')[1];
+    const base64Url = token.split(".")[1];
     if (!base64Url) return null;
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = typeof window !== 'undefined'
-      ? decodeURIComponent(
-          atob(base64)
-            .split('')
-            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-            .join('')
-        )
-      : Buffer.from(base64, 'base64').toString('utf8');
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload =
+      typeof window !== "undefined"
+        ? decodeURIComponent(
+            atob(base64)
+              .split("")
+              .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+              .join(""),
+          )
+        : Buffer.from(base64, "base64").toString("utf8");
     const decoded = JSON.parse(jsonPayload);
     return decoded.exp ? decoded.exp * 1000 : null;
   } catch {
@@ -103,7 +106,9 @@ async function doRefresh(): Promise<string> {
   const refreshToken = tokenStorage.getRefreshToken();
 
   if (!refreshToken) {
-    throw ApiError.unauthorized("Your session has expired. Please sign in again.");
+    throw ApiError.unauthorized(
+      "Your session has expired. Please sign in again.",
+    );
   }
 
   const response = await axios.post(
@@ -294,9 +299,7 @@ export async function apiWithToken<T>(
   );
   const method = (options?.method || "GET").toUpperCase();
   const body =
-    typeof options?.body === "string"
-      ? JSON.parse(options.body)
-      : undefined;
+    typeof options?.body === "string" ? JSON.parse(options.body) : undefined;
 
   if (method === "POST") {
     return apiPost<T>(endpoint, body);

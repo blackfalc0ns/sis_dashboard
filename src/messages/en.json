@@ -9167,7 +9167,7 @@
         "errors": {
           "search_failed": "Failed to search for locations.",
           "resolve_failed": "Failed to resolve the selected map position.",
-          "api_key_missing": "Google Maps API key is missing. Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to use the map picker.",
+          "api_key_missing": "Google Maps API key is missing. Set GOOGLE_MAPS_API_KEY to use the map picker.",
           "maps_load_failed": "Failed to load Google Maps. Check the API key, billing, and enabled Maps JavaScript/Places APIs.",
           "geolocation_not_supported": "Your browser does not support location access.",
           "geolocation_permission_denied": "Location permission was denied. Allow access in your browser and try again.",
