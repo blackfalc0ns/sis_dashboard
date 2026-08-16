@@ -66,7 +66,7 @@ The current implementation is not yet aligned with the Sprint 11 identity and em
 
 ### Current Behavior
 
-- `src/lib/api.ts` creates an Axios `apiClient` with base URL from `NEXT_PUBLIC_API_URL`, defaulting to `https://api.moazez.sa/api/v1`.
+- `src/lib/api.ts` creates an Axios `apiClient` with base URL from `API_URL`, defaulting to `https://api.moazez.sa/api/v1`.
 - Request interceptor attaches the access token from `tokenStorage`.
 - Response interceptor refreshes on `401` through `/auth/refresh`, queues concurrent refresh subscribers, updates stored tokens, and wraps Axios failures in `ApiError`.
 - Typed helpers exist: `apiGet<T>`, `apiPost<T>`, `apiPut<T>`, `apiPatch<T>`, `apiDelete<T>`.

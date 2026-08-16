@@ -289,7 +289,7 @@ export default function GoogleLocationPicker({
           mapTypeControl: false,
           fullscreenControl: true,
           streetViewControl: false,
-          mapId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID",
+          mapId: process.env.GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID",
         });
         const marker = new googleApi.maps.marker.AdvancedMarkerElement({
           map,

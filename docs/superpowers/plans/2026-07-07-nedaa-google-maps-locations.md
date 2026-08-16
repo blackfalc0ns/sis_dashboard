@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Use the existing `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`; never commit or print its value.
+- Use the existing `GOOGLE_MAPS_API_KEY`; never commit or print its value.
 - Preserve `schoolLatitude`, `schoolLongitude`, `allowedRadiusMeters`, `latitude`, and `longitude` API fields.
 - Keep manual coordinate editing available when Google Maps cannot load.
 - Accept latitude only from `-90` through `90` and longitude only from `-180` through `180`; require both or neither.
@@ -212,7 +212,7 @@ Mock `loadGoogleMapsApi` with lightweight `Map`, `Marker`, `Circle`, `Autocomple
 
 ```ts
 it("keeps manual coordinates editable when the API key is missing", async () => {
-  vi.stubEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "");
+  vi.stubEnv("GOOGLE_MAPS_API_KEY", "");
   render(<GoogleLocationPicker value={null} labels={labels} onChange={onChange} />);
   expect(await screen.findByText(labels.errors.api_key_missing)).toBeVisible();
   await user.type(screen.getByLabelText(labels.latitude), "24.7136");

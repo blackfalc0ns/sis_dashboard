@@ -6,7 +6,7 @@ Allow the Branding location picker to load the Google Maps JavaScript API, Place
 
 ## Key Contract
 
-The picker continues to use one public browser key from `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`. The key must be configured outside source control and restricted in Google Cloud to authorized website referrers.
+The picker continues to use one public browser key from `GOOGLE_MAPS_API_KEY`. The key must be configured outside source control and restricted in Google Cloud to authorized website referrers.
 
 Because the picker loads `google.maps.Map`, the Places library, and `google.maps.Geocoder` from the Maps JavaScript API, that browser key must authorize Maps JavaScript API, the matching Places API used by the existing legacy Places service, and Geocoding API.
 
@@ -27,7 +27,7 @@ Existing application sources and directives remain intact. The change does not r
 
 ## Runtime Behavior
 
-The user must populate `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` locally and restart the Next.js development or production process, because `NEXT_PUBLIC_*` variables are embedded into the client bundle at build time.
+The user must populate `GOOGLE_MAPS_API_KEY` locally and restart the Next.js development or production process, because Next.js publishes this explicitly configured value into the client bundle at build time.
 
 The picker retains its existing localized missing-key and load-failure messages. Browser console errors from Google remain the authoritative diagnostic for invalid billing, disabled APIs, or rejected HTTP referrers after CSP and environment configuration are correct.
 
@@ -36,6 +36,6 @@ The picker retains its existing localized missing-key and load-failure messages.
 Verification covers:
 
 - The CSP includes the Google Maps script, connection, image, font, frame, and worker sources required by the integration.
-- The environment example continues to declare `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` without a value.
+- The environment example continues to declare `GOOGLE_MAPS_API_KEY` without a value.
 - Type checking and the production build accept the updated Next.js configuration.
 - No API key value is added to tracked files or command output.

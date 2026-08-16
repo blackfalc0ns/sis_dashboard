@@ -13,7 +13,7 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+  const apiBaseUrl = process.env.API_URL?.replace(/\/$/, "");
   if (!apiBaseUrl) {
     return NextResponse.json({ error: "API URL is not configured" }, { status: 500 });
   }

@@ -35,25 +35,25 @@ describe("mobile app store configuration", () => {
   it.each([
     [
       "student",
-      "NEXT_PUBLIC_MOBILE_APP_STUDENT",
+      "MOBILE_APP_STUDENT",
       "https://play.google.com/store/apps/details?id=student",
       "https://apps.apple.com/app/student/id123",
     ],
     [
       "teacher",
-      "NEXT_PUBLIC_MOBILE_APP_TEACHER",
+      "MOBILE_APP_TEACHER",
       "https://play.google.com/store/apps/details?id=teacher",
       "https://apps.apple.com/app/teacher/id456",
     ],
     [
       "parent",
-      "NEXT_PUBLIC_MOBILE_APP_PARENT",
+      "MOBILE_APP_PARENT",
       "https://play.google.com/store/apps/details?id=parent",
       "https://apps.apple.com/app/parent/id789",
     ],
     [
       "dismissalStaff",
-      "NEXT_PUBLIC_MOBILE_APP_DISMISSAL_STAFF",
+      "MOBILE_APP_DISMISSAL_STAFF",
       "https://play.google.com/store/apps/details?id=dismissal",
       "https://apps.apple.com/app/dismissal/id321",
     ],

@@ -92,7 +92,7 @@ vi.mock("axios", () => ({
 describe("api refresh queue", () => {
   beforeEach(() => {
     vi.resetModules();
-    process.env.NEXT_PUBLIC_API_URL = "https://api.test/api/v1";
+    process.env.API_URL = "https://api.test/api/v1";
     localStorage.clear();
     axiosMocks.refreshPost.mockReset();
     axiosMocks.state.requestFulfilled = undefined;
@@ -254,12 +254,12 @@ describe("api refresh queue", () => {
     );
   });
 
-  it("throws a clear error when NEXT_PUBLIC_API_URL is missing", async () => {
+  it("throws a clear error when API_URL is missing", async () => {
     vi.resetModules();
-    process.env.NEXT_PUBLIC_API_URL = "";
+    process.env.API_URL = "";
 
     await expect(import("../api")).rejects.toThrow(
-      "Missing NEXT_PUBLIC_API_URL. Set it in your environment.",
+      "Missing API_URL. Set it in your environment.",
     );
   });
 });

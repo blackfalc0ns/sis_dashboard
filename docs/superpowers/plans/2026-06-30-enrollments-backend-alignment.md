@@ -124,7 +124,7 @@ Update:
 - `src/features/students-guardians/students/services/enrollmentService.ts`
 - related adapter/service tests
 
-Remove unsupported PATCH, bulk assignment, and bulk promotion API calls and the `NEXT_PUBLIC_USE_STUDENTS_GUARDIANS_ENROLLMENT_API` switch. Route supported async behavior through the new contract-backed API layer or a thin shared adapter.
+Remove unsupported PATCH, bulk assignment, and bulk promotion API calls and the `USE_STUDENTS_GUARDIANS_ENROLLMENT_API` switch. Route supported async behavior through the new contract-backed API layer or a thin shared adapter.
 
 Preserve mock-only utilities only when another screen still imports them; do not let the production Enrollment page use them.
 

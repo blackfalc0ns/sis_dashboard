@@ -13,7 +13,7 @@ The existing route remains `/{lang}/admissions/enrollment`. Its page is redesign
 Remove:
 
 - `mockStudentEnrollments`, `mockStudents`, and `mockApplications` as Enrollment page data sources.
-- The `NEXT_PUBLIC_USE_STUDENTS_GUARDIANS_ENROLLMENT_API` production switch.
+- The `USE_STUDENTS_GUARDIANS_ENROLLMENT_API` production switch.
 - Unsupported `PATCH /enrollments/:id`, `/bulk-assign`, and `/promote-active` calls.
 - Bulk classroom assignment and bulk promotion controls.
 - Fabricated KPI chart series and hard-coded academic-year KPI values.

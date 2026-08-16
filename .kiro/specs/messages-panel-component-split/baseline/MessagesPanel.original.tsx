@@ -954,7 +954,7 @@ function AttachmentCard({
     (file as Record<string, unknown> | undefined)?.sizeBytes as string | undefined,
   );
   const fileId = attachment.fileId || file?.id;
-  const href = attachment.url || file?.url || (fileId ? `${process.env.NEXT_PUBLIC_API_URL || "https://api.moazez.sa/api/v1"}/files/${fileId}/download` : undefined);
+  const href = attachment.url || file?.url || (fileId ? `${process.env.API_URL || "https://api.moazez.sa/api/v1"}/files/${fileId}/download` : undefined);
   const [isDeleting, setIsDeleting] = useState(false);
   const handleDelete = async (event: MouseEvent) => {
     event.preventDefault();

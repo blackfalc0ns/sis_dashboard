@@ -10,16 +10,16 @@ const REALTIME_TRANSPORTS = ["websocket", "polling"] as const;
 // REALTIME_SOCKET_PATH is the Engine.IO transport path. Seeing /socket.io in
 // the browser network tab is normal when the backend uses the default transport
 // path. If the backend mounts Engine.IO under /api/v1/realtime/socket.io, set
-// NEXT_PUBLIC_REALTIME_SOCKET_PATH=/api/v1/realtime/socket.io.
+// REALTIME_SOCKET_PATH=/api/v1/realtime/socket.io.
 export const COMMUNICATION_REALTIME_URL =
-  process.env.NEXT_PUBLIC_REALTIME_URL ||
+  process.env.REALTIME_URL ||
   "https://api.moazez.sa/api/v1/realtime";
 
 export const COMMUNICATION_REALTIME_SOCKET_PATH =
-  process.env.NEXT_PUBLIC_REALTIME_SOCKET_PATH || undefined;
+  process.env.REALTIME_SOCKET_PATH || undefined;
 
 export const COMMUNICATION_REALTIME_DEBUG =
-  process.env.NEXT_PUBLIC_REALTIME_DEBUG === "true";
+  process.env.REALTIME_DEBUG === "true";
 
 export function getCommunicationRealtimeNamespace(): string {
   try {

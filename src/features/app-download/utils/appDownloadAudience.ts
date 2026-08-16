@@ -23,25 +23,25 @@ export const APP_DOWNLOAD_CONFIG: Record<
 > = {
   student: {
     translationKey: "student",
-    androidUrl: process.env.NEXT_PUBLIC_MOBILE_APP_STUDENT_GOOGLE_PLAY_URL || null,
-    iosUrl: process.env.NEXT_PUBLIC_MOBILE_APP_STUDENT_APP_STORE_URL || null,
+    androidUrl: process.env.MOBILE_APP_STUDENT_GOOGLE_PLAY_URL || null,
+    iosUrl: process.env.MOBILE_APP_STUDENT_APP_STORE_URL || null,
   },
   teacher: {
     translationKey: "teacher",
-    androidUrl: process.env.NEXT_PUBLIC_MOBILE_APP_TEACHER_GOOGLE_PLAY_URL || null,
-    iosUrl: process.env.NEXT_PUBLIC_MOBILE_APP_TEACHER_APP_STORE_URL || null,
+    androidUrl: process.env.MOBILE_APP_TEACHER_GOOGLE_PLAY_URL || null,
+    iosUrl: process.env.MOBILE_APP_TEACHER_APP_STORE_URL || null,
   },
   parent: {
     translationKey: "parent",
-    androidUrl: process.env.NEXT_PUBLIC_MOBILE_APP_PARENT_GOOGLE_PLAY_URL || null,
-    iosUrl: process.env.NEXT_PUBLIC_MOBILE_APP_PARENT_APP_STORE_URL || null,
+    androidUrl: process.env.MOBILE_APP_PARENT_GOOGLE_PLAY_URL || null,
+    iosUrl: process.env.MOBILE_APP_PARENT_APP_STORE_URL || null,
   },
   dismissalStaff: {
     translationKey: "dismissal_staff",
     androidUrl:
-      process.env.NEXT_PUBLIC_MOBILE_APP_DISMISSAL_STAFF_GOOGLE_PLAY_URL || null,
+      process.env.MOBILE_APP_DISMISSAL_STAFF_GOOGLE_PLAY_URL || null,
     iosUrl:
-      process.env.NEXT_PUBLIC_MOBILE_APP_DISMISSAL_STAFF_APP_STORE_URL || null,
+      process.env.MOBILE_APP_DISMISSAL_STAFF_APP_STORE_URL || null,
   },
 };
 

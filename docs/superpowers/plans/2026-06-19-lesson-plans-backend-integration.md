@@ -244,7 +244,7 @@ git commit -m "feat: align lesson plans API routes"
 
 - [ ] **Step 1: Write failing service tests**
 
-Assert the default adapter is `lessonPlansApiAdapter`, public functions delegate without section IDs, and production exports do not use in-memory maps, delay helpers, generated IDs, local summary calculation, or `NEXT_PUBLIC_USE_LESSON_PLANS_API`.
+Assert the default adapter is `lessonPlansApiAdapter`, public functions delegate without section IDs, and production exports do not use in-memory maps, delay helpers, generated IDs, local summary calculation, or `USE_LESSON_PLANS_API`.
 
 - [ ] **Step 2: Run service tests and verify RED**
 

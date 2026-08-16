@@ -6,7 +6,7 @@ Use this checklist to verify the Communication module end to end in both English
 
 - [ ] User can log in using the existing Auth flow.
 - [ ] API base URL is configured for the target environment.
-- [ ] Realtime URL is configured through `NEXT_PUBLIC_REALTIME_URL`, or the fallback realtime URL is acceptable for the test environment.
+- [ ] Realtime URL is configured through `REALTIME_URL`, or the fallback realtime URL is acceptable for the test environment.
 - [ ] `socket.io-client` is installed in `package.json`.
 - [ ] Communication routes load without console errors.
 - [ ] Auth logout disconnects realtime sockets.

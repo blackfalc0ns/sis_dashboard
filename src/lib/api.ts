@@ -53,10 +53,10 @@ function publishScopePermissionDenied(missingPermissions: string[]) {
   }
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const BASE_URL = process.env.API_URL;
 
 if (!BASE_URL) {
-  throw new Error("Missing NEXT_PUBLIC_API_URL. Set it in your environment.");
+  throw new Error("Missing API_URL. Set it in your environment.");
 }
 
 export const apiClient: AxiosInstance = axios.create({

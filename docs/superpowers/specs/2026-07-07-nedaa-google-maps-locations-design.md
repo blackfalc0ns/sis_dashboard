@@ -6,7 +6,7 @@ Replace raw coordinate-only location editing in Nedaa with Google address search
 
 ## Existing Contracts
 
-- The browser key is supplied through `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
+- The browser key is supplied through `GOOGLE_MAPS_API_KEY`.
 - `next.config.ts` already permits the Google Maps resources required by the application.
 - School settings persist `schoolLatitude` and `schoolLongitude` through `UpdateDismissalSettingsPayload`.
 - Gates persist `latitude` and `longitude` through `CreateDismissalGatePayload` and `UpdateDismissalGatePayload`.

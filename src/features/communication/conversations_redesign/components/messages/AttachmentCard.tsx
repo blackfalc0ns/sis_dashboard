@@ -49,7 +49,7 @@ export function AttachmentCard({
     attachment.url ||
     file?.url ||
     (fileId
-      ? `${process.env.NEXT_PUBLIC_API_URL || "https://api.moazez.sa/api/v1"}/files/${fileId}/download`
+      ? `${process.env.API_URL || "https://api.moazez.sa/api/v1"}/files/${fileId}/download`
       : undefined);
   const mimeType =
     attachment.mimeType || file?.mimeType || legacyFile?.mimetype;

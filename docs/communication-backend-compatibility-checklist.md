@@ -4,11 +4,11 @@ Use this checklist when changing or QA-ing the Communication module against the 
 
 ## 1. Environment
 
-- [ ] `NEXT_PUBLIC_API_URL=https://api.moazez.sa/api/v1`
-- [ ] `NEXT_PUBLIC_REALTIME_URL=https://api.moazez.sa/api/v1/realtime`
-- [ ] `NEXT_PUBLIC_REALTIME_SOCKET_PATH=` is empty unless the backend explicitly adds a custom Engine.IO path.
+- [ ] `API_URL=https://api.moazez.sa/api/v1`
+- [ ] `REALTIME_URL=https://api.moazez.sa/api/v1/realtime`
+- [ ] `REALTIME_SOCKET_PATH=` is empty unless the backend explicitly adds a custom Engine.IO path.
 - [ ] Seeing `/socket.io` in the browser network tab is expected when the backend uses the default Socket.IO transport path.
-- [ ] `NEXT_PUBLIC_REALTIME_DEBUG=true` is enabled only when diagnosing realtime connection issues.
+- [ ] `REALTIME_DEBUG=true` is enabled only when diagnosing realtime connection issues.
 
 ## 2. REST Payload Compatibility
 
